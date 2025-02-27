@@ -372,7 +372,7 @@ const Dashboard = () => {
               </div>
               <button
                 onClick={handleCopyPrompt}
-                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full hover:opacity-90 transition-opacity"
+                className="aurora-button"
               >
                 <Copy className="w-4 h-4" />
                 Copy
