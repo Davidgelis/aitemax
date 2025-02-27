@@ -302,12 +302,12 @@ const Dashboard = () => {
         );
       case 3:
         return (
-          <div className="border rounded-xl p-6 bg-card">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Dynamic dashboard user step 3</h2>
+          <div className="border rounded-xl p-4 bg-card">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold">Dynamic dashboard user step 3</h2>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <button className="px-4 py-1 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white rounded-full hover:opacity-90 transition-opacity flex items-center gap-2">
+                  <button className="aurora-button">
                     <RotateCw className="w-4 h-4" />
                     Regenerate
                   </button>
@@ -327,47 +327,50 @@ const Dashboard = () => {
               </AlertDialog>
             </div>
 
-            <div className="mb-6">
+            <div className="mb-3">
               <Input
                 value={masterCommand}
                 onChange={(e) => setMasterCommand(e.target.value)}
                 placeholder="Master command, use it to adapt the prompt to any other similar needs"
-                className="w-full"
+                className="w-full h-8 text-sm"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="space-y-1.5">
                 {primaryToggles.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-background">
-                    <span className="text-sm">{item.label}</span>
+                  <div key={item.id} className="flex items-center justify-between py-1 px-2 border rounded-lg bg-background">
+                    <span className="text-xs">{item.label}</span>
                     <Switch
                       checked={selectedPrimary === item.id}
                       onCheckedChange={() => handlePrimaryToggle(item.id)}
+                      className="scale-75"
                     />
                   </div>
                 ))}
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {secondaryToggles.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-background">
-                    <span className="text-sm">{item.label}</span>
+                  <div key={item.id} className="flex items-center justify-between py-1 px-2 border rounded-lg bg-background">
+                    <span className="text-xs">{item.label}</span>
                     <Switch
                       checked={selectedSecondary === item.id}
                       onCheckedChange={() => handleSecondaryToggle(item.id)}
+                      className="scale-75"
                     />
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm">JSON Toggle view</span>
+                <span className="text-xs">JSON Toggle view</span>
                 <Switch
                   checked={showJson}
                   onCheckedChange={setShowJson}
+                  className="scale-75"
                 />
               </div>
               <button
@@ -383,7 +386,7 @@ const Dashboard = () => {
               <textarea
                 value={showJson ? JSON.stringify({ prompt: finalPrompt, masterCommand }, null, 2) : finalPrompt}
                 onChange={(e) => setFinalPrompt(e.target.value)}
-                className="w-full min-h-[300px] p-4 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full h-24 p-2 text-sm rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="Final Prompt"
                 readOnly={showJson}
               />
