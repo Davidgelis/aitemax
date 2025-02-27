@@ -23,7 +23,7 @@
   }
   
   .aurora-button {
-    @apply relative overflow-hidden bg-[linear-gradient(-45deg,#33fea6,#64bf95,white,#33fea6)] bg-[length:400%_400%] animate-aurora text-white font-medium px-6 py-2 rounded-full transition-all hover:scale-105 hover:shadow-lg;
+    @apply relative overflow-hidden bg-[linear-gradient(-45deg,#041524,#084b49,#33fea6,#64bf95,white)] bg-[length:400%_400%] animate-aurora text-white font-medium px-6 py-2 rounded-full transition-all hover:scale-105 hover:shadow-lg;
   }
   
   .input-glow {
