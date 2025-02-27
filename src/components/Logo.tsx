@@ -27,7 +27,7 @@ const Logo = () => {
       <h1 
         className="text-4xl font-light tracking-wider"
         style={{
-          background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95)",
+          background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white)",
           backgroundSize: "400% 400%",
           animation: "aurora 15s ease infinite",
           WebkitBackgroundClip: "text",
