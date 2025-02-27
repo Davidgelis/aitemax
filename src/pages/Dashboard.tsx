@@ -51,55 +51,55 @@ const Dashboard = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <main className="flex-1 p-6">
-          <div className="max-w-6xl mx-auto">
-            <h1 className="text-2xl font-semibold mb-6 text-foreground">Dynamic dashboard user step 1</h1>
-            
-            {/* Primary Toggles Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              {primaryToggles.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
-                  <span className="text-sm text-card-foreground">{item.label}</span>
-                  <Switch 
-                    id={item.id}
-                    checked={selectedPrimary === item.id}
-                    onCheckedChange={() => handlePrimaryToggle(item.id)}
-                  />
-                </div>
-              ))}
-            </div>
+          <div className="max-w-6xl mx-auto min-h-screen flex items-center justify-center">
+            <div className="w-full">
+              {/* Primary Toggles Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                {primaryToggles.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
+                    <span className="text-sm text-card-foreground">{item.label}</span>
+                    <Switch 
+                      id={item.id}
+                      checked={selectedPrimary === item.id}
+                      onCheckedChange={() => handlePrimaryToggle(item.id)}
+                    />
+                  </div>
+                ))}
+              </div>
 
-            <Separator className="my-4" />
+              <Separator className="my-4" />
 
-            {/* Secondary Toggles Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-              {secondaryToggles.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
-                  <span className="text-sm text-card-foreground">{item.label}</span>
-                  <Switch 
-                    id={item.id}
-                    checked={selectedSecondary === item.id}
-                    onCheckedChange={() => handleSecondaryToggle(item.id)}
-                  />
-                </div>
-              ))}
-            </div>
+              {/* Secondary Toggles Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {secondaryToggles.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
+                    <span className="text-sm text-card-foreground">{item.label}</span>
+                    <Switch 
+                      id={item.id}
+                      checked={selectedSecondary === item.id}
+                      onCheckedChange={() => handleSecondaryToggle(item.id)}
+                    />
+                  </div>
+                ))}
+              </div>
 
-            {/* Main Content Area */}
-            <div className="border rounded-xl p-6 bg-card min-h-[400px] relative">
-              <textarea 
-                className="w-full h-[300px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
-                placeholder="Start by typing your prompt"
-              />
-              <button className="absolute bottom-6 right-6 bg-gradient-to-r from-primary to-primary/80 text-white px-6 py-2 rounded-full hover:opacity-90 transition-opacity">
-                Analyze
-              </button>
-            </div>
+              {/* Main Content Area */}
+              <div className="border rounded-xl p-6 bg-card min-h-[400px] relative">
+                <textarea 
+                  className="w-full h-[300px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
+                  placeholder="Start by typing your prompt"
+                />
+                <button className="absolute bottom-6 right-6 bg-gradient-to-r from-primary to-primary/80 text-white px-6 py-2 rounded-full hover:opacity-90 transition-opacity">
+                  Analyze
+                </button>
+              </div>
 
-            {/* Pagination Dots */}
-            <div className="flex justify-center gap-2 mt-4">
-              <div className="w-2 h-2 rounded-full bg-primary" />
-              <div className="w-2 h-2 rounded-full bg-border" />
-              <div className="w-2 h-2 rounded-full bg-border" />
+              {/* Pagination Dots */}
+              <div className="flex justify-center gap-2 mt-4">
+                <div className="w-2 h-2 rounded-full bg-primary" />
+                <div className="w-2 h-2 rounded-full bg-border" />
+                <div className="w-2 h-2 rounded-full bg-border" />
+              </div>
             </div>
           </div>
         </main>
