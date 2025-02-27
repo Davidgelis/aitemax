@@ -364,25 +364,16 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs">JSON Toggle view</span>
-                <Switch
-                  checked={showJson}
-                  onCheckedChange={setShowJson}
-                  className="scale-75"
-                />
-              </div>
-              <button
-                onClick={handleCopyPrompt}
-                className="aurora-button"
-              >
-                <Copy className="w-4 h-4" />
-                Copy
-              </button>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs">JSON Toggle view</span>
+              <Switch
+                checked={showJson}
+                onCheckedChange={setShowJson}
+                className="scale-75"
+              />
             </div>
 
-            <div className="relative flex-1 min-h-[60vh]">
+            <div className="relative flex-1 min-h-[60vh] mb-3">
               <textarea
                 value={showJson ? JSON.stringify({ prompt: finalPrompt, masterCommand }, null, 2) : finalPrompt}
                 onChange={(e) => setFinalPrompt(e.target.value)}
@@ -390,6 +381,16 @@ const Dashboard = () => {
                 placeholder="Final Prompt"
                 readOnly={showJson}
               />
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={handleCopyPrompt}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-primary text-white hover:bg-primary/90 transition-colors"
+              >
+                <Copy className="w-4 h-4" />
+                Copy
+              </button>
             </div>
           </div>
         );
