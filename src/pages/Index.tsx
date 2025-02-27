@@ -13,6 +13,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative">
+      {/* Background image */}
+      <div 
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ 
+          backgroundImage: "url('/lovable-uploads/b05c76e6-1a96-43c0-8e6f-9e7f6265b447.png')",
+          zIndex: -2 
+        }}
+      />
+      
       {/* Aurora background overlay */}
       <div 
         className="fixed inset-0 bg-aurora-gradient bg-aurora animate-aurora opacity-15 pointer-events-none"
