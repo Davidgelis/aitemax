@@ -371,7 +371,7 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className="relative flex-1 min-h-[60vh] mb-3">
+            <div className="relative flex-1 min-h-[50vh] mb-3">
               <textarea
                 value={showJson ? JSON.stringify({ prompt: finalPrompt, masterCommand }, null, 2) : finalPrompt}
                 onChange={(e) => setFinalPrompt(e.target.value)}
