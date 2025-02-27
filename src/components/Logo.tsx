@@ -12,7 +12,6 @@ const Logo = () => {
     if (!ctx) return;
 
     let animationFrameId: number;
-    let rotation = 0;
     let colorIndex = 0;
     const colors = ['#041524', '#084b49', '#33fea6', '#64bf95', '#ffffff'];
 
@@ -27,8 +26,9 @@ const Logo = () => {
       canvas.height = 240 * dpr; // Doubled from 120
       ctx.scale(dpr, dpr);
       
-      // Draw circles
-      ctx.strokeStyle = '#084b49';
+      // Get current color
+      const currentColor = colors[Math.floor(colorIndex) % colors.length];
+      ctx.strokeStyle = currentColor;
       ctx.lineWidth = 3; // Increased line width for better visibility
       
       // First circle - scaled up
@@ -41,10 +41,7 @@ const Logo = () => {
       ctx.arc(120, 150, 50, 0, Math.PI * 2); // Doubled radius and position
       ctx.stroke();
       
-      // Animated line with aurora effect
-      const currentColor = colors[Math.floor(colorIndex) % colors.length];
-      ctx.strokeStyle = currentColor;
-      ctx.lineWidth = 4; // Thicker line for aurora effect
+      // Static connecting line with glow effect
       ctx.lineCap = 'round'; // Rounded line caps for smoother appearance
       
       // Draw multiple lines for glow effect
@@ -52,11 +49,8 @@ const Logo = () => {
         ctx.beginPath();
         ctx.globalAlpha = alpha;
         ctx.lineWidth = width;
-        ctx.moveTo(120, 40); // Adjusted starting point
-        ctx.lineTo(
-          120 + Math.sin(rotation) * 60, 
-          200 + Math.cos(rotation) * 60
-        ); // Doubled amplitude
+        ctx.moveTo(120, 40);
+        ctx.lineTo(120, 200); // Straight vertical line
         ctx.stroke();
       };
       
@@ -68,8 +62,7 @@ const Logo = () => {
       
       ctx.globalAlpha = 1; // Reset alpha
       
-      rotation += 0.02;
-      colorIndex += 0.01; // Slowly cycle through colors
+      colorIndex += 0.005; // Slower color transition
       
       animationFrameId = requestAnimationFrame(draw);
     };
