@@ -246,15 +246,18 @@ const Dashboard = () => {
                 className="w-full h-[300px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
                 placeholder="Start by typing your prompt"
               />
-              <button 
-                onClick={handleAnalyze}
-                className={`absolute bottom-6 right-6 ${buttonBaseClass} from-[${brandColors.darkTeal}] to-[${brandColors.neonGreen}]`}
-              >
-                Analyze
-              </button>
+              <div className="absolute bottom-6 right-6 flex items-center gap-2">
+                <button 
+                  onClick={handleAnalyze}
+                  className={`${buttonBaseClass} from-[${brandColors.darkTeal}] to-[${brandColors.neonGreen}]`}
+                >
+                  Analyze
+                </button>
+              </div>
             </div>
           </>
         );
+
       case 2:
         return (
           <div className="border rounded-xl p-6 bg-card">
@@ -321,6 +324,7 @@ const Dashboard = () => {
             )}
           </div>
         );
+
       case 3:
         return (
           <div className="border rounded-xl p-6 bg-card">
@@ -411,6 +415,7 @@ const Dashboard = () => {
             </div>
           </div>
         );
+
       default:
         return null;
     }
