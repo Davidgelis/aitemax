@@ -246,7 +246,7 @@ const Dashboard = () => {
                 className="w-full h-[300px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
                 placeholder="Start by typing your prompt"
               />
-              <div className="flex justify-end mt-4">
+              <div className="absolute bottom-6 right-6 flex items-center gap-2">
                 <button 
                   onClick={handleAnalyze}
                   className={`${buttonBaseClass} from-[${brandColors.darkTeal}] to-[${brandColors.neonGreen}]`}
@@ -254,11 +254,6 @@ const Dashboard = () => {
                   Analyze
                 </button>
               </div>
-            </div>
-            <div className="flex justify-center gap-2 mt-4">
-              <div className={`w-2 h-2 rounded-full bg-primary`} />
-              <div className={`w-2 h-2 rounded-full bg-border`} />
-              <div className={`w-2 h-2 rounded-full bg-border`} />
             </div>
           </>
         );
