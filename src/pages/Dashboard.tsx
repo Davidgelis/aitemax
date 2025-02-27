@@ -314,9 +314,9 @@ const Dashboard = () => {
               </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <button className="aurora-button">
+                  <button className="aurora-button inline-flex items-center gap-2">
                     <RotateCw className="w-4 h-4" />
-                    Adapt
+                    <span>Adapt</span>
                   </button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
