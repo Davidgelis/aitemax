@@ -303,11 +303,10 @@ const Dashboard = () => {
       case 3:
         return (
           <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold">Dynamic dashboard user step 3</h2>
+            <div className="flex justify-end mb-3">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <button className="aurora-button">
+                  <button className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-primary text-white hover:bg-primary/90 transition-colors">
                     <RotateCw className="w-4 h-4" />
                     Regenerate
                   </button>
