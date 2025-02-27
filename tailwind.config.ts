@@ -61,7 +61,7 @@ export default {
         "aurora": "aurora 15s ease infinite"
       },
       backgroundImage: {
-        "aurora-gradient": "linear-gradient(-45deg, #33fea6, #64bf95, white, #33fea6)",
+        "aurora-gradient": "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95)",
       },
       backgroundSize: {
         "aurora": "400% 400%",
@@ -70,3 +70,4 @@ export default {
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
+
