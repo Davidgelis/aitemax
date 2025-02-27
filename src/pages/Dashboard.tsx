@@ -79,7 +79,7 @@ const Dashboard = () => {
       if (currentLoadingMessage < loadingMessages.length) {
         timeout = setTimeout(() => {
           setCurrentLoadingMessage(prev => prev + 1);
-        }, 1500); // Show each message for 1.5 seconds
+        }, 3000); // Increased from 1.5s to 3s per message
       } else {
         setIsLoading(false);
         setCurrentLoadingMessage(0);
