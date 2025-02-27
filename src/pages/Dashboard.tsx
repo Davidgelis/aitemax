@@ -60,22 +60,6 @@ const loadingMessages = [
   "Generating next steps"
 ];
 
-const brandColors = {
-  accent: "#041524",
-  darkTeal: "#084b49",
-  neonGreen: "#33fea6",
-  mintGreen: "#64bf95"
-};
-
-const getRandomGradient = () => {
-  const colors = Object.values(brandColors);
-  const start = colors[Math.floor(Math.random() * colors.length)];
-  const end = colors[Math.floor(Math.random() * colors.length)];
-  return `from-[${start}] to-[${end}]`;
-};
-
-const buttonBaseClass = "text-white px-6 py-2 rounded-full hover:opacity-90 transition-opacity bg-gradient-to-r";
-
 const Dashboard = () => {
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
   const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
@@ -248,7 +232,7 @@ const Dashboard = () => {
               />
               <button 
                 onClick={handleAnalyze}
-                className={`absolute bottom-6 right-6 ${buttonBaseClass} from-[${brandColors.darkTeal}] to-[${brandColors.neonGreen}]`}
+                className="absolute bottom-6 right-6 bg-gradient-to-r from-primary to-primary/80 text-white px-6 py-2 rounded-full hover:opacity-90 transition-opacity"
               >
                 Analyze
               </button>
@@ -260,7 +244,7 @@ const Dashboard = () => {
           <div className="border rounded-xl p-6 bg-card">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold">Dynamic dashboard user step 2</h2>
-              <div className={`px-4 py-1 ${buttonBaseClass} from-[${brandColors.accent}] to-[${brandColors.mintGreen}] rounded-full`}>
+              <div className="px-4 py-1 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white rounded-full">
                 Ready
               </div>
             </div>
@@ -313,7 +297,7 @@ const Dashboard = () => {
               <div className="flex justify-end">
                 <button 
                   onClick={() => setCurrentStep(3)}
-                  className={`${buttonBaseClass} from-[${brandColors.darkTeal}] to-[${brandColors.neonGreen}]`}
+                  className="bg-gradient-to-r from-primary to-primary/80 text-white px-6 py-2 rounded-full hover:opacity-90 transition-opacity"
                 >
                   Continue
                 </button>
@@ -328,7 +312,7 @@ const Dashboard = () => {
               <h2 className="text-xl font-semibold">Dynamic dashboard user step 3</h2>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <button className={`${buttonBaseClass} from-[${brandColors.accent}] to-[${brandColors.mintGreen}] flex items-center gap-2`}>
+                  <button className="px-4 py-1 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white rounded-full hover:opacity-90 transition-opacity flex items-center gap-2">
                     <RotateCw className="w-4 h-4" />
                     Regenerate
                   </button>
@@ -393,7 +377,7 @@ const Dashboard = () => {
               </div>
               <button
                 onClick={handleCopyPrompt}
-                className={`flex items-center gap-2 ${buttonBaseClass} from-[${brandColors.darkTeal}] to-[${brandColors.neonGreen}]`}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full hover:opacity-90 transition-opacity"
               >
                 <Copy className="w-4 h-4" />
                 Copy
