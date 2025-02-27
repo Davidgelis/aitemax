@@ -244,13 +244,6 @@ const Dashboard = () => {
       case 2:
         return (
           <div className="border rounded-xl p-6 bg-card">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold">Dynamic dashboard user step 2</h2>
-              <div className="px-4 py-1 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white rounded-full">
-                Ready
-              </div>
-            </div>
-            
             <div className="mb-4">
               <p className="text-card-foreground mb-4">
                 Answers the following questions to enhance your prompt, answer the questions that add and mark them and mark the ones the valid ones or invalid ones
