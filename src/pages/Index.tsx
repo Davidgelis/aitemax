@@ -14,8 +14,11 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6">
       <nav className="fixed top-0 w-full max-w-7xl mx-auto p-6 flex justify-between items-center animate-fade-in">
-        <button className="aurora-button">
-          Prompt Tester
+        <button 
+          className="aurora-button"
+          onClick={() => navigate("/dashboard")}
+        >
+          Dashboard
         </button>
         <button className="aurora-button">
           Login
@@ -42,4 +45,3 @@ const Index = () => {
 };
 
 export default Index;
-
