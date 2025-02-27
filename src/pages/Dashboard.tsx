@@ -302,8 +302,9 @@ const Dashboard = () => {
         );
       case 3:
         return (
-          <div className="border rounded-xl p-4 bg-card h-[25vh]">
-            <div className="flex justify-end mb-4">
+          <div className="border rounded-xl p-6 bg-card">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold">Dynamic dashboard user step 3</h2>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <button className="px-4 py-1 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white rounded-full hover:opacity-90 transition-opacity flex items-center gap-2">
@@ -313,6 +314,7 @@ const Dashboard = () => {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                     <AlertDialogDescription>
                       This will regenerate your prompt. Any manual changes will be lost.
                     </AlertDialogDescription>
@@ -325,17 +327,19 @@ const Dashboard = () => {
               </AlertDialog>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="mb-6">
               <Input
                 value={masterCommand}
                 onChange={(e) => setMasterCommand(e.target.value)}
                 placeholder="Master command, use it to adapt the prompt to any other similar needs"
-                className="col-span-2"
+                className="w-full"
               />
+            </div>
 
-              <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="space-y-2">
                 {primaryToggles.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-2 border rounded-lg bg-background">
+                  <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-background">
                     <span className="text-sm">{item.label}</span>
                     <Switch
                       checked={selectedPrimary === item.id}
@@ -345,9 +349,9 @@ const Dashboard = () => {
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 gap-2">
+              <div className="space-y-2">
                 {secondaryToggles.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-2 border rounded-lg bg-background">
+                  <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-background">
                     <span className="text-sm">{item.label}</span>
                     <Switch
                       checked={selectedSecondary === item.id}
@@ -356,35 +360,36 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
+            </div>
 
-              <div className="col-span-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">JSON Toggle view</span>
-                  <Switch
-                    checked={showJson}
-                    onCheckedChange={setShowJson}
-                  />
-                </div>
-                <button
-                  onClick={handleCopyPrompt}
-                  className="aurora-button"
-                >
-                  <Copy className="w-4 h-4" />
-                  Copy
-                </button>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">JSON Toggle view</span>
+                <Switch
+                  checked={showJson}
+                  onCheckedChange={setShowJson}
+                />
               </div>
+              <button
+                onClick={handleCopyPrompt}
+                className="aurora-button"
+              >
+                <Copy className="w-4 h-4" />
+                Copy
+              </button>
+            </div>
 
+            <div className="relative">
               <textarea
                 value={showJson ? JSON.stringify({ prompt: finalPrompt, masterCommand }, null, 2) : finalPrompt}
                 onChange={(e) => setFinalPrompt(e.target.value)}
-                className="col-span-2 h-24 p-2 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full min-h-[300px] p-4 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="Final Prompt"
                 readOnly={showJson}
               />
             </div>
           </div>
         );
-
       default:
         return null;
     }
