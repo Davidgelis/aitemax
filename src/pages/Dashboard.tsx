@@ -29,6 +29,16 @@ interface Question {
   answer: string;
 }
 
+interface SavedPrompt {
+  id: string;
+  title: string;
+  date: string;
+  promptText: string;
+  masterCommand: string;
+  primaryToggle: string | null;
+  secondaryToggle: string | null;
+}
+
 const primaryToggles = [
   { label: "Complex Reasoning", id: "complex" },
   { label: "Mathematical Problem-Solving", id: "math" },
@@ -42,22 +52,17 @@ const secondaryToggles = [
   { label: "Creative", id: "creative" },
 ];
 
-const historyItems = Array.from({ length: 10 }, (_, i) => ({
-  title: "Title and Date",
-  id: `history-${i}`,
-}));
-
-const mockQuestions: Question[] = [
-  { id: "q1", text: "What specific aspects of complex reasoning are you interested in?", isRelevant: null, answer: "" },
-  { id: "q2", text: "How would you like the output to be structured?", isRelevant: null, answer: "" },
-  { id: "q3", text: "What is the target audience for this content?", isRelevant: null, answer: "" },
-];
-
 const loadingMessages = [
   "Pinpointing missing or unclear details",
   "Understanding contextual roles",
   "Identifying guidelines gaps, proper sequencing, and logical flows",
   "Generating next steps"
+];
+
+const mockQuestions: Question[] = [
+  { id: "q1", text: "What specific aspects of complex reasoning are you interested in?", isRelevant: null, answer: "" },
+  { id: "q2", text: "How would you like the output to be structured?", isRelevant: null, answer: "" },
+  { id: "q3", text: "What is the target audience for this content?", isRelevant: null, answer: "" },
 ];
 
 const Dashboard = () => {
@@ -71,7 +76,15 @@ const Dashboard = () => {
   const [masterCommand, setMasterCommand] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState(0);
+  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const saved = localStorage.getItem("savedPrompts");
+    if (saved) {
+      setSavedPrompts(JSON.parse(saved));
+    }
+  }, []);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -108,6 +121,27 @@ const Dashboard = () => {
     }
     setIsLoading(true);
     setQuestions(mockQuestions);
+  };
+
+  const handleSavePrompt = () => {
+    const newPrompt: SavedPrompt = {
+      id: Date.now().toString(),
+      title: finalPrompt.split('\n')[0] || 'Untitled Prompt',
+      date: new Date().toLocaleString(),
+      promptText: finalPrompt,
+      masterCommand,
+      primaryToggle: selectedPrimary,
+      secondaryToggle: selectedSecondary,
+    };
+
+    const updatedPrompts = [newPrompt, ...savedPrompts].slice(0, 10);
+    setSavedPrompts(updatedPrompts);
+    localStorage.setItem("savedPrompts", JSON.stringify(updatedPrompts));
+
+    toast({
+      title: "Success",
+      description: "Prompt saved successfully",
+    });
   };
 
   const handleQuestionAnswer = (questionId: string, answer: string) => {
@@ -390,12 +424,7 @@ const Dashboard = () => {
                 Copy
               </button>
               <button
-                onClick={() => {
-                  toast({
-                    title: "Success",
-                    description: "Prompt saved successfully",
-                  });
-                }}
+                onClick={handleSavePrompt}
                 className="aurora-button inline-flex items-center gap-2"
               >
                 <Save className="w-4 h-4" />
@@ -462,13 +491,16 @@ const Dashboard = () => {
             </div>
 
             <div className="overflow-auto">
-              {historyItems.map((item) => (
+              {savedPrompts.map((item) => (
                 <div
                   key={item.id}
                   className="p-4 border-b hover:bg-accent cursor-pointer transition-colors flex items-center gap-2"
                 >
                   <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                  <span className="text-sm">{item.title}</span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{item.title}</span>
+                    <span className="text-xs text-muted-foreground">{item.date}</span>
+                  </div>
                 </div>
               ))}
             </div>
