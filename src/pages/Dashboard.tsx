@@ -79,7 +79,7 @@ const Dashboard = () => {
       if (currentLoadingMessage < loadingMessages.length) {
         timeout = setTimeout(() => {
           setCurrentLoadingMessage(prev => prev + 1);
-        }, 3000); // Increased from 1.5s to 3s per message
+        }, 3000);
       } else {
         setIsLoading(false);
         setCurrentLoadingMessage(0);
@@ -299,7 +299,7 @@ const Dashboard = () => {
               <div className="flex justify-end">
                 <button 
                   onClick={() => setCurrentStep(3)}
-                  className="bg-gradient-to-r from-primary to-primary/80 text-white px-6 py-2 rounded-full hover:opacity-90 transition-opacity"
+                  className="aurora-button"
                 >
                   Continue
                 </button>
