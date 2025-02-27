@@ -10,7 +10,7 @@ const Logo = () => {
         <div 
           className="absolute inset-0 rounded-full"
           style={{
-            background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95)",
+            background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white)",
             backgroundSize: "400% 400%",
             animation: "aurora 15s ease infinite",
             zIndex: 0
