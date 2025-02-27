@@ -316,7 +316,7 @@ const Dashboard = () => {
                 <AlertDialogTrigger asChild>
                   <button className="aurora-button">
                     <RotateCw className="w-4 h-4" />
-                    Regenerate
+                    Adapt
                   </button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
