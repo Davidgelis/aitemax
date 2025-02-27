@@ -197,7 +197,7 @@ const Dashboard = () => {
         return (
           <div className="border rounded-xl p-6 bg-card">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-red-500">Dynamic dashboard user step 2</h2>
+              <h2 className="text-xl font-semibold">Dynamic dashboard user step 2</h2>
               <div className="px-4 py-1 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white rounded-full">
                 Ready
               </div>
@@ -263,7 +263,7 @@ const Dashboard = () => {
         return (
           <div className="border rounded-xl p-6 bg-card">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-red-500">Dynamic dashboard user step 3</h2>
+              <h2 className="text-xl font-semibold">Dynamic dashboard user step 3</h2>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <button className="px-4 py-1 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white rounded-full hover:opacity-90 transition-opacity flex items-center gap-2">
