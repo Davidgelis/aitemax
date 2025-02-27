@@ -31,3 +31,7 @@
   }
 }
 
+/* Add custom opacity class for aurora background */
+.opacity-15 {
+  opacity: 0.15;
+}
