@@ -1,4 +1,4 @@
-import { Search, User, Check, X } from "lucide-react";
+import { Search, User, Check, X, Copy, RotateCw } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -10,6 +10,17 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Question {
   id: string;
@@ -48,6 +59,9 @@ const Dashboard = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [promptText, setPromptText] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [showJson, setShowJson] = useState(false);
+  const [finalPrompt, setFinalPrompt] = useState("");
+  const [masterCommand, setMasterCommand] = useState("");
   const { toast } = useToast();
 
   const handlePrimaryToggle = (id: string) => {
@@ -105,6 +119,29 @@ const Dashboard = () => {
     }
 
     setCurrentStep(step);
+  };
+
+  const handleCopyPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(showJson ? JSON.stringify({ prompt: finalPrompt, masterCommand }, null, 2) : finalPrompt);
+      toast({
+        title: "Success",
+        description: "Prompt copied to clipboard",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy prompt",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRegenerate = () => {
+    toast({
+      title: "Success",
+      description: "Prompt regenerated successfully",
+    });
   };
 
   const renderContent = () => {
@@ -220,6 +257,96 @@ const Dashboard = () => {
                 </button>
               </div>
             )}
+          </div>
+        );
+      case 3:
+        return (
+          <div className="border rounded-xl p-6 bg-card">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-red-500">Dynamic dashboard user step 3</h2>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button className="px-4 py-1 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white rounded-full hover:opacity-90 transition-opacity flex items-center gap-2">
+                    <RotateCw className="w-4 h-4" />
+                    Regenerate
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will regenerate your prompt. Any manual changes will be lost.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>No</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRegenerate}>Yes</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+
+            <div className="mb-6">
+              <Input
+                value={masterCommand}
+                onChange={(e) => setMasterCommand(e.target.value)}
+                placeholder="Master command, use it to adapt the prompt to any other similar needs"
+                className="w-full"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="space-y-2">
+                {primaryToggles.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-background">
+                    <span className="text-sm">{item.label}</span>
+                    <Switch
+                      checked={selectedPrimary === item.id}
+                      onCheckedChange={() => handlePrimaryToggle(item.id)}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                {secondaryToggles.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-background">
+                    <span className="text-sm">{item.label}</span>
+                    <Switch
+                      checked={selectedSecondary === item.id}
+                      onCheckedChange={() => handleSecondaryToggle(item.id)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">JSON Toggle view</span>
+                <Switch
+                  checked={showJson}
+                  onCheckedChange={setShowJson}
+                />
+              </div>
+              <button
+                onClick={handleCopyPrompt}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full hover:opacity-90 transition-opacity"
+              >
+                <Copy className="w-4 h-4" />
+                Copy
+              </button>
+            </div>
+
+            <div className="relative">
+              <textarea
+                value={showJson ? JSON.stringify({ prompt: finalPrompt, masterCommand }, null, 2) : finalPrompt}
+                onChange={(e) => setFinalPrompt(e.target.value)}
+                className="w-full min-h-[300px] p-4 rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="Final Prompt"
+                readOnly={showJson}
+              />
+            </div>
           </div>
         );
       default:
