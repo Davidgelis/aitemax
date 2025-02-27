@@ -13,20 +13,20 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative">
-      {/* Wavy aurora background overlay */}
+      {/* Aurora background overlay */}
       <div 
-        className="fixed inset-0 bg-index-aurora bg-aurora animate-wave opacity-15 pointer-events-none"
+        className="fixed inset-0 bg-aurora-gradient bg-aurora animate-aurora opacity-15 pointer-events-none"
         style={{ zIndex: -1 }}
       />
       
       <nav className="fixed top-0 w-full max-w-7xl mx-auto p-6 flex justify-between items-center animate-fade-in">
         <button 
-          className="bg-accent hover:bg-accent/90 text-white font-medium px-6 py-2 rounded-full transition-all"
+          className="aurora-button"
           onClick={() => navigate("/dashboard")}
         >
           Dashboard
         </button>
-        <button className="bg-accent hover:bg-accent/90 text-white font-medium px-6 py-2 rounded-full transition-all">
+        <button className="aurora-button">
           Login
         </button>
       </nav>
