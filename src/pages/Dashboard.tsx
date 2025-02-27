@@ -230,12 +230,14 @@ const Dashboard = () => {
                 className="w-full h-[300px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
                 placeholder="Start by typing your prompt"
               />
-              <button 
-                onClick={handleAnalyze}
-                className="absolute bottom-6 right-6 bg-gradient-to-r from-primary to-primary/80 text-white px-6 py-2 rounded-full hover:opacity-90 transition-opacity"
-              >
-                Analyze
-              </button>
+              <div className="absolute bottom-6 right-6">
+                <button 
+                  onClick={handleAnalyze}
+                  className="aurora-button"
+                >
+                  Analyze
+                </button>
+              </div>
             </div>
           </>
         );
