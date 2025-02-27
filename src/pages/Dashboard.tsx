@@ -302,7 +302,7 @@ const Dashboard = () => {
         );
       case 3:
         return (
-          <div className="border rounded-xl p-4 bg-card">
+          <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold">Dynamic dashboard user step 3</h2>
               <AlertDialog>
@@ -382,17 +382,18 @@ const Dashboard = () => {
               </button>
             </div>
 
-            <div className="relative">
+            <div className="relative flex-1">
               <textarea
                 value={showJson ? JSON.stringify({ prompt: finalPrompt, masterCommand }, null, 2) : finalPrompt}
                 onChange={(e) => setFinalPrompt(e.target.value)}
-                className="w-full h-24 p-2 text-sm rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full h-full p-4 text-sm rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="Final Prompt"
                 readOnly={showJson}
               />
             </div>
           </div>
         );
+
       default:
         return null;
     }
