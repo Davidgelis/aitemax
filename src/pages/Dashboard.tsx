@@ -1,5 +1,5 @@
 
-import { Home, LayoutDashboard, Settings, Users } from "lucide-react";
+import { Search, User } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,68 +12,100 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 
-const navigationItems = [
-  {
-    title: "Home",
-    icon: Home,
-    href: "/",
-  },
-  {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/dashboard",
-  },
-  {
-    title: "Users",
-    icon: Users,
-    href: "/users",
-  },
-  {
-    title: "Settings",
-    icon: Settings,
-    href: "/settings",
-  },
+const toggleItems = [
+  { label: "Complex Reasoning", id: "complex" },
+  { label: "Mathematical Problem-Solving", id: "math" },
+  { label: "Token Saver prompt", id: "token" },
+  { label: "Strict Response", id: "strict" },
+  { label: "Coding", id: "coding" },
+  { label: "Creating a copilot", id: "copilot" },
+  { label: "Creative", id: "creative" },
 ];
+
+const historyItems = Array.from({ length: 10 }, (_, i) => ({
+  title: "Title and Date",
+  id: `history-${i}`,
+}));
 
 const Dashboard = () => {
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <Sidebar>
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {navigationItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild>
-                        <a href={item.href} className="flex items-center gap-2">
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                        </a>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-        </Sidebar>
-
+      <div className="min-h-screen flex w-full bg-background">
         <main className="flex-1 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-semibold">Dashboard</h1>
-            <SidebarTrigger />
-          </div>
-          <div className="grid gap-6">
-            {/* Dashboard content will go here */}
-            <div className="p-6 rounded-lg border bg-card text-card-foreground">
-              <p>Welcome to your dashboard! Content coming soon...</p>
+          <div className="max-w-6xl mx-auto">
+            <h1 className="text-2xl font-semibold mb-6 text-foreground">Dynamic dashboard user step 1</h1>
+            
+            {/* Toggles Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              {toggleItems.map((item) => (
+                <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
+                  <span className="text-sm text-card-foreground">{item.label}</span>
+                  <Switch id={item.id} />
+                </div>
+              ))}
+            </div>
+
+            {/* Main Content Area */}
+            <div className="border rounded-xl p-6 bg-card min-h-[400px] relative">
+              <textarea 
+                className="w-full h-[300px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
+                placeholder="Start by typing your prompt"
+              />
+              <button className="absolute bottom-6 right-6 bg-gradient-to-r from-primary to-primary/80 text-white px-6 py-2 rounded-full hover:opacity-90 transition-opacity">
+                Analyze
+              </button>
+            </div>
+
+            {/* Pagination Dots */}
+            <div className="flex justify-center gap-2 mt-4">
+              <div className="w-2 h-2 rounded-full bg-primary" />
+              <div className="w-2 h-2 rounded-full bg-border" />
+              <div className="w-2 h-2 rounded-full bg-border" />
             </div>
           </div>
         </main>
+
+        {/* Right Sidebar */}
+        <Sidebar side="right">
+          <SidebarContent>
+            {/* User Section */}
+            <div className="p-4 flex items-center gap-3 border-b">
+              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                <User className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <span className="font-medium">User Name</span>
+            </div>
+
+            {/* Search */}
+            <div className="p-4 border-b">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input className="pl-9" placeholder="Search..." />
+              </div>
+            </div>
+
+            {/* History List */}
+            <div className="overflow-auto">
+              {historyItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-4 border-b hover:bg-accent cursor-pointer transition-colors flex items-center gap-2"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+                  <span className="text-sm">{item.title}</span>
+                </div>
+              ))}
+            </div>
+          </SidebarContent>
+        </Sidebar>
+
+        {/* Sidebar Trigger */}
+        <div className="absolute top-6 right-6">
+          <SidebarTrigger />
+        </div>
       </div>
     </SidebarProvider>
   );
