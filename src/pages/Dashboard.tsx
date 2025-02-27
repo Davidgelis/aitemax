@@ -14,14 +14,19 @@ import {
 } from "@/components/ui/sidebar";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { useState } from "react";
 
-const toggleItems = [
+const primaryToggles = [
   { label: "Complex Reasoning", id: "complex" },
   { label: "Mathematical Problem-Solving", id: "math" },
-  { label: "Token Saver prompt", id: "token" },
-  { label: "Strict Response", id: "strict" },
   { label: "Coding", id: "coding" },
   { label: "Creating a copilot", id: "copilot" },
+];
+
+const secondaryToggles = [
+  { label: "Token Saver prompt", id: "token" },
+  { label: "Strict Response", id: "strict" },
   { label: "Creative", id: "creative" },
 ];
 
@@ -31,6 +36,17 @@ const historyItems = Array.from({ length: 10 }, (_, i) => ({
 }));
 
 const Dashboard = () => {
+  const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
+  const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
+
+  const handlePrimaryToggle = (id: string) => {
+    setSelectedPrimary(currentSelected => currentSelected === id ? null : id);
+  };
+
+  const handleSecondaryToggle = (id: string) => {
+    setSelectedSecondary(currentSelected => currentSelected === id ? null : id);
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -38,12 +54,32 @@ const Dashboard = () => {
           <div className="max-w-6xl mx-auto">
             <h1 className="text-2xl font-semibold mb-6 text-foreground">Dynamic dashboard user step 1</h1>
             
-            {/* Toggles Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              {toggleItems.map((item) => (
+            {/* Primary Toggles Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              {primaryToggles.map((item) => (
                 <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
                   <span className="text-sm text-card-foreground">{item.label}</span>
-                  <Switch id={item.id} />
+                  <Switch 
+                    id={item.id}
+                    checked={selectedPrimary === item.id}
+                    onCheckedChange={() => handlePrimaryToggle(item.id)}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <Separator className="my-4" />
+
+            {/* Secondary Toggles Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              {secondaryToggles.map((item) => (
+                <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
+                  <span className="text-sm text-card-foreground">{item.label}</span>
+                  <Switch 
+                    id={item.id}
+                    checked={selectedSecondary === item.id}
+                    onCheckedChange={() => handleSecondaryToggle(item.id)}
+                  />
                 </div>
               ))}
             </div>
