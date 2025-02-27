@@ -1,4 +1,4 @@
-import { Search, User, Check, X, Copy, RotateCw } from "lucide-react";
+import { Search, User, Check, X, Copy, RotateCw, Save } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -381,13 +381,25 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
               <button
                 onClick={handleCopyPrompt}
                 className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-primary text-white hover:bg-primary/90 transition-colors"
               >
                 <Copy className="w-4 h-4" />
                 Copy
+              </button>
+              <button
+                onClick={() => {
+                  toast({
+                    title: "Success",
+                    description: "Prompt saved successfully",
+                  });
+                }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-primary text-white hover:bg-primary/90 transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                Save
               </button>
             </div>
           </div>
