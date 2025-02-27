@@ -303,10 +303,18 @@ const Dashboard = () => {
       case 3:
         return (
           <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
-            <div className="flex justify-end mb-3">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex-1">
+                <Input
+                  value={masterCommand}
+                  onChange={(e) => setMasterCommand(e.target.value)}
+                  placeholder="Master command, use it to adapt the prompt to any other similar needs"
+                  className="w-full h-8 text-sm"
+                />
+              </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <button className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-primary text-white hover:bg-primary/90 transition-colors">
+                  <button className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-primary text-white hover:bg-primary/90 transition-colors whitespace-nowrap">
                     <RotateCw className="w-4 h-4" />
                     Regenerate
                   </button>
@@ -324,15 +332,6 @@ const Dashboard = () => {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-            </div>
-
-            <div className="mb-3">
-              <Input
-                value={masterCommand}
-                onChange={(e) => setMasterCommand(e.target.value)}
-                placeholder="Master command, use it to adapt the prompt to any other similar needs"
-                className="w-full h-8 text-sm"
-              />
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-3">
