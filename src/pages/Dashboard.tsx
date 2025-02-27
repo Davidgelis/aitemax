@@ -85,6 +85,28 @@ const Dashboard = () => {
 
   const allQuestionsAnswered = questions.every(q => q.isRelevant !== null);
 
+  const handleStepChange = (step: number) => {
+    if (step === 2 && !promptText.trim()) {
+      toast({
+        title: "Cannot proceed",
+        description: "Please enter a prompt before moving to step 2",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (step === 2 && questions.length === 0) {
+      toast({
+        title: "Cannot proceed",
+        description: "Please analyze your prompt first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCurrentStep(step);
+  };
+
   const renderContent = () => {
     switch (currentStep) {
       case 1:
@@ -214,9 +236,27 @@ const Dashboard = () => {
               {renderContent()}
               
               <div className="flex justify-center gap-2 mt-4">
-                <div className={`w-2 h-2 rounded-full ${currentStep === 1 ? 'bg-primary' : 'bg-border'}`} />
-                <div className={`w-2 h-2 rounded-full ${currentStep === 2 ? 'bg-primary' : 'bg-border'}`} />
-                <div className={`w-2 h-2 rounded-full ${currentStep === 3 ? 'bg-primary' : 'bg-border'}`} />
+                <button
+                  onClick={() => handleStepChange(1)}
+                  className={`w-2 h-2 rounded-full transition-all hover:scale-125 ${
+                    currentStep === 1 ? 'bg-primary' : 'bg-border hover:bg-primary/50'
+                  }`}
+                  aria-label="Go to step 1"
+                />
+                <button
+                  onClick={() => handleStepChange(2)}
+                  className={`w-2 h-2 rounded-full transition-all hover:scale-125 ${
+                    currentStep === 2 ? 'bg-primary' : 'bg-border hover:bg-primary/50'
+                  }`}
+                  aria-label="Go to step 2"
+                />
+                <button
+                  onClick={() => handleStepChange(3)}
+                  className={`w-2 h-2 rounded-full transition-all hover:scale-125 ${
+                    currentStep === 3 ? 'bg-primary' : 'bg-border hover:bg-primary/50'
+                  }`}
+                  aria-label="Go to step 3"
+                />
               </div>
             </div>
           </div>
