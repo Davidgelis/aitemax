@@ -18,11 +18,12 @@ const Index = () => {
         className="fixed inset-0 bg-cover bg-center bg-no-repeat"
         style={{ 
           backgroundImage: "url('/lovable-uploads/b05c76e6-1a96-43c0-8e6f-9e7f6265b447.png')",
+          opacity: 1,
           zIndex: -1
         }}
       />
       
-      <nav className="fixed top-0 w-full max-w-7xl mx-auto p-6 flex justify-between items-center animate-fade-in">
+      <nav className="fixed top-0 w-full max-w-7xl mx-auto p-6 flex justify-between items-center animate-fade-in glass">
         <button 
           className="aurora-button"
           onClick={() => navigate("/dashboard")}
@@ -34,7 +35,7 @@ const Index = () => {
         </button>
       </nav>
 
-      <main className="w-full max-w-4xl mx-auto flex flex-col items-center gap-12">
+      <main className="w-full max-w-4xl mx-auto flex flex-col items-center gap-12 glass p-8 rounded-lg">
         <Logo />
         
         <p className="text-center text-lg text-text/80 max-w-2xl animate-fade-in" style={{ animationDelay: "0.2s" }}>
