@@ -18,14 +18,8 @@ const Index = () => {
         className="fixed inset-0 bg-cover bg-center bg-no-repeat"
         style={{ 
           backgroundImage: "url('/lovable-uploads/b05c76e6-1a96-43c0-8e6f-9e7f6265b447.png')",
-          zIndex: -2 
+          zIndex: -1
         }}
-      />
-      
-      {/* Aurora background overlay */}
-      <div 
-        className="fixed inset-0 bg-aurora-gradient bg-aurora animate-aurora opacity-15 pointer-events-none"
-        style={{ zIndex: -1 }}
       />
       
       <nav className="fixed top-0 w-full max-w-7xl mx-auto p-6 flex justify-between items-center animate-fade-in">
