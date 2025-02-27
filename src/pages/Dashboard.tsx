@@ -382,11 +382,11 @@ const Dashboard = () => {
               </button>
             </div>
 
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-h-[60vh]">
               <textarea
                 value={showJson ? JSON.stringify({ prompt: finalPrompt, masterCommand }, null, 2) : finalPrompt}
                 onChange={(e) => setFinalPrompt(e.target.value)}
-                className="w-full h-full p-4 text-sm rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                className="absolute inset-0 p-4 text-sm rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="Final Prompt"
                 readOnly={showJson}
               />
