@@ -46,22 +46,32 @@ export default {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(0)" }
         },
-        "aurora": {
+        "wave": {
           "0%, 100%": {
-            "background-position": "0% 50%"
+            "background-position": "0% 50%",
+            "transform": "scale(1.05)"
+          },
+          "25%": {
+            "background-position": "50% 25%",
+            "transform": "scale(1)"
           },
           "50%": {
-            "background-position": "100% 50%"
+            "background-position": "100% 50%",
+            "transform": "scale(1.05)"
+          },
+          "75%": {
+            "background-position": "50% 75%",
+            "transform": "scale(1)"
           }
         }
       },
       animation: {
         "fade-in": "fade-in 0.6s ease-out",
         "slide-in": "slide-in 0.6s ease-out",
-        "aurora": "aurora 15s ease infinite"
+        "wave": "wave 20s ease-in-out infinite"
       },
       backgroundImage: {
-        "aurora-gradient": "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95)",
+        "index-aurora": "linear-gradient(-45deg, #33fea6 0%, #64bf95 25%, white 50%, #64bf95 75%, #33fea6 100%)",
       },
       backgroundSize: {
         "aurora": "400% 400%",
@@ -70,4 +80,3 @@ export default {
   },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
-
