@@ -8,7 +8,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -53,6 +53,13 @@ const mockQuestions: Question[] = [
   { id: "q3", text: "What is the target audience for this content?", isRelevant: null, answer: "" },
 ];
 
+const loadingMessages = [
+  "Pinpointing missing or unclear details",
+  "Understanding contextual roles",
+  "Identifying guidelines gaps, proper sequencing, and logical flows",
+  "Generating next steps"
+];
+
 const Dashboard = () => {
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
   const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
@@ -62,7 +69,25 @@ const Dashboard = () => {
   const [showJson, setShowJson] = useState(false);
   const [finalPrompt, setFinalPrompt] = useState("");
   const [masterCommand, setMasterCommand] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentLoadingMessage, setCurrentLoadingMessage] = useState(0);
   const { toast } = useToast();
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (isLoading) {
+      if (currentLoadingMessage < loadingMessages.length) {
+        timeout = setTimeout(() => {
+          setCurrentLoadingMessage(prev => prev + 1);
+        }, 1500); // Show each message for 1.5 seconds
+      } else {
+        setIsLoading(false);
+        setCurrentLoadingMessage(0);
+        setCurrentStep(2);
+      }
+    }
+    return () => clearTimeout(timeout);
+  }, [isLoading, currentLoadingMessage]);
 
   const handlePrimaryToggle = (id: string) => {
     setSelectedPrimary(currentSelected => currentSelected === id ? null : id);
@@ -81,8 +106,8 @@ const Dashboard = () => {
       });
       return;
     }
+    setIsLoading(true);
     setQuestions(mockQuestions);
-    setCurrentStep(2);
   };
 
   const handleQuestionAnswer = (questionId: string, answer: string) => {
@@ -145,6 +170,27 @@ const Dashboard = () => {
   };
 
   const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="text-xl font-medium animate-fade-in">
+            {loadingMessages[currentLoadingMessage]}
+          </div>
+          <div className="flex gap-2">
+            {loadingMessages.map((_, index) => (
+              <div
+                key={index}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  index === currentLoadingMessage ? 'bg-primary scale-125' : 'bg-border'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     switch (currentStep) {
       case 1:
         return (
