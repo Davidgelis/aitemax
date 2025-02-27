@@ -314,7 +314,7 @@ const Dashboard = () => {
               </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <button className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-primary text-white hover:bg-primary/90 transition-colors whitespace-nowrap">
+                  <button className="aurora-button">
                     <RotateCw className="w-4 h-4" />
                     Regenerate
                   </button>
@@ -384,7 +384,7 @@ const Dashboard = () => {
             <div className="flex justify-between items-center">
               <button
                 onClick={handleCopyPrompt}
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-primary text-white hover:bg-primary/90 transition-colors"
+                className="aurora-button inline-flex items-center gap-2"
               >
                 <Copy className="w-4 h-4" />
                 Copy
@@ -396,7 +396,7 @@ const Dashboard = () => {
                     description: "Prompt saved successfully",
                   });
                 }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md bg-primary text-white hover:bg-primary/90 transition-colors"
+                className="aurora-button inline-flex items-center gap-2"
               >
                 <Save className="w-4 h-4" />
                 Save
