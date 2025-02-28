@@ -371,20 +371,20 @@ const Dashboard = () => {
             </div>
 
             <div className="border rounded-xl p-6 bg-card min-h-[400px] relative">
-              <div className="flex space-x-2 mb-2">
+              <div className="absolute top-6 right-6 flex space-x-2 z-10">
                 <button
                   onClick={insertBulletList}
                   className="p-2 rounded-md hover:bg-accent/20 transition-colors"
                   title="Add bullet list"
                 >
-                  <List className="w-5 h-5 text-primary" />
+                  <List className="w-5 h-5" style={{ color: "#64bf95" }} />
                 </button>
                 <button
                   onClick={insertNumberedList}
                   className="p-2 rounded-md hover:bg-accent/20 transition-colors"
                   title="Add numbered list"
                 >
-                  <ListOrdered className="w-5 h-5 text-primary" />
+                  <ListOrdered className="w-5 h-5" style={{ color: "#64bf95" }} />
                 </button>
               </div>
               <textarea 
