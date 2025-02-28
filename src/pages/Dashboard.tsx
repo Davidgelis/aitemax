@@ -1068,7 +1068,7 @@ const Dashboard = () => {
             {/* New Prompt Button */}
             <button
               onClick={handleNewPrompt}
-              className="w-full my-3 mx-auto px-4 py-2 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
+              className="aurora-button w-full my-3 mx-auto inline-flex items-center justify-center gap-2"
             >
               <FileText className="w-4 h-4" />
               <span className="font-medium">New Prompt</span>
