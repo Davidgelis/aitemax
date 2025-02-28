@@ -1,5 +1,5 @@
 
-import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon } from "lucide-react";
+import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -9,7 +9,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -85,6 +85,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState(0);
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -248,6 +249,72 @@ const Dashboard = () => {
       description: "Prompt renamed successfully",
     });
   };
+  
+  const insertBulletList = () => {
+    if (!textareaRef.current) return;
+    
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = promptText.substring(start, end);
+    
+    let newText;
+    if (selected) {
+      // Add bullet points to each line of selected text
+      const lines = selected.split('\n');
+      const bulletedLines = lines.map(line => line ? `• ${line}` : line);
+      newText = promptText.substring(0, start) + bulletedLines.join('\n') + promptText.substring(end);
+    } else {
+      // Insert a single bullet point at cursor position
+      newText = promptText.substring(0, start) + '• ' + promptText.substring(end);
+    }
+    
+    setPromptText(newText);
+    
+    // Set cursor position after the inserted bullet
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + 2;
+    }, 0);
+    
+    toast({
+      title: "Added bullet list",
+      description: "Bullet points have been added to your text",
+    });
+  };
+  
+  const insertNumberedList = () => {
+    if (!textareaRef.current) return;
+    
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = promptText.substring(start, end);
+    
+    let newText;
+    if (selected) {
+      // Add numbers to each line of selected text
+      const lines = selected.split('\n');
+      const numberedLines = lines.map((line, index) => line ? `${index + 1}. ${line}` : line);
+      newText = promptText.substring(0, start) + numberedLines.join('\n') + promptText.substring(end);
+    } else {
+      // Insert a single numbered point at cursor position
+      newText = promptText.substring(0, start) + '1. ' + promptText.substring(end);
+    }
+    
+    setPromptText(newText);
+    
+    // Set cursor position after the inserted number
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + 3;
+    }, 0);
+    
+    toast({
+      title: "Added numbered list",
+      description: "Numbers have been added to your text",
+    });
+  };
 
   const renderContent = () => {
     if (isLoading) {
@@ -304,10 +371,27 @@ const Dashboard = () => {
             </div>
 
             <div className="border rounded-xl p-6 bg-card min-h-[400px] relative">
+              <div className="flex space-x-2 mb-2">
+                <button
+                  onClick={insertBulletList}
+                  className="p-2 rounded-md hover:bg-accent/20 transition-colors"
+                  title="Add bullet list"
+                >
+                  <List className="w-5 h-5 text-primary" />
+                </button>
+                <button
+                  onClick={insertNumberedList}
+                  className="p-2 rounded-md hover:bg-accent/20 transition-colors"
+                  title="Add numbered list"
+                >
+                  <ListOrdered className="w-5 h-5 text-primary" />
+                </button>
+              </div>
               <textarea 
+                ref={textareaRef}
                 value={promptText}
                 onChange={(e) => setPromptText(e.target.value)}
-                className="w-full h-[300px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
+                className="w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
                 placeholder="Start by typing your prompt"
               />
               <div className="absolute bottom-6 right-6">
