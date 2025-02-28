@@ -1065,14 +1065,16 @@ const Dashboard = () => {
               <span className="font-medium">User Name</span>
             </div>
 
-            {/* New Prompt Button */}
-            <button
-              onClick={handleNewPrompt}
-              className="aurora-button w-full my-3 mx-auto inline-flex items-center justify-center gap-2"
-            >
-              <FileText className="w-4 h-4" />
-              <span className="font-medium">New Prompt</span>
-            </button>
+            {/* New Prompt Button - Reduced width by 30% */}
+            <div className="flex justify-center my-3">
+              <button
+                onClick={handleNewPrompt}
+                className="aurora-button w-[70%] inline-flex items-center justify-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                <span className="font-medium">New Prompt</span>
+              </button>
+            </div>
 
             <div className="p-4 border-b">
               <div className="relative">
