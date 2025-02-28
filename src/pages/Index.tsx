@@ -34,7 +34,18 @@ const Index = () => {
       <main className="w-full max-w-4xl mx-auto flex flex-col items-center gap-12">
         <Logo />
         
-        <p className="text-center text-lg text-text/80 max-w-2xl animate-fade-in" style={{ animationDelay: "0.2s" }}>
+        <p 
+          className="text-center text-lg max-w-2xl animate-fade-in" 
+          style={{ 
+            animationDelay: "0.2s",
+            background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white)",
+            backgroundSize: "400% 400%",
+            animation: "aurora 15s ease infinite",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text"
+          }}
+        >
           Aitema X is humanity's unyielding vote in prompt engineering, a testament to our irreplaceable creativity.
         </p>
 
