@@ -598,7 +598,7 @@ const Dashboard = () => {
               
               <div 
                 ref={questionsContainerRef}
-                className="max-h-[380px] overflow-y-auto pr-2 space-y-4"
+                className="max-h-[285px] overflow-y-auto pr-2 space-y-4"
               >
                 {questions.map((question) => (
                   <div key={question.id} className="p-4 border rounded-lg bg-background">
@@ -629,7 +629,7 @@ const Dashboard = () => {
                           value={question.answer}
                           onChange={(e) => handleQuestionAnswer(question.id, e.target.value)}
                           placeholder="Type your answer here..."
-                          className="w-full p-3 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[100px] focus:outline-none focus:ring-2 focus:ring-ring"
+                          className="w-full p-3 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring"
                         />
                       )}
                     </div>
