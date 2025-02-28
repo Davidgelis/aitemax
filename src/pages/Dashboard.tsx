@@ -1,5 +1,5 @@
 
-import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered } from "lucide-react";
+import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered, Plus, Minus } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -37,6 +37,12 @@ interface Question {
   answer: string;
 }
 
+interface Variable {
+  id: string;
+  name: string;
+  value: string;
+}
+
 interface SavedPrompt {
   id: string;
   title: string;
@@ -45,6 +51,7 @@ interface SavedPrompt {
   masterCommand: string;
   primaryToggle: string | null;
   secondaryToggle: string | null;
+  variables: Variable[];
 }
 
 const primaryToggles = [
@@ -73,12 +80,19 @@ const mockQuestions: Question[] = [
   { id: "q3", text: "What is the target audience for this content?", isRelevant: null, answer: "" },
 ];
 
+const defaultVariables: Variable[] = [
+  { id: "v1", name: "Name", value: "" },
+  { id: "v2", name: "Location", value: "" },
+  { id: "v3", name: "Quantity", value: "" },
+];
+
 const Dashboard = () => {
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
   const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [promptText, setPromptText] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [variables, setVariables] = useState<Variable[]>(defaultVariables);
   const [showJson, setShowJson] = useState(false);
   const [finalPrompt, setFinalPrompt] = useState("");
   const [masterCommand, setMasterCommand] = useState("");
@@ -141,6 +155,7 @@ const Dashboard = () => {
       masterCommand,
       primaryToggle: selectedPrimary,
       secondaryToggle: selectedSecondary,
+      variables: variables.filter(v => v.name && v.value), // Only save filled variables
     };
 
     const updatedPrompts = [newPrompt, ...savedPrompts].slice(0, 10);
@@ -163,6 +178,37 @@ const Dashboard = () => {
     setQuestions(questions.map(q => 
       q.id === questionId ? { ...q, isRelevant } : q
     ));
+  };
+
+  const handleVariableChange = (variableId: string, field: 'name' | 'value', content: string) => {
+    setVariables(variables.map(v =>
+      v.id === variableId ? { ...v, [field]: content } : v
+    ));
+  };
+
+  const addVariable = () => {
+    if (variables.length < 10) {
+      const newId = `v${Date.now()}`;
+      setVariables([...variables, { id: newId, name: "", value: "" }]);
+    } else {
+      toast({
+        title: "Limit reached",
+        description: "You can add a maximum of 10 variables",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const removeVariable = (id: string) => {
+    if (variables.length > 1) {
+      setVariables(variables.filter(v => v.id !== id));
+    } else {
+      toast({
+        title: "Cannot remove",
+        description: "You need at least one variable",
+        variant: "destructive",
+      });
+    }
   };
 
   const allQuestionsAnswered = questions.every(q => q.isRelevant !== null);
@@ -191,7 +237,12 @@ const Dashboard = () => {
 
   const handleCopyPrompt = async () => {
     try {
-      await navigator.clipboard.writeText(showJson ? JSON.stringify({ prompt: finalPrompt, masterCommand }, null, 2) : finalPrompt);
+      await navigator.clipboard.writeText(showJson ? JSON.stringify({ 
+        prompt: finalPrompt, 
+        masterCommand,
+        variables: variables.filter(v => v.name && v.value)
+      }, null, 2) : finalPrompt);
+      
       toast({
         title: "Success",
         description: "Prompt copied to clipboard",
@@ -492,7 +543,7 @@ const Dashboard = () => {
       case 2:
         return (
           <div className="border rounded-xl p-6 bg-card">
-            <div className="mb-4">
+            <div className="mb-6">
               <p className="text-card-foreground mb-4">
                 Answers the following questions to enhance your prompt, answer the questions that add and mark them and mark the ones the valid ones or invalid ones
               </p>
@@ -531,6 +582,49 @@ const Dashboard = () => {
                         />
                       )}
                     </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium">Variables</h3>
+                <button 
+                  onClick={addVariable}
+                  className="flex items-center gap-1 text-sm text-primary hover:text-primary-dark transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add variable
+                </button>
+              </div>
+              
+              <div className="space-y-3">
+                {variables.map((variable, index) => (
+                  <div key={variable.id} className="flex gap-3 items-center">
+                    <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Input
+                        placeholder="Variable name"
+                        value={variable.name}
+                        onChange={(e) => handleVariableChange(variable.id, 'name', e.target.value)}
+                        className="flex-1"
+                      />
+                      <Input
+                        placeholder="Value"
+                        value={variable.value}
+                        onChange={(e) => handleVariableChange(variable.id, 'value', e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                    <button 
+                      onClick={() => removeVariable(variable.id)}
+                      className="p-2 rounded-md hover:bg-accent/20 transition-colors"
+                    >
+                      <Minus className="w-4 h-4 text-muted-foreground" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -612,6 +706,14 @@ const Dashboard = () => {
               </div>
             </div>
 
+            <div className="flex flex-wrap gap-3 mb-3">
+              {variables.filter(v => v.name && v.value).map((variable) => (
+                <div key={variable.id} className="px-3 py-1 bg-[#33fea6]/10 border border-[#33fea6]/20 rounded-full text-xs">
+                  <span className="font-medium">{variable.name}:</span> {variable.value}
+                </div>
+              ))}
+            </div>
+
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xs">JSON Toggle view</span>
               <Switch
@@ -623,7 +725,11 @@ const Dashboard = () => {
 
             <div className="relative flex-1 min-h-[50vh] mb-3">
               <textarea
-                value={showJson ? JSON.stringify({ prompt: finalPrompt, masterCommand }, null, 2) : finalPrompt}
+                value={showJson ? JSON.stringify({ 
+                  prompt: finalPrompt, 
+                  masterCommand,
+                  variables: variables.filter(v => v.name && v.value)
+                }, null, 2) : finalPrompt}
                 onChange={(e) => setFinalPrompt(e.target.value)}
                 className="absolute inset-0 p-4 text-sm rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder="Final Prompt"
