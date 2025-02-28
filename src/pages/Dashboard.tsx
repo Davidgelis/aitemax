@@ -1,5 +1,5 @@
 
-import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered, Plus, Minus, ArrowLeft, ArrowRight, Edit } from "lucide-react";
+import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered, Plus, Minus, ArrowLeft, ArrowRight, Edit, FileText } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -168,6 +168,23 @@ const Dashboard = () => {
     setVariables(variables.map(v =>
       v.id === variableId ? { ...v, value: newValue } : v
     ));
+  };
+
+  // Function to handle creating a new prompt
+  const handleNewPrompt = () => {
+    setPromptText("");
+    setQuestions([]);
+    setVariables(defaultVariables.map(v => ({ ...v, value: "", isRelevant: null })));
+    setFinalPrompt("");
+    setMasterCommand("");
+    setSelectedPrimary(null);
+    setSelectedSecondary(null);
+    setCurrentStep(1);
+    
+    toast({
+      title: "New Prompt",
+      description: "Started a new prompt creation process",
+    });
   };
 
   useEffect(() => {
@@ -1047,6 +1064,15 @@ const Dashboard = () => {
               </div>
               <span className="font-medium">User Name</span>
             </div>
+
+            {/* New Prompt Button */}
+            <button
+              onClick={handleNewPrompt}
+              className="w-full my-3 mx-auto px-4 py-2 flex items-center justify-center gap-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-md transition-colors"
+            >
+              <FileText className="w-4 h-4" />
+              <span className="font-medium">New Prompt</span>
+            </button>
 
             <div className="p-4 border-b">
               <div className="relative">
