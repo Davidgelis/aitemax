@@ -102,15 +102,15 @@ const mockQuestions: Question[] = [
 ];
 
 const defaultVariables: Variable[] = [
-  { id: "v1", name: "Name", value: "", isRelevant: null },
-  { id: "v2", name: "Location", value: "", isRelevant: null },
-  { id: "v3", name: "Quantity", value: "", isRelevant: null },
+  { id: "v1", name: "Name", value: "David", isRelevant: true },
+  { id: "v2", name: "Location", value: "Guate", isRelevant: true },
+  { id: "v3", name: "Quantity", value: "4", isRelevant: true },
   { id: "v4", name: "Date", value: "", isRelevant: null },
   { id: "v5", name: "Category", value: "", isRelevant: null },
 ];
 
 // Sample final prompt to use for testing the UI
-const sampleFinalPrompt = `# Expert Reasoning Framework for Complex Problem-Solving
+const sampleFinalPrompt = `# Expert Reasoning Framework for Complex Problem-Solving {{Quantity}}
 
 ## Initial Analysis Phase
 Begin by breaking down the problem into its fundamental components. Identify key variables, constraints, and underlying patterns that might not be immediately obvious. Map the relationships between different elements and look for potential conflicts or synergies.
@@ -122,14 +122,14 @@ For each component identified, apply multiple mental models and disciplinary fra
 Combine insights from different perspectives to form an integrated understanding. Develop multiple solution pathways rather than fixating on a single approach. Evaluate trade-offs explicitly and consider second-order consequences of each potential solution.
 
 ## Implementation and Feedback Integration
-Outline a clear plan for putting the solution into practice, identifying potential obstacles and contingency plans. Establish mechanisms to gather feedback and adjust the approach based on new information or changing conditions.`;
+Outline a clear plan for putting the solution into practice, identifying potential {{Name}} contingency plans. Establish mechanisms to gather feedback and adjust the approach based on new information or changing conditions in {{Location}}.`;
 
 const QUESTIONS_PER_PAGE = 3;
 
 const Dashboard = () => {
-  const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
-  const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedPrimary, setSelectedPrimary] = useState<string | null>("coding");
+  const [selectedSecondary, setSelectedSecondary] = useState<string | null>("strict");
+  const [currentStep, setCurrentStep] = useState(3);
   const [promptText, setPromptText] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionPage, setCurrentQuestionPage] = useState(0);
@@ -149,6 +149,26 @@ const Dashboard = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+
+  // Function to replace variable placeholders with their values in the prompt
+  const getProcessedPrompt = () => {
+    let processedPrompt = finalPrompt;
+    variables.forEach(variable => {
+      if (variable.isRelevant && variable.name && variable.value) {
+        const placeholder = `{{${variable.name}}}`;
+        const highlightedValue = `<span class="bg-[#33fea6]/20 px-1 rounded border border-[#33fea6]/30">${variable.value}</span>`;
+        processedPrompt = processedPrompt.replace(new RegExp(placeholder, 'g'), showJson ? variable.value : highlightedValue);
+      }
+    });
+    return processedPrompt;
+  };
+
+  // Update variable value and reflect changes in the prompt
+  const handleVariableValueChange = (variableId: string, newValue: string) => {
+    setVariables(variables.map(v =>
+      v.id === variableId ? { ...v, value: newValue } : v
+    ));
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem("savedPrompts");
@@ -846,14 +866,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-3 mb-3">
-              {variables.filter(v => v.isRelevant === true).map((variable) => (
-                <div key={variable.id} className="px-3 py-1 bg-[#33fea6]/10 border border-[#33fea6]/20 rounded-full text-xs">
-                  <span className="font-medium">{variable.name}:</span> {variable.value}
-                </div>
-              ))}
-            </div>
-
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xs">JSON Toggle view</span>
               <Switch
@@ -893,12 +905,27 @@ const Dashboard = () => {
                     </pre>
                   ) : (
                     <div className="prose prose-sm max-w-none">
-                      {finalPrompt.split('\n\n').map((paragraph, index) => (
-                        <p key={index}>{paragraph}</p>
-                      ))}
+                      <div dangerouslySetInnerHTML={{ __html: getProcessedPrompt().split('\n\n').map(p => `<p>${p}</p>`).join('') }} />
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Variables Section - Moved below the prompt */}
+            <div className="mb-4 p-3 border rounded-lg bg-background/50">
+              <h4 className="text-sm font-medium mb-3">Variables</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {variables.filter(v => v.isRelevant === true).map((variable) => (
+                  <div key={variable.id} className="flex items-center gap-2">
+                    <span className="text-xs font-medium min-w-[80px]">{variable.name}:</span>
+                    <Input 
+                      value={variable.value}
+                      onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
+                      className="h-7 text-xs py-1 px-2 bg-[#33fea6]/10 border-[#33fea6]/20 focus-visible:border-[#33fea6] focus-visible:ring-0"
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 
