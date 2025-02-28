@@ -1,5 +1,5 @@
 
-import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered, Plus, Minus } from "lucide-react";
+import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered, Plus, Minus, ArrowLeft, ArrowRight } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -79,6 +79,15 @@ const mockQuestions: Question[] = [
   { id: "q1", text: "What specific aspects of complex reasoning are you interested in?", isRelevant: null, answer: "" },
   { id: "q2", text: "How would you like the output to be structured?", isRelevant: null, answer: "" },
   { id: "q3", text: "What is the target audience for this content?", isRelevant: null, answer: "" },
+  { id: "q4", text: "What level of technical detail should be included?", isRelevant: null, answer: "" },
+  { id: "q5", text: "Are there any specific examples you want included?", isRelevant: null, answer: "" },
+  { id: "q6", text: "What's the primary goal of this content?", isRelevant: null, answer: "" },
+  { id: "q7", text: "Any specific terminology or jargon to include or avoid?", isRelevant: null, answer: "" },
+  { id: "q8", text: "What tone would you like the content to have?", isRelevant: null, answer: "" },
+  { id: "q9", text: "Are there any length constraints?", isRelevant: null, answer: "" },
+  { id: "q10", text: "Should there be a particular call-to-action?", isRelevant: null, answer: "" },
+  { id: "q11", text: "Any specific sources or references to include?", isRelevant: null, answer: "" },
+  { id: "q12", text: "What format would be most effective (list, narrative, etc.)?", isRelevant: null, answer: "" },
 ];
 
 const defaultVariables: Variable[] = [
@@ -87,12 +96,15 @@ const defaultVariables: Variable[] = [
   { id: "v3", name: "Quantity", value: "", isRelevant: null },
 ];
 
+const QUESTIONS_PER_PAGE = 3;
+
 const Dashboard = () => {
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
   const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [promptText, setPromptText] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [currentQuestionPage, setCurrentQuestionPage] = useState(0);
   const [variables, setVariables] = useState<Variable[]>(defaultVariables);
   const [showJson, setShowJson] = useState(false);
   const [finalPrompt, setFinalPrompt] = useState("");
@@ -103,6 +115,15 @@ const Dashboard = () => {
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+
+  // Calculate total pages for questions pagination
+  const totalQuestionPages = Math.ceil(questions.length / QUESTIONS_PER_PAGE);
+  
+  // Get current page questions
+  const currentQuestions = questions.slice(
+    currentQuestionPage * QUESTIONS_PER_PAGE,
+    (currentQuestionPage + 1) * QUESTIONS_PER_PAGE
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem("savedPrompts");
@@ -146,6 +167,19 @@ const Dashboard = () => {
     }
     setIsLoading(true);
     setQuestions(mockQuestions);
+    setCurrentQuestionPage(0);
+  };
+
+  const handleNextQuestionPage = () => {
+    if (currentQuestionPage < totalQuestionPages - 1) {
+      setCurrentQuestionPage(prev => prev + 1);
+    }
+  };
+
+  const handlePrevQuestionPage = () => {
+    if (currentQuestionPage > 0) {
+      setCurrentQuestionPage(prev => prev - 1);
+    }
   };
 
   const handleSavePrompt = () => {
@@ -576,12 +610,41 @@ const Dashboard = () => {
         return (
           <div className="border rounded-xl p-6 bg-card">
             <div className="mb-6">
-              <p className="text-card-foreground mb-4">
-                Answers the following questions to enhance your prompt, answer the questions that add and mark them and mark the ones the valid ones or invalid ones
-              </p>
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-card-foreground">
+                  Answer the following questions to enhance your prompt, mark them as relevant or not relevant
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {currentQuestionPage + 1} / {totalQuestionPages}
+                  </span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={handlePrevQuestionPage}
+                      disabled={currentQuestionPage === 0}
+                      className={`p-1.5 rounded-full hover:bg-[#33fea6]/20 ${
+                        currentQuestionPage === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      aria-label="Previous questions"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={handleNextQuestionPage}
+                      disabled={currentQuestionPage >= totalQuestionPages - 1}
+                      className={`p-1.5 rounded-full hover:bg-[#33fea6]/20 ${
+                        currentQuestionPage >= totalQuestionPages - 1 ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      aria-label="Next questions"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
               
               <div className="space-y-4">
-                {questions.map((question) => (
+                {currentQuestions.map((question) => (
                   <div key={question.id} className="p-4 border rounded-lg bg-background">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -615,6 +678,20 @@ const Dashboard = () => {
                       )}
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Pagination indicators */}
+              <div className="flex justify-center gap-1 mt-4">
+                {Array.from({ length: totalQuestionPages }).map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentQuestionPage(index)}
+                    className={`w-2 h-2 rounded-full transition-all hover:scale-125 ${
+                      index === currentQuestionPage ? 'bg-primary' : 'bg-border hover:bg-primary/50'
+                    }`}
+                    aria-label={`Go to question page ${index + 1}`}
+                  />
                 ))}
               </div>
             </div>
