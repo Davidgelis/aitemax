@@ -118,15 +118,6 @@ const Dashboard = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
-  // Calculate total pages for questions pagination
-  const totalQuestionPages = Math.ceil(questions.length / QUESTIONS_PER_PAGE);
-  
-  // Calculate max slider height
-  const maxSliderHeight = questions.length > 0 ? 100 : 0;
-  
-  // Calculate slider thumb position
-  const sliderThumbPosition = (sliderPosition / 100) * maxSliderHeight;
-
   useEffect(() => {
     const saved = localStorage.getItem("savedPrompts");
     if (saved) {
@@ -150,16 +141,6 @@ const Dashboard = () => {
     return () => clearTimeout(timeout);
   }, [isLoading, currentLoadingMessage]);
 
-  // Effect to handle scrolling based on slider position
-  useEffect(() => {
-    if (questionsContainerRef.current && questions.length > 0) {
-      const container = questionsContainerRef.current;
-      const scrollHeight = container.scrollHeight - container.clientHeight;
-      const scrollPosition = (sliderPosition / 100) * scrollHeight;
-      container.scrollTop = scrollPosition;
-    }
-  }, [sliderPosition, questions]);
-
   const handlePrimaryToggle = (id: string) => {
     setSelectedPrimary(currentSelected => currentSelected === id ? null : id);
   };
@@ -181,46 +162,6 @@ const Dashboard = () => {
     setQuestions(mockQuestions);
     setCurrentQuestionPage(0);
     setSliderPosition(0);
-  };
-
-  const handleSliderDrag = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (questions.length === 0) return;
-    
-    const slider = e.currentTarget;
-    const rect = slider.getBoundingClientRect();
-    const offsetY = e.clientY - rect.top;
-    const newPosition = Math.max(0, Math.min(100, (offsetY / rect.height) * 100));
-    setSliderPosition(newPosition);
-  };
-
-  const handleSliderMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (questions.length === 0) return;
-    
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const slider = e.currentTarget;
-      const rect = slider.getBoundingClientRect();
-      const offsetY = moveEvent.clientY - rect.top;
-      const newPosition = Math.max(0, Math.min(100, (offsetY / rect.height) * 100));
-      setSliderPosition(newPosition);
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const handleContainerScroll = () => {
-    if (questionsContainerRef.current && questions.length > 0) {
-      const container = questionsContainerRef.current;
-      const scrollHeight = container.scrollHeight - container.clientHeight;
-      const scrollPosition = container.scrollTop;
-      const newSliderPosition = (scrollPosition / scrollHeight) * 100;
-      setSliderPosition(newSliderPosition);
-    }
   };
 
   const handleSavePrompt = () => {
@@ -655,71 +596,45 @@ const Dashboard = () => {
                 Answer the following questions to enhance your prompt, mark them as relevant or not relevant
               </p>
               
-              <div className="flex">
-                {/* Vertical slider */}
-                <div className="relative w-10 h-[500px] mr-4">
-                  <div 
-                    className="absolute inset-0 rounded-full border border-gray-200 cursor-pointer bg-[#f6f6f7]"
-                    onClick={handleSliderDrag}
-                    onMouseDown={handleSliderMouseDown}
-                  >
-                    {questions.length > 0 && (
-                      <div 
-                        className="absolute w-full h-10 bg-gray-400 rounded-full left-0 transform -translate-y-1/2"
-                        style={{ top: `${sliderThumbPosition}%` }}
-                      ></div>
-                    )}
-                    <div className="absolute w-full top-0 flex justify-center cursor-pointer">
-                      <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-b-[6px] border-l-transparent border-r-transparent border-b-gray-400"></div>
-                    </div>
-                    <div className="absolute w-full bottom-0 flex justify-center cursor-pointer">
-                      <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-400"></div>
+              <div 
+                ref={questionsContainerRef}
+                className="max-h-[380px] overflow-y-auto pr-2 space-y-4"
+              >
+                {questions.map((question) => (
+                  <div key={question.id} className="p-4 border rounded-lg bg-background">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-card-foreground">{question.text}</span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleQuestionRelevance(question.id, false)}
+                            className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
+                              question.isRelevant === false ? 'bg-[#33fea6]' : ''
+                            }`}
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleQuestionRelevance(question.id, true)}
+                            className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
+                              question.isRelevant === true ? 'bg-[#33fea6]' : ''
+                            }`}
+                          >
+                            <Check className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                      {question.isRelevant && (
+                        <textarea
+                          value={question.answer}
+                          onChange={(e) => handleQuestionAnswer(question.id, e.target.value)}
+                          placeholder="Type your answer here..."
+                          className="w-full p-3 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[100px] focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                      )}
                     </div>
                   </div>
-                </div>
-                
-                {/* Questions container with vertical scrolling */}
-                <div 
-                  ref={questionsContainerRef}
-                  className="flex-1 max-h-[500px] overflow-y-auto pr-2 space-y-4 scrollbar-hide"
-                  onScroll={handleContainerScroll}
-                >
-                  {questions.map((question) => (
-                    <div key={question.id} className="p-4 border rounded-lg bg-background">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-card-foreground">{question.text}</span>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleQuestionRelevance(question.id, false)}
-                              className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
-                                question.isRelevant === false ? 'bg-[#33fea6]' : ''
-                              }`}
-                            >
-                              <X className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => handleQuestionRelevance(question.id, true)}
-                              className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
-                                question.isRelevant === true ? 'bg-[#33fea6]' : ''
-                              }`}
-                            >
-                              <Check className="w-5 h-5" />
-                            </button>
-                          </div>
-                        </div>
-                        {question.isRelevant && (
-                          <textarea
-                            value={question.answer}
-                            onChange={(e) => handleQuestionAnswer(question.id, e.target.value)}
-                            placeholder="Type your answer here..."
-                            className="w-full p-3 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[100px] focus:outline-none focus:ring-2 focus:ring-ring"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
             </div>
 
