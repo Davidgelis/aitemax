@@ -100,6 +100,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState(0);
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
+  const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
@@ -206,15 +207,27 @@ const Dashboard = () => {
     }
   };
 
-  const removeVariable = (id: string) => {
+  const confirmDeleteVariable = (id: string) => {
+    setVariableToDelete(id);
+  };
+
+  const removeVariable = () => {
+    if (!variableToDelete) return;
+    
     if (variables.length > 1) {
-      setVariables(variables.filter(v => v.id !== id));
+      setVariables(variables.filter(v => v.id !== variableToDelete));
+      setVariableToDelete(null);
+      toast({
+        title: "Variable deleted",
+        description: "The variable has been removed successfully",
+      });
     } else {
       toast({
         title: "Cannot remove",
         description: "You need at least one variable",
         variant: "destructive",
       });
+      setVariableToDelete(null);
     }
   };
 
@@ -639,15 +652,30 @@ const Dashboard = () => {
                       />
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => handleVariableRelevance(variable.id, false)}
-                        className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
-                          variable.isRelevant === false ? 'bg-[#33fea6]' : ''
-                        }`}
-                        title="Delete variable"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                      <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            onClick={() => confirmDeleteVariable(variable.id)}
+                            className="p-2 rounded-full hover:bg-[#33fea6]/20"
+                            title="Delete variable"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete variable?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this variable? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={removeVariable}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      
                       <button
                         onClick={() => handleVariableRelevance(variable.id, true)}
                         className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
@@ -658,12 +686,6 @@ const Dashboard = () => {
                         <Check className="w-4 h-4" />
                       </button>
                     </div>
-                    <button 
-                      onClick={() => removeVariable(variable.id)}
-                      className="p-2 rounded-md hover:bg-accent/20 transition-colors"
-                    >
-                      <Minus className="w-4 h-4 text-muted-foreground" />
-                    </button>
                   </div>
                 ))}
               </div>
