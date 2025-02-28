@@ -506,16 +506,16 @@ const Dashboard = () => {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleQuestionRelevance(question.id, false)}
-                            className={`p-2 rounded-full hover:bg-accent ${
-                              question.isRelevant === false ? 'bg-accent' : ''
+                            className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
+                              question.isRelevant === false ? 'bg-[#33fea6]' : ''
                             }`}
                           >
                             <X className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() => handleQuestionRelevance(question.id, true)}
-                            className={`p-2 rounded-full hover:bg-accent ${
-                              question.isRelevant === true ? 'bg-accent' : ''
+                            className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
+                              question.isRelevant === true ? 'bg-[#33fea6]' : ''
                             }`}
                           >
                             <Check className="w-5 h-5" />
