@@ -41,6 +41,7 @@ interface Variable {
   id: string;
   name: string;
   value: string;
+  isRelevant: boolean | null;
 }
 
 interface SavedPrompt {
@@ -81,9 +82,9 @@ const mockQuestions: Question[] = [
 ];
 
 const defaultVariables: Variable[] = [
-  { id: "v1", name: "Name", value: "" },
-  { id: "v2", name: "Location", value: "" },
-  { id: "v3", name: "Quantity", value: "" },
+  { id: "v1", name: "Name", value: "", isRelevant: null },
+  { id: "v2", name: "Location", value: "", isRelevant: null },
+  { id: "v3", name: "Quantity", value: "", isRelevant: null },
 ];
 
 const Dashboard = () => {
@@ -155,7 +156,7 @@ const Dashboard = () => {
       masterCommand,
       primaryToggle: selectedPrimary,
       secondaryToggle: selectedSecondary,
-      variables: variables.filter(v => v.name && v.value), // Only save filled variables
+      variables: variables.filter(v => v.isRelevant === true), // Only save checked variables
     };
 
     const updatedPrompts = [newPrompt, ...savedPrompts].slice(0, 10);
@@ -186,10 +187,16 @@ const Dashboard = () => {
     ));
   };
 
+  const handleVariableRelevance = (variableId: string, isRelevant: boolean) => {
+    setVariables(variables.map(v =>
+      v.id === variableId ? { ...v, isRelevant } : v
+    ));
+  };
+
   const addVariable = () => {
     if (variables.length < 10) {
       const newId = `v${Date.now()}`;
-      setVariables([...variables, { id: newId, name: "", value: "" }]);
+      setVariables([...variables, { id: newId, name: "", value: "", isRelevant: null }]);
     } else {
       toast({
         title: "Limit reached",
@@ -212,6 +219,9 @@ const Dashboard = () => {
   };
 
   const allQuestionsAnswered = questions.every(q => q.isRelevant !== null);
+  const allVariablesAnswered = variables.every(v => v.isRelevant !== null);
+
+  const canProceedToStep3 = allQuestionsAnswered && allVariablesAnswered;
 
   const handleStepChange = (step: number) => {
     if (step === 2 && !promptText.trim()) {
@@ -232,6 +242,15 @@ const Dashboard = () => {
       return;
     }
 
+    if (step === 3 && !canProceedToStep3) {
+      toast({
+        title: "Cannot proceed",
+        description: "Please mark all questions and variables as relevant or not relevant",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setCurrentStep(step);
   };
 
@@ -240,7 +259,7 @@ const Dashboard = () => {
       await navigator.clipboard.writeText(showJson ? JSON.stringify({ 
         prompt: finalPrompt, 
         masterCommand,
-        variables: variables.filter(v => v.name && v.value)
+        variables: variables.filter(v => v.isRelevant === true)
       }, null, 2) : finalPrompt);
       
       toast({
@@ -619,6 +638,26 @@ const Dashboard = () => {
                         className="flex-1"
                       />
                     </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleVariableRelevance(variable.id, false)}
+                        className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
+                          variable.isRelevant === false ? 'bg-[#33fea6]' : ''
+                        }`}
+                        title="Delete variable"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleVariableRelevance(variable.id, true)}
+                        className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
+                          variable.isRelevant === true ? 'bg-[#33fea6]' : ''
+                        }`}
+                        title="Keep variable"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                    </div>
                     <button 
                       onClick={() => removeVariable(variable.id)}
                       className="p-2 rounded-md hover:bg-accent/20 transition-colors"
@@ -630,16 +669,15 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {allQuestionsAnswered && (
-              <div className="flex justify-end">
-                <button 
-                  onClick={() => setCurrentStep(3)}
-                  className="aurora-button"
-                >
-                  Continue
-                </button>
-              </div>
-            )}
+            <div className="flex justify-end">
+              <button 
+                onClick={() => handleStepChange(3)}
+                className={`aurora-button ${!canProceedToStep3 ? 'opacity-70 cursor-not-allowed' : ''}`}
+                disabled={!canProceedToStep3}
+              >
+                Continue
+              </button>
+            </div>
           </div>
         );
       case 3:
@@ -707,7 +745,7 @@ const Dashboard = () => {
             </div>
 
             <div className="flex flex-wrap gap-3 mb-3">
-              {variables.filter(v => v.name && v.value).map((variable) => (
+              {variables.filter(v => v.isRelevant === true).map((variable) => (
                 <div key={variable.id} className="px-3 py-1 bg-[#33fea6]/10 border border-[#33fea6]/20 rounded-full text-xs">
                   <span className="font-medium">{variable.name}:</span> {variable.value}
                 </div>
@@ -728,7 +766,7 @@ const Dashboard = () => {
                 value={showJson ? JSON.stringify({ 
                   prompt: finalPrompt, 
                   masterCommand,
-                  variables: variables.filter(v => v.name && v.value)
+                  variables: variables.filter(v => v.isRelevant === true)
                 }, null, 2) : finalPrompt}
                 onChange={(e) => setFinalPrompt(e.target.value)}
                 className="absolute inset-0 p-4 text-sm rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
