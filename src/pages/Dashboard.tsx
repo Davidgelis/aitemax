@@ -94,6 +94,8 @@ const defaultVariables: Variable[] = [
   { id: "v1", name: "Name", value: "", isRelevant: null },
   { id: "v2", name: "Location", value: "", isRelevant: null },
   { id: "v3", name: "Quantity", value: "", isRelevant: null },
+  { id: "v4", name: "Date", value: "", isRelevant: null },
+  { id: "v5", name: "Category", value: "", isRelevant: null },
 ];
 
 const QUESTIONS_PER_PAGE = 3;
