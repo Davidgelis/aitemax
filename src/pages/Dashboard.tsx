@@ -431,6 +431,7 @@ const Dashboard = () => {
                     id={item.id}
                     checked={selectedPrimary === item.id}
                     onCheckedChange={() => handlePrimaryToggle(item.id)}
+                    variant="primary"
                   />
                 </div>
               ))}
@@ -446,6 +447,7 @@ const Dashboard = () => {
                     id={item.id}
                     checked={selectedSecondary === item.id}
                     onCheckedChange={() => handleSecondaryToggle(item.id)}
+                    variant="secondary"
                   />
                 </div>
               ))}
@@ -589,6 +591,7 @@ const Dashboard = () => {
                       checked={selectedPrimary === item.id}
                       onCheckedChange={() => handlePrimaryToggle(item.id)}
                       className="scale-75"
+                      variant="primary"
                     />
                   </div>
                 ))}
@@ -602,6 +605,7 @@ const Dashboard = () => {
                       checked={selectedSecondary === item.id}
                       onCheckedChange={() => handleSecondaryToggle(item.id)}
                       className="scale-75"
+                      variant="secondary"
                     />
                   </div>
                 ))}
