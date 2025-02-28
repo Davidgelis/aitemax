@@ -115,6 +115,7 @@ const Dashboard = () => {
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
   const [sliderPosition, setSliderPosition] = useState(0);
   const questionsContainerRef = useRef<HTMLDivElement>(null);
+  const variablesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
@@ -211,13 +212,13 @@ const Dashboard = () => {
   };
 
   const addVariable = () => {
-    if (variables.length < 10) {
+    if (variables.length < 12) {
       const newId = `v${Date.now()}`;
       setVariables([...variables, { id: newId, name: "", value: "", isRelevant: null }]);
     } else {
       toast({
         title: "Limit reached",
-        description: "You can add a maximum of 10 variables",
+        description: "You can add a maximum of 12 variables",
         variant: "destructive",
       });
     }
@@ -650,7 +651,10 @@ const Dashboard = () => {
                 </button>
               </div>
               
-              <div className="space-y-3">
+              <div 
+                ref={variablesContainerRef}
+                className="max-h-[180px] overflow-y-auto pr-2 space-y-3"
+              >
                 {variables.map((variable, index) => (
                   <div key={variable.id} className="flex gap-3 items-center">
                     <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
@@ -661,13 +665,13 @@ const Dashboard = () => {
                         placeholder="Variable name"
                         value={variable.name}
                         onChange={(e) => handleVariableChange(variable.id, 'name', e.target.value)}
-                        className="flex-1"
+                        className="flex-1 h-9"
                       />
                       <Input
                         placeholder="Value"
                         value={variable.value}
                         onChange={(e) => handleVariableChange(variable.id, 'value', e.target.value)}
-                        className="flex-1"
+                        className="flex-1 h-9"
                       />
                     </div>
                     <div className="flex gap-2">
