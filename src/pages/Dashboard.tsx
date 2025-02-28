@@ -1,5 +1,5 @@
 
-import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered, Plus, Minus, ArrowLeft, ArrowRight } from "lucide-react";
+import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered, Plus, Minus, ArrowLeft, ArrowRight, Edit } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -29,6 +29,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 interface Question {
   id: string;
@@ -98,6 +109,21 @@ const defaultVariables: Variable[] = [
   { id: "v5", name: "Category", value: "", isRelevant: null },
 ];
 
+// Sample final prompt to use for testing the UI
+const sampleFinalPrompt = `# Expert Reasoning Framework for Complex Problem-Solving
+
+## Initial Analysis Phase
+Begin by breaking down the problem into its fundamental components. Identify key variables, constraints, and underlying patterns that might not be immediately obvious. Map the relationships between different elements and look for potential conflicts or synergies.
+
+## Deep Exploration Phase
+For each component identified, apply multiple mental models and disciplinary frameworks. Consider the problem from different perspectives (e.g., systems thinking, first principles reasoning, probabilistic thinking). Generate alternative hypotheses and evaluate them against available evidence.
+
+## Synthesis and Solution Generation
+Combine insights from different perspectives to form an integrated understanding. Develop multiple solution pathways rather than fixating on a single approach. Evaluate trade-offs explicitly and consider second-order consequences of each potential solution.
+
+## Implementation and Feedback Integration
+Outline a clear plan for putting the solution into practice, identifying potential obstacles and contingency plans. Establish mechanisms to gather feedback and adjust the approach based on new information or changing conditions.`;
+
 const QUESTIONS_PER_PAGE = 3;
 
 const Dashboard = () => {
@@ -109,7 +135,9 @@ const Dashboard = () => {
   const [currentQuestionPage, setCurrentQuestionPage] = useState(0);
   const [variables, setVariables] = useState<Variable[]>(defaultVariables);
   const [showJson, setShowJson] = useState(false);
-  const [finalPrompt, setFinalPrompt] = useState("");
+  const [finalPrompt, setFinalPrompt] = useState(sampleFinalPrompt);
+  const [editingPrompt, setEditingPrompt] = useState("");
+  const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
   const [masterCommand, setMasterCommand] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState(0);
@@ -119,6 +147,7 @@ const Dashboard = () => {
   const questionsContainerRef = useRef<HTMLDivElement>(null);
   const variablesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -143,6 +172,32 @@ const Dashboard = () => {
     }
     return () => clearTimeout(timeout);
   }, [isLoading, currentLoadingMessage]);
+
+  // Open the edit prompt sheet
+  const handleOpenEditPrompt = () => {
+    setEditingPrompt(finalPrompt);
+    setShowEditPromptSheet(true);
+  };
+
+  // Save edited prompt
+  const handleSaveEditedPrompt = () => {
+    setFinalPrompt(editingPrompt);
+    setShowEditPromptSheet(false);
+    toast({
+      title: "Success",
+      description: "Prompt updated successfully",
+    });
+  };
+
+  // Handle the adapt prompt action with confirmation
+  const handleAdaptPrompt = () => {
+    setFinalPrompt(editingPrompt);
+    setShowEditPromptSheet(false);
+    toast({
+      title: "Success",
+      description: "Prompt adapted successfully",
+    });
+  };
 
   const handlePrimaryToggle = (id: string) => {
     setSelectedPrimary(currentSelected => currentSelected === id ? null : id);
@@ -808,18 +863,43 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className="relative flex-1 min-h-[50vh] mb-3">
-              <textarea
-                value={showJson ? JSON.stringify({ 
-                  prompt: finalPrompt, 
-                  masterCommand,
-                  variables: variables.filter(v => v.isRelevant === true)
-                }, null, 2) : finalPrompt}
-                onChange={(e) => setFinalPrompt(e.target.value)}
-                className="absolute inset-0 p-4 text-sm rounded-lg border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="Final Prompt"
-                readOnly={showJson}
+            {/* Final Prompt Display with Aurora Effect */}
+            <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
+              {/* Edit Button */}
+              <button 
+                onClick={handleOpenEditPrompt}
+                className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
+              >
+                <Edit className="w-4 h-4 text-accent" />
+              </button>
+              
+              {/* Aurora Effect Background */}
+              <div 
+                className="absolute inset-0 bg-gradient-to-br from-accent via-primary-dark to-primary animate-aurora opacity-10"
+                style={{ backgroundSize: "400% 400%" }}
               />
+              
+              {/* Prompt Content */}
+              <div className="relative h-full p-6 overflow-y-auto">
+                <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
+                <div className="whitespace-pre-wrap text-card-foreground">
+                  {showJson ? (
+                    <pre className="text-xs font-mono">
+                      {JSON.stringify({ 
+                        prompt: finalPrompt, 
+                        masterCommand,
+                        variables: variables.filter(v => v.isRelevant === true)
+                      }, null, 2)}
+                    </pre>
+                  ) : (
+                    <div className="prose prose-sm max-w-none">
+                      {finalPrompt.split('\n\n').map((paragraph, index) => (
+                        <p key={index}>{paragraph}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-between items-center">
@@ -838,6 +918,57 @@ const Dashboard = () => {
                 Save
               </button>
             </div>
+
+            {/* Edit Prompt Sheet */}
+            <Sheet open={showEditPromptSheet} onOpenChange={setShowEditPromptSheet}>
+              <SheetContent className="w-[90%] sm:max-w-[600px] md:max-w-[800px]">
+                <SheetHeader>
+                  <SheetTitle>Edit Prompt</SheetTitle>
+                  <SheetDescription>
+                    Make changes to your prompt. Click save when you're done or adapt to regenerate the prompt.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="py-6">
+                  <textarea
+                    ref={editPromptTextareaRef}
+                    value={editingPrompt}
+                    onChange={(e) => setEditingPrompt(e.target.value)}
+                    className="w-full min-h-[60vh] p-4 text-sm rounded-md border bg-gray-50/80 text-card-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <SheetFooter className="flex flex-row justify-end space-x-4">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        className="bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-2"
+                      >
+                        <RotateCw className="w-4 h-4" />
+                        Adapt
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will regenerate your prompt based on the changes you made.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleAdaptPrompt}>Yes, adapt it</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  <Button 
+                    onClick={handleSaveEditedPrompt}
+                    className="bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    Save
+                  </Button>
+                </SheetFooter>
+              </SheetContent>
+            </Sheet>
           </div>
         );
 
