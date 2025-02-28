@@ -1,3 +1,4 @@
+
 import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon } from "lucide-react";
 import {
   Sidebar,
@@ -582,8 +583,8 @@ const Dashboard = () => {
           </SidebarContent>
         </Sidebar>
 
-        <div className="absolute top-6 right-6">
-          <SidebarTrigger />
+        <div className="absolute top-6 right-6 z-50">
+          <SidebarTrigger className="bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
         </div>
       </div>
     </SidebarProvider>
