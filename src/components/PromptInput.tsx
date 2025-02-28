@@ -25,8 +25,14 @@ const PromptInput = ({ onSubmit, placeholder = "Input your prompt...", className
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={placeholder}
-          className="w-full h-32 p-4 rounded-xl glass input-glow resize-none text-text placeholder:text-text/50"
-          style={{ boxShadow: "0 0 0 1px rgba(0,0,0,0.05)" }}
+          className="w-full h-32 p-4 rounded-xl resize-none"
+          style={{ 
+            backgroundColor: "#041524",
+            color: "#33fea6", 
+            boxShadow: "0 0 20px rgba(51, 254, 166, 0.2)",
+            border: "1px solid rgba(51, 254, 166, 0.3)",
+            caretColor: "#33fea6"
+          }}
         />
       </div>
     </form>
@@ -34,4 +40,3 @@ const PromptInput = ({ onSubmit, placeholder = "Input your prompt...", className
 };
 
 export default PromptInput;
-

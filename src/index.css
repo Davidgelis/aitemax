@@ -35,3 +35,9 @@
 .opacity-15 {
   opacity: 0.15;
 }
+
+/* Add custom placeholder color for the input with #041524 background */
+textarea[style*="backgroundColor: #041524"]::placeholder {
+  color: rgba(51, 254, 166, 0.5);
+}
+
