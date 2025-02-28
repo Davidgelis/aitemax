@@ -316,6 +316,87 @@ const Dashboard = () => {
     });
   };
 
+  // Handle key down events for auto-continuing lists
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      const textarea = e.currentTarget;
+      const { selectionStart } = textarea;
+      const currentText = promptText;
+      
+      // Get the current line up to the cursor position
+      const textBeforeCursor = currentText.substring(0, selectionStart);
+      const lines = textBeforeCursor.split('\n');
+      const currentLine = lines[lines.length - 1];
+      
+      // Check if the current line starts with a bullet point
+      if (currentLine.trimStart().startsWith('• ')) {
+        e.preventDefault();
+        
+        // If the line is empty except for the bullet, remove it (exit the list)
+        if (currentLine.trim() === '•' || currentLine.trim() === '• ') {
+          const newLines = [...lines];
+          newLines[newLines.length - 1] = '';
+          const newText = newLines.join('\n') + currentText.substring(selectionStart);
+          setPromptText(newText);
+          
+          // Set cursor position
+          setTimeout(() => {
+            textarea.focus();
+            const newCursorPosition = textBeforeCursor.length - currentLine.length;
+            textarea.selectionStart = textarea.selectionEnd = newCursorPosition;
+          }, 0);
+        } else {
+          // Continue the bullet list
+          const indent = currentLine.match(/^\s*/)?.[0] || '';
+          const newLine = `\n${indent}• `;
+          const newText = currentText.substring(0, selectionStart) + newLine + currentText.substring(selectionStart);
+          setPromptText(newText);
+          
+          // Set cursor position after the bullet on the new line
+          setTimeout(() => {
+            textarea.focus();
+            textarea.selectionStart = textarea.selectionEnd = selectionStart + newLine.length;
+          }, 0);
+        }
+        return;
+      }
+      
+      // Check if the current line starts with a numbered list (e.g., "1. ")
+      const numberedListMatch = currentLine.trimStart().match(/^(\d+)\.\s/);
+      if (numberedListMatch) {
+        e.preventDefault();
+        
+        // If the line is empty except for the number, remove it (exit the list)
+        if (currentLine.trim() === `${numberedListMatch[1]}.` || currentLine.trim() === `${numberedListMatch[1]}. `) {
+          const newLines = [...lines];
+          newLines[newLines.length - 1] = '';
+          const newText = newLines.join('\n') + currentText.substring(selectionStart);
+          setPromptText(newText);
+          
+          // Set cursor position
+          setTimeout(() => {
+            textarea.focus();
+            const newCursorPosition = textBeforeCursor.length - currentLine.length;
+            textarea.selectionStart = textarea.selectionEnd = newCursorPosition;
+          }, 0);
+        } else {
+          // Continue the numbered list with incremented number
+          const currentNumber = parseInt(numberedListMatch[1], 10);
+          const indent = currentLine.match(/^\s*/)?.[0] || '';
+          const newLine = `\n${indent}${currentNumber + 1}. `;
+          const newText = currentText.substring(0, selectionStart) + newLine + currentText.substring(selectionStart);
+          setPromptText(newText);
+          
+          // Set cursor position after the number on the new line
+          setTimeout(() => {
+            textarea.focus();
+            textarea.selectionStart = textarea.selectionEnd = selectionStart + newLine.length;
+          }, 0);
+        }
+      }
+    }
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -391,6 +472,7 @@ const Dashboard = () => {
                 ref={textareaRef}
                 value={promptText}
                 onChange={(e) => setPromptText(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
                 placeholder="Start by typing your prompt"
               />
