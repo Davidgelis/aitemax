@@ -1,3 +1,4 @@
+
 import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered, Plus, Minus, ArrowLeft, ArrowRight, Edit, FileText } from "lucide-react";
 import {
   Sidebar,
@@ -812,6 +813,20 @@ const Dashboard = () => {
       case 1:
         return (
           <>
+            <div className="fixed top-4 left-4 flex space-x-4 z-50">
+              {[1, 2, 3].map((step) => (
+                <button
+                  key={step}
+                  onClick={() => handleStepChange(step)}
+                  className={`aurora-button text-2xl px-6 py-3 ${
+                    currentStep === step ? 'bg-[#33fea6] text-accent font-semibold' : ''
+                  }`}
+                >
+                  Step {step}
+                </button>
+              ))}
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               {primaryToggles.map((item) => (
                 <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
@@ -880,36 +895,383 @@ const Dashboard = () => {
         );
       case 2:
         return (
-          <div className="border rounded-xl p-6 bg-card">
-            <div className="mb-6">
-              <p className="text-card-foreground mb-4">
-                Answer the following questions to enhance your prompt, mark them as relevant or not relevant
-              </p>
+          <>
+            <div className="fixed top-4 left-4 flex space-x-4 z-50">
+              {[1, 2, 3].map((step) => (
+                <button
+                  key={step}
+                  onClick={() => handleStepChange(step)}
+                  className={`aurora-button text-2xl px-6 py-3 ${
+                    currentStep === step ? 'bg-[#33fea6] text-accent font-semibold' : ''
+                  }`}
+                >
+                  Step {step}
+                </button>
+              ))}
+            </div>
+            
+            <div className="border rounded-xl p-6 bg-card">
+              <div className="mb-6">
+                <p className="text-card-foreground mb-4">
+                  Answer the following questions to enhance your prompt, mark them as relevant or not relevant
+                </p>
+                
+                <div 
+                  ref={questionsContainerRef}
+                  className="max-h-[285px] overflow-y-auto pr-2 space-y-4"
+                >
+                  {questions.map((question) => (
+                    <div key={question.id} className="p-4 border rounded-lg bg-background">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-card-foreground">{question.text}</span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleQuestionRelevance(question.id, false)}
+                              className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
+                                question.isRelevant === false ? 'bg-[#33fea6]' : ''
+                              }`}
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleQuestionRelevance(question.id, true)}
+                              className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
+                                question.isRelevant === true ? 'bg-[#33fea6]' : ''
+                              }`}
+                            >
+                              <Check className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {question.isRelevant === true && (
+                          <div className="mt-2">
+                            <textarea
+                              value={question.answer}
+                              onChange={(e) => handleQuestionAnswer(question.id, e.target.value)}
+                              className="w-full p-2 rounded border bg-background resize-none h-20 outline-none focus:border-[#33fea6]"
+                              placeholder="Your answer here..."
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
               
-              <div 
-                ref={questionsContainerRef}
-                className="max-h-[285px] overflow-y-auto pr-2 space-y-4"
-              >
-                {questions.map((question) => (
-                  <div key={question.id} className="p-4 border rounded-lg bg-background">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-card-foreground">{question.text}</span>
-                        <div className="flex gap-2">
+              <div className="mt-8">
+                <h3 className="text-lg font-medium mb-4">Variables</h3>
+                <div
+                  ref={variablesContainerRef}
+                  className="max-h-[200px] overflow-y-auto pr-2 space-y-4"
+                >
+                  {variables.map((variable) => (
+                    <div key={variable.id} className="p-4 border rounded-lg bg-background">
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex-1">
+                          <Input
+                            value={variable.name}
+                            onChange={(e) => handleVariableChange(variable.id, 'name', e.target.value)}
+                            placeholder="Variable name"
+                            className="mb-2 focus:border-[#33fea6]"
+                          />
+                          <Input
+                            value={variable.value}
+                            onChange={(e) => handleVariableChange(variable.id, 'value', e.target.value)}
+                            placeholder="Value"
+                            className="focus:border-[#33fea6]"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 sm:flex-col justify-center">
                           <button
-                            onClick={() => handleQuestionRelevance(question.id, false)}
+                            onClick={() => handleVariableRelevance(variable.id, false)}
                             className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
-                              question.isRelevant === false ? 'bg-[#33fea6]' : ''
+                              variable.isRelevant === false ? 'bg-[#33fea6]' : ''
                             }`}
+                            title="Not relevant"
                           >
                             <X className="w-5 h-5" />
                           </button>
                           <button
-                            onClick={() => handleQuestionRelevance(question.id, true)}
+                            onClick={() => handleVariableRelevance(variable.id, true)}
                             className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
-                              question.isRelevant === true ? 'bg-[#33fea6]' : ''
+                              variable.isRelevant === true ? 'bg-[#33fea6]' : ''
                             }`}
+                            title="Relevant"
                           >
                             <Check className="w-5 h-5" />
                           </button>
+                          <button
+                            onClick={() => confirmDeleteVariable(variable.id)}
+                            className="p-2 rounded-full hover:bg-red-500/20 text-red-500"
+                            title="Delete variable"
+                          >
+                            <Trash className="w-5 h-5" />
+                          </button>
                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="flex justify-between mt-4">
+                  <button 
+                    onClick={addVariable}
+                    className="flex items-center gap-1 text-primary hover:text-primary-dark transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Variable</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => handleStepChange(3)}
+                    disabled={!canProceedToStep3}
+                    className={`aurora-button ${!canProceedToStep3 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    Generate Prompt
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      case 3:
+        return (
+          <>
+            <div className="fixed top-4 left-4 flex space-x-4 z-50">
+              {[1, 2, 3].map((step) => (
+                <button
+                  key={step}
+                  onClick={() => handleStepChange(step)}
+                  className={`aurora-button text-2xl px-6 py-3 ${
+                    currentStep === step ? 'bg-[#33fea6] text-accent font-semibold' : ''
+                  }`}
+                >
+                  Step {step}
+                </button>
+              ))}
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="border rounded-xl p-6 bg-card">
+                  <h3 className="text-lg font-medium mb-4">Master Command</h3>
+                  <textarea
+                    value={masterCommand}
+                    onChange={(e) => setMasterCommand(e.target.value)}
+                    className="w-full p-3 rounded border bg-background resize-none h-20 outline-none focus:border-[#33fea6]"
+                    placeholder="Enter a master command (optional)"
+                  />
+                </div>
+                
+                <div className="border rounded-xl p-6 bg-card">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium">Final Prompt</h3>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowJson(!showJson)}
+                        className={`p-2 rounded-md hover:bg-accent/20 transition-colors ${
+                          showJson ? 'bg-accent/20' : ''
+                        }`}
+                        title={showJson ? "Show formatted" : "Show as JSON"}
+                      >
+                        <FileText className="w-5 h-5" style={{ color: "#64bf95" }} />
+                      </button>
+                      <button
+                        onClick={handleOpenEditPrompt}
+                        className="p-2 rounded-md hover:bg-accent/20 transition-colors"
+                        title="Edit prompt"
+                      >
+                        <Edit className="w-5 h-5" style={{ color: "#64bf95" }} />
+                      </button>
+                      <button
+                        onClick={handleRegenerate}
+                        className="p-2 rounded-md hover:bg-accent/20 transition-colors"
+                        title="Regenerate"
+                      >
+                        <RotateCw className="w-5 h-5" style={{ color: "#64bf95" }} />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="border rounded p-4 bg-background min-h-[300px] mb-4 overflow-auto whitespace-pre-wrap">
+                    {showJson ? (
+                      <pre className="text-left">
+                        {JSON.stringify({
+                          prompt: finalPrompt,
+                          masterCommand,
+                          variables: variables.filter(v => v.isRelevant === true)
+                        }, null, 2)}
+                      </pre>
+                    ) : (
+                      <div
+                        dangerouslySetInnerHTML={{ __html: getProcessedPrompt() }}
+                        className="text-left"
+                      />
+                    )}
+                  </div>
+                  
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={handleCopyPrompt}
+                      className="flex items-center gap-1 text-primary hover:text-primary-dark transition-colors"
+                    >
+                      <Copy className="w-4 h-4" />
+                      <span>Copy</span>
+                    </button>
+                    
+                    <button
+                      onClick={handleSavePrompt}
+                      className="aurora-button"
+                    >
+                      <Save className="w-4 h-4 mr-1" />
+                      Save Prompt
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="lg:col-span-1">
+                <div className="border rounded-xl p-6 bg-card sticky top-20">
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-2">
+                      <User className="w-5 h-5" />
+                      <span>{user ? user.email : 'Guest'}</span>
+                    </div>
+                    <button
+                      onClick={handleNewPrompt}
+                      className="aurora-button"
+                    >
+                      New Prompt
+                    </button>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div className="mb-4">
+                    <Input
+                      placeholder="Search prompts..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="focus:border-[#33fea6]"
+                      prefix={<Search className="w-4 h-4 text-muted-foreground" />}
+                    />
+                  </div>
+                  
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                    {isLoadingPrompts ? (
+                      <div className="flex justify-center py-4">
+                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : filteredPrompts.length > 0 ? (
+                      filteredPrompts.map((prompt) => (
+                        <div key={prompt.id} className="border rounded-lg p-3 bg-background">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-medium text-sm">{prompt.title}</h4>
+                              <p className="text-xs text-muted-foreground">{prompt.date}</p>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="p-1 rounded-md hover:bg-accent/20">
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleDuplicatePrompt(prompt)}>
+                                  <CopyIcon className="w-4 h-4 mr-2" />
+                                  Duplicate
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  const newTitle = prompt.title === 'Untitled Prompt' ? '' : prompt.title;
+                                  const title = window.prompt('Enter new title:', newTitle);
+                                  if (title) handleRenamePrompt(prompt.id, title);
+                                }}>
+                                  <Pencil className="w-4 h-4 mr-2" />
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-red-500"
+                                  onClick={() => {
+                                    if (window.confirm('Are you sure you want to delete this prompt?')) {
+                                      handleDeletePrompt(prompt.id);
+                                    }
+                                  }}
+                                >
+                                  <Trash className="w-4 h-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-6 text-muted-foreground">
+                        {searchTerm ? 'No matching prompts found' : 'No saved prompts yet'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <SidebarProvider>
+      <div className="container mx-auto py-8 px-4">
+        {renderContent()}
+      </div>
+      
+      <AlertDialog open={!!variableToDelete} onOpenChange={() => setVariableToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this variable.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={removeVariable}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <Sheet open={showEditPromptSheet} onOpenChange={setShowEditPromptSheet}>
+        <SheetContent className="w-[90vw] sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Edit Prompt</SheetTitle>
+            <SheetDescription>
+              Make changes to your prompt template
+            </SheetDescription>
+          </SheetHeader>
+          <div className="py-4">
+            <textarea
+              ref={editPromptTextareaRef}
+              value={editingPrompt}
+              onChange={(e) => setEditingPrompt(e.target.value)}
+              className="w-full h-[50vh] p-3 border rounded resize-none focus:outline-none focus:border-[#33fea6]"
+            />
+          </div>
+          <SheetFooter>
+            <SheetClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </SheetClose>
+            <Button onClick={handleSaveEditedPrompt}>Save Changes</Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </SidebarProvider>
+  );
+};
+
+export default Dashboard;
