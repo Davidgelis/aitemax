@@ -1,3 +1,4 @@
+
 import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered, Plus, Minus, ArrowLeft, ArrowRight, Edit, FileText } from "lucide-react";
 import {
   Sidebar,
@@ -40,6 +41,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Question {
   id: string;
@@ -145,11 +147,80 @@ const Dashboard = () => {
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
   const [sliderPosition, setSliderPosition] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const questionsContainerRef = useRef<HTMLDivElement>(null);
   const variablesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+
+  // Check for authentication and get current user
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user || null);
+      }
+    );
+    
+    // Get current session
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+    
+    getUser();
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Fetch saved prompts from Supabase when user is available
+  useEffect(() => {
+    if (user) {
+      fetchSavedPrompts();
+    }
+  }, [user]);
+
+  const fetchSavedPrompts = async () => {
+    if (!user) return;
+    
+    setIsLoadingPrompts(true);
+    try {
+      const { data, error } = await supabase
+        .from('prompts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Transform data to match our SavedPrompt interface
+      const formattedPrompts: SavedPrompt[] = data?.map(item => ({
+        id: item.id,
+        title: item.title || 'Untitled Prompt',
+        date: new Date(item.created_at).toLocaleString(),
+        promptText: item.prompt_text || '',
+        masterCommand: item.master_command || '',
+        primaryToggle: item.primary_toggle,
+        secondaryToggle: item.secondary_toggle,
+        variables: item.variables || [],
+      })) || [];
+      
+      setSavedPrompts(formattedPrompts);
+    } catch (error: any) {
+      console.error("Error fetching prompts:", error.message);
+      toast({
+        title: "Error fetching prompts",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPrompts(false);
+    }
+  };
 
   const getProcessedPrompt = () => {
     let processedPrompt = finalPrompt;
@@ -184,13 +255,6 @@ const Dashboard = () => {
       description: "Started a new prompt creation process",
     });
   };
-
-  useEffect(() => {
-    const saved = localStorage.getItem("savedPrompts");
-    if (saved) {
-      setSavedPrompts(JSON.parse(saved));
-    }
-  }, []);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -254,26 +318,66 @@ const Dashboard = () => {
     setSliderPosition(0);
   };
 
-  const handleSavePrompt = () => {
-    const newPrompt: SavedPrompt = {
-      id: Date.now().toString(),
-      title: finalPrompt.split('\n')[0] || 'Untitled Prompt',
-      date: new Date().toLocaleString(),
-      promptText: finalPrompt,
-      masterCommand,
-      primaryToggle: selectedPrimary,
-      secondaryToggle: selectedSecondary,
-      variables: variables.filter(v => v.isRelevant === true),
-    };
+  const handleSavePrompt = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save your prompts",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const updatedPrompts = [newPrompt, ...savedPrompts].slice(0, 10);
-    setSavedPrompts(updatedPrompts);
-    localStorage.setItem("savedPrompts", JSON.stringify(updatedPrompts));
+    try {
+      const promptData = {
+        user_id: user.id,
+        title: finalPrompt.split('\n')[0] || 'Untitled Prompt',
+        prompt_text: finalPrompt,
+        master_command: masterCommand,
+        primary_toggle: selectedPrimary,
+        secondary_toggle: selectedSecondary,
+        variables: variables.filter(v => v.isRelevant === true),
+        current_step: currentStep,
+        updated_at: new Date().toISOString()
+      };
 
-    toast({
-      title: "Success",
-      description: "Prompt saved successfully",
-    });
+      const { data, error } = await supabase
+        .from('prompts')
+        .insert(promptData)
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      // Add the new prompt to the start of the list
+      if (data && data.length > 0) {
+        const newPrompt: SavedPrompt = {
+          id: data[0].id,
+          title: data[0].title || 'Untitled Prompt',
+          date: new Date(data[0].created_at).toLocaleString(),
+          promptText: data[0].prompt_text || '',
+          masterCommand: data[0].master_command || '',
+          primaryToggle: data[0].primary_toggle,
+          secondaryToggle: data[0].secondary_toggle,
+          variables: data[0].variables || [],
+        };
+        
+        setSavedPrompts([newPrompt, ...savedPrompts]);
+      }
+
+      toast({
+        title: "Success",
+        description: "Prompt saved successfully",
+      });
+    } catch (error: any) {
+      console.error("Error saving prompt:", error.message);
+      toast({
+        title: "Error saving prompt",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleQuestionAnswer = (questionId: string, answer: string) => {
@@ -401,42 +505,122 @@ const Dashboard = () => {
     });
   };
 
-  const handleDeletePrompt = (id: string) => {
-    const updatedPrompts = savedPrompts.filter(prompt => prompt.id !== id);
-    setSavedPrompts(updatedPrompts);
-    localStorage.setItem("savedPrompts", JSON.stringify(updatedPrompts));
-    toast({
-      title: "Success",
-      description: "Prompt deleted successfully",
-    });
+  const handleDeletePrompt = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('prompts')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      const updatedPrompts = savedPrompts.filter(prompt => prompt.id !== id);
+      setSavedPrompts(updatedPrompts);
+      
+      toast({
+        title: "Success",
+        description: "Prompt deleted successfully",
+      });
+    } catch (error: any) {
+      console.error("Error deleting prompt:", error.message);
+      toast({
+        title: "Error deleting prompt",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDuplicatePrompt = (prompt: SavedPrompt) => {
-    const newPrompt = {
-      ...prompt,
-      id: Date.now().toString(),
-      title: `${prompt.title} (Copy)`,
-      date: new Date().toLocaleString(),
-    };
-    const updatedPrompts = [newPrompt, ...savedPrompts].slice(0, 10);
-    setSavedPrompts(updatedPrompts);
-    localStorage.setItem("savedPrompts", JSON.stringify(updatedPrompts));
-    toast({
-      title: "Success",
-      description: "Prompt duplicated successfully",
-    });
+  const handleDuplicatePrompt = async (prompt: SavedPrompt) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to duplicate prompts",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const duplicateData = {
+        user_id: user.id,
+        title: `${prompt.title} (Copy)`,
+        prompt_text: prompt.promptText,
+        master_command: prompt.masterCommand,
+        primary_toggle: prompt.primaryToggle,
+        secondary_toggle: prompt.secondaryToggle,
+        variables: prompt.variables,
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('prompts')
+        .insert(duplicateData)
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        const newPrompt: SavedPrompt = {
+          id: data[0].id,
+          title: data[0].title,
+          date: new Date(data[0].created_at).toLocaleString(),
+          promptText: data[0].prompt_text || '',
+          masterCommand: data[0].master_command || '',
+          primaryToggle: data[0].primary_toggle,
+          secondaryToggle: data[0].secondary_toggle,
+          variables: data[0].variables || [],
+        };
+        
+        setSavedPrompts([newPrompt, ...savedPrompts]);
+      }
+      
+      toast({
+        title: "Success",
+        description: "Prompt duplicated successfully",
+      });
+    } catch (error: any) {
+      console.error("Error duplicating prompt:", error.message);
+      toast({
+        title: "Error duplicating prompt",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleRenamePrompt = (id: string, newTitle: string) => {
-    const updatedPrompts = savedPrompts.map(prompt =>
-      prompt.id === id ? { ...prompt, title: newTitle } : prompt
-    );
-    setSavedPrompts(updatedPrompts);
-    localStorage.setItem("savedPrompts", JSON.stringify(updatedPrompts));
-    toast({
-      title: "Success",
-      description: "Prompt renamed successfully",
-    });
+  const handleRenamePrompt = async (id: string, newTitle: string) => {
+    try {
+      const { error } = await supabase
+        .from('prompts')
+        .update({ title: newTitle, updated_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      const updatedPrompts = savedPrompts.map(prompt =>
+        prompt.id === id ? { ...prompt, title: newTitle } : prompt
+      );
+      setSavedPrompts(updatedPrompts);
+      
+      toast({
+        title: "Success",
+        description: "Prompt renamed successfully",
+      });
+    } catch (error: any) {
+      console.error("Error renaming prompt:", error.message);
+      toast({
+        title: "Error renaming prompt",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const insertBulletList = () => {
@@ -1040,7 +1224,7 @@ const Dashboard = () => {
                 <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                   <User className="w-6 h-6 text-muted-foreground" />
                 </div>
-                <span className="font-medium">User Name</span>
+                <span className="font-medium">{user ? (user.email || 'User').split('@')[0] : 'Guest'}</span>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger className="p-1 hover:bg-accent rounded-md">
@@ -1055,6 +1239,31 @@ const Dashboard = () => {
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                   </DropdownMenuItem>
+                  {user ? (
+                    <DropdownMenuItem onClick={async () => {
+                      await supabase.auth.signOut();
+                      toast({
+                        title: "Signed out",
+                        description: "You have been signed out successfully",
+                      });
+                    }}>
+                      <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                      </svg>
+                      <span>Sign out</span>
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={() => navigate("/auth")}>
+                      <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                        <polyline points="10 17 15 12 10 7"></polyline>
+                        <line x1="15" y1="12" x2="3" y2="12"></line>
+                      </svg>
+                      <span>Sign in</span>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -1082,7 +1291,12 @@ const Dashboard = () => {
             </div>
 
             <div className="overflow-auto">
-              {filteredPrompts.length > 0 ? (
+              {isLoadingPrompts ? (
+                <div className="p-4 text-center">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                  <span className="text-sm text-muted-foreground">Loading your prompts...</span>
+                </div>
+              ) : filteredPrompts.length > 0 ? (
                 filteredPrompts.map((item) => (
                   <div
                     key={item.id}
@@ -1127,7 +1341,19 @@ const Dashboard = () => {
                 ))
               ) : (
                 <div className="p-4 text-center text-muted-foreground">
-                  {searchTerm ? "No matching prompts found" : "No saved prompts yet"}
+                  {user ? (
+                    searchTerm ? "No matching prompts found" : "No saved prompts yet"
+                  ) : (
+                    <div className="space-y-3">
+                      <p>Please sign in to save and view your prompts</p>
+                      <Button 
+                        onClick={() => navigate("/auth")}
+                        className="aurora-button"
+                      >
+                        Sign in
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
