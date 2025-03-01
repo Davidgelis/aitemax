@@ -3,79 +3,34 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 98%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 142 98% 60%;
-    --primary-foreground: 355.7 100% 97.3%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 142 98% 60%;
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 20 14.3% 4.1%;
-    --foreground: 0 0% 95%;
-    --card: 24 9.8% 10%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 142 98% 60%;
-    --primary-foreground: 144.9 80.4% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 12 6.5% 15.1%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 85.7% 97.3%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 142 98% 60%;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
-}
-
 @layer components {
   .aurora-button {
-    @apply px-4 py-2 rounded text-white relative overflow-hidden transition-all duration-300;
-    background: linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95);
-    background-size: 400% 400%;
-    animation: aurora 15s ease infinite;
-    backdrop-filter: blur(5px);
-    box-shadow: 0 0 10px rgba(51, 254, 166, 0.4);
+    @apply bg-gradient-to-r from-[#041524] via-[#084b49] to-[#33fea6] text-white px-4 py-2 rounded-md transition-all duration-300 hover:opacity-90 shadow-lg;
+    background-size: 200% 200%;
+    animation: aurora 5s ease infinite;
   }
-  
-  .aurora-button:hover {
-    @apply transform scale-105;
-    box-shadow: 0 0 15px rgba(51, 254, 166, 0.6);
-  }
-  
-  .aurora-button:active {
-    @apply transform scale-95;
-  }
+}
+
+@keyframes aurora {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease forwards;
+}
+
+.bg-aurora {
+  background: linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white);
+  background-size: 400% 400%;
+}
+
+.animate-aurora {
+  animation: aurora 15s ease infinite;
 }

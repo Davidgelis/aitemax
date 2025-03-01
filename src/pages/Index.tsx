@@ -3,57 +3,14 @@ import Logo from "@/components/Logo";
 import PromptInput from "@/components/PromptInput";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { useState } from "react";
-import { toast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handlePromptSubmit = (prompt: string) => {
-    if (!prompt.trim()) {
-      toast({
-        title: "Empty Prompt",
-        description: "Please enter a prompt before submitting.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    
-    // This is a placeholder for the actual submission logic
+    // Will implement in next iteration
     console.log("Prompt submitted:", prompt);
-    
-    // Simulate processing and show success message
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast({
-        title: "Prompt Received",
-        description: "Your prompt has been successfully submitted!",
-        variant: "default",
-      });
-      
-      // Navigate to dashboard if user is logged in
-      if (user) {
-        navigate("/dashboard");
-      } else {
-        // Prompt to login
-        toast({
-          title: "Sign in recommended",
-          description: "Sign in to save and manage your prompts.",
-          action: (
-            <button 
-              className="aurora-button px-3 py-1 text-sm"
-              onClick={() => navigate("/auth")}
-            >
-              Sign In
-            </button>
-          ),
-        });
-      }
-    }, 1500);
   };
 
   const handleAuthAction = () => {
@@ -110,7 +67,6 @@ const Index = () => {
             onSubmit={handlePromptSubmit}
             placeholder="Input your prompt to Aitema X..."
             className="w-full"
-            isSubmitting={isSubmitting}
           />
         </div>
       </main>
