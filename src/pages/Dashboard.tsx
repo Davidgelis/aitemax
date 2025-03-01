@@ -919,3 +919,175 @@ const Dashboard = () => {
                   ref={questionsContainerRef}
                   className="max-h-[285px] overflow-y-auto pr-2 space-y-4"
                 >
+                  <div className="space-y-4">
+                    {questions.map((question) => (
+                      <div key={question.id} className="flex items-start mb-2">
+                        <div className="text-sm font-medium text-[#545454]">{question.text}</div>
+                        <div className="ml-4">
+                          <Switch 
+                            id={question.id}
+                            checked={question.isRelevant !== null}
+                            onCheckedChange={() => handleQuestionRelevance(question.id, !question.isRelevant)}
+                            variant="primary"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      case 3:
+        return (
+          <>
+            <div className="fixed top-4 left-4 flex space-x-4 z-50">
+              {[1, 2, 3].map((step) => (
+                <button
+                  key={step}
+                  onClick={() => handleStepChange(step)}
+                  className={`aurora-button text-2xl px-6 py-3 ${
+                    currentStep === step ? 'bg-[#33fea6] text-accent font-semibold' : ''
+                  }`}
+                >
+                  Step {step}
+                </button>
+              ))}
+            </div>
+            
+            <div className="border rounded-xl p-6 bg-card">
+              <div className="mb-6">
+                <p className="text-card-foreground mb-4">
+                  Review and finalize your prompt
+                </p>
+                
+                <div 
+                  ref={variablesContainerRef}
+                  className="max-h-[285px] overflow-y-auto pr-2 space-y-4"
+                >
+                  <div className="space-y-4">
+                    {variables.map((variable) => (
+                      <div key={variable.id} className="flex items-start mb-2">
+                        <div className="text-sm font-medium text-[#545454]">{variable.name}</div>
+                        <div className="ml-4">
+                          <Switch 
+                            id={variable.id}
+                            checked={variable.isRelevant !== null}
+                            onCheckedChange={() => handleVariableRelevance(variable.id, !variable.isRelevant)}
+                            variant="primary"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen bg-[#fafafa] flex">
+        <div className="flex-1 max-w-5xl mx-auto px-4 py-8">
+          <div className="mb-4 flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-[#545454]">Prompt Creator</h1>
+            <div className="flex space-x-4">
+              <button 
+                onClick={handleNewPrompt}
+                className="aurora-button flex items-center"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Prompt
+              </button>
+              <button 
+                onClick={handleSavePrompt}
+                className="aurora-button flex items-center"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Prompt
+              </button>
+            </div>
+          </div>
+          
+          {renderContent()}
+        </div>
+        
+        <Sidebar className="w-80 bg-white shadow-md border-l">
+          <SidebarTrigger className="fixed right-4 top-4 p-2 rounded-lg bg-white border shadow z-50">
+            <FileText className="w-5 h-5" />
+          </SidebarTrigger>
+          <SidebarContent className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-[#545454]">Saved Prompts</h2>
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search prompts..."
+                  className="pl-8 h-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            {isLoadingPrompts ? (
+              <div className="flex justify-center items-center h-32">
+                <RotateCw className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                {filteredPrompts.length === 0 ? (
+                  <div className="text-center p-4 text-muted-foreground">
+                    No saved prompts found
+                  </div>
+                ) : (
+                  <div className="space-y-4 overflow-auto max-h-[calc(100vh-8rem)]">
+                    {filteredPrompts.map((prompt) => (
+                      <div key={prompt.id} className="border rounded-lg p-3 bg-card">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="font-medium text-[#545454] truncate">{prompt.title}</div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-1 rounded hover:bg-accent/20">
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleDuplicatePrompt(prompt)}>
+                                <CopyIcon className="w-4 h-4 mr-2" />
+                                Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Pencil className="w-4 h-4 mr-2" />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleDeletePrompt(prompt.id)}>
+                                <Trash className="w-4 h-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{prompt.date}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </SidebarContent>
+        </Sidebar>
+      </div>
+    </SidebarProvider>
+  );
+};
+
+export default Dashboard;
