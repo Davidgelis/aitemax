@@ -42,6 +42,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 interface Question {
   id: string;
@@ -127,6 +128,21 @@ Outline a clear plan for putting the solution into practice, identifying potenti
 
 const QUESTIONS_PER_PAGE = 3;
 
+// Helper function to convert between Variable[] and Json
+const variablesToJson = (variables: Variable[]): Json => {
+  return variables as unknown as Json;
+};
+
+// Helper function to convert Json to Variable[]
+const jsonToVariables = (json: Json | null): Variable[] => {
+  if (!json) return [];
+  // Ensure the Json is an array before casting
+  if (Array.isArray(json)) {
+    return json as Variable[];
+  }
+  return [];
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>("coding");
@@ -201,12 +217,12 @@ const Dashboard = () => {
       const formattedPrompts: SavedPrompt[] = data?.map(item => ({
         id: item.id,
         title: item.title || 'Untitled Prompt',
-        date: new Date(item.created_at).toLocaleString(),
+        date: new Date(item.created_at || '').toLocaleString(),
         promptText: item.prompt_text || '',
         masterCommand: item.master_command || '',
         primaryToggle: item.primary_toggle,
         secondaryToggle: item.secondary_toggle,
-        variables: item.variables || [],
+        variables: jsonToVariables(item.variables),
       })) || [];
       
       setSavedPrompts(formattedPrompts);
@@ -329,6 +345,7 @@ const Dashboard = () => {
     }
 
     try {
+      const relevantVariables = variables.filter(v => v.isRelevant === true);
       const promptData = {
         user_id: user.id,
         title: finalPrompt.split('\n')[0] || 'Untitled Prompt',
@@ -336,7 +353,7 @@ const Dashboard = () => {
         master_command: masterCommand,
         primary_toggle: selectedPrimary,
         secondary_toggle: selectedSecondary,
-        variables: variables.filter(v => v.isRelevant === true),
+        variables: variablesToJson(relevantVariables),
         current_step: currentStep,
         updated_at: new Date().toISOString()
       };
@@ -355,12 +372,12 @@ const Dashboard = () => {
         const newPrompt: SavedPrompt = {
           id: data[0].id,
           title: data[0].title || 'Untitled Prompt',
-          date: new Date(data[0].created_at).toLocaleString(),
+          date: new Date(data[0].created_at || '').toLocaleString(),
           promptText: data[0].prompt_text || '',
           masterCommand: data[0].master_command || '',
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
-          variables: data[0].variables || [],
+          variables: jsonToVariables(data[0].variables),
         };
         
         setSavedPrompts([newPrompt, ...savedPrompts]);
@@ -551,7 +568,7 @@ const Dashboard = () => {
         master_command: prompt.masterCommand,
         primary_toggle: prompt.primaryToggle,
         secondary_toggle: prompt.secondaryToggle,
-        variables: prompt.variables,
+        variables: variablesToJson(prompt.variables),
         updated_at: new Date().toISOString()
       };
 
@@ -568,12 +585,12 @@ const Dashboard = () => {
         const newPrompt: SavedPrompt = {
           id: data[0].id,
           title: data[0].title,
-          date: new Date(data[0].created_at).toLocaleString(),
+          date: new Date(data[0].created_at || '').toLocaleString(),
           promptText: data[0].prompt_text || '',
           masterCommand: data[0].master_command || '',
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
-          variables: data[0].variables || [],
+          variables: jsonToVariables(data[0].variables),
         };
         
         setSavedPrompts([newPrompt, ...savedPrompts]);
