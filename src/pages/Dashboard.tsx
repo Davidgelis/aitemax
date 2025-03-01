@@ -39,6 +39,7 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface Question {
   id: string;
@@ -108,7 +109,6 @@ const defaultVariables: Variable[] = [
   { id: "v5", name: "Category", value: "", isRelevant: null },
 ];
 
-// Sample final prompt to use for testing the UI
 const sampleFinalPrompt = `# Expert Reasoning Framework for Complex Problem-Solving {{Quantity}}
 
 ## Initial Analysis Phase
@@ -126,6 +126,7 @@ Outline a clear plan for putting the solution into practice, identifying potenti
 const QUESTIONS_PER_PAGE = 3;
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>("coding");
   const [selectedSecondary, setSelectedSecondary] = useState<string | null>("strict");
   const [currentStep, setCurrentStep] = useState(3);
@@ -150,7 +151,6 @@ const Dashboard = () => {
   const editPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
-  // Function to replace variable placeholders with their values in the prompt
   const getProcessedPrompt = () => {
     let processedPrompt = finalPrompt;
     variables.forEach(variable => {
@@ -163,14 +163,12 @@ const Dashboard = () => {
     return processedPrompt;
   };
 
-  // Update variable value and reflect changes in the prompt
   const handleVariableValueChange = (variableId: string, newValue: string) => {
     setVariables(variables.map(v =>
       v.id === variableId ? { ...v, value: newValue } : v
     ));
   };
 
-  // Function to handle creating a new prompt
   const handleNewPrompt = () => {
     setPromptText("");
     setQuestions([]);
@@ -210,13 +208,11 @@ const Dashboard = () => {
     return () => clearTimeout(timeout);
   }, [isLoading, currentLoadingMessage]);
 
-  // Open the edit prompt sheet
   const handleOpenEditPrompt = () => {
     setEditingPrompt(finalPrompt);
     setShowEditPromptSheet(true);
   };
 
-  // Save edited prompt
   const handleSaveEditedPrompt = () => {
     setFinalPrompt(editingPrompt);
     setShowEditPromptSheet(false);
@@ -226,7 +222,6 @@ const Dashboard = () => {
     });
   };
 
-  // Handle the adapt prompt action with confirmation
   const handleAdaptPrompt = () => {
     setFinalPrompt(editingPrompt);
     setShowEditPromptSheet(false);
@@ -268,7 +263,7 @@ const Dashboard = () => {
       masterCommand,
       primaryToggle: selectedPrimary,
       secondaryToggle: selectedSecondary,
-      variables: variables.filter(v => v.isRelevant === true), // Only save checked variables
+      variables: variables.filter(v => v.isRelevant === true),
     };
 
     const updatedPrompts = [newPrompt, ...savedPrompts].slice(0, 10);
@@ -443,7 +438,7 @@ const Dashboard = () => {
       description: "Prompt renamed successfully",
     });
   };
-  
+
   const insertBulletList = () => {
     if (!textareaRef.current) return;
     
@@ -454,18 +449,15 @@ const Dashboard = () => {
     
     let newText;
     if (selected) {
-      // Add bullet points to each line of selected text
       const lines = selected.split('\n');
       const bulletedLines = lines.map(line => line ? `• ${line}` : line);
       newText = promptText.substring(0, start) + bulletedLines.join('\n') + promptText.substring(end);
     } else {
-      // Insert a single bullet point at cursor position
       newText = promptText.substring(0, start) + '• ' + promptText.substring(end);
     }
     
     setPromptText(newText);
     
-    // Set cursor position after the inserted bullet
     setTimeout(() => {
       textarea.focus();
       textarea.selectionStart = textarea.selectionEnd = start + 2;
@@ -476,7 +468,7 @@ const Dashboard = () => {
       description: "Bullet points have been added to your text",
     });
   };
-  
+
   const insertNumberedList = () => {
     if (!textareaRef.current) return;
     
@@ -487,18 +479,15 @@ const Dashboard = () => {
     
     let newText;
     if (selected) {
-      // Add numbers to each line of selected text
       const lines = selected.split('\n');
       const numberedLines = lines.map((line, index) => line ? `${index + 1}. ${line}` : line);
       newText = promptText.substring(0, start) + numberedLines.join('\n') + promptText.substring(end);
     } else {
-      // Insert a single numbered point at cursor position
       newText = promptText.substring(0, start) + '1. ' + promptText.substring(end);
     }
     
     setPromptText(newText);
     
-    // Set cursor position after the inserted number
     setTimeout(() => {
       textarea.focus();
       textarea.selectionStart = textarea.selectionEnd = start + 3;
@@ -510,43 +499,36 @@ const Dashboard = () => {
     });
   };
 
-  // Handle key down events for auto-continuing lists
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       const textarea = e.currentTarget;
       const { selectionStart } = textarea;
       const currentText = promptText;
       
-      // Get the current line up to the cursor position
       const textBeforeCursor = currentText.substring(0, selectionStart);
       const lines = textBeforeCursor.split('\n');
       const currentLine = lines[lines.length - 1];
       
-      // Check if the current line starts with a bullet point
       if (currentLine.trimStart().startsWith('• ')) {
         e.preventDefault();
         
-        // If the line is empty except for the bullet, remove it (exit the list)
         if (currentLine.trim() === '•' || currentLine.trim() === '• ') {
           const newLines = [...lines];
           newLines[newLines.length - 1] = '';
           const newText = newLines.join('\n') + currentText.substring(selectionStart);
           setPromptText(newText);
           
-          // Set cursor position
           setTimeout(() => {
             textarea.focus();
             const newCursorPosition = textBeforeCursor.length - currentLine.length;
             textarea.selectionStart = textarea.selectionEnd = newCursorPosition;
           }, 0);
         } else {
-          // Continue the bullet list
           const indent = currentLine.match(/^\s*/)?.[0] || '';
           const newLine = `\n${indent}• `;
           const newText = currentText.substring(0, selectionStart) + newLine + currentText.substring(selectionStart);
           setPromptText(newText);
           
-          // Set cursor position after the bullet on the new line
           setTimeout(() => {
             textarea.focus();
             textarea.selectionStart = textarea.selectionEnd = selectionStart + newLine.length;
@@ -555,33 +537,28 @@ const Dashboard = () => {
         return;
       }
       
-      // Check if the current line starts with a numbered list (e.g., "1. ")
       const numberedListMatch = currentLine.trimStart().match(/^(\d+)\.\s/);
       if (numberedListMatch) {
         e.preventDefault();
         
-        // If the line is empty except for the number, remove it (exit the list)
         if (currentLine.trim() === `${numberedListMatch[1]}.` || currentLine.trim() === `${numberedListMatch[1]}. `) {
           const newLines = [...lines];
           newLines[newLines.length - 1] = '';
           const newText = newLines.join('\n') + currentText.substring(selectionStart);
           setPromptText(newText);
           
-          // Set cursor position
           setTimeout(() => {
             textarea.focus();
             const newCursorPosition = textBeforeCursor.length - currentLine.length;
             textarea.selectionStart = textarea.selectionEnd = newCursorPosition;
           }, 0);
         } else {
-          // Continue the numbered list with incremented number
           const currentNumber = parseInt(numberedListMatch[1], 10);
           const indent = currentLine.match(/^\s*/)?.[0] || '';
           const newLine = `\n${indent}${currentNumber + 1}. `;
           const newText = currentText.substring(0, selectionStart) + newLine + currentText.substring(selectionStart);
           setPromptText(newText);
           
-          // Set cursor position after the number on the new line
           setTimeout(() => {
             textarea.focus();
             textarea.selectionStart = textarea.selectionEnd = selectionStart + newLine.length;
@@ -591,7 +568,6 @@ const Dashboard = () => {
     }
   };
 
-  // Filter saved prompts based on search term
   const filteredPrompts = savedPrompts.filter(prompt => 
     searchTerm === "" || 
     prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -899,9 +875,7 @@ const Dashboard = () => {
               />
             </div>
 
-            {/* Final Prompt Display with Aurora Effect */}
             <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
-              {/* Edit Button */}
               <button 
                 onClick={handleOpenEditPrompt}
                 className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
@@ -909,13 +883,11 @@ const Dashboard = () => {
                 <Edit className="w-4 h-4 text-accent" />
               </button>
               
-              {/* Aurora Effect Background */}
               <div 
                 className="absolute inset-0 bg-gradient-to-br from-accent via-primary-dark to-primary animate-aurora opacity-10"
                 style={{ backgroundSize: "400% 400%" }}
               />
               
-              {/* Prompt Content */}
               <div className="relative h-full p-6 overflow-y-auto">
                 <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
                 <div className="whitespace-pre-wrap text-card-foreground">
@@ -936,7 +908,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Variables Section - Moved below the prompt */}
             <div className="mb-4 p-3 border rounded-lg bg-background/50">
               <h4 className="text-sm font-medium mb-3">Variables</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -970,7 +941,6 @@ const Dashboard = () => {
               </button>
             </div>
 
-            {/* Edit Prompt Sheet */}
             <Sheet open={showEditPromptSheet} onOpenChange={setShowEditPromptSheet}>
               <SheetContent className="w-[90%] sm:max-w-[600px] md:max-w-[800px]">
                 <SheetHeader>
@@ -1065,14 +1035,30 @@ const Dashboard = () => {
 
         <Sidebar side="right">
           <SidebarContent>
-            <div className="p-4 flex items-center gap-3 border-b">
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                <User className="w-6 h-6 text-muted-foreground" />
+            <div className="p-4 flex items-center justify-between border-b">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                  <User className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <span className="font-medium">User Name</span>
               </div>
-              <span className="font-medium">User Name</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="p-1 hover:bg-accent rounded-md">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 9.75C9.41421 9.75 9.75 9.41421 9.75 9C9.75 8.58579 9.41421 8.25 9 8.25C8.58579 8.25 8.25 8.58579 8.25 9C8.25 9.41421 8.58579 9.75 9 9.75Z" fill="#545454" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 4.5C9.41421 4.5 9.75 4.16421 9.75 3.75C9.75 3.33579 9.41421 3 9 3C8.58579 3 8.25 3.33579 8.25 3.75C8.25 4.16421 8.58579 4.5 9 4.5Z" fill="#545454" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 15C9.41421 15 9.75 14.6642 9.75 14.25C9.75 13.8358 9.41421 13.5 9 13.5C8.58579 13.5 8.25 13.8358 8.25 14.25C8.25 14.6642 8.58579 15 9 15Z" fill="#545454" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate("/profile")}>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
-            {/* New Prompt Button - Reduced width by 30% */}
             <div className="flex justify-center my-3">
               <button
                 onClick={handleNewPrompt}
