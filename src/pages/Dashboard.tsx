@@ -939,4 +939,70 @@ const Dashboard = () => {
             {loadingMessages.map((_, index) => (
               <div
                 key={index}
-                className={`w
+                className={`w-2 h-2 rounded-full ${
+                  index <= currentLoadingMessage
+                    ? "bg-primary"
+                    : "bg-gray-300"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6">
+        <div className="flex gap-2">
+          <Input
+            placeholder="Search prompts"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <Button onClick={handleNewPrompt}>New Prompt</Button>
+        </div>
+        <div className="flex flex-col gap-4">
+          {filteredPrompts.map(prompt => (
+            <div key={prompt.id} className="bg-white rounded-lg p-4 shadow-md">
+              <div className="flex justify-between">
+                <div className="flex items-center gap-2">
+                  <p className="text-lg font-medium">{prompt.title}</p>
+                  <p className="text-sm text-gray-500">{prompt.date}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={() => handleOpenEditPrompt(prompt)}>Edit</Button>
+                  <Button onClick={() => handleDuplicatePrompt(prompt)}>Duplicate</Button>
+                  <Button onClick={() => handleRenamePrompt(prompt.id, prompt.title)}>Rename</Button>
+                  <Button onClick={() => handleDeletePrompt(prompt.id)}>Delete</Button>
+                </div>
+              </div>
+              <div className="mt-2">
+                <p className="text-sm text-gray-500">{prompt.promptText}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-screen">
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-2">
+          <Button onClick={() => handleOpenEditPrompt()}>Edit Prompt</Button>
+          <Button onClick={() => handleSavePrompt()}>Save Prompt</Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => handleAnalyze()}>Analyze</Button>
+          <Button onClick={() => handleRegenerate()}>Regenerate</Button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {renderContent()}
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
