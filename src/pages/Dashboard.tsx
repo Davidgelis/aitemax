@@ -138,7 +138,19 @@ const jsonToVariables = (json: Json | null): Variable[] => {
   if (!json) return [];
   // Ensure the Json is an array before casting
   if (Array.isArray(json)) {
-    return json as Variable[];
+    // Cast each item in the array to ensure it has the correct structure
+    return json.map(item => {
+      if (typeof item === 'object' && item !== null) {
+        return {
+          id: (item as any).id || `v${Date.now()}`,
+          name: (item as any).name || '',
+          value: (item as any).value || '',
+          isRelevant: (item as any).isRelevant === true
+        } as Variable;
+      }
+      // Return a default variable if item is not an object
+      return { id: `v${Date.now()}`, name: '', value: '', isRelevant: null } as Variable;
+    });
   }
   return [];
 };
