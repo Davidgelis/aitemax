@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Lock } from "lucide-react";
@@ -104,7 +103,6 @@ const Profile = () => {
         return;
       }
 
-      // Update profile in the database
       const { error } = await supabase
         .from("profiles")
         .update({ 
@@ -153,7 +151,6 @@ const Profile = () => {
     }
   };
 
-  // Get the selected avatar image based on the current value
   const getSelectedAvatarSrc = () => {
     const selectedAvatar = avatarOptions.find(avatar => avatar.value === avatarType);
     return selectedAvatar?.src || avatarOptions[0].src;
@@ -197,10 +194,10 @@ const Profile = () => {
                 className="grid grid-cols-2 md:grid-cols-5 gap-4"
               >
                 {avatarOptions.map((avatar) => (
-                  <div key={avatar.id} className="flex flex-col items-center space-y-2">
+                  <div key={avatar.id} className="flex flex-col items-center">
                     <Label
                       htmlFor={avatar.id}
-                      className="cursor-pointer flex flex-col items-center space-y-2"
+                      className="cursor-pointer flex items-center justify-center"
                     >
                       <div className={`w-16 h-16 rounded-full flex items-center justify-center border-2 ${
                         avatarType === avatar.value ? "border-[#33fea6]" : "border-gray-300"
@@ -216,7 +213,6 @@ const Profile = () => {
                         id={avatar.id} 
                         className="sr-only"
                       />
-                      <span className="text-sm text-[#545454]">Option {avatar.value.slice(-1)}</span>
                     </Label>
                   </div>
                 ))}
