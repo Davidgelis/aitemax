@@ -1,4 +1,3 @@
-
 import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered, Plus, Minus, ArrowLeft, ArrowRight, Edit, FileText } from "lucide-react";
 import {
   Sidebar,
@@ -42,6 +41,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 interface Question {
   id: string;
@@ -127,6 +127,33 @@ Outline a clear plan for putting the solution into practice, identifying potenti
 
 const QUESTIONS_PER_PAGE = 3;
 
+// Helper function to convert between Variable[] and Json
+const variablesToJson = (variables: Variable[]): Json => {
+  return variables as unknown as Json;
+};
+
+// Helper function to convert Json to Variable[]
+const jsonToVariables = (json: Json | null): Variable[] => {
+  if (!json) return [];
+  // Ensure the Json is an array before casting
+  if (Array.isArray(json)) {
+    // Cast each item in the array to ensure it has the correct structure
+    return json.map(item => {
+      if (typeof item === 'object' && item !== null) {
+        return {
+          id: (item as any).id || `v${Date.now()}`,
+          name: (item as any).name || '',
+          value: (item as any).value || '',
+          isRelevant: (item as any).isRelevant === true
+        } as Variable;
+      }
+      // Return a default variable if item is not an object
+      return { id: `v${Date.now()}`, name: '', value: '', isRelevant: null } as Variable;
+    });
+  }
+  return [];
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>("coding");
@@ -201,12 +228,12 @@ const Dashboard = () => {
       const formattedPrompts: SavedPrompt[] = data?.map(item => ({
         id: item.id,
         title: item.title || 'Untitled Prompt',
-        date: new Date(item.created_at).toLocaleString(),
+        date: new Date(item.created_at || '').toLocaleString(),
         promptText: item.prompt_text || '',
         masterCommand: item.master_command || '',
         primaryToggle: item.primary_toggle,
         secondaryToggle: item.secondary_toggle,
-        variables: item.variables || [],
+        variables: jsonToVariables(item.variables),
       })) || [];
       
       setSavedPrompts(formattedPrompts);
@@ -329,6 +356,7 @@ const Dashboard = () => {
     }
 
     try {
+      const relevantVariables = variables.filter(v => v.isRelevant === true);
       const promptData = {
         user_id: user.id,
         title: finalPrompt.split('\n')[0] || 'Untitled Prompt',
@@ -336,7 +364,7 @@ const Dashboard = () => {
         master_command: masterCommand,
         primary_toggle: selectedPrimary,
         secondary_toggle: selectedSecondary,
-        variables: variables.filter(v => v.isRelevant === true),
+        variables: variablesToJson(relevantVariables),
         current_step: currentStep,
         updated_at: new Date().toISOString()
       };
@@ -355,12 +383,12 @@ const Dashboard = () => {
         const newPrompt: SavedPrompt = {
           id: data[0].id,
           title: data[0].title || 'Untitled Prompt',
-          date: new Date(data[0].created_at).toLocaleString(),
+          date: new Date(data[0].created_at || '').toLocaleString(),
           promptText: data[0].prompt_text || '',
           masterCommand: data[0].master_command || '',
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
-          variables: data[0].variables || [],
+          variables: jsonToVariables(data[0].variables),
         };
         
         setSavedPrompts([newPrompt, ...savedPrompts]);
@@ -551,7 +579,7 @@ const Dashboard = () => {
         master_command: prompt.masterCommand,
         primary_toggle: prompt.primaryToggle,
         secondary_toggle: prompt.secondaryToggle,
-        variables: prompt.variables,
+        variables: variablesToJson(prompt.variables),
         updated_at: new Date().toISOString()
       };
 
@@ -568,12 +596,12 @@ const Dashboard = () => {
         const newPrompt: SavedPrompt = {
           id: data[0].id,
           title: data[0].title,
-          date: new Date(data[0].created_at).toLocaleString(),
+          date: new Date(data[0].created_at || '').toLocaleString(),
           promptText: data[0].prompt_text || '',
           masterCommand: data[0].master_command || '',
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
-          variables: data[0].variables || [],
+          variables: jsonToVariables(data[0].variables),
         };
         
         setSavedPrompts([newPrompt, ...savedPrompts]);
@@ -885,487 +913,3 @@ const Dashboard = () => {
                             <Check className="w-5 h-5" />
                           </button>
                         </div>
-                      </div>
-                      {question.isRelevant && (
-                        <textarea
-                          value={question.answer}
-                          onChange={(e) => handleQuestionAnswer(question.id, e.target.value)}
-                          placeholder="Type your answer here..."
-                          className="w-full p-3 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring"
-                        />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium">Variables</h3>
-                <button 
-                  onClick={addVariable}
-                  className="flex items-center gap-1 text-sm text-primary hover:text-primary-dark transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add variable
-                </button>
-              </div>
-              
-              <div 
-                ref={variablesContainerRef}
-                className="max-h-[180px] overflow-y-auto pr-2 space-y-3"
-              >
-                {variables.map((variable, index) => (
-                  <div key={variable.id} className="flex gap-3 items-center">
-                    <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Input
-                        placeholder="Variable name"
-                        value={variable.name}
-                        onChange={(e) => handleVariableChange(variable.id, 'name', e.target.value)}
-                        className="flex-1 h-9"
-                      />
-                      <Input
-                        placeholder="Value"
-                        value={variable.value}
-                        onChange={(e) => handleVariableChange(variable.id, 'value', e.target.value)}
-                        className="flex-1 h-9"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
-                        <AlertDialogTrigger asChild>
-                          <button
-                            onClick={() => confirmDeleteVariable(variable.id)}
-                            className="p-2 rounded-full hover:bg-[#33fea6]/20"
-                            title="Delete variable"
-                          >
-                            <Trash className="w-4 h-4" />
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete variable?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this variable? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={removeVariable}>Delete</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                      
-                      <button
-                        onClick={() => handleVariableRelevance(variable.id, true)}
-                        className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
-                          variable.isRelevant === true ? 'bg-[#33fea6]' : ''
-                        }`}
-                        title="Keep variable"
-                      >
-                        <Check className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button 
-                onClick={() => handleStepChange(3)}
-                className={`aurora-button ${!canProceedToStep3 ? 'opacity-70 cursor-not-allowed' : ''}`}
-                disabled={!canProceedToStep3}
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        );
-      case 3:
-        return (
-          <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex-1">
-                <Input
-                  value={masterCommand}
-                  onChange={(e) => setMasterCommand(e.target.value)}
-                  placeholder="Master command, use it to adapt the prompt to any other similar needs"
-                  className="w-full h-8 text-sm"
-                />
-              </div>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button className="aurora-button inline-flex items-center gap-2">
-                    <RotateCw className="w-4 h-4" />
-                    <span>Adapt</span>
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will regenerate your prompt. Any manual changes will be lost.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>No</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleRegenerate}>Yes</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div className="space-y-1.5">
-                {primaryToggles.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between py-1 px-2 border rounded-lg bg-background">
-                    <span className="text-xs">{item.label}</span>
-                    <Switch
-                      checked={selectedPrimary === item.id}
-                      onCheckedChange={() => handlePrimaryToggle(item.id)}
-                      className="scale-75"
-                      variant="primary"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-1.5">
-                {secondaryToggles.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between py-1 px-2 border rounded-lg bg-background">
-                    <span className="text-xs">{item.label}</span>
-                    <Switch
-                      checked={selectedSecondary === item.id}
-                      onCheckedChange={() => handleSecondaryToggle(item.id)}
-                      className="scale-75"
-                      variant="secondary"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs">JSON Toggle view</span>
-              <Switch
-                checked={showJson}
-                onCheckedChange={setShowJson}
-                className="scale-75"
-              />
-            </div>
-
-            <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
-              <button 
-                onClick={handleOpenEditPrompt}
-                className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
-              >
-                <Edit className="w-4 h-4 text-accent" />
-              </button>
-              
-              <div 
-                className="absolute inset-0 bg-gradient-to-br from-accent via-primary-dark to-primary animate-aurora opacity-10"
-                style={{ backgroundSize: "400% 400%" }}
-              />
-              
-              <div className="relative h-full p-6 overflow-y-auto">
-                <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
-                <div className="whitespace-pre-wrap text-card-foreground">
-                  {showJson ? (
-                    <pre className="text-xs font-mono">
-                      {JSON.stringify({ 
-                        prompt: finalPrompt, 
-                        masterCommand,
-                        variables: variables.filter(v => v.isRelevant === true)
-                      }, null, 2)}
-                    </pre>
-                  ) : (
-                    <div className="prose prose-sm max-w-none">
-                      <div dangerouslySetInnerHTML={{ __html: getProcessedPrompt().split('\n\n').map(p => `<p>${p}</p>`).join('') }} />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-4 p-3 border rounded-lg bg-background/50">
-              <h4 className="text-sm font-medium mb-3">Variables</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {variables.filter(v => v.isRelevant === true).map((variable) => (
-                  <div key={variable.id} className="flex items-center gap-2">
-                    <span className="text-xs font-medium min-w-[80px]">{variable.name}:</span>
-                    <Input 
-                      value={variable.value}
-                      onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
-                      className="h-7 text-xs py-1 px-2 bg-[#33fea6]/10 border-[#33fea6]/20 focus-visible:border-[#33fea6] focus-visible:ring-0"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <button
-                onClick={handleCopyPrompt}
-                className="aurora-button inline-flex items-center gap-2"
-              >
-                <Copy className="w-4 h-4" />
-                Copy
-              </button>
-              <button
-                onClick={handleSavePrompt}
-                className="aurora-button inline-flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                Save
-              </button>
-            </div>
-
-            <Sheet open={showEditPromptSheet} onOpenChange={setShowEditPromptSheet}>
-              <SheetContent className="w-[90%] sm:max-w-[600px] md:max-w-[800px]">
-                <SheetHeader>
-                  <SheetTitle>Edit Prompt</SheetTitle>
-                  <SheetDescription>
-                    Make changes to your prompt. Click save when you're done or adapt to regenerate the prompt.
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="py-6">
-                  <textarea
-                    ref={editPromptTextareaRef}
-                    value={editingPrompt}
-                    onChange={(e) => setEditingPrompt(e.target.value)}
-                    className="w-full min-h-[60vh] p-4 text-sm rounded-md border bg-gray-50/80 text-card-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </div>
-                <SheetFooter className="flex flex-row justify-end space-x-4">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        className="bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-2"
-                      >
-                        <RotateCw className="w-4 h-4" />
-                        Adapt
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will regenerate your prompt based on the changes you made.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleAdaptPrompt}>Yes, adapt it</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                  <Button 
-                    onClick={handleSaveEditedPrompt}
-                    className="bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    Save
-                  </Button>
-                </SheetFooter>
-              </SheetContent>
-            </Sheet>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <main className="flex-1 p-6">
-          <div className="max-w-6xl mx-auto min-h-screen flex items-center justify-center">
-            <div className="w-full">
-              {renderContent()}
-              
-              <div className="flex justify-center gap-2 mt-4">
-                <button
-                  onClick={() => handleStepChange(1)}
-                  className={`w-2 h-2 rounded-full transition-all hover:scale-125 ${
-                    currentStep === 1 ? 'bg-primary' : 'bg-border hover:bg-primary/50'
-                  }`}
-                  aria-label="Go to step 1"
-                />
-                <button
-                  onClick={() => handleStepChange(2)}
-                  className={`w-2 h-2 rounded-full transition-all hover:scale-125 ${
-                    currentStep === 2 ? 'bg-primary' : 'bg-border hover:bg-primary/50'
-                  }`}
-                  aria-label="Go to step 2"
-                />
-                <button
-                  onClick={() => handleStepChange(3)}
-                  className={`w-2 h-2 rounded-full transition-all hover:scale-125 ${
-                    currentStep === 3 ? 'bg-primary' : 'bg-border hover:bg-primary/50'
-                  }`}
-                  aria-label="Go to step 3"
-                />
-              </div>
-            </div>
-          </div>
-        </main>
-
-        <Sidebar side="right">
-          <SidebarContent>
-            <div className="p-4 flex items-center justify-between border-b">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                  <User className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <span className="font-medium">{user ? (user.email || 'User').split('@')[0] : 'Guest'}</span>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger className="p-1 hover:bg-accent rounded-md">
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 9.75C9.41421 9.75 9.75 9.41421 9.75 9C9.75 8.58579 9.41421 8.25 9 8.25C8.58579 8.25 8.25 8.58579 8.25 9C8.25 9.41421 8.58579 9.75 9 9.75Z" fill="#545454" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M9 4.5C9.41421 4.5 9.75 4.16421 9.75 3.75C9.75 3.33579 9.41421 3 9 3C8.58579 3 8.25 3.33579 8.25 3.75C8.25 4.16421 8.58579 4.5 9 4.5Z" fill="#545454" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M9 15C9.41421 15 9.75 14.6642 9.75 14.25C9.75 13.8358 9.41421 13.5 9 13.5C8.58579 13.5 8.25 13.8358 8.25 14.25C8.25 14.6642 8.58579 15 9 15Z" fill="#545454" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate("/profile")}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                  {user ? (
-                    <DropdownMenuItem onClick={async () => {
-                      await supabase.auth.signOut();
-                      toast({
-                        title: "Signed out",
-                        description: "You have been signed out successfully",
-                      });
-                    }}>
-                      <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                        <polyline points="16 17 21 12 16 7"></polyline>
-                        <line x1="21" y1="12" x2="9" y2="12"></line>
-                      </svg>
-                      <span>Sign out</span>
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem onClick={() => navigate("/auth")}>
-                      <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                        <polyline points="10 17 15 12 10 7"></polyline>
-                        <line x1="15" y1="12" x2="3" y2="12"></line>
-                      </svg>
-                      <span>Sign in</span>
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <div className="flex justify-center my-3">
-              <button
-                onClick={handleNewPrompt}
-                className="aurora-button w-[70%] inline-flex items-center justify-center gap-2"
-              >
-                <FileText className="w-4 h-4" />
-                <span className="font-medium">New Prompt</span>
-              </button>
-            </div>
-
-            <div className="p-4 border-b">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  className="pl-9" 
-                  placeholder="Search..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="overflow-auto">
-              {isLoadingPrompts ? (
-                <div className="p-4 text-center">
-                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                  <span className="text-sm text-muted-foreground">Loading your prompts...</span>
-                </div>
-              ) : filteredPrompts.length > 0 ? (
-                filteredPrompts.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-4 border-b flex items-center justify-between group/item"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{item.title}</span>
-                        <span className="text-xs text-muted-foreground">{item.date}</span>
-                      </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
-                        <div className="p-1 hover:bg-accent rounded-md">
-                          <MoreVertical className="h-4 w-4" />
-                        </div>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => handleDuplicatePrompt(item)}>
-                          <CopyIcon className="mr-2 h-4 w-4" />
-                          <span>Duplicate</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {
-                          const newTitle = window.prompt("Enter new name:", item.title);
-                          if (newTitle) handleRenamePrompt(item.id, newTitle);
-                        }}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          <span>Rename</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => handleDeletePrompt(item.id)}
-                        >
-                          <Trash className="mr-2 h-4 w-4" />
-                          <span>Delete</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                ))
-              ) : (
-                <div className="p-4 text-center text-muted-foreground">
-                  {user ? (
-                    searchTerm ? "No matching prompts found" : "No saved prompts yet"
-                  ) : (
-                    <div className="space-y-3">
-                      <p>Please sign in to save and view your prompts</p>
-                      <Button 
-                        onClick={() => navigate("/auth")}
-                        className="aurora-button"
-                      >
-                        Sign in
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </SidebarContent>
-        </Sidebar>
-
-        <div className="absolute top-6 right-6 z-50">
-          <SidebarTrigger className="bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
-        </div>
-      </div>
-    </SidebarProvider>
-  );
-};
-
-export default Dashboard;
