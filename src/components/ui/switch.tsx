@@ -11,15 +11,15 @@ const Switch = React.forwardRef<
   }
 >(({ className, variant = "default", ...props }, ref) => {
   const variantStyles = {
-    default: "data-[state=checked]:bg-primary",
-    primary: "data-[state=checked]:bg-[#33fea6]",
-    secondary: "data-[state=checked]:bg-[#084b49]"
+    default: "bg-primary data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
+    primary: "bg-[#33fea6] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
+    secondary: "bg-[#084b49] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15"
   }
 
   return (
     <SwitchPrimitives.Root
       className={cn(
-        "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=unchecked]:bg-opacity-10 data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-input",
+        "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
         variantStyles[variant],
         className
       )}
