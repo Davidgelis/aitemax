@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client"; 
+import { useAuth } from "@/context/AuthContext";
 
 interface Question {
   id: string;
@@ -64,6 +66,8 @@ interface SavedPrompt {
   primaryToggle: string | null;
   secondaryToggle: string | null;
   variables: Variable[];
+  is_draft?: boolean;
+  current_step?: number;
 }
 
 const primaryToggles = [
@@ -127,6 +131,7 @@ const QUESTIONS_PER_PAGE = 3;
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>("coding");
   const [selectedSecondary, setSelectedSecondary] = useState<string | null>("strict");
   const [currentStep, setCurrentStep] = useState(3);
@@ -145,11 +150,58 @@ const Dashboard = () => {
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
   const [sliderPosition, setSliderPosition] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const questionsContainerRef = useRef<HTMLDivElement>(null);
   const variablesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+
+  // Fetch prompts from Supabase
+  const fetchPrompts = async () => {
+    if (!user) return;
+    
+    setIsLoadingPrompts(true);
+    try {
+      const { data, error } = await supabase
+        .from('prompts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        const formattedPrompts: SavedPrompt[] = data.map(prompt => ({
+          id: prompt.id,
+          title: prompt.title,
+          date: new Date(prompt.created_at).toLocaleString(),
+          promptText: prompt.prompt_text || '',
+          masterCommand: prompt.master_command || '',
+          primaryToggle: prompt.primary_toggle,
+          secondaryToggle: prompt.secondary_toggle,
+          variables: prompt.variables as Variable[] || [],
+          is_draft: prompt.is_draft,
+          current_step: prompt.current_step
+        }));
+        
+        setSavedPrompts(formattedPrompts);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to fetch prompts: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPrompts(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPrompts();
+  }, [user]);
 
   const getProcessedPrompt = () => {
     let processedPrompt = finalPrompt;
@@ -254,26 +306,71 @@ const Dashboard = () => {
     setSliderPosition(0);
   };
 
-  const handleSavePrompt = () => {
-    const newPrompt: SavedPrompt = {
-      id: Date.now().toString(),
-      title: finalPrompt.split('\n')[0] || 'Untitled Prompt',
-      date: new Date().toLocaleString(),
-      promptText: finalPrompt,
-      masterCommand,
-      primaryToggle: selectedPrimary,
-      secondaryToggle: selectedSecondary,
-      variables: variables.filter(v => v.isRelevant === true),
-    };
+  // Save prompt to Supabase
+  const handleSavePrompt = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save prompts",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
 
-    const updatedPrompts = [newPrompt, ...savedPrompts].slice(0, 10);
-    setSavedPrompts(updatedPrompts);
-    localStorage.setItem("savedPrompts", JSON.stringify(updatedPrompts));
+    try {
+      const relevantVariables = variables.filter(v => v.isRelevant === true);
+      
+      const promptData = {
+        user_id: user.id,
+        title: finalPrompt.split('\n')[0] || 'Untitled Prompt',
+        prompt_text: finalPrompt,
+        master_command: masterCommand,
+        primary_toggle: selectedPrimary,
+        secondary_toggle: selectedSecondary,
+        variables: relevantVariables,
+        is_draft: currentStep < 3,
+        current_step: currentStep
+      };
 
-    toast({
-      title: "Success",
-      description: "Prompt saved successfully",
-    });
+      const { data, error } = await supabase
+        .from('prompts')
+        .insert(promptData)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        const newPrompt: SavedPrompt = {
+          id: data.id,
+          title: data.title,
+          date: new Date(data.created_at).toLocaleString(),
+          promptText: data.prompt_text || '',
+          masterCommand: data.master_command || '',
+          primaryToggle: data.primary_toggle,
+          secondaryToggle: data.secondary_toggle,
+          variables: data.variables as Variable[] || [],
+          is_draft: data.is_draft,
+          current_step: data.current_step
+        };
+
+        setSavedPrompts([newPrompt, ...savedPrompts]);
+
+        toast({
+          title: "Success",
+          description: "Prompt saved successfully",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to save prompt: ${error.message}`,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleQuestionAnswer = (questionId: string, answer: string) => {
@@ -371,6 +468,33 @@ const Dashboard = () => {
     }
 
     setCurrentStep(step);
+    
+    // Auto-save as draft when changing steps
+    if (user && promptText.trim()) {
+      const relevantVariables = variables.filter(v => v.isRelevant === true);
+      
+      const draftData = {
+        user_id: user.id,
+        title: promptText.split('\n')[0] || 'Draft Prompt',
+        prompt_text: promptText,
+        master_command: masterCommand,
+        primary_toggle: selectedPrimary,
+        secondary_toggle: selectedSecondary,
+        variables: relevantVariables,
+        is_draft: true,
+        current_step: step
+      };
+
+      supabase
+        .from('prompts')
+        .insert(draftData)
+        .then(() => {
+          console.log('Draft saved successfully');
+        })
+        .catch(error => {
+          console.error('Error saving draft:', error);
+        });
+    }
   };
 
   const handleCopyPrompt = async () => {
@@ -401,41 +525,141 @@ const Dashboard = () => {
     });
   };
 
-  const handleDeletePrompt = (id: string) => {
-    const updatedPrompts = savedPrompts.filter(prompt => prompt.id !== id);
-    setSavedPrompts(updatedPrompts);
-    localStorage.setItem("savedPrompts", JSON.stringify(updatedPrompts));
-    toast({
-      title: "Success",
-      description: "Prompt deleted successfully",
-    });
+  // Delete prompt from Supabase
+  const handleDeletePrompt = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('prompts')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      const updatedPrompts = savedPrompts.filter(prompt => prompt.id !== id);
+      setSavedPrompts(updatedPrompts);
+      
+      toast({
+        title: "Success",
+        description: "Prompt deleted successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to delete prompt: ${error.message}`,
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDuplicatePrompt = (prompt: SavedPrompt) => {
-    const newPrompt = {
-      ...prompt,
-      id: Date.now().toString(),
-      title: `${prompt.title} (Copy)`,
-      date: new Date().toLocaleString(),
-    };
-    const updatedPrompts = [newPrompt, ...savedPrompts].slice(0, 10);
-    setSavedPrompts(updatedPrompts);
-    localStorage.setItem("savedPrompts", JSON.stringify(updatedPrompts));
-    toast({
-      title: "Success",
-      description: "Prompt duplicated successfully",
-    });
+  // Duplicate prompt in Supabase
+  const handleDuplicatePrompt = async (prompt: SavedPrompt) => {
+    if (!user) return;
+    
+    try {
+      const duplicateData = {
+        user_id: user.id,
+        title: `${prompt.title} (Copy)`,
+        prompt_text: prompt.promptText,
+        master_command: prompt.masterCommand,
+        primary_toggle: prompt.primaryToggle,
+        secondary_toggle: prompt.secondaryToggle,
+        variables: prompt.variables,
+        is_draft: false
+      };
+
+      const { data, error } = await supabase
+        .from('prompts')
+        .insert(duplicateData)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        const newPrompt: SavedPrompt = {
+          id: data.id,
+          title: data.title,
+          date: new Date(data.created_at).toLocaleString(),
+          promptText: data.prompt_text || '',
+          masterCommand: data.master_command || '',
+          primaryToggle: data.primary_toggle,
+          secondaryToggle: data.secondary_toggle,
+          variables: data.variables as Variable[] || [],
+        };
+
+        setSavedPrompts([newPrompt, ...savedPrompts]);
+        
+        toast({
+          title: "Success",
+          description: "Prompt duplicated successfully",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to duplicate prompt: ${error.message}`,
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleRenamePrompt = (id: string, newTitle: string) => {
-    const updatedPrompts = savedPrompts.map(prompt =>
-      prompt.id === id ? { ...prompt, title: newTitle } : prompt
-    );
-    setSavedPrompts(updatedPrompts);
-    localStorage.setItem("savedPrompts", JSON.stringify(updatedPrompts));
+  // Rename prompt in Supabase
+  const handleRenamePrompt = async (id: string, newTitle: string) => {
+    try {
+      const { error } = await supabase
+        .from('prompts')
+        .update({ title: newTitle })
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      const updatedPrompts = savedPrompts.map(prompt =>
+        prompt.id === id ? { ...prompt, title: newTitle } : prompt
+      );
+      
+      setSavedPrompts(updatedPrompts);
+      
+      toast({
+        title: "Success",
+        description: "Prompt renamed successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to rename prompt: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Load a prompt from saved prompts
+  const handleLoadPrompt = (prompt: SavedPrompt) => {
+    setPromptText(prompt.promptText);
+    setFinalPrompt(prompt.promptText);
+    setMasterCommand(prompt.masterCommand);
+    setSelectedPrimary(prompt.primaryToggle);
+    setSelectedSecondary(prompt.secondToggle);
+    
+    if (prompt.variables && prompt.variables.length > 0) {
+      setVariables(prompt.variables);
+    }
+    
+    // If it's a draft, go to the saved step
+    if (prompt.is_draft && prompt.current_step) {
+      setCurrentStep(prompt.current_step);
+    } else {
+      setCurrentStep(3); // Final step for completed prompts
+    }
+    
     toast({
-      title: "Success",
-      description: "Prompt renamed successfully",
+      title: "Prompt loaded",
+      description: prompt.is_draft ? "Draft prompt loaded successfully" : "Prompt loaded successfully",
     });
   };
 
@@ -703,443 +927,3 @@ const Dashboard = () => {
                         </div>
                       </div>
                       {question.isRelevant && (
-                        <textarea
-                          value={question.answer}
-                          onChange={(e) => handleQuestionAnswer(question.id, e.target.value)}
-                          placeholder="Type your answer here..."
-                          className="w-full p-3 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring"
-                        />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium">Variables</h3>
-                <button 
-                  onClick={addVariable}
-                  className="flex items-center gap-1 text-sm text-primary hover:text-primary-dark transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add variable
-                </button>
-              </div>
-              
-              <div 
-                ref={variablesContainerRef}
-                className="max-h-[180px] overflow-y-auto pr-2 space-y-3"
-              >
-                {variables.map((variable, index) => (
-                  <div key={variable.id} className="flex gap-3 items-center">
-                    <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Input
-                        placeholder="Variable name"
-                        value={variable.name}
-                        onChange={(e) => handleVariableChange(variable.id, 'name', e.target.value)}
-                        className="flex-1 h-9"
-                      />
-                      <Input
-                        placeholder="Value"
-                        value={variable.value}
-                        onChange={(e) => handleVariableChange(variable.id, 'value', e.target.value)}
-                        className="flex-1 h-9"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
-                        <AlertDialogTrigger asChild>
-                          <button
-                            onClick={() => confirmDeleteVariable(variable.id)}
-                            className="p-2 rounded-full hover:bg-[#33fea6]/20"
-                            title="Delete variable"
-                          >
-                            <Trash className="w-4 h-4" />
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete variable?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this variable? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={removeVariable}>Delete</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                      
-                      <button
-                        onClick={() => handleVariableRelevance(variable.id, true)}
-                        className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
-                          variable.isRelevant === true ? 'bg-[#33fea6]' : ''
-                        }`}
-                        title="Keep variable"
-                      >
-                        <Check className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button 
-                onClick={() => handleStepChange(3)}
-                className={`aurora-button ${!canProceedToStep3 ? 'opacity-70 cursor-not-allowed' : ''}`}
-                disabled={!canProceedToStep3}
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        );
-      case 3:
-        return (
-          <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex-1">
-                <Input
-                  value={masterCommand}
-                  onChange={(e) => setMasterCommand(e.target.value)}
-                  placeholder="Master command, use it to adapt the prompt to any other similar needs"
-                  className="w-full h-8 text-sm"
-                />
-              </div>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <button className="aurora-button inline-flex items-center gap-2">
-                    <RotateCw className="w-4 h-4" />
-                    <span>Adapt</span>
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will regenerate your prompt. Any manual changes will be lost.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>No</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleRegenerate}>Yes</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div className="space-y-1.5">
-                {primaryToggles.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between py-1 px-2 border rounded-lg bg-background">
-                    <span className="text-xs">{item.label}</span>
-                    <Switch
-                      checked={selectedPrimary === item.id}
-                      onCheckedChange={() => handlePrimaryToggle(item.id)}
-                      className="scale-75"
-                      variant="primary"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-1.5">
-                {secondaryToggles.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between py-1 px-2 border rounded-lg bg-background">
-                    <span className="text-xs">{item.label}</span>
-                    <Switch
-                      checked={selectedSecondary === item.id}
-                      onCheckedChange={() => handleSecondaryToggle(item.id)}
-                      className="scale-75"
-                      variant="secondary"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs">JSON Toggle view</span>
-              <Switch
-                checked={showJson}
-                onCheckedChange={setShowJson}
-                className="scale-75"
-              />
-            </div>
-
-            <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
-              <button 
-                onClick={handleOpenEditPrompt}
-                className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
-              >
-                <Edit className="w-4 h-4 text-accent" />
-              </button>
-              
-              <div 
-                className="absolute inset-0 bg-gradient-to-br from-accent via-primary-dark to-primary animate-aurora opacity-10"
-                style={{ backgroundSize: "400% 400%" }}
-              />
-              
-              <div className="relative h-full p-6 overflow-y-auto">
-                <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
-                <div className="whitespace-pre-wrap text-card-foreground">
-                  {showJson ? (
-                    <pre className="text-xs font-mono">
-                      {JSON.stringify({ 
-                        prompt: finalPrompt, 
-                        masterCommand,
-                        variables: variables.filter(v => v.isRelevant === true)
-                      }, null, 2)}
-                    </pre>
-                  ) : (
-                    <div className="prose prose-sm max-w-none">
-                      <div dangerouslySetInnerHTML={{ __html: getProcessedPrompt().split('\n\n').map(p => `<p>${p}</p>`).join('') }} />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-4 p-3 border rounded-lg bg-background/50">
-              <h4 className="text-sm font-medium mb-3">Variables</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {variables.filter(v => v.isRelevant === true).map((variable) => (
-                  <div key={variable.id} className="flex items-center gap-2">
-                    <span className="text-xs font-medium min-w-[80px]">{variable.name}:</span>
-                    <Input 
-                      value={variable.value}
-                      onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
-                      className="h-7 text-xs py-1 px-2 bg-[#33fea6]/10 border-[#33fea6]/20 focus-visible:border-[#33fea6] focus-visible:ring-0"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center">
-              <button
-                onClick={handleCopyPrompt}
-                className="aurora-button inline-flex items-center gap-2"
-              >
-                <Copy className="w-4 h-4" />
-                Copy
-              </button>
-              <button
-                onClick={handleSavePrompt}
-                className="aurora-button inline-flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                Save
-              </button>
-            </div>
-
-            <Sheet open={showEditPromptSheet} onOpenChange={setShowEditPromptSheet}>
-              <SheetContent className="w-[90%] sm:max-w-[600px] md:max-w-[800px]">
-                <SheetHeader>
-                  <SheetTitle>Edit Prompt</SheetTitle>
-                  <SheetDescription>
-                    Make changes to your prompt. Click save when you're done or adapt to regenerate the prompt.
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="py-6">
-                  <textarea
-                    ref={editPromptTextareaRef}
-                    value={editingPrompt}
-                    onChange={(e) => setEditingPrompt(e.target.value)}
-                    className="w-full min-h-[60vh] p-4 text-sm rounded-md border bg-gray-50/80 text-card-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </div>
-                <SheetFooter className="flex flex-row justify-end space-x-4">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        className="bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-2"
-                      >
-                        <RotateCw className="w-4 h-4" />
-                        Adapt
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will regenerate your prompt based on the changes you made.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleAdaptPrompt}>Yes, adapt it</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                  <Button 
-                    onClick={handleSaveEditedPrompt}
-                    className="bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    Save
-                  </Button>
-                </SheetFooter>
-              </SheetContent>
-            </Sheet>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <main className="flex-1 p-6">
-          <div className="max-w-6xl mx-auto min-h-screen flex items-center justify-center">
-            <div className="w-full">
-              {renderContent()}
-              
-              <div className="flex justify-center gap-2 mt-4">
-                <button
-                  onClick={() => handleStepChange(1)}
-                  className={`w-2 h-2 rounded-full transition-all hover:scale-125 ${
-                    currentStep === 1 ? 'bg-primary' : 'bg-border hover:bg-primary/50'
-                  }`}
-                  aria-label="Go to step 1"
-                />
-                <button
-                  onClick={() => handleStepChange(2)}
-                  className={`w-2 h-2 rounded-full transition-all hover:scale-125 ${
-                    currentStep === 2 ? 'bg-primary' : 'bg-border hover:bg-primary/50'
-                  }`}
-                  aria-label="Go to step 2"
-                />
-                <button
-                  onClick={() => handleStepChange(3)}
-                  className={`w-2 h-2 rounded-full transition-all hover:scale-125 ${
-                    currentStep === 3 ? 'bg-primary' : 'bg-border hover:bg-primary/50'
-                  }`}
-                  aria-label="Go to step 3"
-                />
-              </div>
-            </div>
-          </div>
-        </main>
-
-        <Sidebar side="right">
-          <SidebarContent>
-            <div className="p-4 flex items-center justify-between border-b">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                  <User className="w-6 h-6 text-muted-foreground" />
-                </div>
-                <span className="font-medium">User Name</span>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger className="p-1 hover:bg-accent rounded-md">
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 9.75C9.41421 9.75 9.75 9.41421 9.75 9C9.75 8.58579 9.41421 8.25 9 8.25C8.58579 8.25 8.25 8.58579 8.25 9C8.25 9.41421 8.58579 9.75 9 9.75Z" fill="#545454" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M9 4.5C9.41421 4.5 9.75 4.16421 9.75 3.75C9.75 3.33579 9.41421 3 9 3C8.58579 3 8.25 3.33579 8.25 3.75C8.25 4.16421 8.58579 4.5 9 4.5Z" fill="#545454" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M9 15C9.41421 15 9.75 14.6642 9.75 14.25C9.75 13.8358 9.41421 13.5 9 13.5C8.58579 13.5 8.25 13.8358 8.25 14.25C8.25 14.6642 8.58579 15 9 15Z" fill="#545454" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate("/profile")}>
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <div className="flex justify-center my-3">
-              <button
-                onClick={handleNewPrompt}
-                className="aurora-button w-[70%] inline-flex items-center justify-center gap-2"
-              >
-                <FileText className="w-4 h-4" />
-                <span className="font-medium">New Prompt</span>
-              </button>
-            </div>
-
-            <div className="p-4 border-b">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                  className="pl-9" 
-                  placeholder="Search..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="overflow-auto">
-              {filteredPrompts.length > 0 ? (
-                filteredPrompts.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-4 border-b flex items-center justify-between group/item"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{item.title}</span>
-                        <span className="text-xs text-muted-foreground">{item.date}</span>
-                      </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
-                        <div className="p-1 hover:bg-accent rounded-md">
-                          <MoreVertical className="h-4 w-4" />
-                        </div>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => handleDuplicatePrompt(item)}>
-                          <CopyIcon className="mr-2 h-4 w-4" />
-                          <span>Duplicate</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => {
-                          const newTitle = window.prompt("Enter new name:", item.title);
-                          if (newTitle) handleRenamePrompt(item.id, newTitle);
-                        }}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          <span>Rename</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => handleDeletePrompt(item.id)}
-                        >
-                          <Trash className="mr-2 h-4 w-4" />
-                          <span>Delete</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                ))
-              ) : (
-                <div className="p-4 text-center text-muted-foreground">
-                  {searchTerm ? "No matching prompts found" : "No saved prompts yet"}
-                </div>
-              )}
-            </div>
-          </SidebarContent>
-        </Sidebar>
-
-        <div className="absolute top-6 right-6 z-50">
-          <SidebarTrigger className="bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
-        </div>
-      </div>
-    </SidebarProvider>
-  );
-};
-
-export default Dashboard;

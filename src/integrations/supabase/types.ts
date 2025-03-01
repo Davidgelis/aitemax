@@ -33,6 +33,51 @@ export type Database = {
         }
         Relationships: []
       }
+      prompts: {
+        Row: {
+          created_at: string | null
+          current_step: number | null
+          id: string
+          is_draft: boolean | null
+          master_command: string | null
+          primary_toggle: string | null
+          prompt_text: string | null
+          secondary_toggle: string | null
+          title: string
+          updated_at: string | null
+          user_id: string | null
+          variables: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_step?: number | null
+          id?: string
+          is_draft?: boolean | null
+          master_command?: string | null
+          primary_toggle?: string | null
+          prompt_text?: string | null
+          secondary_toggle?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+          variables?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          current_step?: number | null
+          id?: string
+          is_draft?: boolean | null
+          master_command?: string | null
+          primary_toggle?: string | null
+          prompt_text?: string | null
+          secondary_toggle?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+          variables?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
