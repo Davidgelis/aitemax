@@ -1,14 +1,15 @@
-
-import { Search, Plus, Save, FileText, MoreVertical, Copy as CopyIcon, Pencil, Trash, RotateCw, List, ListOrdered } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered, Plus, Minus, ArrowLeft, ArrowRight, Edit, FileText } from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Json } from "@/integrations/supabase/types";
+import { useState, useEffect, useRef } from "react";
+import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +28,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 interface Question {
   id: string;
@@ -110,8 +125,11 @@ Combine insights from different perspectives to form an integrated understanding
 ## Implementation and Feedback Integration
 Outline a clear plan for putting the solution into practice, identifying potential {{Name}} contingency plans. Establish mechanisms to gather feedback and adjust the approach based on new information or changing conditions in {{Location}}.`;
 
+const QUESTIONS_PER_PAGE = 3;
+
 // Helper function to convert between Variable[] and Json
 const variablesToJson = (variables: Variable[]): Json => {
+  // First convert to unknown, then to Json to satisfy TypeScript
   return variables as unknown as Json;
 };
 
@@ -141,18 +159,31 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>("coding");
   const [selectedSecondary, setSelectedSecondary] = useState<string | null>("strict");
-  const [masterCommand, setMasterCommand] = useState("");
+  const [currentStep, setCurrentStep] = useState(3);
   const [promptText, setPromptText] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [currentQuestionPage, setCurrentQuestionPage] = useState(0);
   const [variables, setVariables] = useState<Variable[]>(defaultVariables);
   const [showJson, setShowJson] = useState(false);
   const [finalPrompt, setFinalPrompt] = useState(sampleFinalPrompt);
   const [editingPrompt, setEditingPrompt] = useState("");
+  const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
+  const [masterCommand, setMasterCommand] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentLoadingMessage, setCurrentLoadingMessage] = useState(0);
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
+  const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
+  const [sliderPosition, setSliderPosition] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isDraftSaving, setIsDraftSaving] = useState(false);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [draftSaveTimeout, setDraftSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const questionsContainerRef = useRef<HTMLDivElement>(null);
+  const variablesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
 
   // Check for authentication and get current user
@@ -183,6 +214,97 @@ const Dashboard = () => {
     }
   }, [user]);
 
+  // Auto-save draft when changes are made
+  useEffect(() => {
+    if (!user) return;
+    
+    // Only auto-save if there's actual content
+    if (promptText || finalPrompt !== sampleFinalPrompt || masterCommand || questions.length > 0) {
+      // Clear any existing timeout
+      if (draftSaveTimeout) {
+        clearTimeout(draftSaveTimeout);
+      }
+      
+      // Set a new timeout to save draft after 3 seconds of inactivity
+      const timeout = setTimeout(() => {
+        savePromptDraft();
+      }, 3000);
+      
+      setDraftSaveTimeout(timeout);
+    }
+    
+    return () => {
+      // Clear timeout on cleanup
+      if (draftSaveTimeout) {
+        clearTimeout(draftSaveTimeout);
+      }
+    };
+  }, [
+    promptText, 
+    currentStep, 
+    selectedPrimary, 
+    selectedSecondary, 
+    finalPrompt, 
+    masterCommand, 
+    variables, 
+    questions,
+    user
+  ]);
+
+  const savePromptDraft = async () => {
+    if (!user || isDraftSaving) return;
+    
+    try {
+      setIsDraftSaving(true);
+      
+      const relevantVariables = variables.filter(v => v.isRelevant === true);
+      const title = finalPrompt.split('\n')[0] || 'Draft Prompt';
+      
+      const promptData = {
+        user_id: user.id,
+        title: title,
+        prompt_text: finalPrompt,
+        master_command: masterCommand,
+        primary_toggle: selectedPrimary,
+        secondary_toggle: selectedSecondary,
+        variables: variablesToJson(relevantVariables),
+        current_step: currentStep,
+        is_draft: true,
+        updated_at: new Date().toISOString()
+      };
+      
+      // If we already have a draft ID, update it instead of creating a new one
+      if (currentDraftId) {
+        const { error } = await supabase
+          .from('prompts')
+          .update(promptData)
+          .eq('id', currentDraftId);
+          
+        if (error) throw error;
+      } else {
+        // Create a new draft
+        const { data, error } = await supabase
+          .from('prompts')
+          .insert(promptData)
+          .select();
+          
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          setCurrentDraftId(data[0].id);
+        }
+      }
+      
+      // No toast notification for auto-saving to avoid distracting the user
+      console.log('Draft auto-saved');
+    } catch (error: any) {
+      console.error("Error saving prompt draft:", error.message);
+      // Silent failure - we don't want to bother the user with draft saving errors
+    } finally {
+      setIsDraftSaving(false);
+    }
+  };
+
   const fetchSavedPrompts = async () => {
     if (!user) return;
     
@@ -210,6 +332,14 @@ const Dashboard = () => {
       })) || [];
       
       setSavedPrompts(formattedPrompts);
+      
+      // Check if there are any drafts
+      const drafts = data?.filter(item => item.is_draft === true);
+      if (drafts && drafts.length > 0) {
+        // Get the most recent draft
+        const latestDraft = drafts[0];
+        setCurrentDraftId(latestDraft.id);
+      }
     } catch (error: any) {
       console.error("Error fetching prompts:", error.message);
       toast({
@@ -234,6 +364,70 @@ const Dashboard = () => {
     return processedPrompt;
   };
 
+  const handleVariableValueChange = (variableId: string, newValue: string) => {
+    setVariables(variables.map(v =>
+      v.id === variableId ? { ...v, value: newValue } : v
+    ));
+  };
+
+  const handleNewPrompt = () => {
+    // Clear the current draft ID when starting a new prompt
+    setCurrentDraftId(null);
+    
+    setPromptText("");
+    setQuestions([]);
+    setVariables(defaultVariables.map(v => ({ ...v, value: "", isRelevant: null })));
+    setFinalPrompt("");
+    setMasterCommand("");
+    setSelectedPrimary(null);
+    setSelectedSecondary(null);
+    setCurrentStep(1);
+    
+    toast({
+      title: "New Prompt",
+      description: "Started a new prompt creation process",
+    });
+  };
+
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (isLoading) {
+      if (currentLoadingMessage < loadingMessages.length) {
+        timeout = setTimeout(() => {
+          setCurrentLoadingMessage(prev => prev + 1);
+        }, 3000);
+      } else {
+        setIsLoading(false);
+        setCurrentLoadingMessage(0);
+        setCurrentStep(2);
+      }
+    }
+    return () => clearTimeout(timeout);
+  }, [isLoading, currentLoadingMessage]);
+
+  const handleOpenEditPrompt = () => {
+    setEditingPrompt(finalPrompt);
+    setShowEditPromptSheet(true);
+  };
+
+  const handleSaveEditedPrompt = () => {
+    setFinalPrompt(editingPrompt);
+    setShowEditPromptSheet(false);
+    toast({
+      title: "Success",
+      description: "Prompt updated successfully",
+    });
+  };
+
+  const handleAdaptPrompt = () => {
+    setFinalPrompt(editingPrompt);
+    setShowEditPromptSheet(false);
+    toast({
+      title: "Success",
+      description: "Prompt adapted successfully",
+    });
+  };
+
   const handlePrimaryToggle = (id: string) => {
     setSelectedPrimary(currentSelected => currentSelected === id ? null : id);
   };
@@ -242,19 +436,19 @@ const Dashboard = () => {
     setSelectedSecondary(currentSelected => currentSelected === id ? null : id);
   };
 
-  const handleNewPrompt = () => {
-    setPromptText("");
-    setQuestions([]);
-    setVariables(defaultVariables.map(v => ({ ...v, value: "", isRelevant: null })));
-    setFinalPrompt("");
-    setMasterCommand("");
-    setSelectedPrimary(null);
-    setSelectedSecondary(null);
-    
-    toast({
-      title: "New Prompt",
-      description: "Started a new prompt creation process",
-    });
+  const handleAnalyze = () => {
+    if (!promptText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a prompt before analyzing",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsLoading(true);
+    setQuestions(mockQuestions);
+    setCurrentQuestionPage(0);
+    setSliderPosition(0);
   };
 
   const handleSavePrompt = async () => {
@@ -277,32 +471,57 @@ const Dashboard = () => {
         primary_toggle: selectedPrimary,
         secondary_toggle: selectedSecondary,
         variables: variablesToJson(relevantVariables),
+        current_step: currentStep,
+        is_draft: false, // Mark as not a draft
         updated_at: new Date().toISOString()
       };
 
-      const { data, error } = await supabase
-        .from('prompts')
-        .insert(promptData)
-        .select();
-
-      if (error) {
-        throw error;
+      let result;
+      
+      // If we have a draft ID, update it instead of creating a new prompt
+      if (currentDraftId) {
+        const { data, error } = await supabase
+          .from('prompts')
+          .update(promptData)
+          .eq('id', currentDraftId)
+          .select();
+          
+        if (error) throw error;
+        result = data;
+        
+        // Draft is now saved as a regular prompt
+        setCurrentDraftId(null);
+      } else {
+        // Create a new prompt
+        const { data, error } = await supabase
+          .from('prompts')
+          .insert(promptData)
+          .select();
+          
+        if (error) throw error;
+        result = data;
       }
 
-      // Add the new prompt to the start of the list
-      if (data && data.length > 0) {
+      // Add the new/updated prompt to the start of the list
+      if (result && result.length > 0) {
         const newPrompt: SavedPrompt = {
-          id: data[0].id,
-          title: data[0].title || 'Untitled Prompt',
-          date: new Date(data[0].created_at || '').toLocaleString(),
-          promptText: data[0].prompt_text || '',
-          masterCommand: data[0].master_command || '',
-          primaryToggle: data[0].primary_toggle,
-          secondaryToggle: data[0].secondary_toggle,
-          variables: jsonToVariables(data[0].variables),
+          id: result[0].id,
+          title: result[0].title || 'Untitled Prompt',
+          date: new Date(result[0].created_at || '').toLocaleString(),
+          promptText: result[0].prompt_text || '',
+          masterCommand: result[0].master_command || '',
+          primaryToggle: result[0].primary_toggle,
+          secondaryToggle: result[0].secondary_toggle,
+          variables: jsonToVariables(result[0].variables),
         };
         
-        setSavedPrompts([newPrompt, ...savedPrompts]);
+        // Update the saved prompts list
+        setSavedPrompts(prevPrompts => {
+          // Remove any existing prompt with the same ID (if updating)
+          const filtered = prevPrompts.filter(p => p.id !== newPrompt.id);
+          // Add the new/updated prompt at the beginning
+          return [newPrompt, ...filtered];
+        });
       }
 
       toast({
@@ -316,6 +535,108 @@ const Dashboard = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const handleQuestionAnswer = (questionId: string, answer: string) => {
+    setQuestions(questions.map(q => 
+      q.id === questionId ? { ...q, answer } : q
+    ));
+  };
+
+  const handleQuestionRelevance = (questionId: string, isRelevant: boolean) => {
+    setQuestions(questions.map(q => 
+      q.id === questionId ? { ...q, isRelevant } : q
+    ));
+  };
+
+  const handleVariableChange = (variableId: string, field: 'name' | 'value', content: string) => {
+    setVariables(variables.map(v =>
+      v.id === variableId ? { ...v, [field]: content } : v
+    ));
+  };
+
+  const handleVariableRelevance = (variableId: string, isRelevant: boolean) => {
+    setVariables(variables.map(v =>
+      v.id === variableId ? { ...v, isRelevant } : v
+    ));
+  };
+
+  const addVariable = () => {
+    if (variables.length < 12) {
+      const newId = `v${Date.now()}`;
+      setVariables([...variables, { id: newId, name: "", value: "", isRelevant: null }]);
+    } else {
+      toast({
+        title: "Limit reached",
+        description: "You can add a maximum of 12 variables",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const confirmDeleteVariable = (id: string) => {
+    setVariableToDelete(id);
+  };
+
+  const removeVariable = () => {
+    if (!variableToDelete) return;
+    
+    if (variables.length > 1) {
+      setVariables(variables.filter(v => v.id !== variableToDelete));
+      setVariableToDelete(null);
+      toast({
+        title: "Variable deleted",
+        description: "The variable has been removed successfully",
+      });
+    } else {
+      toast({
+        title: "Cannot remove",
+        description: "You need at least one variable",
+        variant: "destructive",
+      });
+      setVariableToDelete(null);
+    }
+  };
+
+  const allQuestionsAnswered = questions.every(q => q.isRelevant !== null);
+  const allVariablesAnswered = variables.every(v => v.isRelevant !== null);
+
+  const canProceedToStep3 = allQuestionsAnswered && allVariablesAnswered;
+
+  const handleStepChange = (step: number) => {
+    if (step === 2 && !promptText.trim()) {
+      toast({
+        title: "Cannot proceed",
+        description: "Please enter a prompt before moving to step 2",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (step === 2 && questions.length === 0) {
+      toast({
+        title: "Cannot proceed",
+        description: "Please analyze your prompt first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (step === 3 && !canProceedToStep3) {
+      toast({
+        title: "Cannot proceed",
+        description: "Please mark all questions and variables as relevant or not relevant",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setCurrentStep(step);
+    
+    // Auto-save draft when changing steps
+    if (user) {
+      savePromptDraft();
     }
   };
 
@@ -340,6 +661,13 @@ const Dashboard = () => {
     }
   };
 
+  const handleRegenerate = () => {
+    toast({
+      title: "Success",
+      description: "Prompt regenerated successfully",
+    });
+  };
+
   const handleDeletePrompt = async (id: string) => {
     try {
       const { error } = await supabase
@@ -353,6 +681,11 @@ const Dashboard = () => {
 
       const updatedPrompts = savedPrompts.filter(prompt => prompt.id !== id);
       setSavedPrompts(updatedPrompts);
+      
+      // Reset currentDraftId if we're deleting the current draft
+      if (id === currentDraftId) {
+        setCurrentDraftId(null);
+      }
       
       toast({
         title: "Success",
@@ -387,6 +720,7 @@ const Dashboard = () => {
         primary_toggle: prompt.primaryToggle,
         secondary_toggle: prompt.secondaryToggle,
         variables: variablesToJson(prompt.variables),
+        is_draft: false,
         updated_at: new Date().toISOString()
       };
 
@@ -406,8 +740,8 @@ const Dashboard = () => {
           date: new Date(data[0].created_at || '').toLocaleString(),
           promptText: data[0].prompt_text || '',
           masterCommand: data[0].master_command || '',
-          primaryToggle: data[0].primary_toggle,
-          secondaryToggle: data[0].secondary_toggle,
+          primaryToggle: data[0].primaryToggle,
+          secondaryToggle: data[0].secondaryToggle,
           variables: jsonToVariables(data[0].variables),
         };
         
@@ -428,11 +762,163 @@ const Dashboard = () => {
     }
   };
 
-  const handleAdapt = () => {
+  const handleRenamePrompt = async (id: string, newTitle: string) => {
+    try {
+      const { error } = await supabase
+        .from('prompts')
+        .update({ title: newTitle, updated_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      const updatedPrompts = savedPrompts.map(prompt =>
+        prompt.id === id ? { ...prompt, title: newTitle } : prompt
+      );
+      setSavedPrompts(updatedPrompts);
+      
+      toast({
+        title: "Success",
+        description: "Prompt renamed successfully",
+      });
+    } catch (error: any) {
+      console.error("Error renaming prompt:", error.message);
+      toast({
+        title: "Error renaming prompt",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const insertBulletList = () => {
+    if (!textareaRef.current) return;
+    
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = promptText.substring(start, end);
+    
+    let newText;
+    if (selected) {
+      const lines = selected.split('\n');
+      const bulletedLines = lines.map(line => line ? `• ${line}` : line);
+      newText = promptText.substring(0, start) + bulletedLines.join('\n') + promptText.substring(end);
+    } else {
+      newText = promptText.substring(0, start) + '• ' + promptText.substring(end);
+    }
+    
+    setPromptText(newText);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + 2;
+    }, 0);
+    
     toast({
-      title: "Success",
-      description: "Prompt adapted successfully",
+      title: "Added bullet list",
+      description: "Bullet points have been added to your text",
     });
+  };
+
+  const insertNumberedList = () => {
+    if (!textareaRef.current) return;
+    
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = promptText.substring(start, end);
+    
+    let newText;
+    if (selected) {
+      const lines = selected.split('\n');
+      const numberedLines = lines.map((line, index) => line ? `${index + 1}. ${line}` : line);
+      newText = promptText.substring(0, start) + numberedLines.join('\n') + promptText.substring(end);
+    } else {
+      newText = promptText.substring(0, start) + '1. ' + promptText.substring(end);
+    }
+    
+    setPromptText(newText);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + 3;
+    }, 0);
+    
+    toast({
+      title: "Added numbered list",
+      description: "Numbers have been added to your text",
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      const textarea = e.currentTarget;
+      const { selectionStart } = textarea;
+      const currentText = promptText;
+      
+      const textBeforeCursor = currentText.substring(0, selectionStart);
+      const lines = textBeforeCursor.split('\n');
+      const currentLine = lines[lines.length - 1];
+      
+      if (currentLine.trimStart().startsWith('• ')) {
+        e.preventDefault();
+        
+        if (currentLine.trim() === '•' || currentLine.trim() === '• ') {
+          const newLines = [...lines];
+          newLines[newLines.length - 1] = '';
+          const newText = newLines.join('\n') + currentText.substring(selectionStart);
+          setPromptText(newText);
+          
+          setTimeout(() => {
+            textarea.focus();
+            const newCursorPosition = textBeforeCursor.length - currentLine.length;
+            textarea.selectionStart = textarea.selectionEnd = newCursorPosition;
+          }, 0);
+        } else {
+          const indent = currentLine.match(/^\s*/)?.[0] || '';
+          const newLine = `\n${indent}• `;
+          const newText = currentText.substring(0, selectionStart) + newLine + currentText.substring(selectionStart);
+          setPromptText(newText);
+          
+          setTimeout(() => {
+            textarea.focus();
+            textarea.selectionStart = textarea.selectionEnd = selectionStart + newLine.length;
+          }, 0);
+        }
+        return;
+      }
+      
+      const numberedListMatch = currentLine.trimStart().match(/^(\d+)\.\s/);
+      if (numberedListMatch) {
+        e.preventDefault();
+        
+        if (currentLine.trim() === `${numberedListMatch[1]}.` || currentLine.trim() === `${numberedListMatch[1]}. `) {
+          const newLines = [...lines];
+          newLines[newLines.length - 1] = '';
+          const newText = newLines.join('\n') + currentText.substring(selectionStart);
+          setPromptText(newText);
+          
+          setTimeout(() => {
+            textarea.focus();
+            const newCursorPosition = textBeforeCursor.length - currentLine.length;
+            textarea.selectionStart = textarea.selectionEnd = newCursorPosition;
+          }, 0);
+        } else {
+          const currentNumber = parseInt(numberedListMatch[1], 10);
+          const indent = currentLine.match(/^\s*/)?.[0] || '';
+          const newLine = `\n${indent}${currentNumber + 1}. `;
+          const newText = currentText.substring(0, selectionStart) + newLine + currentText.substring(selectionStart);
+          setPromptText(newText);
+          
+          setTimeout(() => {
+            textarea.focus();
+            textarea.selectionStart = textarea.selectionEnd = selectionStart + newLine.length;
+          }, 0);
+        }
+      }
+    }
   };
 
   const filteredPrompts = savedPrompts.filter(prompt => 
@@ -441,211 +927,79 @@ const Dashboard = () => {
     prompt.promptText.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  return (
-    <div className="flex h-screen bg-[#fafafa]">
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-4xl mx-auto">
-          {/* Master Command Input */}
-          <div className="mb-6">
-            <Input
-              placeholder="Master command, use it to adapt the prompt to any other similar needs"
-              value={masterCommand}
-              onChange={(e) => setMasterCommand(e.target.value)}
-              className="h-12 border border-gray-300 rounded-md"
-            />
-            <div className="flex justify-end mt-2">
-              <Button 
-                onClick={handleAdapt} 
-                className="aurora-button bg-[#33fea6] text-[#545454] hover:bg-[#33fea6]/90 flex items-center gap-2"
-              >
-                Adapt
-              </Button>
-            </div>
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="text-xl font-medium animate-fade-in">
+            {loadingMessages[currentLoadingMessage]}
           </div>
-
-          {/* Toggle Groups */}
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div className="space-y-2">
-              {primaryToggles.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-white">
-                  <span className="text-sm text-[#545454]">{item.label}</span>
-                  <Switch 
-                    checked={selectedPrimary === item.id}
-                    onCheckedChange={() => handlePrimaryToggle(item.id)}
-                    className="data-[state=checked]:bg-[#33fea6]"
-                  />
-                </div>
-              ))}
-            </div>
-            
-            <div className="space-y-2">
-              {secondaryToggles.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-white">
-                  <span className="text-sm text-[#545454]">{item.label}</span>
-                  <Switch 
-                    checked={selectedSecondary === item.id}
-                    onCheckedChange={() => handleSecondaryToggle(item.id)}
-                    className="data-[state=checked]:bg-[#084b49]"
-                  />
-                </div>
-              ))}
-              
-              <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md bg-white">
-                <span className="text-sm text-[#545454]">JSON Toggle view</span>
-                <Switch 
-                  checked={showJson}
-                  onCheckedChange={setShowJson}
-                  className="data-[state=checked]:bg-[#084b49]"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Final Prompt Section */}
-          <div className="border border-gray-200 rounded-lg bg-[#f1f8f5] p-6 mb-6 relative">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-semibold text-[#545454]">Final Prompt</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => {
-                  // Handle edit prompt
-                }}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div 
-              className="text-[#545454] whitespace-pre-wrap prose max-w-none"
-              dangerouslySetInnerHTML={{ __html: getProcessedPrompt() }}
-            />
-          </div>
-
-          {/* Variables Section */}
-          <div className="border border-gray-200 rounded-lg bg-white p-6 mb-6">
-            <h2 className="text-lg font-semibold text-[#545454] mb-4">Variables</h2>
-            
-            <div className="grid grid-cols-3 gap-4">
-              {variables.filter(v => v.isRelevant).map((variable) => (
-                <div key={variable.id} className="space-y-1">
-                  <label className="block text-sm text-[#545454]">{variable.name}:</label>
-                  <Input
-                    value={variable.value}
-                    onChange={(e) => {
-                      setVariables(variables.map(v => 
-                        v.id === variable.id ? { ...v, value: e.target.value } : v
-                      ));
-                    }}
-                    className="h-10 bg-[#f1f8f5] border border-gray-200"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-between">
-            <Button 
-              onClick={handleCopyPrompt}
-              className="aurora-button flex items-center gap-2"
-            >
-              <CopyIcon className="h-4 w-4" />
-              Copy
-            </Button>
-            
-            <Button 
-              onClick={handleSavePrompt}
-              className="aurora-button flex items-center gap-2"
-            >
-              <Save className="h-4 w-4" />
-              Save
-            </Button>
+          <div className="flex gap-2">
+            {loadingMessages.map((_, index) => (
+              <div
+                key={index}
+                className={`w-2 h-2 rounded-full ${
+                  index <= currentLoadingMessage
+                    ? "bg-primary"
+                    : "bg-gray-300"
+                }`}
+              />
+            ))}
           </div>
         </div>
-      </div>
+      );
+    }
 
-      {/* Right Sidebar */}
-      <div className="w-80 border-l border-gray-200 bg-white p-4 flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <img src="/public/lovable-uploads/ee99c740-dac6-4241-afe9-ddf5e9358b50.png" alt="User" className="h-8 w-8 rounded-full" />
-            <span className="ml-2 text-[#545454]">Guest</span>
-          </div>
-        </div>
-
-        <Button 
-          onClick={handleNewPrompt}
-          className="bg-[#33fea6] text-[#545454] hover:bg-[#33fea6]/90 w-full mb-4 flex items-center justify-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          New Prompt
-        </Button>
-
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6">
+        <div className="flex gap-2">
           <Input
-            placeholder="Search..."
+            placeholder="Search prompts"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
           />
+          <Button onClick={handleNewPrompt}>New Prompt</Button>
         </div>
-
-        {!user ? (
-          <div className="text-center p-4 border border-gray-200 rounded-lg mb-4">
-            <p className="text-sm text-[#545454] mb-2">
-              Please sign in to save and view your prompts
-            </p>
-            <Button className="bg-[#084b49] text-white hover:bg-[#084b49]/90">
-              Sign in
-            </Button>
-          </div>
-        ) : isLoadingPrompts ? (
-          <div className="flex justify-center items-center p-6">
-            <RotateCw className="h-6 w-6 text-[#33fea6] animate-spin" />
-          </div>
-        ) : (
-          <div className="flex-1 overflow-auto space-y-2">
-            {filteredPrompts.length === 0 ? (
-              <p className="text-center text-sm text-gray-500 p-4">No saved prompts found</p>
-            ) : (
-              filteredPrompts.map((prompt) => (
-                <div 
-                  key={prompt.id}
-                  className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 truncate">
-                      <h3 className="text-sm font-medium text-[#545454] truncate">{prompt.title}</h3>
-                      <p className="text-xs text-gray-500">{prompt.date}</p>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleDuplicatePrompt(prompt)}>
-                          <CopyIcon className="h-4 w-4 mr-2" />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDeletePrompt(prompt.id)} className="text-red-500">
-                          <Trash className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+        <div className="flex flex-col gap-4">
+          {filteredPrompts.map(prompt => (
+            <div key={prompt.id} className="bg-white rounded-lg p-4 shadow-md">
+              <div className="flex justify-between">
+                <div className="flex items-center gap-2">
+                  <p className="text-lg font-medium">{prompt.title}</p>
+                  <p className="text-sm text-gray-500">{prompt.date}</p>
                 </div>
-              ))
-            )}
-          </div>
-        )}
+                <div className="flex gap-2">
+                  <Button onClick={() => handleOpenEditPrompt(prompt)}>Edit</Button>
+                  <Button onClick={() => handleDuplicatePrompt(prompt)}>Duplicate</Button>
+                  <Button onClick={() => handleRenamePrompt(prompt.id, prompt.title)}>Rename</Button>
+                  <Button onClick={() => handleDeletePrompt(prompt.id)}>Delete</Button>
+                </div>
+              </div>
+              <div className="mt-2">
+                <p className="text-sm text-gray-500">{prompt.promptText}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-screen">
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-2">
+          <Button onClick={() => handleOpenEditPrompt()}>Edit Prompt</Button>
+          <Button onClick={() => handleSavePrompt()}>Save Prompt</Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => handleAnalyze()}>Analyze</Button>
+          <Button onClick={() => handleRegenerate()}>Regenerate</Button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {renderContent()}
       </div>
     </div>
   );
