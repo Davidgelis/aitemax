@@ -2,13 +2,23 @@
 import Logo from "@/components/Logo";
 import PromptInput from "@/components/PromptInput";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   const handlePromptSubmit = (prompt: string) => {
     // Will implement in next iteration
     console.log("Prompt submitted:", prompt);
+  };
+
+  const handleAuthAction = () => {
+    if (user) {
+      signOut();
+    } else {
+      navigate("/auth");
+    }
   };
 
   return (
@@ -26,8 +36,11 @@ const Index = () => {
         >
           Dashboard
         </button>
-        <button className="aurora-button">
-          Login
+        <button 
+          className="aurora-button"
+          onClick={handleAuthAction}
+        >
+          {user ? 'Logout' : 'Login'}
         </button>
       </nav>
 
