@@ -1,4 +1,3 @@
-
 import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered, Plus, Minus, ArrowLeft, ArrowRight, Edit, FileText } from "lucide-react";
 import {
   Sidebar,
@@ -144,6 +143,7 @@ const Dashboard = () => {
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
   const [sliderPosition, setSliderPosition] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
   const questionsContainerRef = useRef<HTMLDivElement>(null);
   const variablesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -590,6 +590,13 @@ const Dashboard = () => {
       }
     }
   };
+
+  // Filter saved prompts based on search term
+  const filteredPrompts = savedPrompts.filter(prompt => 
+    searchTerm === "" || 
+    prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    prompt.promptText.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const renderContent = () => {
     if (isLoading) {
@@ -1079,53 +1086,64 @@ const Dashboard = () => {
             <div className="p-4 border-b">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input className="pl-9" placeholder="Search..." />
+                <Input 
+                  className="pl-9" 
+                  placeholder="Search..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
             </div>
 
             <div className="overflow-auto">
-              {savedPrompts.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-4 border-b flex items-center justify-between group/item"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">{item.title}</span>
-                      <span className="text-xs text-muted-foreground">{item.date}</span>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
-                      <div className="p-1 hover:bg-accent rounded-md">
-                        <MoreVertical className="h-4 w-4" />
+              {filteredPrompts.length > 0 ? (
+                filteredPrompts.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-4 border-b flex items-center justify-between group/item"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{item.title}</span>
+                        <span className="text-xs text-muted-foreground">{item.date}</span>
                       </div>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => handleDuplicatePrompt(item)}>
-                        <CopyIcon className="mr-2 h-4 w-4" />
-                        <span>Duplicate</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => {
-                        const newTitle = window.prompt("Enter new name:", item.title);
-                        if (newTitle) handleRenamePrompt(item.id, newTitle);
-                      }}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        <span>Rename</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => handleDeletePrompt(item.id)}
-                      >
-                        <Trash className="mr-2 h-4 w-4" />
-                        <span>Delete</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
+                        <div className="p-1 hover:bg-accent rounded-md">
+                          <MoreVertical className="h-4 w-4" />
+                        </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => handleDuplicatePrompt(item)}>
+                          <CopyIcon className="mr-2 h-4 w-4" />
+                          <span>Duplicate</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          const newTitle = window.prompt("Enter new name:", item.title);
+                          if (newTitle) handleRenamePrompt(item.id, newTitle);
+                        }}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          <span>Rename</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleDeletePrompt(item.id)}
+                        >
+                          <Trash className="mr-2 h-4 w-4" />
+                          <span>Delete</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ))
+              ) : (
+                <div className="p-4 text-center text-muted-foreground">
+                  {searchTerm ? "No matching prompts found" : "No saved prompts yet"}
                 </div>
-              ))}
+              )}
             </div>
           </SidebarContent>
         </Sidebar>
