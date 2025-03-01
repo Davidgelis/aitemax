@@ -56,7 +56,8 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafafa] p-4">
       <div className="mb-8">
-        <Logo onClick={handleBackToHome} />
+        {/* Remove the onClick prop from Logo since it's not supported */}
+        <Logo />
       </div>
       
       <Tabs defaultValue="login" className="w-full max-w-md">

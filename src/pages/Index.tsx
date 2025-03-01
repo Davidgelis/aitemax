@@ -89,13 +89,16 @@ const Index = () => {
         </div>
       </main>
 
-      <style jsx>{`
+      {/* Fix the style element by removing the jsx prop */}
+      <style>
+        {`
         @keyframes borderGradient {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
           100% { background-position: 0% 50%; }
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };
