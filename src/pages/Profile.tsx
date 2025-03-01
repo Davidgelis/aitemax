@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, User, UserRound, Users, UsersRound, Lock } from "lucide-react";
+import { ArrowLeft, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -11,10 +11,43 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
+const avatarOptions = [
+  {
+    id: "avatar1",
+    value: "avatar1",
+    src: "/lovable-uploads/9e9dab89-7884-4529-8d21-4635694140a0.png", 
+    alt: "Intersecting circles"
+  },
+  {
+    id: "avatar2",
+    value: "avatar2", 
+    src: "/lovable-uploads/599e8307-b1eb-411f-ac99-f096310d8073.png",
+    alt: "Green diagonal line"
+  },
+  {
+    id: "avatar3",
+    value: "avatar3",
+    src: "/lovable-uploads/6880916c-ef0f-41df-bba8-bae4076a3355.png",
+    alt: "Teal diagonal line"
+  },
+  {
+    id: "avatar4",
+    value: "avatar4",
+    src: "/lovable-uploads/57623e13-ceba-4029-a7cc-a0317bcecff5.png",
+    alt: "Teal circle"
+  },
+  {
+    id: "avatar5",
+    value: "avatar5",
+    src: "/lovable-uploads/6bc3d174-c5ec-4312-adb8-2c7834ab72e0.png",
+    alt: "Dark blue circle"
+  }
+];
+
 const Profile = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [avatarType, setAvatarType] = useState("user");
+  const [avatarType, setAvatarType] = useState("avatar1");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -120,20 +153,10 @@ const Profile = () => {
     }
   };
 
-  // Render the appropriate avatar based on the selected type
-  const renderAvatar = (type) => {
-    switch (type) {
-      case "user":
-        return <User className="h-full w-full p-2" />;
-      case "userRound":
-        return <UserRound className="h-full w-full p-2" />;
-      case "users":
-        return <Users className="h-full w-full p-2" />;
-      case "usersRound":
-        return <UsersRound className="h-full w-full p-2" />;
-      default:
-        return <User className="h-full w-full p-2" />;
-    }
+  // Get the selected avatar image based on the current value
+  const getSelectedAvatarSrc = () => {
+    const selectedAvatar = avatarOptions.find(avatar => avatar.value === avatarType);
+    return selectedAvatar?.src || avatarOptions[0].src;
   };
 
   return (
@@ -151,7 +174,11 @@ const Profile = () => {
         <div className="bg-white rounded-xl border border-gray-300 p-6 shadow-sm">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-20 h-20 rounded-full border-2 border-[#33fea6] bg-white flex items-center justify-center overflow-hidden">
-              {renderAvatar(avatarType)}
+              <img 
+                src={getSelectedAvatarSrc()} 
+                alt="Selected Avatar" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <h1 className="text-2xl font-semibold text-[#545454]">{username || "User Profile"}</h1>
@@ -167,83 +194,32 @@ const Profile = () => {
               <RadioGroup 
                 value={avatarType} 
                 onValueChange={setAvatarType}
-                className="grid grid-cols-2 md:grid-cols-4 gap-4"
+                className="grid grid-cols-2 md:grid-cols-5 gap-4"
               >
-                <div className="flex flex-col items-center space-y-2">
-                  <Label
-                    htmlFor="avatar-user"
-                    className="cursor-pointer flex flex-col items-center space-y-2"
-                  >
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center border-2 ${
-                      avatarType === "user" ? "border-[#33fea6]" : "border-gray-300"
-                    }`}>
-                      <User className="h-10 w-10 text-[#545454]" />
-                    </div>
-                    <RadioGroupItem 
-                      value="user" 
-                      id="avatar-user" 
-                      className="sr-only"
-                    />
-                    <span className="text-sm text-[#545454]">User</span>
-                  </Label>
-                </div>
-
-                <div className="flex flex-col items-center space-y-2">
-                  <Label
-                    htmlFor="avatar-userRound"
-                    className="cursor-pointer flex flex-col items-center space-y-2"
-                  >
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center border-2 ${
-                      avatarType === "userRound" ? "border-[#33fea6]" : "border-gray-300"
-                    }`}>
-                      <UserRound className="h-10 w-10 text-[#545454]" />
-                    </div>
-                    <RadioGroupItem 
-                      value="userRound" 
-                      id="avatar-userRound" 
-                      className="sr-only"
-                    />
-                    <span className="text-sm text-[#545454]">User Round</span>
-                  </Label>
-                </div>
-
-                <div className="flex flex-col items-center space-y-2">
-                  <Label
-                    htmlFor="avatar-users"
-                    className="cursor-pointer flex flex-col items-center space-y-2"
-                  >
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center border-2 ${
-                      avatarType === "users" ? "border-[#33fea6]" : "border-gray-300"
-                    }`}>
-                      <Users className="h-10 w-10 text-[#545454]" />
-                    </div>
-                    <RadioGroupItem 
-                      value="users" 
-                      id="avatar-users" 
-                      className="sr-only"
-                    />
-                    <span className="text-sm text-[#545454]">Users</span>
-                  </Label>
-                </div>
-
-                <div className="flex flex-col items-center space-y-2">
-                  <Label
-                    htmlFor="avatar-usersRound"
-                    className="cursor-pointer flex flex-col items-center space-y-2"
-                  >
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center border-2 ${
-                      avatarType === "usersRound" ? "border-[#33fea6]" : "border-gray-300"
-                    }`}>
-                      <UsersRound className="h-10 w-10 text-[#545454]" />
-                    </div>
-                    <RadioGroupItem 
-                      value="usersRound" 
-                      id="avatar-usersRound" 
-                      className="sr-only"
-                    />
-                    <span className="text-sm text-[#545454]">Users Round</span>
-                  </Label>
-                </div>
+                {avatarOptions.map((avatar) => (
+                  <div key={avatar.id} className="flex flex-col items-center space-y-2">
+                    <Label
+                      htmlFor={avatar.id}
+                      className="cursor-pointer flex flex-col items-center space-y-2"
+                    >
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center border-2 ${
+                        avatarType === avatar.value ? "border-[#33fea6]" : "border-gray-300"
+                      } p-1 bg-white`}>
+                        <img 
+                          src={avatar.src} 
+                          alt={avatar.alt} 
+                          className="h-12 w-12 object-contain"
+                        />
+                      </div>
+                      <RadioGroupItem 
+                        value={avatar.value} 
+                        id={avatar.id} 
+                        className="sr-only"
+                      />
+                      <span className="text-sm text-[#545454]">Option {avatar.value.slice(-1)}</span>
+                    </Label>
+                  </div>
+                ))}
               </RadioGroup>
             </div>
 
