@@ -1,17 +1,29 @@
 
 import { List, ListOrdered } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PromptEditorProps {
   promptText: string;
   setPromptText: (text: string) => void;
   onAnalyze: () => void;
+  selectedPrimary: string | null;
+  selectedSecondary: string | null;
+  isLoading: boolean;
 }
 
-export const PromptEditor = ({ promptText, setPromptText, onAnalyze }: PromptEditorProps) => {
+export const PromptEditor = ({ 
+  promptText, 
+  setPromptText, 
+  onAnalyze, 
+  selectedPrimary,
+  selectedSecondary,
+  isLoading
+}: PromptEditorProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+  const [aiLoading, setAiLoading] = useState(false);
 
   const insertBulletList = () => {
     if (!textareaRef.current) return;
@@ -71,6 +83,48 @@ export const PromptEditor = ({ promptText, setPromptText, onAnalyze }: PromptEdi
       title: "Added numbered list",
       description: "Numbers have been added to your text",
     });
+  };
+
+  const analyzeWithAI = async () => {
+    if (!promptText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a prompt before analyzing",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setAiLoading(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-prompt', {
+        body: {
+          promptText,
+          primaryToggle: selectedPrimary,
+          secondaryToggle: selectedSecondary
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Call the parent's onAnalyze with the AI analysis result
+      onAnalyze();
+      
+      toast({
+        title: "Analysis complete",
+        description: "Your prompt has been analyzed successfully",
+      });
+    } catch (error) {
+      console.error("Error analyzing prompt:", error);
+      toast({
+        title: "Analysis failed",
+        description: "An error occurred while analyzing your prompt. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -170,10 +224,11 @@ export const PromptEditor = ({ promptText, setPromptText, onAnalyze }: PromptEdi
       />
       <div className="absolute bottom-6 right-6">
         <button 
-          onClick={onAnalyze}
+          onClick={analyzeWithAI}
           className="aurora-button"
+          disabled={isLoading || aiLoading}
         >
-          Analyze
+          {isLoading || aiLoading ? "Analyzing..." : "Analyze with AI"}
         </button>
       </div>
     </div>

@@ -1,4 +1,3 @@
-
 import { Search, User, Check, X, Copy, RotateCw, Save, MoreVertical, Trash, Pencil, Copy as CopyIcon, List, ListOrdered, Plus, Minus, ArrowLeft, ArrowRight, Edit, FileText } from "lucide-react";
 import {
   Sidebar,
@@ -44,7 +43,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>("coding");
   const [selectedSecondary, setSelectedSecondary] = useState<string | null>("strict");
-  const [currentStep, setCurrentStep] = useState(3);
+  const [currentStep, setCurrentStep] = useState(1);
   const [promptText, setPromptText] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionPage, setCurrentQuestionPage] = useState(0);
@@ -214,7 +213,7 @@ const Dashboard = () => {
     setSelectedSecondary(currentSelected => currentSelected === id ? null : id);
   };
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (!promptText.trim()) {
       toast({
         title: "Error",
@@ -224,9 +223,66 @@ const Dashboard = () => {
       return;
     }
     setIsLoading(true);
-    setQuestions(mockQuestions);
-    setCurrentQuestionPage(0);
-    setSliderPosition(0);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-prompt', {
+        body: {
+          promptText,
+          primaryToggle: selectedPrimary,
+          secondaryToggle: selectedSecondary
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Update state with the returned AI analysis
+      if (data) {
+        // Add IDs to questions if they don't have them
+        const aiQuestions = data.questions.map((q: any, index: number) => ({
+          ...q,
+          id: q.id || `q${index + 1}`,
+          answer: ""
+        }));
+        
+        setQuestions(aiQuestions);
+        
+        // Update variables if they were returned
+        if (data.variables && data.variables.length > 0) {
+          const aiVariables = data.variables.map((v: any, index: number) => ({
+            ...v,
+            id: v.id || `v${index + 1}`,
+            value: v.value || ""
+          }));
+          setVariables(aiVariables);
+        }
+        
+        // Update master command if it was returned
+        if (data.masterCommand) {
+          setMasterCommand(data.masterCommand);
+        }
+        
+        // Update final prompt if it was returned
+        if (data.enhancedPrompt) {
+          setFinalPrompt(data.enhancedPrompt);
+        }
+      } else {
+        // Fallback to mock data if no AI data was returned
+        setQuestions(mockQuestions);
+      }
+      
+      setCurrentQuestionPage(0);
+      setSliderPosition(0);
+    } catch (error) {
+      console.error("Error analyzing prompt with AI:", error);
+      // Fallback to mock data on error
+      setQuestions(mockQuestions);
+    } finally {
+      setTimeout(() => {
+        setIsLoading(false);
+        setCurrentLoadingMessage(0);
+        setCurrentStep(2);
+      }, 3000);
+    }
   };
 
   const handleSavePrompt = async () => {
@@ -567,7 +623,10 @@ const Dashboard = () => {
             <PromptEditor 
               promptText={promptText}
               setPromptText={setPromptText}
-              onAnalyze={handleAnalyze} 
+              onAnalyze={handleAnalyze}
+              selectedPrimary={selectedPrimary}
+              selectedSecondary={selectedSecondary}
+              isLoading={isLoading}
             />
           </>
         );

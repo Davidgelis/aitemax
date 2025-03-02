@@ -15,10 +15,10 @@ export const secondaryToggles: Toggle[] = [
 ];
 
 export const loadingMessages = [
-  "Pinpointing missing or unclear details",
-  "Understanding contextual roles",
-  "Identifying guidelines gaps, proper sequencing, and logical flows",
-  "Generating next steps"
+  "AI is analyzing your prompt structure...",
+  "Identifying key concepts and variables...",
+  "Evaluating clarity and potential improvements...",
+  "Generating enhancement suggestions..."
 ];
 
 export const mockQuestions: Question[] = [
