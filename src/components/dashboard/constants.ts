@@ -15,47 +15,55 @@ export const secondaryToggles: Toggle[] = [
 ];
 
 export const loadingMessages = [
-  "AI is analyzing your prompt structure...",
-  "Identifying key concepts and variables...",
-  "Evaluating clarity and potential improvements...",
-  "Generating enhancement suggestions..."
+  "AI is analyzing your prompt across four pillars: Task, Persona, Conditions, and Instructions...",
+  "Identifying key gaps and missing elements in your prompt structure...",
+  "Detecting potential variables and placeholders for customization...",
+  "Generating targeted questions to improve your prompt effectiveness...",
+  "Preparing enhanced prompt structure and recommendations..."
 ];
 
 export const mockQuestions: Question[] = [
-  { id: "q1", text: "What specific aspects of complex reasoning are you interested in?", isRelevant: null, answer: "" },
-  { id: "q2", text: "How would you like the output to be structured?", isRelevant: null, answer: "" },
-  { id: "q3", text: "What is the target audience for this content?", isRelevant: null, answer: "" },
-  { id: "q4", text: "What level of technical detail should be included?", isRelevant: null, answer: "" },
+  { id: "q1", text: "What is the primary goal of this task?", isRelevant: null, answer: "" },
+  { id: "q2", text: "Which personas should be included in this prompt?", isRelevant: null, answer: "" },
+  { id: "q3", text: "What specific formatting guidelines should be applied?", isRelevant: null, answer: "" },
+  { id: "q4", text: "How should the final output be structured?", isRelevant: null, answer: "" },
   { id: "q5", text: "Are there any specific examples you want included?", isRelevant: null, answer: "" },
-  { id: "q6", text: "What's the primary goal of this content?", isRelevant: null, answer: "" },
+  { id: "q6", text: "What's the expected audience for this content?", isRelevant: null, answer: "" },
   { id: "q7", text: "Any specific terminology or jargon to include or avoid?", isRelevant: null, answer: "" },
   { id: "q8", text: "What tone would you like the content to have?", isRelevant: null, answer: "" },
-  { id: "q9", text: "Are there any length constraints?", isRelevant: null, answer: "" },
-  { id: "q10", text: "Should there be a particular call-to-action?", isRelevant: null, answer: "" },
+  { id: "q9", text: "Are there any length constraints for the output?", isRelevant: null, answer: "" },
+  { id: "q10", text: "What validation steps should be included?", isRelevant: null, answer: "" },
   { id: "q11", text: "Any specific sources or references to include?", isRelevant: null, answer: "" },
-  { id: "q12", text: "What format would be most effective (list, narrative, etc.)?", isRelevant: null, answer: "" },
+  { id: "q12", text: "What additional context is needed for this task?", isRelevant: null, answer: "" },
 ];
 
 export const defaultVariables: Variable[] = [
-  { id: "v1", name: "Name", value: "David", isRelevant: true },
-  { id: "v2", name: "Location", value: "Guate", isRelevant: true },
-  { id: "v3", name: "Quantity", value: "4", isRelevant: true },
-  { id: "v4", name: "Date", value: "", isRelevant: null },
-  { id: "v5", name: "Category", value: "", isRelevant: null },
+  { id: "v1", name: "Name", value: "", isRelevant: true },
+  { id: "v2", name: "Purpose", value: "", isRelevant: true },
+  { id: "v3", name: "Context", value: "", isRelevant: true },
+  { id: "v4", name: "Audience", value: "", isRelevant: null },
+  { id: "v5", name: "OutputFormat", value: "", isRelevant: null },
 ];
 
-export const sampleFinalPrompt = `# Expert Reasoning Framework for Complex Problem-Solving {{Quantity}}
+export const sampleFinalPrompt = `# Enhanced Prompt Template
 
-## Initial Analysis Phase
-Begin by breaking down the problem into its fundamental components. Identify key variables, constraints, and underlying patterns that might not be immediately obvious. Map the relationships between different elements and look for potential conflicts or synergies.
+## Task
+Your task is to analyze and provide insights on the given topic, breaking down complex concepts into understandable components.
 
-## Deep Exploration Phase
-For each component identified, apply multiple mental models and disciplinary frameworks. Consider the problem from different perspectives (e.g., systems thinking, first principles reasoning, probabilistic thinking). Generate alternative hypotheses and evaluate them against available evidence.
+## Persona
+You will act as an expert in the field, maintaining a professional yet accessible tone throughout your response.
 
-## Synthesis and Solution Generation
-Combine insights from different perspectives to form an integrated understanding. Develop multiple solution pathways rather than fixating on a single approach. Evaluate trade-offs explicitly and consider second-order consequences of each potential solution.
+## Conditions
+- Structure your response with clear headings and subheadings
+- Include relevant examples to illustrate key points
+- Avoid jargon where possible, or explain technical terms when used
+- Use {{Context}} to inform your analysis approach
 
-## Implementation and Feedback Integration
-Outline a clear plan for putting the solution into practice, identifying potential {{Name}} contingency plans. Establish mechanisms to gather feedback and adjust the approach based on new information or changing conditions in {{Location}}.`;
+## Instructions
+1. Begin by summarizing the {{Purpose}} in 2-3 sentences
+2. Identify the core elements of the topic for {{Name}}
+3. Provide a detailed analysis of each element
+4. Conclude with practical applications or next steps
+5. Include references or further reading if appropriate`;
 
 export const QUESTIONS_PER_PAGE = 3;

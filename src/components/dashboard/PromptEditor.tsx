@@ -108,6 +108,8 @@ export const PromptEditor = ({
       
       if (error) throw error;
       
+      console.log("AI Analysis result:", data);
+      
       // Call the parent's onAnalyze with the AI analysis result
       onAnalyze();
       
