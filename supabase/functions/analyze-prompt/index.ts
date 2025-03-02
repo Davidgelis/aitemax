@@ -1,7 +1,6 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,238 +12,309 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-  
+
   try {
-    // Parse request body
-    let requestData;
+    // Get request body
+    let body;
     try {
-      requestData = await req.json();
-    } catch (e) {
-      console.error("Error parsing request JSON:", e);
+      body = await req.json();
+    } catch (error) {
+      console.error("Error parsing request body:", error);
       return new Response(
-        JSON.stringify({ error: "Invalid JSON in request body" }),
+        JSON.stringify({ 
+          error: "Invalid request body", 
+          questions: [], 
+          variables: [] 
+        }),
         { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
-    
-    const { promptText, primaryToggle, secondaryToggle } = requestData;
+
+    const { promptText, primaryToggle, secondaryToggle } = body;
     
     if (!promptText) {
       console.error("Missing promptText in request");
       return new Response(
-        JSON.stringify({ error: "Missing promptText in request" }),
+        JSON.stringify({ 
+          error: "Missing promptText", 
+          questions: [], 
+          variables: [] 
+        }),
         { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
+
+    // Logging for debugging
+    console.log("Analyzing prompt:", promptText);
+    console.log("Primary toggle:", primaryToggle);
+    console.log("Secondary toggle:", secondaryToggle);
+
+    // Prepare to call OpenAI API
+    const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
     
-    // Create a read-only Supabase client 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
-    
-    console.log(`Analyzing prompt: "${promptText.substring(0, 50)}..."`);
-    console.log(`Primary toggle: ${primaryToggle}, Secondary toggle: ${secondaryToggle}`);
-    
-    // Call OpenAI API to analyze the prompt
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      console.error("OpenAI API key not found");
+    if (!openAiApiKey) {
+      console.error("Missing OpenAI API key");
       return new Response(
-        JSON.stringify({ error: "OpenAI API key not configured on the server" }),
+        JSON.stringify({ 
+          error: "Server configuration error: Missing API key", 
+          questions: [], 
+          variables: [] 
+        }),
         { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
-    
-    // Customize the system prompt based on the selected toggles
-    let systemPrompt = `You are an expert prompt engineer using a four-pillar framework to analyze prompts and suggest improvements. The four pillars are:
 
-Task: What needs to be done
-Persona: Who is doing it and their tone/style
-Conditions: Requirements and limitations
-Instructions: Step-by-step process to follow
+    // Prepare system message with instructions adjusted based on primary and secondary toggles
+    let systemMessage = `
+      You are an AI prompt analyzer that helps users create better prompts. Your task is to analyze a prompt and provide:
+      
+      1. A list of relevant questions the user should answer to enhance their prompt's specificity and clarity.
+      2. A list of variables that could be extracted from the prompt to make it more reusable.
+      
+      Important guidelines:
+      - Questions should focus on gathering context, background information, and specific details.
+      - Variables should ONLY be individual terms or short phrases that can be directly replaced without changing the meaning.
+      - Variables should NOT include context questions or entire sections.
+      - Example of proper variables: recipient_name, product_name, company_name, deadline_date.
+      - Output JSON format must include 'questions' and 'variables' arrays.
+      
+      For questions:
+      - Each question should have an 'id', 'text', and 'description' field.
+      - Focus on 5-8 most important questions only.
+      
+      For variables:
+      - Each variable should have an 'id', 'name', and 'description' field.
+      - Identify 3-5 key variables that make the prompt reusable.
+    `;
 
-Based on the user's input prompt, generate:
-
-1. EXACTLY 8 SIMPLE questions (2 per pillar) that would help improve the prompt. These questions should:
-   - Be extremely simple and easy to understand, even for non-experts
-   - Focus on getting important context about what the user wants
-   - Avoid questions about variable placeholders (like recipient names or specific terms)
-   - Be organized under the four pillars (Task, Persona, Conditions, Instructions)
-
-2. EXACTLY 8 variables (2 per pillar) that would make the prompt reusable. Variables should:
-   - Be ONLY single words or compound terms (camelCase or PascalCase)
-   - Be elements that can be replaced WITHOUT changing the meaning/context
-   - Examples: "Recipient", "CompanyName", "ProductName", "Deadline", "SignatureLine"
-   - NOT be context-based items like "MessagePurpose" or "Reasons" that affect content
-   - A good test: if you replace the variable, the prompt still works with the same structure
-
-3. A master command that summarizes what the enhanced prompt will do
-4. An enhanced prompt template that incorporates the variables and follows the four-pillar framework
-
-Only include {{VariableName}} placeholders for true swappable variables that don't affect context.`;
-
-    // Add toggle-specific instructions
-    if (primaryToggle === 'complex') {
-      systemPrompt += "\nMake questions and variables suitable for complex reasoning tasks that involve multiple steps of logical thinking.";
-    } else if (primaryToggle === 'math') {
-      systemPrompt += "\nMake questions and variables suitable for mathematical problem-solving tasks.";
-    } else if (primaryToggle === 'coding') {
-      systemPrompt += "\nMake questions and variables suitable for code generation or programming tasks.";
-    } else if (primaryToggle === 'copilot') {
-      systemPrompt += "\nMake questions and variables suitable for creating an AI assistant (copilot) that will help users with specific tasks.";
+    // Customize system message based on toggles
+    if (primaryToggle === 'coding') {
+      systemMessage += `
+        Since this is a coding-related prompt, focus on:
+        - Technical specifications
+        - Language/framework preferences
+        - Code style conventions
+        - Performance requirements
+      `;
+    } else if (primaryToggle === 'creative') {
+      systemMessage += `
+        Since this is a creative prompt, focus on:
+        - Tone and style preferences
+        - Target audience
+        - Creative inspiration sources
+        - Emotional impact goals
+      `;
+    } else if (primaryToggle === 'business') {
+      systemMessage += `
+        Since this is a business prompt, focus on:
+        - Business objectives
+        - Target market
+        - Competitive positioning
+        - Success metrics
+      `;
     }
-    
-    if (secondaryToggle === 'token') {
-      systemPrompt += "\nOptimize the prompt to use as few tokens as possible while maintaining clarity.";
-    } else if (secondaryToggle === 'strict') {
-      systemPrompt += "\nMake the prompt very specific and structured to ensure consistent outputs.";
-    } else if (secondaryToggle === 'creative') {
-      systemPrompt += "\nMake the prompt encourage creative and diverse outputs.";
+
+    if (secondaryToggle === 'strict') {
+      systemMessage += `
+        Apply strict standards to your analysis:
+        - Be very selective with your questions
+        - Only include essential variables
+        - Focus on precision and clarity
+      `;
+    } else if (secondaryToggle === 'detailed') {
+      systemMessage += `
+        Provide detailed analysis:
+        - Include more comprehensive questions
+        - Identify more potential variables
+        - Explore nuances and edge cases
+      `;
     }
 
-    // Prepare the OpenAI request
-    console.log("Sending request to OpenAI");
-    let response;
+    // Call OpenAI API
     try {
-      response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${openAiApiKey}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          temperature: 0.7,
+          model: "gpt-4o-mini",
           messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Analyze this prompt: "${promptText}"` }
+            {
+              role: "system",
+              content: systemMessage
+            },
+            {
+              role: "user",
+              content: `Analyze this prompt: "${promptText}"`
+            }
           ],
-          response_format: { type: "json_object" }
+          temperature: 0.7,
         }),
       });
-    } catch (fetchError) {
-      console.error("Error fetching from OpenAI:", fetchError);
-      return new Response(
-        JSON.stringify({ error: `Failed to connect to OpenAI: ${fetchError.message}` }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-    
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('OpenAI API error response:', errorData);
-      return new Response(
-        JSON.stringify({ error: `OpenAI API error: ${errorData}` }),
-        { 
-          status: 502,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-    
-    const data = await response.json();
-    console.log('OpenAI response received');
-    
-    if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('Invalid response format from OpenAI:', JSON.stringify(data).substring(0, 200));
-      return new Response(
-        JSON.stringify({ error: "Invalid response format from OpenAI" }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-    
-    // Extract the content from the OpenAI response
-    const content = data.choices[0].message.content;
-    console.log('Parsed content:', content.substring(0, 100) + '...');
-    
-    try {
-      const parsedContent = JSON.parse(content);
-      
-      // Transform the data to match our expected format
-      const result = {
-        questions: [],
-        variables: [],
-        masterCommand: parsedContent.masterCommand || '',
-        enhancedPrompt: parsedContent.enhancedPrompt || ''
-      };
-      
-      // Process questions
-      if (parsedContent.questions && Array.isArray(parsedContent.questions)) {
-        result.questions = parsedContent.questions.map((q: any, index: number) => ({
-          id: `q${index + 1}`,
-          text: q.text || q.question || '',
-          category: q.category || q.pillar || 'Other',
-          isRelevant: null,
-          answer: ''
-        }));
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error("OpenAI API error:", response.status, errorData);
+        throw new Error(`OpenAI API error: ${response.status} ${errorData}`);
       }
+
+      const data = await response.json();
       
-      // Process variables
-      if (parsedContent.variables && Array.isArray(parsedContent.variables)) {
-        result.variables = parsedContent.variables.map((v: any, index: number) => ({
-          id: `v${index + 1}`,
-          name: v.name || '',
-          value: v.value || '',
-          category: v.category || v.pillar || 'Other',
-          isRelevant: null
-        }));
+      if (!data.choices || data.choices.length === 0) {
+        console.error("Unexpected OpenAI API response format:", data);
+        throw new Error("Unexpected API response format");
       }
+
+      const content = data.choices[0].message.content;
+      console.log("OpenAI response content:", content);
+
+      // Parse the response content as JSON
+      let parsedContent;
+      try {
+        // Look for JSON in the response using regex
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || 
+                          content.match(/```\n([\s\S]*?)\n```/) || 
+                          content.match(/{[\s\S]*}/);
+                          
+        const jsonString = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
+        parsedContent = JSON.parse(jsonString.replace(/```/g, '').trim());
+      } catch (error) {
+        console.error("Error parsing OpenAI response as JSON:", error, "Content:", content);
+        
+        // Return a graceful error response with 200 status
+        return new Response(
+          JSON.stringify({ 
+            error: "Could not parse AI response", 
+            rawResponse: content,
+            questions: [], 
+            variables: [] 
+          }),
+          { 
+            status: 200, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      // Enhance the prompt based on the questions and variables
+      const enhancedPrompt = generateEnhancedPrompt(promptText, parsedContent);
       
-      console.log(`Processed ${result.questions.length} questions and ${result.variables.length} variables`);
-      
-      return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      });
-    } catch (parseError) {
-      console.error('Error parsing OpenAI response:', parseError);
-      // Return a fallback with mock data in case we couldn't parse the OpenAI response
-      const mockResult = {
-        questions: Array(8).fill(0).map((_, i) => ({
-          id: `q${i + 1}`,
-          text: `Sample question ${i + 1}?`,
-          category: ['Task', 'Persona', 'Conditions', 'Instructions'][Math.floor(i / 2)],
-          isRelevant: null,
-          answer: ''
-        })),
-        variables: Array(8).fill(0).map((_, i) => ({
-          id: `v${i + 1}`,
-          name: `Variable${i + 1}`,
-          value: '',
-          category: ['Task', 'Persona', 'Conditions', 'Instructions'][Math.floor(i / 2)],
-          isRelevant: null
-        })),
-        masterCommand: "This is a fallback master command due to parsing error",
-        enhancedPrompt: promptText + "\n\n[Enhanced version would be here - encountered a parsing error]"
+      // Generate a master command
+      let masterCommand = "Create a highly effective prompt";
+      if (primaryToggle) {
+        const toggleType = 
+          primaryToggle === 'coding' ? "coding-related" : 
+          primaryToggle === 'creative' ? "creative" : 
+          primaryToggle === 'business' ? "business-oriented" : "";
+        
+        if (toggleType) {
+          masterCommand += ` for ${toggleType} content`;
+        }
+      }
+
+      // Combine everything into the final response
+      const finalResponse = {
+        ...parsedContent,
+        enhancedPrompt,
+        masterCommand
       };
+
+      return new Response(
+        JSON.stringify(finalResponse),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    } catch (error) {
+      console.error("Error calling OpenAI API:", error);
       
-      console.log('Returning fallback mock data due to parsing error');
-      return new Response(JSON.stringify(mockResult), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      });
+      // Return a graceful error response with 200 status and mock data
+      return new Response(
+        JSON.stringify({ 
+          error: `Error processing your request: ${error.message}`, 
+          questions: [
+            {
+              id: "q1",
+              text: "What is the specific goal of your prompt?",
+              description: "Define the exact outcome you want to achieve"
+            },
+            {
+              id: "q2",
+              text: "Who is the intended audience?",
+              description: "Specify who will be reading or using the output"
+            }
+          ],
+          variables: [
+            {
+              id: "v1",
+              name: "Topic",
+              description: "The main subject matter of your prompt"
+            },
+            {
+              id: "v2", 
+              name: "Format",
+              description: "The format of the desired output (e.g., email, report, code)"
+            }
+          ]
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
   } catch (error) {
-    console.error('Error in analyze-prompt function:', error);
-    return new Response(JSON.stringify({ error: error.message || 'Unknown error occurred' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error("Unhandled error in analyze-prompt function:", error);
+    
+    // Return a graceful error response with 200 status
+    return new Response(
+      JSON.stringify({
+        error: `Unhandled server error: ${error.message}`,
+        questions: [],
+        variables: []
+      }),
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   }
 });
+
+// Helper function to generate an enhanced prompt
+function generateEnhancedPrompt(originalPrompt: string, analysisResult: any) {
+  const { questions = [], variables = [] } = analysisResult;
+  
+  // Start with the original prompt
+  let enhancedPrompt = originalPrompt.trim();
+  
+  // Add context from questions
+  if (questions.length > 0) {
+    enhancedPrompt += "\n\nContext:";
+    questions.forEach((q: any) => {
+      enhancedPrompt += `\n- ${q.text}`;
+    });
+  }
+  
+  // Add variable placeholders
+  if (variables.length > 0) {
+    enhancedPrompt += "\n\nVariables:";
+    variables.forEach((v: any) => {
+      enhancedPrompt += `\n- {{${v.name}}}: ${v.description}`;
+    });
+  }
+  
+  return enhancedPrompt;
+}
