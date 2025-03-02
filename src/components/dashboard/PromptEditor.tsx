@@ -1,7 +1,9 @@
-import { List, ListOrdered } from "lucide-react";
+import { List, ListOrdered, FileText } from "lucide-react";
 import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PromptEditorProps {
   promptText: string;
@@ -24,6 +26,8 @@ export const PromptEditor = ({
   const { toast } = useToast();
   const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPromptDialog, setShowPromptDialog] = useState(false);
+  const [submittedPrompt, setSubmittedPrompt] = useState("");
 
   const insertBulletList = () => {
     if (!textareaRef.current) return;
@@ -122,7 +126,8 @@ export const PromptEditor = ({
       
       console.log("AI Analysis result:", data);
       
-      // Call the parent's onAnalyze function to process the results
+      setSubmittedPrompt(promptText);
+      
       onAnalyze();
       
       toast({
@@ -132,7 +137,6 @@ export const PromptEditor = ({
     } catch (error: any) {
       console.error("Error analyzing prompt:", error);
       
-      // Set the error state
       setError(error.message || "Unknown error occurred");
       
       toast({
@@ -141,7 +145,6 @@ export const PromptEditor = ({
         variant: "destructive",
       });
       
-      // Call onAnalyze anyway so the app can handle the error state
       onAnalyze();
     } finally {
       setAiLoading(false);
@@ -217,9 +220,37 @@ export const PromptEditor = ({
     }
   };
 
+  const showPromptPopup = () => {
+    if (submittedPrompt) {
+      setShowPromptDialog(true);
+    } else {
+      toast({
+        title: "No prompt submitted",
+        description: "Please analyze a prompt first before viewing it",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="border rounded-xl p-6 bg-card min-h-[400px] relative">
       <div className="absolute top-6 right-6 flex space-x-2 z-10">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={showPromptPopup}
+                className="p-2 rounded-md hover:bg-accent/20 transition-colors"
+                title="View submitted prompt"
+              >
+                <FileText className="w-5 h-5" style={{ color: "#64bf95" }} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>View submitted prompt</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <button
           onClick={insertBulletList}
           className="p-2 rounded-md hover:bg-accent/20 transition-colors"
@@ -257,6 +288,22 @@ export const PromptEditor = ({
           {isLoading || aiLoading ? "Analyzing..." : "Analyze with AI"}
         </button>
       </div>
+
+      <Dialog open={showPromptDialog} onOpenChange={setShowPromptDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Submitted Prompt</DialogTitle>
+            <DialogDescription>
+              This is the prompt that was submitted for analysis.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 mt-2 border rounded-md bg-muted/50">
+            <div className="whitespace-pre-wrap text-card-foreground">
+              {submittedPrompt}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
