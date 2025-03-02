@@ -24,11 +24,11 @@ export const loadingMessages = [
 
 export const mockQuestions: Question[] = [
   { id: "q1", text: "What is the primary goal of this task?", isRelevant: null, answer: "" },
-  { id: "q2", text: "Which personas should be included in this prompt?", isRelevant: null, answer: "" },
+  { id: "q2", text: "Who is the target audience for this content?", isRelevant: null, answer: "" },
   { id: "q3", text: "What specific formatting guidelines should be applied?", isRelevant: null, answer: "" },
   { id: "q4", text: "How should the final output be structured?", isRelevant: null, answer: "" },
   { id: "q5", text: "Are there any specific examples you want included?", isRelevant: null, answer: "" },
-  { id: "q6", text: "What's the expected audience for this content?", isRelevant: null, answer: "" },
+  { id: "q6", text: "What level of technical detail should be included?", isRelevant: null, answer: "" },
   { id: "q7", text: "Any specific terminology or jargon to include or avoid?", isRelevant: null, answer: "" },
   { id: "q8", text: "What tone would you like the content to have?", isRelevant: null, answer: "" },
   { id: "q9", text: "Are there any length constraints for the output?", isRelevant: null, answer: "" },

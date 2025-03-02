@@ -110,18 +110,18 @@ export const PromptEditor = ({
       
       console.log("AI Analysis result:", data);
       
-      // Call the parent's onAnalyze with the AI analysis result
+      // Call the parent's onAnalyze function to process the results
       onAnalyze();
       
       toast({
         title: "Analysis complete",
         description: "Your prompt has been analyzed successfully",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error analyzing prompt:", error);
       toast({
         title: "Analysis failed",
-        description: "An error occurred while analyzing your prompt. Please try again.",
+        description: `An error occurred: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -222,7 +222,7 @@ export const PromptEditor = ({
         onChange={(e) => setPromptText(e.target.value)}
         onKeyDown={handleKeyDown}
         className="w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
-        placeholder="Start by typing your prompt"
+        placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
       />
       <div className="absolute bottom-6 right-6">
         <button 

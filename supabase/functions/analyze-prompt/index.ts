@@ -1,16 +1,13 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-const supabaseUrl = Deno.env.get('SUPABASE_URL');
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -21,15 +18,36 @@ serve(async (req) => {
   try {
     const { promptText, primaryToggle, secondaryToggle } = await req.json();
     
-    if (!promptText) {
+    if (!promptText || !promptText.trim()) {
       throw new Error('Prompt text is required');
     }
 
-    console.log('Analyzing prompt:', promptText);
-    console.log('Primary toggle:', primaryToggle);
-    console.log('Secondary toggle:', secondaryToggle);
+    console.log(`Analyzing prompt: ${promptText.substring(0, 100)}...`);
+    console.log(`Primary toggle: ${primaryToggle}, Secondary toggle: ${secondaryToggle}`);
 
-    const promptGapAnalyzerSystem = {
+    // Construct system prompt based on primary and secondary toggles
+    let systemPrompt = "You are an AI prompt analyzer that helps users create better prompts.";
+    
+    if (primaryToggle === "complex") {
+      systemPrompt += " You specialize in analyzing complex reasoning tasks.";
+    } else if (primaryToggle === "math") {
+      systemPrompt += " You specialize in mathematical problem-solving prompts.";
+    } else if (primaryToggle === "coding") {
+      systemPrompt += " You specialize in analyzing coding-related prompts.";
+    } else if (primaryToggle === "copilot") {
+      systemPrompt += " You specialize in analyzing prompts for creating AI copilots.";
+    }
+    
+    if (secondaryToggle === "token") {
+      systemPrompt += " You focus on making prompts token-efficient.";
+    } else if (secondaryToggle === "strict") {
+      systemPrompt += " You focus on creating strict, well-defined prompts.";
+    } else if (secondaryToggle === "creative") {
+      systemPrompt += " You focus on making prompts that encourage creative responses.";
+    }
+
+    // Construct the prompt gap analyzer prompt
+    const promptGapAnalyzerJson = {
       "title": "Prompt Gap Analyzer",
       "description": "This tool examines an input prompt for missing details across four pillars: Task, Persona, Conditions, and Instructions. For each pillar, it generates up to 3 distinct, non-redundant questions to help you provide the necessary information to fully utilize the master prompt.",
       "master_prompt": {
@@ -53,227 +71,236 @@ serve(async (req) => {
       "notes": "For each pillar, provide no more than 3 distinct, non-overlapping questions that target missing information. Avoid redundant or overlapping queries. This output must be valid JSON following the above structure and should help gather all details necessary to maximize the potential of the master prompt."
     };
 
-    // Construct the message for the AI based on the type of prompt selected
-    let systemMessage = `You are a prompt improvement expert. Analyze the following prompt from a user interested in ${primaryToggle || 'general'} content with a ${secondaryToggle || 'standard'} approach.`;
-    
-    // Add specific instructions based on toggles
-    if (primaryToggle === 'complex') {
-      systemMessage += " Focus on complex reasoning aspects and how to improve logical structures.";
-    } else if (primaryToggle === 'math') {
-      systemMessage += " Pay special attention to mathematical clarity and precision.";
-    } else if (primaryToggle === 'coding') {
-      systemMessage += " Emphasize proper code structure and algorithmic approach.";
-    } else if (primaryToggle === 'copilot') {
-      systemMessage += " Evaluate this as a system prompt for an AI assistant, focusing on instruction clarity.";
-    }
-    
-    if (secondaryToggle === 'token') {
-      systemMessage += " Prioritize token efficiency in your recommendations.";
-    } else if (secondaryToggle === 'strict') {
-      systemMessage += " Provide very specific and structured recommendations.";
-    } else if (secondaryToggle === 'creative') {
-      systemMessage += " Offer creative alternatives while maintaining the core intent.";
-    }
+    // Additional instructions for variables
+    const variablesInstructions = `
+      After analyzing the prompt for gaps, please identify potential variables that should be parameterized in the final prompt. 
+      A variable is a piece of information that might change between different uses of the prompt, such as names, dates, locations, quantities, etc.
+      For each variable, provide a name and a default value if possible. Limit to 5 most important variables.
+      Also, generate an enhanced version of the original prompt that incorporates these variables using {{VariableName}} syntax.
+    `;
 
-    // Add the gap analyzer instructions
-    systemMessage += " Use the Prompt Gap Analyzer framework to identify gaps in the user's prompt.";
-    
-    // Call OpenAI API to generate analysis
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Combine the promptGapAnalyzerJson with variablesInstructions
+    const userPrompt = `
+      Analyze this prompt: "${promptText}"
+      
+      Use this framework to identify gaps and missing information:
+      ${JSON.stringify(promptGapAnalyzerJson, null, 2)}
+      
+      ${variablesInstructions}
+    `;
+
+    // Call OpenAI API
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         model: 'gpt-3.5-turbo',
         messages: [
-          { role: 'system', content: systemMessage },
-          { 
-            role: 'user', 
-            content: `Please analyze this prompt using the Prompt Gap Analyzer framework. The prompt is: "${promptText}". Return your analysis as a valid JSON object with the structure matching the output_format provided in the system message, including questions for each pillar and any variable placeholders you identify.` 
-          }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
       }),
     });
 
-    if (!openaiResponse.ok) {
-      const errorData = await openaiResponse.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+    const openAIResponse = await response.json();
+    
+    if (!response.ok) {
+      console.error('OpenAI API Error:', openAIResponse);
+      throw new Error(`OpenAI API Error: ${openAIResponse.error?.message || 'Unknown error'}`);
     }
 
-    const openaiData = await openaiResponse.json();
-    console.log('OpenAI response received');
+    const aiContent = openAIResponse.choices[0].message.content;
+    console.log('AI Response received:', aiContent.substring(0, 200) + '...');
 
-    // Extract the content from the OpenAI response
-    const analysisContent = openaiData.choices[0].message.content;
-    console.log('Analysis content:', analysisContent);
-
-    // Parse the JSON from the OpenAI response
-    let analysisJson;
+    // Extract the JSON from the response if it exists
+    let jsonMatch;
     try {
-      // First attempt: try to parse directly
-      analysisJson = JSON.parse(analysisContent);
-    } catch (e) {
-      // Second attempt: try to extract JSON if wrapped in markdown or other text
-      const jsonMatch = analysisContent.match(/```json\n([\s\S]*?)\n```/) || 
-                       analysisContent.match(/{[\s\S]*?}/);
+      // Try to find JSON in the AI response
+      jsonMatch = aiContent.match(/\{[\s\S]*\}/);
       
-      if (jsonMatch) {
-        try {
-          analysisJson = JSON.parse(jsonMatch[0].replace(/```json\n|```/g, '').trim());
-        } catch (innerError) {
-          console.error('Failed to parse extracted JSON:', innerError);
-          throw new Error('Failed to parse AI response as JSON');
-        }
-      } else {
-        console.error('Failed to parse JSON and no JSON block found:', e);
-        throw new Error('Failed to parse AI response as JSON');
-      }
-    }
-
-    // Convert the gap questions into the format expected by the frontend
-    const questions = [];
-    let questionId = 1;
-
-    // Add questions from each pillar
-    for (const pillar of ['GapTask', 'GapPersona', 'GapConditions', 'GapInstructions']) {
-      if (analysisJson[pillar] && analysisJson[pillar] !== 'Complete') {
-        const pillarQuestions = Array.isArray(analysisJson[pillar]) 
-          ? analysisJson[pillar] 
-          : [analysisJson[pillar]];
-          
-        for (const q of pillarQuestions) {
-          if (typeof q === 'string' && q.trim()) {
+      if (!jsonMatch) {
+        console.log('No JSON found in response, parsing as regular text');
+        
+        // Parse the questions from the text content
+        const questions = [];
+        const lines = aiContent.split('\n');
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine.endsWith('?') && trimmedLine.length > 10) {
             questions.push({
-              id: `q${questionId++}`,
-              text: q.trim(),
+              id: `q${questions.length + 1}`,
+              text: trimmedLine,
               isRelevant: null,
-              answer: ""
+              answer: ''
             });
           }
         }
+        
+        // Extract potential variables
+        const variables = [];
+        const potentialVariables = ["Name", "Location", "Date", "Time", "Quantity"];
+        
+        potentialVariables.forEach((varName, index) => {
+          variables.push({
+            id: `v${index + 1}`,
+            name: varName,
+            value: '',
+            isRelevant: null
+          });
+        });
+        
+        // Generate a basic enhanced prompt
+        const enhancedPrompt = `# Enhanced Prompt\n\n${promptText}\n\n## Variables\n\nConsider using these variables:\n${variables.map(v => `- {{${v.name}}}`).join('\n')}`;
+        
+        const masterCommand = `Use the enhanced prompt with the specified variables`;
+        
+        return new Response(
+          JSON.stringify({
+            questions,
+            variables,
+            enhancedPrompt,
+            masterCommand
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
-    }
-
-    // Extract potential variables from the prompt
-    const variableRegex = /\{\{([^}]+)\}\}|%([^%]+)%|\$([^$]+)\$/g;
-    const matches = [...promptText.matchAll(variableRegex)];
-    
-    const variables = matches.map((match, index) => {
-      const variableName = match[1] || match[2] || match[3] || `Variable ${index + 1}`;
-      return {
-        id: `v${index + 1}`,
-        name: variableName.trim(),
-        value: "",
-        isRelevant: true
-      };
-    });
-
-    // If no variables found, provide some default suggestions
-    if (variables.length === 0) {
-      // Base on the type of toggle selected
-      if (primaryToggle === 'complex') {
-        variables.push(
-          { id: "v1", name: "Audience", value: "", isRelevant: true },
-          { id: "v2", name: "Context", value: "", isRelevant: true },
-          { id: "v3", name: "OutputFormat", value: "", isRelevant: true }
-        );
-      } else if (primaryToggle === 'math') {
-        variables.push(
-          { id: "v1", name: "PrecisionLevel", value: "", isRelevant: true },
-          { id: "v2", name: "NumberFormat", value: "", isRelevant: true },
-          { id: "v3", name: "ShowWorkingSteps", value: "", isRelevant: true }
-        );
-      } else if (primaryToggle === 'coding') {
-        variables.push(
-          { id: "v1", name: "Language", value: "", isRelevant: true },
-          { id: "v2", name: "TaskComplexity", value: "", isRelevant: true },
-          { id: "v3", name: "IncludeComments", value: "", isRelevant: true }
-        );
-      } else if (primaryToggle === 'copilot') {
-        variables.push(
-          { id: "v1", name: "AssistantName", value: "", isRelevant: true },
-          { id: "v2", name: "PersonalityTrait", value: "", isRelevant: true },
-          { id: "v3", name: "KnowledgeDomain", value: "", isRelevant: true }
-        );
+      
+      // Try to parse the JSON
+      const extractedJson = JSON.parse(jsonMatch[0]);
+      console.log('Extracted JSON:', Object.keys(extractedJson));
+      
+      // Process the response to get questions
+      const questions = [];
+      
+      // Process questions from the gap analysis
+      ['GapTask', 'GapPersona', 'GapConditions', 'GapInstructions'].forEach(key => {
+        if (extractedJson[key] && extractedJson[key] !== 'Complete') {
+          const gapQuestions = Array.isArray(extractedJson[key]) 
+            ? extractedJson[key] 
+            : [extractedJson[key]];
+            
+          gapQuestions.forEach(q => {
+            if (typeof q === 'string' && q.trim() && q !== 'Complete') {
+              questions.push({
+                id: `q${questions.length + 1}`,
+                text: q.trim(),
+                isRelevant: null,
+                answer: ''
+              });
+            }
+          });
+        }
+      });
+      
+      // If we have other questions outside the gap analysis format
+      if (extractedJson.questions && Array.isArray(extractedJson.questions)) {
+        extractedJson.questions.forEach(q => {
+          if (typeof q === 'string' && q.trim()) {
+            questions.push({
+              id: `q${questions.length + 1}`,
+              text: q.trim(),
+              isRelevant: null,
+              answer: ''
+            });
+          }
+        });
+      }
+      
+      // Process variables
+      let variables = [];
+      if (extractedJson.variables && Array.isArray(extractedJson.variables)) {
+        variables = extractedJson.variables.map((v, index) => ({
+          id: `v${index + 1}`,
+          name: v.name || `Variable${index + 1}`,
+          value: v.value || '',
+          isRelevant: null
+        }));
       } else {
-        variables.push(
-          { id: "v1", name: "Name", value: "", isRelevant: true },
-          { id: "v2", name: "Purpose", value: "", isRelevant: true },
-          { id: "v3", name: "Context", value: "", isRelevant: true }
-        );
+        // Generate default variables based on the content
+        const potentialVariables = ["Name", "Purpose", "Context", "Format", "Audience"];
+        variables = potentialVariables.map((name, index) => ({
+          id: `v${index + 1}`,
+          name,
+          value: '',
+          isRelevant: null
+        }));
       }
-    }
-
-    // Generate an enhanced prompt based on the analysis
-    let enhancedPrompt = `# Enhanced ${primaryToggle || 'Standard'} Prompt`;
-    
-    // Add sections based on the four pillars
-    enhancedPrompt += `\n\n## Task\n${promptText}`;
-    
-    if (analysisJson.GapTask && analysisJson.GapTask !== 'Complete') {
-      enhancedPrompt += `\n\n[Task details needed based on questions]`;
-    }
-    
-    enhancedPrompt += `\n\n## Persona\n`;
-    if (analysisJson.GapPersona && analysisJson.GapPersona !== 'Complete') {
-      enhancedPrompt += `[Define target persona]`;
-    } else {
-      enhancedPrompt += `Standard ${primaryToggle || 'general'} assistant`;
-    }
-    
-    enhancedPrompt += `\n\n## Conditions\n`;
-    if (analysisJson.GapConditions && analysisJson.GapConditions !== 'Complete') {
-      enhancedPrompt += `[Specify conditions and constraints]`;
-    } else {
-      enhancedPrompt += `Follow standard best practices for ${primaryToggle || 'general'} content`;
-    }
-    
-    enhancedPrompt += `\n\n## Instructions\n`;
-    if (analysisJson.GapInstructions && analysisJson.GapInstructions !== 'Complete') {
-      enhancedPrompt += `[Provide detailed instructions]`;
-    } else {
-      enhancedPrompt += `Execute the task as described above`;
-    }
-    
-    // Add suggested variables section
-    enhancedPrompt += `\n\n## Variables\n`;
-    for (const variable of variables) {
-      enhancedPrompt += `- {{${variable.name}}}\n`;
-    }
-
-    // Generate a master command/summary
-    const masterCommand = `Analyze and enhance this ${primaryToggle || 'general'} prompt with ${secondaryToggle || 'standard'} approach, addressing gaps in Task, Persona, Conditions, and Instructions.`;
-
-    // Return the analysis results
-    return new Response(
-      JSON.stringify({
-        questions,
-        variables,
-        enhancedPrompt,
-        masterCommand,
-        rawAnalysis: analysisJson
-      }),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json' 
-        } 
+      
+      // Get the enhanced prompt template
+      const enhancedPrompt = extractedJson.enhancedPrompt || 
+        `# Enhanced Prompt Template\n\n## Task\n${promptText}\n\n## Variables\n${variables.map(v => `- {{${v.name}}}`).join('\n')}`;
+      
+      // Generate master command
+      const masterCommand = extractedJson.masterCommand || 
+        "Use this enhanced prompt to generate high-quality responses, replacing the variables with appropriate values.";
+      
+      return new Response(
+        JSON.stringify({
+          questions,
+          variables,
+          enhancedPrompt,
+          masterCommand
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+      
+    } catch (parseError) {
+      console.error('Error parsing AI response:', parseError);
+      
+      // Fallback to extracting questions and variables from text
+      const questions = [];
+      const lines = aiContent.split('\n');
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.endsWith('?') && trimmedLine.length > 10) {
+          questions.push({
+            id: `q${questions.length + 1}`,
+            text: trimmedLine,
+            isRelevant: null,
+            answer: ''
+          });
+        }
       }
-    );
+      
+      // Limit to 12 questions max
+      const filteredQuestions = questions.slice(0, 12);
+      
+      // Generate some default variables
+      const variables = [
+        { id: 'v1', name: 'Name', value: '', isRelevant: null },
+        { id: 'v2', name: 'Purpose', value: '', isRelevant: null },
+        { id: 'v3', name: 'Context', value: '', isRelevant: null },
+        { id: 'v4', name: 'Format', value: '', isRelevant: null },
+        { id: 'v5', name: 'Audience', value: '', isRelevant: null }
+      ];
+      
+      const enhancedPrompt = `# Enhanced Prompt\n\n${promptText}\n\n## Variables\n\n${variables.map(v => `- {{${v.name}}}`).join('\n')}`;
+      
+      const masterCommand = "Use this enhanced prompt with the specified variables";
+      
+      return new Response(
+        JSON.stringify({
+          questions: filteredQuestions,
+          variables,
+          enhancedPrompt,
+          masterCommand
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
   } catch (error) {
-    console.error('Error in analyze-prompt function:', error);
+    console.error('Edge function error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
         status: 500, 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json' 
-        } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
   }

@@ -27,7 +27,7 @@ export const QuestionList = ({
                 <button
                   onClick={() => onQuestionRelevance(question.id, false)}
                   className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
-                    question.isRelevant === false ? 'bg-[#33fea6]' : ''
+                    question.isRelevant === false ? 'bg-[#33fea6]/80' : ''
                   }`}
                 >
                   <X className="w-5 h-5" />
@@ -35,7 +35,7 @@ export const QuestionList = ({
                 <button
                   onClick={() => onQuestionRelevance(question.id, true)}
                   className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
-                    question.isRelevant === true ? 'bg-[#33fea6]' : ''
+                    question.isRelevant === true ? 'bg-[#33fea6]/80' : ''
                   }`}
                 >
                   <Check className="w-5 h-5" />
@@ -47,7 +47,7 @@ export const QuestionList = ({
                 value={question.answer}
                 onChange={(e) => onQuestionAnswer(question.id, e.target.value)}
                 placeholder="Type your answer here..."
-                className="w-full p-3 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full p-3 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
               />
             )}
           </div>

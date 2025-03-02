@@ -32,14 +32,14 @@ export const VariableList = ({
         <h3 className="text-lg font-medium">Variables</h3>
         <button 
           onClick={onAddVariable}
-          className="flex items-center gap-1 text-sm text-primary hover:text-primary-dark transition-colors"
+          className="flex items-center gap-1 text-sm text-[#33fea6] hover:text-[#33fea6]/80 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add variable
         </button>
       </div>
       
-      <div ref={containerRef} className="max-h-[180px] overflow-y-auto pr-2 space-y-3">
+      <div ref={containerRef} className="max-h-[280px] overflow-y-auto pr-2 space-y-3">
         {variables.map((variable, index) => (
           <div key={variable.id} className="flex gap-3 items-center">
             <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
@@ -87,7 +87,7 @@ export const VariableList = ({
               <button
                 onClick={() => onVariableRelevance(variable.id, true)}
                 className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
-                  variable.isRelevant === true ? 'bg-[#33fea6]' : ''
+                  variable.isRelevant === true ? 'bg-[#33fea6]/80' : ''
                 }`}
                 title="Keep variable"
               >
