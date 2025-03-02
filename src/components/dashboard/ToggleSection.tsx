@@ -17,8 +17,19 @@ export const ToggleSection = ({
   variant = "primary", 
   cols = 4 
 }: ToggleSectionProps) => {
+  // Get the appropriate grid column class based on the cols prop
+  const getGridClass = () => {
+    switch(cols) {
+      case 1: return "grid-cols-1";
+      case 2: return "grid-cols-1 md:grid-cols-2";
+      case 3: return "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
+      case 4: return "grid-cols-1 md:grid-cols-2 lg:grid-cols-4";
+      default: return "grid-cols-1 md:grid-cols-2 lg:grid-cols-4";
+    }
+  };
+
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${cols} gap-4`}>
+    <div className={`grid ${getGridClass()} gap-4`}>
       {toggles.map((item) => (
         <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
           <span className="text-sm text-card-foreground">{item.label}</span>
