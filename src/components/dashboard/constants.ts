@@ -23,42 +23,50 @@ export const loadingMessages = [
 ];
 
 export const mockQuestions: Question[] = [
-  { id: "q1", text: "What are you trying to accomplish?", isRelevant: null, answer: "", category: "Task" },
-  { id: "q2", text: "What should the final result look like?", isRelevant: null, answer: "", category: "Task" },
-  { id: "q3", text: "Who is this for?", isRelevant: null, answer: "", category: "Persona" },
-  { id: "q4", text: "What tone should be used?", isRelevant: null, answer: "", category: "Persona" },
-  { id: "q5", text: "Are there any specific requirements?", isRelevant: null, answer: "", category: "Conditions" },
-  { id: "q6", text: "What limits or constraints should be considered?", isRelevant: null, answer: "", category: "Conditions" },
-  { id: "q7", text: "What steps need to be followed?", isRelevant: null, answer: "", category: "Instructions" },
-  { id: "q8", text: "How should the information be organized?", isRelevant: null, answer: "", category: "Instructions" },
+  // Task-focused questions about WHAT needs to be done
+  { id: "q1", text: "What exactly do you want to accomplish with this?", isRelevant: null, answer: "", category: "Task" },
+  { id: "q2", text: "How would you describe your ideal outcome?", isRelevant: null, answer: "", category: "Task" },
+  
+  // Persona-focused questions about WHO and TONE
+  { id: "q3", text: "What is your relationship with the recipient?", isRelevant: null, answer: "", category: "Persona" },
+  { id: "q4", text: "Should the tone be formal, casual, or something else?", isRelevant: null, answer: "", category: "Persona" },
+  
+  // Conditions-focused questions about LIMITATIONS
+  { id: "q5", text: "Are there any sensitive topics to avoid?", isRelevant: null, answer: "", category: "Conditions" },
+  { id: "q6", text: "How long should the final result be?", isRelevant: null, answer: "", category: "Conditions" },
+  
+  // Instructions-focused questions about HOW to proceed
+  { id: "q7", text: "Should specific points be included in order of importance?", isRelevant: null, answer: "", category: "Instructions" },
+  { id: "q8", text: "Do you want suggestions for follow-up actions?", isRelevant: null, answer: "", category: "Instructions" },
 ];
 
 export const defaultVariables: Variable[] = [
-  { id: "v1", name: "TaskName", value: "", isRelevant: null, category: "Task" },
+  // Variables are specific, replaceable elements that don't change context
+  { id: "v1", name: "TaskType", value: "", isRelevant: null, category: "Task" },
   { id: "v2", name: "Outcome", value: "", isRelevant: null, category: "Task" },
-  { id: "v3", name: "Audience", value: "", isRelevant: null, category: "Persona" },
-  { id: "v4", name: "Tone", value: "", isRelevant: null, category: "Persona" },
-  { id: "v5", name: "Format", value: "", isRelevant: null, category: "Conditions" },
-  { id: "v6", name: "Constraints", value: "", isRelevant: null, category: "Conditions" },
-  { id: "v7", name: "Steps", value: "", isRelevant: null, category: "Instructions" },
-  { id: "v8", name: "Structure", value: "", isRelevant: null, category: "Instructions" },
+  { id: "v3", name: "Recipient", value: "", isRelevant: null, category: "Persona" },
+  { id: "v4", name: "ToneStyle", value: "", isRelevant: null, category: "Persona" },
+  { id: "v5", name: "TimeFrame", value: "", isRelevant: null, category: "Conditions" },
+  { id: "v6", name: "WordCount", value: "", isRelevant: null, category: "Conditions" },
+  { id: "v7", name: "Structure", value: "", isRelevant: null, category: "Instructions" },
+  { id: "v8", name: "Closing", value: "", isRelevant: null, category: "Instructions" },
 ];
 
 export const sampleFinalPrompt = `# Enhanced Prompt Template
 
 ## Task
-Your task is to {{TaskName}} and produce {{Outcome}}.
+Your task is to {{TaskType}} and produce {{Outcome}}.
 
 ## Persona
-You will act as an expert addressing {{Audience}} while maintaining a {{Tone}} throughout your response.
+You will address {{Recipient}} while maintaining a {{ToneStyle}} throughout your response.
 
 ## Conditions
-- Structure your response with {{Format}}
-- Work within these {{Constraints}}
+- Complete this within {{TimeFrame}}
+- Keep the response around {{WordCount}} words
 
 ## Instructions
-1. Follow these {{Steps}} precisely
-2. Structure your output according to {{Structure}}
+1. Structure your response with {{Structure}}
+2. End with {{Closing}}
 
 ## Notes
 This prompt has been optimized based on the four-pillar framework: Task, Persona, Conditions, and Instructions.`;

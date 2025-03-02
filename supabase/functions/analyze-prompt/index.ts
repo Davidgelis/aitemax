@@ -1,207 +1,163 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8'
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
-// Handle CORS preflight requests
-const handleCors = (req: Request) => {
+serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
-}
-
-// Get Supabase client with service role key (admin privileges)
-const getServiceSupabase = () => {
-  return createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  )
-}
-
-Deno.serve(async (req) => {
-  // Handle CORS preflight request
-  const corsResponse = handleCors(req)
-  if (corsResponse) return corsResponse
-
+  
   try {
-    if (req.method === 'POST') {
-      const { promptText, primaryToggle, secondaryToggle } = await req.json()
+    const { promptText, primaryToggle, secondaryToggle } = await req.json();
+    
+    // Create a read-only Supabase client 
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+    
+    console.log(`Analyzing prompt: "${promptText.substring(0, 50)}..."`);
+    console.log(`Primary toggle: ${primaryToggle}, Secondary toggle: ${secondaryToggle}`);
+    
+    // Call OpenAI API to analyze the prompt
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not found');
+    }
+    
+    // Customize the system prompt based on the selected toggles
+    let systemPrompt = `You are an expert prompt engineer using a four-pillar framework to analyze prompts and suggest improvements. The four pillars are:
 
-      if (!promptText) {
-        throw new Error('Missing prompt text')
-      }
+Task: What needs to be done
+Persona: Who is doing it and their tone/style
+Conditions: Requirements and limitations
+Instructions: Step-by-step process to follow
 
-      console.log('Analyzing prompt:', { promptText, primaryToggle, secondaryToggle })
+Based on the user's input prompt, generate:
 
-      // Create a system message that instructs the AI how to interpret the user's prompt
-      const systemMessage = {
-        "role": "system",
-        "content": `You are an advanced prompt analyzer and enhancer that specializes in identifying key elements in user prompts and suggesting improvements.
-        
-        Your primary task is to analyze the user's prompt and extract TWO simple questions for each pillar (TASK, PERSONA, CONDITIONS, INSTRUCTIONS) along with 1-2 variables per pillar that could be used as placeholders in the final prompt.
-        
-        Follow these guidelines:
-        
-        1. QUESTIONS: 
-          - Create TWO simple, easy-to-understand questions for each pillar (8 total)
-          - Write questions for beginners, not experts
-          - Use simple, clear language without jargon
-          - Each question should be direct and focus on one aspect only
-          - Questions should help clarify the prompt's intent
-        
-        2. VARIABLES:
-          - Identify 1-2 variables per pillar (up to 8 total)
-          - Variables should be single words or short compound terms (like "BookTitle", "EmailRecipient", "DeadlineDate")
-          - Variables are placeholders that can be replaced without changing the overall context
-          - Examples: names, dates, locations, titles, counts, etc.
-          - DO NOT include complex phrases or sentences as variables
-        
-        3. MASTER COMMAND:
-          - Create a concise, one-sentence summary of what the prompt is trying to achieve
-        
-        4. ENHANCED PROMPT:
-          - Create an improved version of the user's prompt using the four-pillar framework
-          - Format it with clear sections for Task, Persona, Conditions, and Instructions
-          - Include placeholders for variables using {{VariableName}} format
-        
-        Return your analysis in this JSON format:
-        {
-          "questions": [
-            {"id": "q1", "text": "Simple question 1?", "category": "Task"},
-            {"id": "q2", "text": "Simple question 2?", "category": "Task"},
-            etc...
-          ],
-          "variables": [
-            {"id": "v1", "name": "VariableName1", "category": "Task"},
-            {"id": "v2", "name": "VariableName2", "category": "Persona"},
-            etc...
-          ],
-          "masterCommand": "One-sentence summary of the prompt's goal",
-          "enhancedPrompt": "Formatted enhanced prompt with {{variables}} as placeholders"
-        }`
-      }
+1. EXACTLY 8 SIMPLE questions (2 per pillar) that would help improve the prompt. These questions should:
+   - Be extremely simple and easy to understand, even for non-experts
+   - Focus on getting important context about what the user wants
+   - Avoid questions about variable placeholders (like recipient names or specific terms)
+   - Be organized under the four pillars (Task, Persona, Conditions, Instructions)
 
-      const userMessage = {
-        "role": "user",
-        "content": promptText
-      }
+2. EXACTLY 8 variables (2 per pillar) that would make the prompt reusable. Variables should:
+   - Be ONLY single words or compound terms (camelCase or PascalCase)
+   - Be elements that can be replaced WITHOUT changing the meaning/context
+   - Examples: "Recipient", "CompanyName", "ProductName", "Deadline", "SignatureLine"
+   - NOT be context-based items like "MessagePurpose" or "Reasons" that affect content
+   - A good test: if you replace the variable, the prompt still works with the same structure
 
-      // Add context about the primary toggle if selected
-      let toggleContext = ""
-      if (primaryToggle) {
-        switch(primaryToggle) {
-          case 'complex':
-            toggleContext += "This prompt should be optimized for complex reasoning tasks. "
-            break
-          case 'math':
-            toggleContext += "This prompt should be optimized for mathematical problem-solving. "
-            break
-          case 'coding':
-            toggleContext += "This prompt should be optimized for generating or explaining code. "
-            break
-          case 'copilot':
-            toggleContext += "This prompt should be optimized for creating an AI assistant or copilot. "
-            break
-        }
-      }
+3. A master command that summarizes what the enhanced prompt will do
+4. An enhanced prompt template that incorporates the variables and follows the four-pillar framework
 
-      // Add context about the secondary toggle if selected
-      if (secondaryToggle) {
-        switch(secondaryToggle) {
-          case 'token':
-            toggleContext += "The response should be optimized for token efficiency. "
-            break
-          case 'strict':
-            toggleContext += "The response should follow extremely strict guidelines. "
-            break
-          case 'creative':
-            toggleContext += "The response should prioritize creativity. "
-            break
-        }
-      }
+Only include {{VariableName}} placeholders for true swappable variables that don't affect context.`;
 
-      // If we have toggle context, add it to the messages
-      const messages = toggleContext 
-        ? [systemMessage, userMessage, { "role": "user", "content": toggleContext }]
-        : [systemMessage, userMessage]
-
-      // Make a request to OpenAI's API for analysis
-      const apiKey = Deno.env.get('OPENAI_API_KEY')
-      if (!apiKey) {
-        throw new Error('Missing OpenAI API key')
-      }
-
-      const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: messages,
-          temperature: 0.7,
-          max_tokens: 1500
-        })
-      })
-
-      if (!openAIResponse.ok) {
-        const errorText = await openAIResponse.text()
-        console.error('OpenAI API error:', errorText)
-        throw new Error(`OpenAI API error: ${openAIResponse.status} ${errorText}`)
-      }
-
-      const openAIData = await openAIResponse.json()
-      console.log('OpenAI response received')
-
-      // Extract the analysis from the AI's response
-      let analysis = {}
-      try {
-        // Parse the JSON response from the AI
-        const content = openAIData.choices[0].message.content
-        analysis = JSON.parse(content)
-        console.log('Analysis extracted successfully')
-      } catch (error) {
-        console.error('Error parsing AI response:', error)
-        throw new Error('Failed to parse AI analysis')
-      }
-
-      // Return the analysis with CORS headers
-      return new Response(
-        JSON.stringify(analysis),
-        { 
-          headers: { 
-            ...corsHeaders,
-            'Content-Type': 'application/json' 
-          } 
-        }
-      )
+    // Add toggle-specific instructions
+    if (primaryToggle === 'complex') {
+      systemPrompt += "\nMake questions and variables suitable for complex reasoning tasks that involve multiple steps of logical thinking.";
+    } else if (primaryToggle === 'math') {
+      systemPrompt += "\nMake questions and variables suitable for mathematical problem-solving tasks.";
+    } else if (primaryToggle === 'coding') {
+      systemPrompt += "\nMake questions and variables suitable for code generation or programming tasks.";
+    } else if (primaryToggle === 'copilot') {
+      systemPrompt += "\nMake questions and variables suitable for creating an AI assistant (copilot) that will help users with specific tasks.";
+    }
+    
+    if (secondaryToggle === 'token') {
+      systemPrompt += "\nOptimize the prompt to use as few tokens as possible while maintaining clarity.";
+    } else if (secondaryToggle === 'strict') {
+      systemPrompt += "\nMake the prompt very specific and structured to ensure consistent outputs.";
+    } else if (secondaryToggle === 'creative') {
+      systemPrompt += "\nMake the prompt encourage creative and diverse outputs.";
     }
 
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { 
-        status: 405,
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json' 
-        } 
+    // Prepare the OpenAI request
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        temperature: 0.7,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `Analyze this prompt: "${promptText}"` }
+        ],
+        response_format: { type: "json_object" }
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('OpenAI API error:', errorData);
+      throw new Error(`OpenAI API error: ${JSON.stringify(errorData)}`);
+    }
+    
+    const data = await response.json();
+    console.log('OpenAI response received');
+    
+    // Extract the content from the OpenAI response
+    const content = data.choices[0].message.content;
+    console.log('Parsed content:', content.substring(0, 100) + '...');
+    
+    try {
+      const parsedContent = JSON.parse(content);
+      
+      // Transform the data to match our expected format
+      const result = {
+        questions: [],
+        variables: [],
+        masterCommand: parsedContent.masterCommand || '',
+        enhancedPrompt: parsedContent.enhancedPrompt || ''
+      };
+      
+      // Process questions
+      if (parsedContent.questions && Array.isArray(parsedContent.questions)) {
+        result.questions = parsedContent.questions.map((q: any, index: number) => ({
+          id: `q${index + 1}`,
+          text: q.text || q.question || '',
+          category: q.category || q.pillar || 'Other',
+          isRelevant: null,
+          answer: ''
+        }));
       }
-    )
+      
+      // Process variables
+      if (parsedContent.variables && Array.isArray(parsedContent.variables)) {
+        result.variables = parsedContent.variables.map((v: any, index: number) => ({
+          id: `v${index + 1}`,
+          name: v.name || '',
+          value: v.value || '',
+          category: v.category || v.pillar || 'Other',
+          isRelevant: null
+        }));
+      }
+      
+      console.log(`Processed ${result.questions.length} questions and ${result.variables.length} variables`);
+      
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      });
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
+      throw new Error(`Error parsing OpenAI response: ${parseError.message}`);
+    }
   } catch (error) {
-    console.error('Error:', error.message)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 400,
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json' 
-        } 
-      }
-    )
+    console.error('Error in analyze-prompt function:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
-})
+});
