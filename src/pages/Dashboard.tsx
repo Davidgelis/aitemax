@@ -65,7 +65,6 @@ const Dashboard = () => {
   const variablesContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Check for authentication and get current user
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -73,7 +72,6 @@ const Dashboard = () => {
       }
     );
     
-    // Get current session
     const getUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
@@ -86,7 +84,6 @@ const Dashboard = () => {
     };
   }, []);
 
-  // Fetch saved prompts from Supabase when user is available
   useEffect(() => {
     if (user) {
       fetchSavedPrompts();
@@ -107,7 +104,6 @@ const Dashboard = () => {
         throw error;
       }
       
-      // Transform data to match our SavedPrompt interface
       const formattedPrompts: SavedPrompt[] = data?.map(item => ({
         id: item.id,
         title: item.title || 'Untitled Prompt',
@@ -235,9 +231,7 @@ const Dashboard = () => {
       
       if (error) throw error;
       
-      // Update state with the returned AI analysis
       if (data) {
-        // Add IDs to questions if they don't have them
         const aiQuestions = data.questions.map((q: any, index: number) => ({
           ...q,
           id: q.id || `q${index + 1}`,
@@ -246,7 +240,6 @@ const Dashboard = () => {
         
         setQuestions(aiQuestions);
         
-        // Update variables if they were returned
         if (data.variables && data.variables.length > 0) {
           const aiVariables = data.variables.map((v: any, index: number) => ({
             ...v,
@@ -256,17 +249,14 @@ const Dashboard = () => {
           setVariables(aiVariables);
         }
         
-        // Update master command if it was returned
         if (data.masterCommand) {
           setMasterCommand(data.masterCommand);
         }
         
-        // Update final prompt if it was returned
         if (data.enhancedPrompt) {
           setFinalPrompt(data.enhancedPrompt);
         }
       } else {
-        // Fallback to mock data if no AI data was returned
         setQuestions(mockQuestions);
       }
       
@@ -274,7 +264,6 @@ const Dashboard = () => {
       setSliderPosition(0);
     } catch (error) {
       console.error("Error analyzing prompt with AI:", error);
-      // Fallback to mock data on error
       setQuestions(mockQuestions);
     } finally {
       setTimeout(() => {
@@ -318,7 +307,6 @@ const Dashboard = () => {
         throw error;
       }
 
-      // Add the new prompt to the start of the list
       if (data && data.length > 0) {
         const newPrompt: SavedPrompt = {
           id: data[0].id,
@@ -644,6 +632,7 @@ const Dashboard = () => {
                 onQuestionRelevance={handleQuestionRelevance}
                 onQuestionAnswer={handleQuestionAnswer}
                 containerRef={questionsContainerRef}
+                originalPrompt={promptText}
               />
             </div>
 

@@ -1,21 +1,26 @@
 
-import { Check, X } from "lucide-react";
+import { Check, X, FileText } from "lucide-react";
 import { Question } from "./types";
-import { RefObject } from "react";
+import { RefObject, useState } from "react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 interface QuestionListProps {
   questions: Question[];
   onQuestionRelevance: (questionId: string, isRelevant: boolean) => void;
   onQuestionAnswer: (questionId: string, answer: string) => void;
   containerRef: RefObject<HTMLDivElement>;
+  originalPrompt?: string; // Add new prop for the original prompt
 }
 
 export const QuestionList = ({ 
   questions, 
   onQuestionRelevance, 
   onQuestionAnswer, 
-  containerRef 
+  containerRef,
+  originalPrompt
 }: QuestionListProps) => {
+  const [showPromptSheet, setShowPromptSheet] = useState(false);
+  
   // Group questions by category
   const groupedQuestions: Record<string, Question[]> = {};
   
@@ -34,6 +39,15 @@ export const QuestionList = ({
     <div className="mb-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-medium">Questions</h3>
+        {originalPrompt && (
+          <button
+            onClick={() => setShowPromptSheet(true)}
+            className="flex items-center gap-1 text-sm hover:bg-[#33fea6]/20 p-2 rounded-full transition-colors"
+            title="View submitted prompt"
+          >
+            <FileText className="w-4 h-4 text-[#33fea6]" />
+          </button>
+        )}
       </div>
       
       <div ref={containerRef} className="max-h-[285px] overflow-y-auto pr-2 space-y-6">
@@ -86,6 +100,23 @@ export const QuestionList = ({
           </div>
         ))}
       </div>
+
+      {/* Prompt Sheet */}
+      <Sheet open={showPromptSheet} onOpenChange={setShowPromptSheet}>
+        <SheetContent className="w-[90%] sm:max-w-[600px] md:max-w-[800px] z-50 bg-white">
+          <SheetHeader>
+            <SheetTitle>Submitted Prompt</SheetTitle>
+            <SheetDescription>
+              This is the original prompt you submitted for analysis.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="py-6">
+            <div className="w-full min-h-[40vh] p-4 text-sm rounded-md border bg-gray-50/80 text-card-foreground overflow-y-auto whitespace-pre-wrap">
+              {originalPrompt}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
