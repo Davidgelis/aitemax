@@ -1,0 +1,175 @@
+
+import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText } from "lucide-react";
+import { Sidebar, SidebarContent } from "@/components/ui/sidebar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { SavedPrompt } from "./types";
+import { useNavigate } from "react-router-dom";
+
+interface UserSidebarProps {
+  user: any;
+  savedPrompts: SavedPrompt[];
+  filteredPrompts: SavedPrompt[];
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  isLoadingPrompts: boolean;
+  handleNewPrompt: () => void;
+  handleDeletePrompt: (id: string) => void;
+  handleDuplicatePrompt: (prompt: SavedPrompt) => void;
+  handleRenamePrompt: (id: string, newTitle: string) => void;
+}
+
+export const UserSidebar = ({
+  user,
+  savedPrompts,
+  filteredPrompts,
+  searchTerm,
+  setSearchTerm,
+  isLoadingPrompts,
+  handleNewPrompt,
+  handleDeletePrompt,
+  handleDuplicatePrompt,
+  handleRenamePrompt
+}: UserSidebarProps) => {
+  const navigate = useNavigate();
+
+  return (
+    <Sidebar side="right">
+      <SidebarContent>
+        <div className="p-4 flex items-center justify-between border-b">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+              <User className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <span className="font-medium">{user ? (user.email || 'User').split('@')[0] : 'Guest'}</span>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="p-1 hover:bg-accent rounded-md">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 9.75C9.41421 9.75 9.75 9.41421 9.75 9C9.75 8.58579 9.41421 8.25 9 8.25C8.58579 8.25 8.25 8.58579 8.25 9C8.25 9.41421 8.58579 9.75 9 9.75Z" fill="#545454" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 4.5C9.41421 4.5 9.75 4.16421 9.75 3.75C9.75 3.33579 9.41421 3 9 3C8.58579 3 8.25 3.33579 8.25 3.75C8.25 4.16421 8.58579 4.5 9 4.5Z" fill="#545454" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 15C9.41421 15 9.75 14.6642 9.75 14.25C9.75 13.8358 9.41421 13.5 9 13.5C8.58579 13.5 8.25 13.8358 8.25 14.25C8.25 14.6642 8.58579 15 9 15Z" fill="#545454" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate("/profile")}>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
+              {user ? (
+                <DropdownMenuItem onClick={async () => {
+                  const { supabase } = await import('@/integrations/supabase/client');
+                  await supabase.auth.signOut();
+                }}>
+                  <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  <span>Sign out</span>
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={() => navigate("/auth")}>
+                  <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                    <polyline points="10 17 15 12 10 7"></polyline>
+                    <line x1="15" y1="12" x2="3" y2="12"></line>
+                  </svg>
+                  <span>Sign in</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="flex justify-center my-3">
+          <button
+            onClick={handleNewPrompt}
+            className="aurora-button w-[70%] inline-flex items-center justify-center gap-2"
+          >
+            <FileText className="w-4 h-4" />
+            <span className="font-medium">New Prompt</span>
+          </button>
+        </div>
+
+        <div className="p-4 border-b">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              className="pl-9" 
+              placeholder="Search..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="overflow-auto">
+          {isLoadingPrompts ? (
+            <div className="p-4 text-center">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              <span className="text-sm text-muted-foreground">Loading your prompts...</span>
+            </div>
+          ) : filteredPrompts.length > 0 ? (
+            filteredPrompts.map((item) => (
+              <div
+                key={item.id}
+                className="p-4 border-b flex items-center justify-between group/item"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{item.title}</span>
+                    <span className="text-xs text-muted-foreground">{item.date}</span>
+                  </div>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
+                    <div className="p-1 hover:bg-accent rounded-md">
+                      <MoreVertical className="h-4 w-4" />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => handleDuplicatePrompt(item)}>
+                      <CopyIcon className="mr-2 h-4 w-4" />
+                      <span>Duplicate</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {
+                      const newTitle = window.prompt("Enter new name:", item.title);
+                      if (newTitle) handleRenamePrompt(item.id, newTitle);
+                    }}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      <span>Rename</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => handleDeletePrompt(item.id)}
+                    >
+                      <Trash className="mr-2 h-4 w-4" />
+                      <span>Delete</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))
+          ) : (
+            <div className="p-4 text-center text-muted-foreground">
+              {user ? (
+                searchTerm ? "No matching prompts found" : "No saved prompts yet"
+              ) : (
+                <div className="space-y-3">
+                  <p>Please sign in to save and view your prompts</p>
+                  <Button onClick={() => navigate("/auth")} className="aurora-button">
+                    Sign in
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </SidebarContent>
+    </Sidebar>
+  );
+};
