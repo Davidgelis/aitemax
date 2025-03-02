@@ -58,13 +58,26 @@ export const usePromptAnalysis = (
       if (error) throw error;
       
       if (data) {
-        const aiQuestions = data.questions.map((q: any, index: number) => ({
-          ...q,
-          id: q.id || `q${index + 1}`,
-          answer: ""
-        }));
+        console.log("AI analysis response:", data);
         
-        setQuestions(aiQuestions);
+        // Check if there was an error in the edge function (which still returns 200)
+        if (data.error) {
+          console.warn("Edge function encountered an error:", data.error);
+          // We still continue processing the fallback data provided
+        }
+        
+        if (data.questions && data.questions.length > 0) {
+          const aiQuestions = data.questions.map((q: any, index: number) => ({
+            ...q,
+            id: q.id || `q${index + 1}`,
+            answer: ""
+          }));
+          
+          setQuestions(aiQuestions);
+        } else {
+          console.warn("No questions received from analysis, using fallbacks");
+          setQuestions(mockQuestions);
+        }
         
         if (data.variables && data.variables.length > 0) {
           const aiVariables = data.variables.map((v: any, index: number) => ({
@@ -82,13 +95,26 @@ export const usePromptAnalysis = (
         if (data.enhancedPrompt) {
           setFinalPrompt(data.enhancedPrompt);
         }
+        
+        // If we received raw analysis, log it for debugging
+        if (data.rawAnalysis) {
+          console.log("Raw AI analysis:", data.rawAnalysis);
+        }
       } else {
+        console.warn("No data received from analysis function, using fallbacks");
         setQuestions(mockQuestions);
       }
     } catch (error) {
       console.error("Error analyzing prompt with AI:", error);
+      toast({
+        title: "Analysis Error",
+        description: "There was an error analyzing your prompt. Using default questions instead.",
+        variant: "destructive",
+      });
       setQuestions(mockQuestions);
     } finally {
+      // Use a timer to show loading messages for a few seconds
+      // instead of immediately finishing the loading state
       setTimeout(() => {
         setIsLoading(false);
         setCurrentLoadingMessage(0);
