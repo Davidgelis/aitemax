@@ -23,14 +23,14 @@ export const loadingMessages = [
 ];
 
 export const mockQuestions: Question[] = [
-  { id: "q1", text: "What is the primary goal of this task?", isRelevant: null, answer: "", category: "Task" },
-  { id: "q2", text: "What specific outcomes should be achieved?", isRelevant: null, answer: "", category: "Task" },
-  { id: "q3", text: "Who is the target audience for this content?", isRelevant: null, answer: "", category: "Persona" },
-  { id: "q4", text: "What tone or communication style should be used?", isRelevant: null, answer: "", category: "Persona" },
-  { id: "q5", text: "What specific formatting guidelines should be applied?", isRelevant: null, answer: "", category: "Conditions" },
-  { id: "q6", text: "Are there any constraints or limitations to consider?", isRelevant: null, answer: "", category: "Conditions" },
-  { id: "q7", text: "What steps should be followed to complete this task?", isRelevant: null, answer: "", category: "Instructions" },
-  { id: "q8", text: "How should the final output be structured?", isRelevant: null, answer: "", category: "Instructions" },
+  { id: "q1", text: "What are you trying to accomplish?", isRelevant: null, answer: "", category: "Task" },
+  { id: "q2", text: "What should the final result look like?", isRelevant: null, answer: "", category: "Task" },
+  { id: "q3", text: "Who is this for?", isRelevant: null, answer: "", category: "Persona" },
+  { id: "q4", text: "What tone should be used?", isRelevant: null, answer: "", category: "Persona" },
+  { id: "q5", text: "Are there any specific requirements?", isRelevant: null, answer: "", category: "Conditions" },
+  { id: "q6", text: "What limits or constraints should be considered?", isRelevant: null, answer: "", category: "Conditions" },
+  { id: "q7", text: "What steps need to be followed?", isRelevant: null, answer: "", category: "Instructions" },
+  { id: "q8", text: "How should the information be organized?", isRelevant: null, answer: "", category: "Instructions" },
 ];
 
 export const defaultVariables: Variable[] = [
