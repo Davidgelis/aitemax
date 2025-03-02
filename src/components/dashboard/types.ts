@@ -6,7 +6,7 @@ export interface Question {
   text: string;
   isRelevant: boolean | null;
   answer: string;
-  category?: string;
+  category: string;
 }
 
 export interface Variable {
@@ -14,6 +14,7 @@ export interface Variable {
   name: string;
   value: string;
   isRelevant: boolean | null;
+  category?: string;
 }
 
 export interface SavedPrompt {
@@ -49,11 +50,12 @@ export const jsonToVariables = (json: Json | null): Variable[] => {
           id: (item as any).id || `v${Date.now()}`,
           name: (item as any).name || '',
           value: (item as any).value || '',
-          isRelevant: (item as any).isRelevant === true
+          isRelevant: (item as any).isRelevant === true,
+          category: (item as any).category || 'Task'
         } as Variable;
       }
       // Return a default variable if item is not an object
-      return { id: `v${Date.now()}`, name: '', value: '', isRelevant: null } as Variable;
+      return { id: `v${Date.now()}`, name: '', value: '', isRelevant: null, category: 'Task' } as Variable;
     });
   }
   return [];

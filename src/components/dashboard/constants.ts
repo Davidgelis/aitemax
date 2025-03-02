@@ -24,46 +24,43 @@ export const loadingMessages = [
 
 export const mockQuestions: Question[] = [
   { id: "q1", text: "What is the primary goal of this task?", isRelevant: null, answer: "", category: "Task" },
-  { id: "q2", text: "Who is the target audience for this content?", isRelevant: null, answer: "", category: "Persona" },
-  { id: "q3", text: "What specific formatting guidelines should be applied?", isRelevant: null, answer: "", category: "Conditions" },
-  { id: "q4", text: "How should the final output be structured?", isRelevant: null, answer: "", category: "Instructions" },
-  { id: "q5", text: "Are there any specific examples you want included?", isRelevant: null, answer: "", category: "Task" },
-  { id: "q6", text: "What level of technical detail should be included?", isRelevant: null, answer: "", category: "Conditions" },
-  { id: "q7", text: "Any specific terminology or jargon to include or avoid?", isRelevant: null, answer: "", category: "Conditions" },
-  { id: "q8", text: "What tone would you like the content to have?", isRelevant: null, answer: "", category: "Persona" },
-  { id: "q9", text: "Are there any length constraints for the output?", isRelevant: null, answer: "", category: "Conditions" },
-  { id: "q10", text: "What validation steps should be included?", isRelevant: null, answer: "", category: "Instructions" },
-  { id: "q11", text: "Any specific sources or references to include?", isRelevant: null, answer: "", category: "Task" },
-  { id: "q12", text: "What additional context is needed for this task?", isRelevant: null, answer: "", category: "Task" },
+  { id: "q2", text: "What specific outcomes should be achieved?", isRelevant: null, answer: "", category: "Task" },
+  { id: "q3", text: "Who is the target audience for this content?", isRelevant: null, answer: "", category: "Persona" },
+  { id: "q4", text: "What tone or communication style should be used?", isRelevant: null, answer: "", category: "Persona" },
+  { id: "q5", text: "What specific formatting guidelines should be applied?", isRelevant: null, answer: "", category: "Conditions" },
+  { id: "q6", text: "Are there any constraints or limitations to consider?", isRelevant: null, answer: "", category: "Conditions" },
+  { id: "q7", text: "What steps should be followed to complete this task?", isRelevant: null, answer: "", category: "Instructions" },
+  { id: "q8", text: "How should the final output be structured?", isRelevant: null, answer: "", category: "Instructions" },
 ];
 
 export const defaultVariables: Variable[] = [
-  { id: "v1", name: "Name", value: "", isRelevant: null },
-  { id: "v2", name: "Purpose", value: "", isRelevant: null },
-  { id: "v3", name: "Context", value: "", isRelevant: null },
-  { id: "v4", name: "Audience", value: "", isRelevant: null },
-  { id: "v5", name: "OutputFormat", value: "", isRelevant: null },
+  { id: "v1", name: "TaskName", value: "", isRelevant: null, category: "Task" },
+  { id: "v2", name: "Outcome", value: "", isRelevant: null, category: "Task" },
+  { id: "v3", name: "Audience", value: "", isRelevant: null, category: "Persona" },
+  { id: "v4", name: "Tone", value: "", isRelevant: null, category: "Persona" },
+  { id: "v5", name: "Format", value: "", isRelevant: null, category: "Conditions" },
+  { id: "v6", name: "Constraints", value: "", isRelevant: null, category: "Conditions" },
+  { id: "v7", name: "Steps", value: "", isRelevant: null, category: "Instructions" },
+  { id: "v8", name: "Structure", value: "", isRelevant: null, category: "Instructions" },
 ];
 
 export const sampleFinalPrompt = `# Enhanced Prompt Template
 
 ## Task
-Your task is to analyze and provide insights on the given topic, breaking down complex concepts into understandable components.
+Your task is to {{TaskName}} and produce {{Outcome}}.
 
 ## Persona
-You will act as an expert in the field, maintaining a professional yet accessible tone throughout your response.
+You will act as an expert addressing {{Audience}} while maintaining a {{Tone}} throughout your response.
 
 ## Conditions
-- Structure your response with clear headings and subheadings
-- Include relevant examples to illustrate key points
-- Avoid jargon where possible, or explain technical terms when used
-- Use {{Context}} to inform your analysis approach
+- Structure your response with {{Format}}
+- Work within these {{Constraints}}
 
 ## Instructions
-1. Begin by summarizing the {{Purpose}} in 2-3 sentences
-2. Identify the core elements of the topic for {{Name}}
-3. Provide a detailed analysis of each element
-4. Conclude with practical applications or next steps
-5. Include references or further reading if appropriate`;
+1. Follow these {{Steps}} precisely
+2. Structure your output according to {{Structure}}
+
+## Notes
+This prompt has been optimized based on the four-pillar framework: Task, Persona, Conditions, and Instructions.`;
 
 export const QUESTIONS_PER_PAGE = 3;

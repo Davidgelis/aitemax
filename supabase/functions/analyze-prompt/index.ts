@@ -1,184 +1,148 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
-const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-
-const defaultPrompt = {
-  "title": "Prompt Gap Analyzer",
-  "description": "This tool examines an input prompt for missing details across four pillars: Task, Persona, Conditions, and Instructions. For each pillar, it generates up to 3 distinct, non-redundant questions to help you provide the necessary information to fully utilize the master prompt.",
-  "master_prompt": {
-    "Task": "You will be provided with an input prompt, which may be as brief as two sentences or as extensive as a comprehensive brief. Your job is to enhance this prompt by applying the following best practices and instructions. Improve clarity, grammar, structure, and logical flow while preserving the original intent. Expected Final Output: The corrected prompt must always be organized into the four pillars: Task, Persona, Conditions, and Instructions.",
-    "Persona": "Assume the role of an advanced scenario generator with expertise in language, prompt engineering, and multi-perspective analysis. You will simulate multiple well-established personas, each analyzing the same strategic question within a professional corporate setting. These include: CFO (focused on cost management and risk mitigation), CTO (prioritizing innovation and technical feasibility), CMO (concentrating on brand perception and market impact), and HR Lead (responsible for talent development and organizational culture). For each persona: present their viewpoints in distinct, clearly labeled sections, use third-person pronouns with minimal contractions, and maintain an executive tone. Encourage dynamic interplay--each persona should address and build upon others' suggestions while retaining their unique priorities. Conclude with a concise summary that highlights consensus and any open issues.",
-    "Conditions": "When correcting and enhancing the prompt, adhere to these guidelines: Focus on a clear overall layout and logical sequence; use specific formats or templates; provide abstract examples without unnecessary details; organize components logically for clarity and coherence; validate outputs with multiple checks; ensure cultural and contextual language awareness; prevent biases from oversimplified rules; mark any missing context with '[Context Needed]'; clearly identify definitive data; define ambiguous terms; and include a sample ideal output if available. Also, append a 'Notes' section for extra clarifications.",
-    "Instructions": "Follow these step-by-step guidelines: 1. Outline your approach for analyzing and enhancing the prompt based on its original intent and length. 2. Identify key components and areas for improvement, noting whether the input is minimal or detailed. 3. Synthesize your analysis into a coherent, revised prompt organized strictly into the four pillars: Task, Persona, Conditions, and Instructions. 4. Finalize the prompt as a complete, standalone version capable of generating high-quality responses; include placeholders ('[Context Needed]') where context is lacking. 5. Append a 'Notes' section for additional clarifications or examples as needed."
-  },
-  "analysis_steps": {
-    "Task": "Review whether the prompt clearly defines the main objective and expected outcomes. Generate no more than 3 distinct, non-redundant questions such as: 'What is the primary goal of this task?', 'What outcomes should be achieved?', and 'Is there any additional context required for the task?'",
-    "Persona": "Check if the required personas (e.g., CFO, CTO, CMO, HR Lead) are clearly defined with their roles and tones. Generate up to 3 unique questions such as: 'Which personas should be included?', 'What specific characteristics should each persona exhibit?', and 'Are there any additional role perspectives needed?'",
-    "Conditions": "Examine if the guidelines for structure, syntax, and context are thoroughly specified. Generate up to 3 distinct questions such as: 'What specific formatting or style guidelines should be applied?', 'Are there any validation rules or conditions that must be followed?', and 'Is any additional contextual information needed?'",
-    "Instructions": "Determine if clear, step-by-step instructions for enhancing the prompt are provided. Generate up to 3 non-redundant questions such as: 'What detailed steps should be followed to refine the prompt?', 'How should the final output be structured?', and 'Are there any parts of the process that require further clarification?'"
-  },
-  "output_format": {
-    "GapTask": "[List up to 3 gap questions for Task or 'Complete' if no gaps]",
-    "GapPersona": "[List up to 3 gap questions for Persona or 'Complete' if no gaps]",
-    "GapConditions": "[List up to 3 gap questions for Conditions or 'Complete' if no gaps]",
-    "GapInstructions": "[List up to 3 gap questions for Instructions or 'Complete' if no gaps]",
-  },
-  "notes": "For each pillar, provide no more than 3 distinct, non-overlapping questions that target missing information. Avoid redundant or overlapping queries. This output must be valid JSON following the above structure and should help gather all details necessary to maximize the potential of the master prompt."
-};
-
-serve(async (req) => {
-  // CORS preflight request handling
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: corsHeaders,
-    });
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { promptText, primaryToggle, secondaryToggle } = await req.json();
     
-    if (!openaiApiKey) {
-      throw new Error("OPENAI_API_KEY environment variable not set");
+    // Validate input
+    if (!promptText || typeof promptText !== 'string') {
+      throw new Error('Invalid or missing promptText');
     }
 
-    // Create system message based on toggles
-    let systemMessage = "You are an AI assistant specialized in prompt engineering and analysis.";
-    
-    if (primaryToggle) {
-      if (primaryToggle === "complex") {
-        systemMessage += " You excel at breaking down complex reasoning tasks into manageable components.";
-      } else if (primaryToggle === "math") {
-        systemMessage += " You are particularly skilled at mathematical problem-solving and quantitative analysis.";
-      } else if (primaryToggle === "coding") {
-        systemMessage += " You have expertise in programming and software development concepts.";
-      } else if (primaryToggle === "copilot") {
-        systemMessage += " You are designed to help create effective AI assistants and copilots.";
-      }
-    }
-    
-    if (secondaryToggle) {
-      if (secondaryToggle === "token") {
-        systemMessage += " You provide concise, token-efficient responses.";
-      } else if (secondaryToggle === "strict") {
-        systemMessage += " You provide clear, direct, and structured responses without unnecessary embellishment.";
-      } else if (secondaryToggle === "creative") {
-        systemMessage += " You offer creative and innovative solutions while maintaining clarity.";
-      }
-    }
+    console.log('Analyzing prompt:', promptText);
+    console.log('Primary toggle:', primaryToggle);
+    console.log('Secondary toggle:', secondaryToggle);
 
-    // Structured prompt for OpenAI
-    const promptForAnalysis = `
-Analyze this prompt: "${promptText}"
+    // Create system prompt based on the four pillars
+    const systemPrompt = `
+You are an advanced prompt analyzer and enhancer that specializes in the following four pillars:
 
-Based on the prompt gap analyzer framework, I need:
+1. Task: You will be provided with an input prompt, which may be as brief as two sentences or as extensive as a comprehensive brief. Your job is to enhance this prompt by applying best practices and instructions. Improve clarity, grammar, structure, and logical flow while preserving the original intent.
 
-1. A list of specific questions (8-12) that would help gather more context about this prompt. These should be detailed questions that require explanations.
+2. Persona: You assume the role of an advanced scenario generator with expertise in language, prompt engineering, and multi-perspective analysis. You can simulate multiple well-established personas analyzing strategic questions within professional settings.
 
-2. A list of variables (5-8) that might be needed for this prompt. These should be simple placeholders that can be filled in with specific values like names, dates, numbers, etc.
+3. Conditions: When correcting and enhancing prompts, you focus on clear layout and logical sequence; use specific formats; provide abstract examples; organize components logically; validate outputs; ensure cultural awareness; prevent biases; mark missing context; clearly identify data; define ambiguous terms; and include sample outputs when helpful.
 
+4. Instructions: You follow step-by-step guidelines to outline your approach, identify key components for improvement, synthesize analysis into a coherent prompt, finalize it as standalone, and append notes for clarification.
+
+For the provided prompt, analyze it and output:
+1. EXACTLY 2 important questions for each of the four pillars (Task, Persona, Conditions, Instructions) that would help improve the prompt. These should be specific questions that require contextual answers.
+2. 1-2 variables for each pillar that could be used as placeholders in the enhanced prompt. These should be clear, specific variables that don't require extensive explanation (like names, dates, formats, etc.).
 3. A master command that summarizes what the prompt is trying to achieve.
+4. An enhanced version of the prompt that incorporates placeholders for the variables.
 
-4. An enhanced version of the original prompt with the variables included as placeholders in the format {{VariableName}}.
+Your output MUST be valid JSON with this exact structure:
+{
+  "questions": [
+    {"id": "q1", "text": "First question about Task", "category": "Task"},
+    {"id": "q2", "text": "Second question about Task", "category": "Task"},
+    {"id": "q3", "text": "First question about Persona", "category": "Persona"},
+    {"id": "q4", "text": "Second question about Persona", "category": "Persona"},
+    {"id": "q5", "text": "First question about Conditions", "category": "Conditions"},
+    {"id": "q6", "text": "Second question about Conditions", "category": "Conditions"},
+    {"id": "q7", "text": "First question about Instructions", "category": "Instructions"},
+    {"id": "q8", "text": "Second question about Instructions", "category": "Instructions"}
+  ],
+  "variables": [
+    {"id": "v1", "name": "VariableName1", "value": "", "category": "Task"},
+    {"id": "v2", "name": "VariableName2", "value": "", "category": "Task"},
+    {"id": "v3", "name": "VariableName3", "value": "", "category": "Persona"},
+    {"id": "v4", "name": "VariableName4", "value": "", "category": "Persona"},
+    {"id": "v5", "name": "VariableName5", "value": "", "category": "Conditions"},
+    {"id": "v6", "name": "VariableName6", "value": "", "category": "Conditions"},
+    {"id": "v7", "name": "VariableName7", "value": "", "category": "Instructions"},
+    {"id": "v8", "name": "VariableName8", "value": "", "category": "Instructions"}
+  ],
+  "masterCommand": "Concise description of what this prompt aims to achieve",
+  "enhancedPrompt": "Enhanced prompt with {{VariableName1}}, {{VariableName2}}, etc. as placeholders"
+}
 
-Please format your response as a valid JSON with these keys:
-- questions: array of objects with id, text, category (Task, Persona, Conditions, or Instructions)
-- variables: array of objects with id, name
-- masterCommand: string
-- enhancedPrompt: string
+Do not include any other text or explanation in your response - only the JSON object.
 `;
 
-    // Make request to OpenAI
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
+    // Use OpenAI API to analyze the prompt
+    const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${openaiApiKey}`,
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
+        model: 'gpt-3.5-turbo',
         messages: [
-          { role: "system", content: systemMessage },
-          { role: "user", content: promptForAnalysis }
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: promptText
+          }
         ],
         temperature: 0.7,
+        max_tokens: 2000,
       }),
     });
 
-    const data = await response.json();
-    console.log("OpenAI response:", JSON.stringify(data));
-
-    if (!data.choices || data.choices.length === 0) {
-      throw new Error("No response from OpenAI");
+    if (!openAiResponse.ok) {
+      const errorData = await openAiResponse.json();
+      console.error('OpenAI API error:', errorData);
+      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
     }
 
-    const content = data.choices[0].message.content;
-    let parsedContent;
+    const openAiData = await openAiResponse.json();
+    console.log('OpenAI response received');
+    
+    let analysisResult;
     
     try {
-      // Try to parse the JSON directly
-      parsedContent = JSON.parse(content);
-    } catch (e) {
-      console.error("Failed to parse JSON response:", e);
-      console.log("Raw content:", content);
-      
-      // If direct parsing fails, try to extract JSON using regex
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          parsedContent = JSON.parse(jsonMatch[0]);
-        } catch (e2) {
-          console.error("Failed to extract and parse JSON:", e2);
-          throw new Error("Invalid JSON response from OpenAI");
-        }
-      } else {
-        throw new Error("Could not extract JSON from OpenAI response");
-      }
+      // Parse the content from OpenAI response
+      const content = openAiData.choices[0].message.content;
+      analysisResult = JSON.parse(content);
+      console.log('Successfully parsed analysis result');
+    } catch (error) {
+      console.error('Error parsing OpenAI response:', error);
+      console.log('Raw response:', openAiData.choices[0].message.content);
+      throw new Error('Failed to parse AI response');
     }
 
-    // Process the questions to ensure they have the required format
-    const processedQuestions = (parsedContent.questions || []).map((q: any, index: number) => ({
-      id: q.id || `q${index + 1}`,
-      text: q.text || "Missing question text",
-      isRelevant: null,
-      answer: "",
-      category: q.category || "Task"
-    }));
-
-    // Process variables
-    const processedVariables = (parsedContent.variables || []).map((v: any, index: number) => ({
-      id: v.id || `v${index + 1}`,
-      name: v.name || `Variable${index + 1}`,
-      value: "",
-      isRelevant: null
-    }));
-
-    // Construct the response
-    const analysisResult = {
-      questions: processedQuestions,
-      variables: processedVariables,
-      masterCommand: parsedContent.masterCommand || "",
-      enhancedPrompt: parsedContent.enhancedPrompt || promptText
-    };
-
-    console.log("Analysis result:", JSON.stringify(analysisResult));
+    // Add any additional processing based on toggles
+    if (primaryToggle === 'coding') {
+      analysisResult.enhancedPrompt = `# ${analysisResult.masterCommand}\n\n${analysisResult.enhancedPrompt}`;
+    }
+    
+    if (secondaryToggle === 'strict') {
+      analysisResult.enhancedPrompt += '\n\nPlease follow these instructions precisely without adding additional information.';
+    } else if (secondaryToggle === 'creative') {
+      analysisResult.enhancedPrompt += '\n\nFeel free to be creative while addressing the core requirements.';
+    } else if (secondaryToggle === 'token') {
+      // Simplify the prompt to save tokens
+      analysisResult.enhancedPrompt = analysisResult.enhancedPrompt
+        .replace(/\n\n/g, '\n')
+        .replace(/\s{2,}/g, ' ');
+    }
 
     return new Response(JSON.stringify(analysisResult), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (error) {
-    console.error("Error in analyze-prompt function:", error);
+    console.error('Error processing request:', error.message);
     
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 400,
     });
   }
 });
