@@ -6,6 +6,7 @@ export interface Question {
   text: string;
   isRelevant: boolean | null;
   answer: string;
+  category?: string;
 }
 
 export interface Variable {

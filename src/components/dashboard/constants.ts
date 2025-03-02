@@ -23,24 +23,24 @@ export const loadingMessages = [
 ];
 
 export const mockQuestions: Question[] = [
-  { id: "q1", text: "What is the primary goal of this task?", isRelevant: null, answer: "" },
-  { id: "q2", text: "Who is the target audience for this content?", isRelevant: null, answer: "" },
-  { id: "q3", text: "What specific formatting guidelines should be applied?", isRelevant: null, answer: "" },
-  { id: "q4", text: "How should the final output be structured?", isRelevant: null, answer: "" },
-  { id: "q5", text: "Are there any specific examples you want included?", isRelevant: null, answer: "" },
-  { id: "q6", text: "What level of technical detail should be included?", isRelevant: null, answer: "" },
-  { id: "q7", text: "Any specific terminology or jargon to include or avoid?", isRelevant: null, answer: "" },
-  { id: "q8", text: "What tone would you like the content to have?", isRelevant: null, answer: "" },
-  { id: "q9", text: "Are there any length constraints for the output?", isRelevant: null, answer: "" },
-  { id: "q10", text: "What validation steps should be included?", isRelevant: null, answer: "" },
-  { id: "q11", text: "Any specific sources or references to include?", isRelevant: null, answer: "" },
-  { id: "q12", text: "What additional context is needed for this task?", isRelevant: null, answer: "" },
+  { id: "q1", text: "What is the primary goal of this task?", isRelevant: null, answer: "", category: "Task" },
+  { id: "q2", text: "Who is the target audience for this content?", isRelevant: null, answer: "", category: "Persona" },
+  { id: "q3", text: "What specific formatting guidelines should be applied?", isRelevant: null, answer: "", category: "Conditions" },
+  { id: "q4", text: "How should the final output be structured?", isRelevant: null, answer: "", category: "Instructions" },
+  { id: "q5", text: "Are there any specific examples you want included?", isRelevant: null, answer: "", category: "Task" },
+  { id: "q6", text: "What level of technical detail should be included?", isRelevant: null, answer: "", category: "Conditions" },
+  { id: "q7", text: "Any specific terminology or jargon to include or avoid?", isRelevant: null, answer: "", category: "Conditions" },
+  { id: "q8", text: "What tone would you like the content to have?", isRelevant: null, answer: "", category: "Persona" },
+  { id: "q9", text: "Are there any length constraints for the output?", isRelevant: null, answer: "", category: "Conditions" },
+  { id: "q10", text: "What validation steps should be included?", isRelevant: null, answer: "", category: "Instructions" },
+  { id: "q11", text: "Any specific sources or references to include?", isRelevant: null, answer: "", category: "Task" },
+  { id: "q12", text: "What additional context is needed for this task?", isRelevant: null, answer: "", category: "Task" },
 ];
 
 export const defaultVariables: Variable[] = [
-  { id: "v1", name: "Name", value: "", isRelevant: true },
-  { id: "v2", name: "Purpose", value: "", isRelevant: true },
-  { id: "v3", name: "Context", value: "", isRelevant: true },
+  { id: "v1", name: "Name", value: "", isRelevant: null },
+  { id: "v2", name: "Purpose", value: "", isRelevant: null },
+  { id: "v3", name: "Context", value: "", isRelevant: null },
   { id: "v4", name: "Audience", value: "", isRelevant: null },
   { id: "v5", name: "OutputFormat", value: "", isRelevant: null },
 ];
