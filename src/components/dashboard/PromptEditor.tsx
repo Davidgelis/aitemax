@@ -1,4 +1,3 @@
-
 import { List, ListOrdered } from "lucide-react";
 import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +23,7 @@ export const PromptEditor = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const [aiLoading, setAiLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const insertBulletList = () => {
     if (!textareaRef.current) return;
@@ -96,6 +96,7 @@ export const PromptEditor = ({
     }
     
     setAiLoading(true);
+    setError(null);
     
     try {
       const { data, error } = await supabase.functions.invoke('analyze-prompt', {
@@ -106,7 +107,18 @@ export const PromptEditor = ({
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase function error:", error);
+        throw new Error(`Function error: ${error.message}`);
+      }
+      
+      if (!data) {
+        throw new Error("No data returned from the analysis function");
+      }
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
       
       console.log("AI Analysis result:", data);
       
@@ -119,11 +131,18 @@ export const PromptEditor = ({
       });
     } catch (error: any) {
       console.error("Error analyzing prompt:", error);
+      
+      // Set the error state
+      setError(error.message || "Unknown error occurred");
+      
       toast({
         title: "Analysis failed",
-        description: `An error occurred: ${error.message}`,
+        description: `An error occurred: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
+      
+      // Call onAnalyze anyway so the app can handle the error state
+      onAnalyze();
     } finally {
       setAiLoading(false);
     }
@@ -224,6 +243,11 @@ export const PromptEditor = ({
         className="w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
         placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
       />
+      {error && (
+        <div className="mt-2 p-2 text-sm text-red-500 bg-red-50 rounded-md">
+          {error}
+        </div>
+      )}
       <div className="absolute bottom-6 right-6">
         <button 
           onClick={analyzeWithAI}
