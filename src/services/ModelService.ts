@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { AIModel } from "@/components/dashboard/types";
 import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
@@ -188,48 +187,21 @@ export const ModelService = {
     try {
       console.log(`ModelService: Starting deletion for model ID: ${id}`);
       
-      // First verify the model exists
-      const { data: modelExists } = await supabase
-        .from('ai_models')
-        .select('id')
-        .eq('id', id)
-        .single();
-        
-      if (!modelExists) {
-        console.error(`ModelService: Model with ID ${id} does not exist in the database`);
-        return false;
-      }
-      
-      // Explicitly log the delete operation
-      console.log(`ModelService: Executing delete operation for model ID: ${id}`);
-      
-      // Execute the delete operation without using select('count')
+      // COMPLETELY SIMPLIFIED APPROACH - Direct delete without verification
       const { error } = await supabase
         .from('ai_models')
         .delete()
-        .eq('id', id);
+        .match({ id });
       
       if (error) {
-        console.error('Error from Supabase during delete operation:', error);
+        console.error('Error deleting model:', error);
         console.error('Error code:', error.code);
         console.error('Error message:', error.message);
         console.error('Error details:', error.details);
         return false;
       }
       
-      // Verify deletion by checking if the model still exists
-      const { data: checkDeleted } = await supabase
-        .from('ai_models')
-        .select('id')
-        .eq('id', id)
-        .maybeSingle();
-        
-      if (checkDeleted) {
-        console.error(`ModelService: Model with ID ${id} still exists after deletion attempt`);
-        return false;
-      }
-      
-      console.log(`ModelService: Successfully deleted model ${id} from database`);
+      console.log(`ModelService: Successfully deleted model ${id}`);
       return true;
     } catch (error) {
       console.error('Exception in deleteModel:', error);

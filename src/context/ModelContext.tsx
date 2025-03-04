@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AIModel } from "@/components/dashboard/types";
 import { ModelService } from "@/services/ModelService";
@@ -155,7 +156,7 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const modelToDelete = models.find(m => m.id === id);
       const modelName = modelToDelete?.name || 'Unknown model';
       
-      // Call the service to delete the model
+      // DIRECT APPROACH - Call the service to delete the model
       const success = await ModelService.deleteModel(id);
       
       if (!success) {
@@ -170,7 +171,7 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       console.log(`ModelContext: Model ${id} deleted successfully`);
       
-      // Update the local state if the deletion was successful
+      // Update the local state immediately
       setModels(prev => prev.filter(m => m.id !== id));
       
       // If the deleted model is the currently selected model, reset it

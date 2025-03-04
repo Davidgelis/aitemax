@@ -130,22 +130,21 @@ const MasterPanel = () => {
       
       console.log(`MasterPanel: Calling deleteModel on ModelContext with ID: ${modelId}`);
       
-      const result = await deleteModel(modelId);
-        
-      if (result) {
+      const success = await deleteModel(modelId);
+      
+      if (success) {
         console.log(`MasterPanel: Delete operation successful for model ${modelId}`);
         setIsDeleteConfirmOpen(false);
         setDeleteConfirmModel(null);
-        
-        await refreshModels();
       } else {
         console.error(`MasterPanel: Delete operation failed for model ${modelId}`);
         toast({
           title: "Deletion Failed",
-          description: "Could not delete model from the database. Please try again later.",
+          description: "Could not delete model from the database. Please check console for details.",
           variant: "destructive"
         });
       }
+      
     } catch (error) {
       console.error('MasterPanel: Delete operation error:', error);
       const errorMessage = error instanceof Error 
