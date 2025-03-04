@@ -1,6 +1,7 @@
 
 import { Switch } from "@/components/ui/switch";
 import { Toggle } from "./types";
+import { Separator } from "@/components/ui/separator";
 
 interface ToggleSectionProps {
   toggles: Toggle[];
@@ -29,9 +30,9 @@ export const ToggleSection = ({
   };
 
   return (
-    <div className={`grid ${getGridClass()} gap-4`}>
+    <div className={`grid ${getGridClass()} gap-2`}>
       {toggles.map((item) => (
-        <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
+        <div key={item.id} className="flex items-center justify-between py-1.5 px-2 border rounded-lg bg-card">
           <span className="text-sm text-card-foreground">{item.label}</span>
           <Switch 
             id={item.id}

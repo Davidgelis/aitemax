@@ -32,14 +32,14 @@ export const StepOneContent = ({
   setSelectedModel
 }: StepOneContentProps) => {
   return (
-    <div className="space-y-6 w-full">
+    <div className="space-y-4 w-full">
       <div className="w-full">
         <ModelSelector 
           onSelect={setSelectedModel} 
           selectedModel={selectedModel}
         />
         
-        <div className="mt-6">
+        <div className="mt-4">
           <ToggleSection 
             toggles={primaryToggles} 
             selectedToggle={selectedPrimary} 
@@ -49,7 +49,9 @@ export const StepOneContent = ({
           />
         </div>
         
-        <div className="mt-6">
+        <Separator className="my-4" />
+        
+        <div>
           <ToggleSection 
             toggles={secondaryToggles} 
             selectedToggle={selectedSecondary} 
