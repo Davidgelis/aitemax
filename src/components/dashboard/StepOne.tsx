@@ -32,7 +32,6 @@ export const StepOne = ({
         selectedToggle={selectedPrimary} 
         onToggleChange={handlePrimaryToggle} 
         variant="primary"
-        cols={4}
       />
 
       <Separator className="my-4" />
@@ -42,7 +41,6 @@ export const StepOne = ({
         selectedToggle={selectedSecondary} 
         onToggleChange={handleSecondaryToggle} 
         variant="secondary"
-        cols={3}
       />
 
       <PromptEditor 
