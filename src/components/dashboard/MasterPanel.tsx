@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useModels } from "@/context/ModelContext";
@@ -14,7 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, RefreshCw, Edit } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Edit, Brain } from 'lucide-react';
+import { ModelService } from '@/services/ModelService';
 
 const MasterPanel = () => {
   const { models, isLoading, refreshModels, addModel, updateModel, deleteModel } = useModels();
@@ -31,6 +33,7 @@ const MasterPanel = () => {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   
   useEffect(() => {
     const checkMasterUser = async () => {
@@ -181,6 +184,43 @@ const MasterPanel = () => {
     }
   };
 
+  const handleEnhanceModels = async () => {
+    try {
+      setIsEnhancing(true);
+      toast({
+        title: "AI Enhancement Started",
+        description: "Starting AI enhancement for all models. This may take a few minutes...",
+      });
+      
+      const result = await ModelService.enhanceModelsWithAI();
+      
+      if (result) {
+        // Refresh the models to show the updated information
+        await refreshModels();
+        
+        toast({
+          title: "AI Enhancement Complete",
+          description: "Models have been enhanced with AI-generated information.",
+        });
+      } else {
+        toast({
+          title: "Enhancement Incomplete",
+          description: "Some models could not be enhanced. Check console for details.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error enhancing models with AI:', error);
+      toast({
+        title: "Enhancement Failed",
+        description: "Failed to enhance models with AI. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   if (!isMasterUser) {
     return null;
   }
@@ -198,6 +238,16 @@ const MasterPanel = () => {
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} /> 
             {isRefreshing ? 'Refreshing...' : 'Refresh Models'}
           </Button>
+          
+          <Button 
+            onClick={handleEnhanceModels} 
+            disabled={isLoading || isRefreshing || isEnhancing}
+            className="bg-[#041524] hover:bg-[#041524]/90 text-white"
+          >
+            <Brain className={`mr-2 h-4 w-4 ${isEnhancing ? 'animate-pulse' : ''}`} /> 
+            {isEnhancing ? 'Enhancing...' : 'AI Enhance'}
+          </Button>
+          
           <Dialog open={isAddModelOpen} onOpenChange={setIsAddModelOpen}>
             <DialogTrigger asChild>
               <Button className="bg-[#33fea6] hover:bg-[#33fea6]/90 text-black">

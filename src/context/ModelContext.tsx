@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AIModel } from "@/components/dashboard/types";
 import { ModelService } from "@/services/ModelService";
@@ -14,6 +13,7 @@ interface ModelContextType {
   addModel: (model: Partial<AIModel>) => Promise<AIModel | null>;
   updateModel: (id: string, model: Partial<AIModel>) => Promise<boolean>;
   deleteModel: (id: string) => Promise<boolean>;
+  enhanceModelsWithAI: () => Promise<boolean>;
 }
 
 const ModelContext = createContext<ModelContextType>({
@@ -26,6 +26,7 @@ const ModelContext = createContext<ModelContextType>({
   addModel: async () => null,
   updateModel: async () => false,
   deleteModel: async () => false,
+  enhanceModelsWithAI: async () => false,
 });
 
 export const useModels = () => useContext(ModelContext);
@@ -202,6 +203,31 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const enhanceModelsWithAI = async (): Promise<boolean> => {
+    try {
+      const success = await ModelService.enhanceModelsWithAI();
+      
+      if (success) {
+        // Refresh models to get the updated information
+        await fetchModels();
+        return true;
+      }
+      
+      return false;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error enhancing models with AI';
+      console.error('Error enhancing models with AI:', err);
+      
+      toast({
+        title: "Error Enhancing Models with AI",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchModels();
   }, []);
@@ -217,7 +243,8 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setSelectedModel,
         addModel,
         updateModel,
-        deleteModel
+        deleteModel,
+        enhanceModelsWithAI
       }}
     >
       {children}
