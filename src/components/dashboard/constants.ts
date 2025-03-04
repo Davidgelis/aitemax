@@ -4,7 +4,7 @@ export const primaryToggles: Toggle[] = [
   { label: "Complex Reasoning", id: "complex" },
   { label: "Mathematical Problem-Solving", id: "math" },
   { label: "Coding", id: "coding" },
-  { label: "Creating a copilot", id: "copilot" },
+  { label: "Copilot", id: "copilot" },
   { label: "Image Creating", id: "image" },
 ];
 
