@@ -129,6 +129,7 @@ const Dashboard = () => {
     console.log('Inserting fallback models directly...');
     let insertedCount = 0;
     
+    // First check if models already exist
     const { data: existingModels } = await supabase
       .from('ai_models')
       .select('id')
@@ -139,6 +140,7 @@ const Dashboard = () => {
       return;
     }
     
+    // If no models exist, insert the fallback models
     for (const model of fallbackModels) {
       const { error: insertError } = await supabase
         .from('ai_models')

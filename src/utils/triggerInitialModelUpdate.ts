@@ -25,7 +25,7 @@ export const triggerInitialModelUpdate = async (): Promise<ModelUpdateResponse> 
       setTimeout(() => reject(new Error('Function timed out after 20 seconds')), 20000);
     });
     
-    const functionPromise = supabase.functions.invoke<any>('update-ai-models', {
+    const functionPromise = supabase.functions.invoke('update-ai-models', {
       method: 'POST',
       headers: {
         'X-Force-Update': 'true'
