@@ -1,4 +1,4 @@
-import { List, ListOrdered, FileText } from "lucide-react";
+import { List, ListOrdered } from "lucide-react";
 import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -235,22 +235,6 @@ export const PromptEditor = ({
   return (
     <div className="border rounded-xl p-6 bg-card min-h-[400px] relative">
       <div className="absolute top-6 right-6 flex space-x-2 z-10">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={showPromptPopup}
-                className="p-2 rounded-md hover:bg-accent/20 transition-colors"
-                title="View submitted prompt"
-              >
-                <FileText className="w-5 h-5" style={{ color: "#64bf95" }} />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>View submitted prompt</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
         <button
           onClick={insertBulletList}
           className="p-2 rounded-md hover:bg-accent/20 transition-colors"
