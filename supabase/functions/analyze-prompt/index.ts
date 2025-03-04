@@ -34,7 +34,10 @@ serve(async (req) => {
       
       Your output must include:
       1. A set of targeted questions to fill important gaps in the prompt structure, organized by category.
-      2. A set of variables for customization (with empty values for the user to fill in).
+      2. A set of SPECIFIC variables for customization - these should be CONTEXTUAL words or phrases that can be replaced without changing the prompt meaning.
+         - For example, if the prompt is about emails, variables might include: {{RecipientName}}, {{EmailTopic}}, {{DesiredTone}}, {{ParagraphCount}}, {{SignatureLine}}
+         - DO NOT use generic variables like "TaskType" or "Audience" - use specific names based on the context
+         - Variables should represent changeable elements that users might want to adjust later
       3. A master command describing the essence of what the user wants.
       4. An enhanced version of the original prompt that follows best practices.
 
@@ -215,16 +218,41 @@ function extractVariables(analysis) {
     }
   }
   
-  // Fallback: Look for variables with regex
-  const variables = [];
-  const variableMatches = analysis.matchAll(/(?:Variable|Var)(?:\s+\d+)?(?:\s*\(([^)]+)\))?:\s*(\w+)(?:\s*=\s*(.+?))?(?=\n|$)/g);
+  // Check for variable patterns like {{VariableName}}
+  let enhancedPrompt = extractEnhancedPrompt(analysis);
+  const contextualVariables = [];
+  const variableRegex = /{{(\w+)}}/g;
+  let match;
   
-  for (const match of variableMatches) {
-    const category = match[1] || "Task";
+  while ((match = variableRegex.exec(enhancedPrompt)) !== null) {
+    const name = match[1];
+    // Check if variable already exists
+    if (!contextualVariables.some(v => v.name === name)) {
+      contextualVariables.push({
+        id: `v${contextualVariables.length + 1}`,
+        name,
+        value: "",
+        isRelevant: null,
+        category: getCategoryFromVariableName(name)
+      });
+    }
+  }
+  
+  if (contextualVariables.length > 0) {
+    return contextualVariables;
+  }
+  
+  // Fallback: Look for variable definitions in the text
+  const variables = [];
+  // Look for lines like "Variable: Name = Value" or "{{Name}}: Description"
+  const variableDefMatches = analysis.matchAll(/(?:Variable|Var|\*\*|-)(?:\s+\d+)?(?:\s*\(([^)]+)\))?:?\s*(?:{{)?(\w+)(?:}})?(?:\s*[:=]\s*(.+?))?(?=\n|$)/g);
+  
+  for (const match of variableDefMatches) {
+    const category = match[1] || getCategoryFromVariableName(match[2]);
     const name = match[2].trim();
     const value = match[3] ? match[3].trim() : "";
     
-    if (name) {
+    if (name && !variables.some(v => v.name === name)) {
       variables.push({
         id: `v${variables.length + 1}`,
         name,
@@ -235,31 +263,47 @@ function extractVariables(analysis) {
     }
   }
   
+  // If we found some contextual variables in the analysis
   if (variables.length > 0) {
     return variables;
   }
   
-  // Second fallback: Look for `{{VariableName}}` patterns in the enhanced prompt
-  const enhancedPrompt = extractEnhancedPrompt(analysis);
-  const variableRegex = /{{(\w+)}}/g;
-  let match;
+  // If we still haven't found any variables, generate contextual ones based on the prompt content
+  const promptContext = analysis.toLowerCase();
   
-  while ((match = variableRegex.exec(enhancedPrompt)) !== null) {
-    const name = match[1];
-    
-    // Check if variable already exists
-    if (!variables.some(v => v.name === name)) {
-      variables.push({
-        id: `v${variables.length + 1}`,
-        name,
-        value: "",
-        isRelevant: null,
-        category: getCategoryFromVariable(name)
-      });
-    }
+  // For email-related prompts
+  if (promptContext.includes("email") || promptContext.includes("message")) {
+    return [
+      { id: "v1", name: "RecipientName", value: "", isRelevant: null, category: "Persona" },
+      { id: "v2", name: "EmailSubject", value: "", isRelevant: null, category: "Task" },
+      { id: "v3", name: "DesiredTone", value: "", isRelevant: null, category: "Persona" },
+      { id: "v4", name: "ParagraphCount", value: "", isRelevant: null, category: "Conditions" },
+      { id: "v5", name: "SignatureLine", value: "", isRelevant: null, category: "Instructions" }
+    ];
   }
   
-  return variables.length > 0 ? variables : generateMockVariables();
+  // For content creation prompts
+  if (promptContext.includes("content") || promptContext.includes("write") || promptContext.includes("article")) {
+    return [
+      { id: "v1", name: "TopicName", value: "", isRelevant: null, category: "Task" },
+      { id: "v2", name: "WordCount", value: "", isRelevant: null, category: "Conditions" },
+      { id: "v3", name: "KeyPoints", value: "", isRelevant: null, category: "Instructions" },
+      { id: "v4", name: "TargetAudience", value: "", isRelevant: null, category: "Persona" }
+    ];
+  }
+  
+  // For code-related prompts
+  if (promptContext.includes("code") || promptContext.includes("programming") || promptContext.includes("develop")) {
+    return [
+      { id: "v1", name: "Language", value: "", isRelevant: null, category: "Task" },
+      { id: "v2", name: "FunctionName", value: "", isRelevant: null, category: "Instructions" },
+      { id: "v3", name: "InputParameters", value: "", isRelevant: null, category: "Conditions" },
+      { id: "v4", name: "ExpectedOutput", value: "", isRelevant: null, category: "Instructions" }
+    ];
+  }
+  
+  // Default to generated mock variables if none of the above patterns match
+  return generateContextualMockVariables();
 }
 
 // Helper function to extract master command from the analysis
@@ -322,17 +366,18 @@ function getCategoryFromText(text) {
 }
 
 // Helper function to determine category based on variable name
-function getCategoryFromVariable(name) {
+function getCategoryFromVariableName(name) {
   name = name.toLowerCase();
   
-  if (name.includes("task") || name.includes("goal") || name.includes("objective") || name.includes("outcome")) {
-    return "Task";
-  } else if (name.includes("tone") || name.includes("audience") || name.includes("persona") || name.includes("recipient")) {
+  // More specific variable categorization
+  if (name.includes("recipient") || name.includes("audience") || name.includes("user") || name.includes("tone") || name.includes("voice")) {
     return "Persona";
-  } else if (name.includes("limit") || name.includes("count") || name.includes("time") || name.includes("length")) {
+  } else if (name.includes("count") || name.includes("limit") || name.includes("length") || name.includes("number") || name.includes("time")) {
     return "Conditions";
-  } else {
+  } else if (name.includes("format") || name.includes("step") || name.includes("signature") || name.includes("style") || name.includes("method")) {
     return "Instructions";
+  } else {
+    return "Task";
   }
 }
 
@@ -346,12 +391,18 @@ function generateMockQuestions() {
   ];
 }
 
-// Helper function to generate mock variables if extraction fails
-function generateMockVariables() {
+// Helper function to generate contextual mock variables
+function generateContextualMockVariables() {
   return [
-    { id: "v1", name: "TaskType", value: "", isRelevant: null, category: "Task" },
-    { id: "v2", name: "Audience", value: "", isRelevant: null, category: "Persona" },
-    { id: "v3", name: "Constraints", value: "", isRelevant: null, category: "Conditions" },
-    { id: "v4", name: "Format", value: "", isRelevant: null, category: "Instructions" }
+    { id: "v1", name: "TaskDescription", value: "", isRelevant: null, category: "Task" },
+    { id: "v2", name: "RecipientName", value: "", isRelevant: null, category: "Persona" },
+    { id: "v3", name: "WordCount", value: "", isRelevant: null, category: "Conditions" },
+    { id: "v4", name: "FormatStyle", value: "", isRelevant: null, category: "Instructions" }
   ];
 }
+
+// Legacy function needed for compatibility
+function generateMockVariables() {
+  return generateContextualMockVariables();
+}
+
