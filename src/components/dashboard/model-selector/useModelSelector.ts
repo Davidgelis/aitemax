@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { ModelService } from '@/services/ModelService';
+import { ModelService } from '@/services/model';
 import { useToast } from '@/hooks/use-toast';
 import { AIModel } from '../types';
 

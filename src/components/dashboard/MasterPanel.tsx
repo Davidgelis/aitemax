@@ -15,7 +15,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2, RefreshCw, Edit, Brain } from 'lucide-react';
-import { ModelService } from '@/services/ModelService';
+import { ModelService } from '@/services/model';
 
 const MasterPanel = () => {
   const { models, isLoading, refreshModels, addModel, updateModel, deleteModel } = useModels();
