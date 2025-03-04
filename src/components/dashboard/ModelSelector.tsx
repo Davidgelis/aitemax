@@ -3,6 +3,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
+import { ModelService } from '@/services/ModelService';
 import { 
   Select,
   SelectContent,
@@ -23,6 +26,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
   const [models, setModels] = useState<AIModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
@@ -30,57 +34,22 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
   const fetchModels = async () => {
     try {
       setLoading(true);
-      console.log('Fetching AI models from Supabase...');
+      // Fetch models using ModelService
+      const modelList = await ModelService.fetchModels();
+      setModels(modelList);
       
-      const { data, error } = await supabase
-        .from('ai_models')
-        .select('*')
-        .order('provider')
-        .order('name');
+      // Get unique providers
+      const providerList = await ModelService.getProviders();
+      setProviders(providerList);
       
-      if (error) {
-        throw error;
-      }
+      setLastUpdate(new Date());
+      console.log(`Fetched ${modelList.length} models from ${providerList.length} providers`);
       
-      console.log(`Fetched ${data?.length || 0} models from database`);
+      toast({
+        title: "AI Models Loaded",
+        description: `${modelList.length} AI models from ${providerList.length} providers have been loaded.`,
+      });
       
-      if (data && data.length > 0) {
-        // Create a map to deduplicate models
-        const deduplicatedModels: AIModel[] = [];
-        const modelMap = new Map();
-        
-        // Process models and deduplicate
-        data.forEach((model: AIModel) => {
-          const key = `${model.provider}-${model.name}`;
-          if (!modelMap.has(key)) {
-            modelMap.set(key, true);
-            deduplicatedModels.push(model);
-          }
-        });
-        
-        console.log(`Filtered to ${deduplicatedModels.length} unique models from ${data.length} total`);
-        
-        // Extract unique providers for grouping
-        const uniqueProviders = Array.from(new Set(deduplicatedModels.map(model => model.provider))).sort();
-        setProviders(uniqueProviders);
-        
-        setModels(deduplicatedModels);
-        setLastUpdate(new Date());
-        
-        toast({
-          title: "AI Models Loaded",
-          description: `${deduplicatedModels.length} AI models from ${uniqueProviders.length} providers have been loaded.`,
-        });
-      } else {
-        console.log('No models found in database');
-        setModels([]);
-        setProviders([]);
-        
-        toast({
-          title: "No Models Found",
-          description: "No AI models found in the database.",
-        });
-      }
       setLoading(false);
     } catch (error) {
       console.error('Error fetching AI models:', error);
@@ -92,6 +61,38 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
       setLoading(false);
       setModels([]);
       setProviders([]);
+    }
+  };
+
+  const triggerUpdate = async () => {
+    setIsRefreshing(true);
+    try {
+      toast({
+        title: "Updating Models",
+        description: "Triggering model update from all providers...",
+      });
+      
+      const success = await ModelService.triggerModelUpdate(true);
+      
+      if (success) {
+        // Refresh model data after update
+        await fetchModels();
+      } else {
+        toast({
+          title: "Update Failed",
+          description: "Failed to update models. Check console for errors.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error triggering update:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred during the update process",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -143,26 +144,9 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
 
   const isLoading = loading || isInitializingModels;
 
-  if (isLoading) {
-    return (
-      <div className="w-full max-w-md space-y-2">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium text-[#545454]">AI Model Selection</h3>
-          <div className="text-xs text-[#545454]">
-            {isInitializingModels ? "Initializing models..." : "Loading models..."}
-          </div>
-        </div>
-        <Skeleton className="h-10 w-full" />
-        <div className="mt-4 text-sm text-[#545454] italic">
-          Models are updated automatically every 24 hours
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full space-y-4">
-      <div className="flex justify-between items-center">
+    <div className="w-full">
+      <div className="flex justify-between items-center mb-2">
         <h3 className="text-lg font-medium text-[#545454]">AI Model Selection</h3>
         {lastUpdate && (
           <div className="text-xs text-[#545454]">
@@ -171,69 +155,76 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
         )}
       </div>
       
-      <div className="space-y-2">
-        <Select value={selectedId || ''} onValueChange={handleSelectModel}>
-          <SelectTrigger className="w-full h-10 border-[#545454] text-[#545454]">
-            <SelectValue placeholder="Select an AI model" />
-          </SelectTrigger>
-          <SelectContent className="bg-white">
-            {providers.length === 0 ? (
-              <div className="p-2 text-center text-[#545454]">No models found</div>
-            ) : (
-              providers.map(provider => (
-                <SelectGroup key={provider}>
-                  <SelectLabel className="text-[#545454]">{provider}</SelectLabel>
-                  {modelsByProvider[provider].map(model => (
-                    <SelectItem key={model.id} value={model.id}>
-                      <span className="text-[#545454]">{model.name}</span>
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-      </div>
-      
-      {models.length === 0 && !isLoading && (
-        <div className="p-4 bg-background border border-[#084b49] rounded-md">
-          <p className="text-sm text-[#545454]">
-            No AI models found. Models are updated automatically every 24 hours. Please check back later.
-          </p>
-        </div>
-      )}
-      
-      {selectedId && (
-        <div className="mt-4 p-4 bg-background border border-[#084b49] rounded-md">
-          {models.filter(m => m.id === selectedId).map(model => (
-            <div key={model.id} className="space-y-3">
-              <h3 className="font-medium text-lg text-[#545454]">{model.name}</h3>
-              {model.provider && <p className="text-sm text-[#545454]">Provider: {model.provider}</p>}
-              {model.description && <p className="text-sm text-[#545454]">{model.description}</p>}
-              
-              {model.strengths && model.strengths.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mt-3 mb-1 text-[#545454]">Strengths:</h4>
-                  <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
-                    {model.strengths.map((strength, i) => (
-                      <li key={i}>{strength}</li>
+      {isLoading ? (
+        <Skeleton className="h-10 w-full" />
+      ) : (
+        <div className="space-y-4">
+          <Select value={selectedId || ''} onValueChange={handleSelectModel}>
+            <SelectTrigger className="w-full bg-[#fafafa] border-[#084b49] text-[#545454]">
+              <SelectValue placeholder="Select an AI model" />
+            </SelectTrigger>
+            <SelectContent className="bg-white z-50">
+              {providers.length === 0 ? (
+                <div className="p-2 text-center text-[#545454]">No models found</div>
+              ) : (
+                providers.map(provider => (
+                  <SelectGroup key={provider}>
+                    <SelectLabel className="text-[#545454]">{provider}</SelectLabel>
+                    {modelsByProvider[provider] && modelsByProvider[provider].map(model => (
+                      <SelectItem key={model.id} value={model.id}>
+                        <span className="text-[#545454]">{model.name}</span>
+                      </SelectItem>
                     ))}
-                  </ul>
-                </div>
+                  </SelectGroup>
+                ))
               )}
-              
-              {model.limitations && model.limitations.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mt-3 mb-1 text-[#545454]">Limitations:</h4>
-                  <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
-                    {model.limitations.map((limitation, i) => (
-                      <li key={i}>{limitation}</li>
-                    ))}
-                  </ul>
+            </SelectContent>
+          </Select>
+          
+          <div className="flex justify-end">
+            <Button 
+              onClick={triggerUpdate}
+              disabled={isRefreshing || isLoading} 
+              className="bg-[#084b49] hover:bg-[#033332] text-white"
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh Models
+            </Button>
+          </div>
+          
+          {selectedId && (
+            <div className="mt-4 p-4 bg-background border border-[#084b49] rounded-md">
+              {models.filter(m => m.id === selectedId).map(model => (
+                <div key={model.id} className="space-y-3">
+                  <h3 className="font-medium text-lg text-[#545454]">{model.name}</h3>
+                  {model.provider && <p className="text-sm text-[#545454]">Provider: {model.provider}</p>}
+                  {model.description && <p className="text-sm text-[#545454]">{model.description}</p>}
+                  
+                  {model.strengths && model.strengths.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mt-3 mb-1 text-[#545454]">Strengths:</h4>
+                      <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
+                        {model.strengths.map((strength, i) => (
+                          <li key={i}>{strength}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {model.limitations && model.limitations.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium mt-3 mb-1 text-[#545454]">Limitations:</h4>
+                      <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
+                        {model.limitations.map((limitation, i) => (
+                          <li key={i}>{limitation}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>

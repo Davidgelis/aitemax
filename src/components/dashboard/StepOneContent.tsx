@@ -32,10 +32,12 @@ export const StepOneContent = ({
   setSelectedModel
 }: StepOneContentProps) => {
   return (
-    <div className="space-y-6">
-      <div className="w-full max-w-md">
+    <div className="space-y-6 w-full">
+      <div className="max-w-md w-full mx-auto">
         <ModelSelector onSelect={setSelectedModel} />
       </div>
+      
+      <Separator className="my-4" />
       
       <ToggleSection 
         toggles={primaryToggles} 
