@@ -8,6 +8,7 @@ export interface AIModel {
   strengths: string[];
   limitations: string[];
   is_deleted?: boolean | null;
+  updated_at?: string | null;
 }
 
 export interface Question {
