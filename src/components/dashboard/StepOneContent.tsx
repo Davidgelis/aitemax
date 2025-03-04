@@ -33,41 +33,45 @@ export const StepOneContent = ({
 }: StepOneContentProps) => {
   return (
     <div className="space-y-6 w-full">
-      <div className="w-full max-w-sm mx-auto mb-8">
-        <ModelSelector 
-          onSelect={setSelectedModel} 
-          selectedModel={selectedModel}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div className="md:col-span-6">
+          <ModelSelector 
+            onSelect={setSelectedModel} 
+            selectedModel={selectedModel}
+          />
+          
+          <div className="mt-6">
+            <ToggleSection 
+              toggles={primaryToggles} 
+              selectedToggle={selectedPrimary} 
+              onToggleChange={handlePrimaryToggle} 
+              variant="primary"
+              cols={2}
+            />
+          </div>
+          
+          <div className="mt-6">
+            <ToggleSection 
+              toggles={secondaryToggles} 
+              selectedToggle={selectedSecondary} 
+              onToggleChange={handleSecondaryToggle} 
+              variant="secondary"
+              cols={2}
+            />
+          </div>
+        </div>
+        
+        <div className="md:col-span-6">
+          <PromptEditor 
+            promptText={promptText}
+            setPromptText={setPromptText}
+            onAnalyze={onAnalyze}
+            selectedPrimary={selectedPrimary}
+            selectedSecondary={selectedSecondary}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
-      
-      <Separator className="my-4" />
-      
-      <ToggleSection 
-        toggles={primaryToggles} 
-        selectedToggle={selectedPrimary} 
-        onToggleChange={handlePrimaryToggle} 
-        variant="primary"
-        cols={4}
-      />
-
-      <Separator className="my-4" />
-
-      <ToggleSection 
-        toggles={secondaryToggles} 
-        selectedToggle={selectedSecondary} 
-        onToggleChange={handleSecondaryToggle} 
-        variant="secondary"
-        cols={3}
-      />
-
-      <PromptEditor 
-        promptText={promptText}
-        setPromptText={setPromptText}
-        onAnalyze={onAnalyze}
-        selectedPrimary={selectedPrimary}
-        selectedSecondary={selectedSecondary}
-        isLoading={isLoading}
-      />
     </div>
   );
 };
