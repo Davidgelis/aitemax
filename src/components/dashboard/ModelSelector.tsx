@@ -24,56 +24,40 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
   const { toast } = useToast();
   const [providers, setProviders] = useState<string[]>([]);
 
-  // Handle wheel event for scrolling through models - improved implementation
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
     
-    // Determine direction and make it more responsive
     if (e.deltaY > 0) {
-      // Scrolling down - move to next model
       setActiveIndex(prev => {
         const next = prev >= sortedModels.length - 1 ? 0 : prev + 1;
-        
-        // Auto-select the new model
         if (sortedModels[next]) {
           onSelect(sortedModels[next]);
         }
-        
         return next;
       });
     } else {
-      // Scrolling up - move to previous model
       setActiveIndex(prev => {
         const next = prev <= 0 ? sortedModels.length - 1 : prev - 1;
-        
-        // Auto-select the new model
         if (sortedModels[next]) {
           onSelect(sortedModels[next]);
         }
-        
         return next;
       });
     }
   };
 
-  // Mouse wheel event needs a more forceful approach
   const setupWheelListener = () => {
     const scrollContainer = scrollRef.current;
     
     if (scrollContainer) {
-      // Remove any existing listeners first to avoid duplicates
       scrollContainer.removeEventListener('wheel', handleWheel);
-      
-      // Add the wheel event listener with passive: false to allow preventDefault
       scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
-      
       console.log('Wheel event listener set up on model selector');
     } else {
       console.warn('Could not set up wheel event, container ref is null');
     }
   };
 
-  // Handle keyboard navigation too
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!open) return;
     
@@ -107,17 +91,14 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
   const fetchModels = async () => {
     try {
       setLoading(true);
-      // Fetch models using ModelService
       const modelList = await ModelService.fetchModels();
       setModels(modelList);
       
-      // Get unique providers
       const providerList = await ModelService.getProviders();
       setProviders(providerList);
       
       console.log(`Fetched ${modelList.length} models from ${providerList.length} providers`);
       
-      // Find the index of the currently selected model
       if (selectedModel) {
         const index = modelList.findIndex(model => model.id === selectedModel.id);
         if (index !== -1) {
@@ -144,7 +125,6 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     }
   };
 
-  // Sort models alphabetically
   const sortedModels = useMemo(() => {
     return [...models].sort((a, b) => a.name.localeCompare(b.name));
   }, [models]);
@@ -152,38 +132,29 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
   useEffect(() => {
     fetchModels();
     
-    // Set up a polling interval to check for new models every 24 hours
     const intervalId = setInterval(() => {
       console.log('Checking for model updates (daily polling)');
       fetchModels();
-    }, 86400000); // 24 hours in milliseconds
+    }, 86400000);
     
     return () => clearInterval(intervalId);
   }, []);
 
-  // Refetch models when initialization status changes
   useEffect(() => {
     if (!isInitializingModels && loading) {
       fetchModels();
     }
   }, [isInitializingModels]);
 
-  // Effect for wheel and keyboard events - Greatly improved implementation
   useEffect(() => {
     if (open) {
-      // Set up the wheel event handler when dialog opens
       setupWheelListener();
-      
-      // Add keyboard event listener for navigation
       window.addEventListener('keydown', handleKeyDown);
-      
-      // Focus the container to ensure keyboard events work
       if (scrollRef.current) {
         scrollRef.current.focus();
       }
       
       return () => {
-        // Clean up the event listeners when dialog closes
         if (scrollRef.current) {
           scrollRef.current.removeEventListener('wheel', handleWheel);
         }
@@ -192,31 +163,25 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     }
   }, [open, sortedModels.length]);
 
-  // Setup listeners again if models change
   useEffect(() => {
     if (open) {
       setupWheelListener();
     }
   }, [models, open]);
 
-  // Handle model selection
   const handleSelectModel = (selectedIndex: number) => {
     setActiveIndex(selectedIndex);
     onSelect(sortedModels[selectedIndex]);
     setOpen(false);
   };
 
-  // Handle dialog open/close
   const handleDialogOpen = (isOpen: boolean) => {
     setOpen(isOpen);
     if (isOpen && selectedModel) {
-      // Find the index of the currently selected model
       const index = sortedModels.findIndex(model => model.id === selectedModel.id);
       if (index !== -1) {
         setActiveIndex(index);
       }
-      
-      // Set up wheel event handler after a short delay to ensure the DOM is ready
       setTimeout(() => {
         setupWheelListener();
       }, 100);
@@ -225,11 +190,10 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
 
   const isLoading = loading || isInitializingModels;
 
-  // Get models to display in the carousel/wheel
   const getDisplayModels = () => {
     if (sortedModels.length === 0) return [];
     
-    const displayCount = 5; // Total models to show (1 center + 2 above + 2 below)
+    const displayCount = 5;
     const halfCount = Math.floor(displayCount / 2);
     
     let displayModels = [];
@@ -237,7 +201,6 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     for (let i = -halfCount; i <= halfCount; i++) {
       let index = activeIndex + i;
       
-      // Handle wraparound
       if (index < 0) index = sortedModels.length + index;
       if (index >= sortedModels.length) index = index - sortedModels.length;
       
@@ -282,19 +245,18 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
                 ref={scrollRef}
                 className="relative h-full w-full flex flex-col items-center justify-center cursor-pointer"
                 onClick={(e) => {
-                  // Only close if clicking the container, not a model name
                   if (e.currentTarget === e.target) {
                     setOpen(false);
                   }
                 }}
-                tabIndex={0} // Make it focusable for keyboard navigation
+                tabIndex={0}
                 role="listbox"
                 aria-label="AI Models"
               >
                 {getDisplayModels().map(({ model, position, index }) => (
                   <div
                     key={`${model.id}-${position}`}
-                    className={`absolute transition-all duration-500 ease-out select-none`}
+                    className={`absolute transition-all duration-700 ease-in-out select-none`}
                     style={{
                       transform: `translateY(${position * 60}px) scale(${1 - Math.abs(position) * 0.15})`,
                       opacity: 1 - Math.abs(position) * 0.25,
@@ -305,11 +267,14 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
                     aria-selected={position === 0}
                   >
                     <div
-                      className={`text-center px-6 py-2 whitespace-nowrap transition-all duration-500`}
+                      className={`text-center px-6 py-2 whitespace-nowrap transition-all duration-700`}
                       style={{
                         color: position === 0 ? '#33fea6' : '#b2b2b2',
                         fontSize: position === 0 ? '1.875rem' : '1.25rem',
-                        fontWeight: position === 0 ? 500 : 400
+                        fontWeight: 600,
+                        letterSpacing: position === 0 ? '0.5px' : 'normal',
+                        transform: `scale(${position === 0 ? 1.05 : 1})`,
+                        filter: position === 0 ? 'drop-shadow(0 0 8px rgba(51, 254, 166, 0.5))' : 'none'
                       }}
                     >
                       {model.name}
