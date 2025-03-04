@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -295,7 +294,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
                 {getDisplayModels().map(({ model, position, index }) => (
                   <div
                     key={`${model.id}-${position}`}
-                    className={`absolute transition-all duration-300 ease-in-out select-none`}
+                    className={`absolute transition-all duration-500 ease-out select-none`}
                     style={{
                       transform: `translateY(${position * 60}px) scale(${1 - Math.abs(position) * 0.15})`,
                       opacity: 1 - Math.abs(position) * 0.25,
@@ -306,23 +305,17 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
                     aria-selected={position === 0}
                   >
                     <div
-                      className={`text-center px-6 py-2 whitespace-nowrap transition-all ${
-                        position === 0 
-                          ? 'text-[#33fea6] font-medium text-3xl'
-                          : 'text-[#545454]/90 text-xl'
-                      }`}
+                      className={`text-center px-6 py-2 whitespace-nowrap transition-all duration-500`}
+                      style={{
+                        color: position === 0 ? '#33fea6' : '#b2b2b2',
+                        fontSize: position === 0 ? '1.875rem' : '1.25rem',
+                        fontWeight: position === 0 ? 500 : 400
+                      }}
                     >
                       {model.name}
                     </div>
                   </div>
                 ))}
-                
-                {/* Add visual indicator for scroll */}
-                <div className="absolute bottom-6 left-0 right-0 flex justify-center opacity-50 pointer-events-none">
-                  <div className="text-sm text-white">
-                    Scroll to navigate
-                  </div>
-                </div>
               </div>
             </DialogContent>
           </Dialog>
