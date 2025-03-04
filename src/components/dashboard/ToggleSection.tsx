@@ -22,7 +22,7 @@ export const ToggleSection = ({
           key={item.id} 
           className="flex items-center justify-between py-1.5 px-3 border rounded-lg bg-card flex-1"
         >
-          <span className="text-sm text-card-foreground flex flex-col items-center">
+          <span className="text-sm text-card-foreground flex flex-col items-start">
             {item.label.split(" ").map((word, index) => (
               <span key={index} className="leading-tight">{word}</span>
             ))}
