@@ -1,6 +1,6 @@
 
 import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText } from "lucide-react";
-import { Sidebar, SidebarContent } from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,10 @@ export const UserSidebar = ({
   return (
     <Sidebar side="right">
       <SidebarContent>
+        <div className="p-3 flex justify-end border-b">
+          <SidebarTrigger className="bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
+        </div>
+        
         <div className="p-4 flex items-center justify-between border-b">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">

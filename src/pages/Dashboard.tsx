@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AIModel } from "@/components/dashboard/types";
 import { UserSidebar } from "@/components/dashboard/UserSidebar";
 import { StepController } from "@/components/dashboard/StepController";
@@ -200,10 +200,6 @@ const Dashboard = () => {
           handleDuplicatePrompt={promptState.handleDuplicatePrompt}
           handleRenamePrompt={promptState.handleRenamePrompt}
         />
-
-        <div className="absolute top-6 right-6 z-50">
-          <SidebarTrigger className="bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
-        </div>
       </div>
     </SidebarProvider>
   );
