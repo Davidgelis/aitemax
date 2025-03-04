@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useModels } from "@/context/ModelContext";
@@ -33,7 +32,6 @@ const MasterPanel = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // Check if current user is the master user
   useEffect(() => {
     const checkMasterUser = async () => {
       try {
@@ -125,40 +123,42 @@ const MasterPanel = () => {
     
     try {
       setIsDeleting(true);
-      console.log(`Starting deletion process for model: ${deleteConfirmModel.id}`);
+      console.log(`MasterPanel: Starting deletion process for model: ${deleteConfirmModel.id}`);
+      
+      const modelName = deleteConfirmModel.name;
+      const modelId = deleteConfirmModel.id;
       
       try {
-        // Attempt to delete the model
-        const result = await deleteModel(deleteConfirmModel.id);
+        const result = await deleteModel(modelId);
         
         if (result) {
-          console.log("Delete operation reported success");
+          console.log(`MasterPanel: Delete operation succeeded for model ${modelId}`);
           
-          // Close the dialog
           setIsDeleteConfirmOpen(false);
           setDeleteConfirmModel(null);
           
-          // Force refresh the model list to ensure UI is updated
           await refreshModels();
           
           toast({
             title: "Model Deleted",
-            description: "AI model has been successfully removed from the database",
+            description: `Model "${modelName}" has been successfully removed`,
           });
         } else {
-          throw new Error("Delete operation failed");
+          throw new Error("Delete operation returned false");
         }
       } catch (error) {
-        console.error('Delete operation error:', error);
+        console.error('MasterPanel: Delete operation error:', error);
         const errorMessage = error instanceof Error 
           ? error.message 
-          : 'Unknown deletion error';
+          : 'The database has not been updated';
         
         toast({
           title: "Deletion Failed",
           description: `Could not delete model: ${errorMessage}`,
           variant: "destructive"
         });
+        
+        await refreshModels();
       }
     } finally {
       setIsDeleting(false);
@@ -331,7 +331,6 @@ const MasterPanel = () => {
         </div>
       )}
 
-      {/* Edit Model Dialog */}
       <Dialog open={isEditModelOpen} onOpenChange={setIsEditModelOpen}>
         <DialogContent className="max-w-lg bg-white">
           <DialogHeader>
@@ -380,7 +379,6 @@ const MasterPanel = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
         <DialogContent className="max-w-md bg-white">
           <DialogHeader>

@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { AIModel } from "@/components/dashboard/types";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
 
 export const ModelService = {
@@ -192,9 +192,9 @@ export const ModelService = {
   
   async deleteModel(id: string): Promise<boolean> {
     try {
-      console.log(`Attempting to delete model with ID: ${id} from Supabase`);
+      console.log(`ModelService: Deleting model with ID: ${id}`);
       
-      // Direct deletion - simplified approach to minimize errors
+      // Simple, direct deletion approach
       const { error } = await supabase
         .from('ai_models')
         .delete()
@@ -205,30 +205,30 @@ export const ModelService = {
         throw new Error(`Database error: ${error.message}`);
       }
       
-      // Double-check deletion success using a small delay to allow for database propagation
+      console.log(`ModelService: Successfully deleted model ${id} from database`);
+      
+      // Verify the deletion after a short delay to allow for database propagation
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      const checkModel = await this.getModelById(id);
-      if (checkModel) {
-        console.error(`Verification failed: Model ${id} still exists after delete operation`);
-        throw new Error("Deletion verification failed");
+      const { data, error: checkError } = await supabase
+        .from('ai_models')
+        .select('id')
+        .eq('id', id)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error('Error verifying deletion:', checkError);
       }
       
-      console.log(`Model ${id} successfully deleted from database`);
+      if (data) {
+        console.error(`Verification failed: Model ${id} still exists after delete operation`);
+        return false;
+      }
+      
       return true;
     } catch (error) {
       console.error('Exception in deleteModel:', error);
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : 'Unknown error deleting model';
-      
-      toast({
-        title: "Error Deleting Model",
-        description: `Failed to delete AI model: ${errorMessage}`,
-        variant: "destructive"
-      });
-      
-      throw error;
+      throw error; // Let the calling code handle the error
     }
   }
 };

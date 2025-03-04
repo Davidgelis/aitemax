@@ -152,19 +152,26 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       console.log(`ModelContext: Initiating model deletion for ID: ${id}`);
       
-      // Attempt to delete from the database
+      // Direct approach - call the service to delete from the database
       let success = false;
+      
       try {
+        // Attempt to delete directly using the service
         success = await ModelService.deleteModel(id);
+        
+        if (!success) {
+          console.log(`ModelContext: Model ${id} deletion failed from service`);
+          return false;
+        }
       } catch (error) {
         console.error('Error from ModelService.deleteModel:', error);
         throw error; // Re-throw to handle in the outer catch
       }
       
+      console.log(`ModelContext: Model ${id} deleted successfully from database`);
+      
       // Only update local state if confirmed the deletion happened in database
       if (success) {
-        console.log(`ModelContext: Model ${id} deletion confirmed, updating UI state`);
-        
         // Update models list by filtering out the deleted model
         setModels(prev => prev.filter(m => m.id !== id));
         
@@ -176,7 +183,6 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return true;
       }
       
-      console.log(`ModelContext: Model ${id} deletion failed`);
       return false;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error deleting model';
