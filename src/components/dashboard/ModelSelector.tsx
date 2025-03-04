@@ -25,7 +25,6 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { toast } = useToast();
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
 
   const fetchModels = async () => {
@@ -39,7 +38,6 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
       const providerList = await ModelService.getProviders();
       setProviders(providerList);
       
-      setLastUpdate(new Date());
       console.log(`Fetched ${modelList.length} models from ${providerList.length} providers`);
       
       toast({
@@ -97,29 +95,10 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
     onSelect(model || null);
   };
 
-  // Format date for display 
-  const formatUpdateTime = (date: Date) => {
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   const isLoading = loading || isInitializingModels;
 
   return (
-    <div className="w-full">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="text-lg font-medium text-[#545454]">AI Model Selection</h3>
-        {lastUpdate && (
-          <div className="text-xs text-[#545454]">
-            Last updated: {formatUpdateTime(lastUpdate)}
-          </div>
-        )}
-      </div>
-      
+    <div className="w-[60%] ml-0">
       {isLoading ? (
         <Skeleton className="h-10 w-full" />
       ) : (
@@ -184,4 +163,3 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
     </div>
   );
 };
-
