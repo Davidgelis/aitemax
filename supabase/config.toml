@@ -3,3 +3,6 @@ project_id = "xyfwsmblaayznplurmfa"
 
 [functions.analyze-prompt]
 verify_jwt = false
+
+[functions.update-ai-models]
+verify_jwt = false

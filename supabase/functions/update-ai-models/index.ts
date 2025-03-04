@@ -48,18 +48,27 @@ const fallbackModels = [
 ];
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     console.log('Starting AI models update process');
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase credentials');
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('Supabase client initialized');
 
-    // Check if we already have models in the database
+    // First check - do we already have models in the database?
+    // If so, we'll skip the update unless forced
     const { data: existingModels, error: checkError } = await supabase
       .from('ai_models')
       .select('id')
@@ -67,13 +76,17 @@ serve(async (req) => {
     
     if (checkError) {
       console.error('Error checking existing models:', checkError);
+      throw new Error(`Database error: ${checkError.message}`);
     }
     
     const hasExistingModels = existingModels && existingModels.length > 0;
     console.log(`Database has existing models: ${hasExistingModels}`);
     
-    // Skip update if we already have models and request doesn't force update
+    // Only proceed with update if:
+    // 1. No models exist in database, OR
+    // 2. We're explicitly forcing an update
     const forceUpdate = req.method === 'POST' && req.headers.get('X-Force-Update') === 'true';
+    
     if (hasExistingModels && !forceUpdate) {
       console.log('Models already exist and no force update requested - skipping update');
       return new Response(JSON.stringify({ 
@@ -82,28 +95,37 @@ serve(async (req) => {
         skipped: true
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
       });
     }
 
+    // Proceed with getting model data, either from OpenAI or fallback
     let modelsData;
+    
     try {
-      console.log('Fetching AI model data from OpenAI');
+      console.log('Fetching AI model data from OpenAI GPT-4o');
+      const openaiKey = Deno.env.get('OPENAI_API_KEY');
+      
+      if (!openaiKey) {
+        throw new Error('OpenAI API key is not configured');
+      }
+      
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          'Authorization': `Bearer ${openaiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',
-              content: 'You are an AI expert who keeps track of the latest AI models.'
+              content: 'You are an AI expert who keeps track of the latest AI models. You have access to the web to look up current information about the most used LLM models as of today.'
             },
             {
               role: 'user',
-              content: 'Return a JSON array of the top 15 most used LLM models with their details. Each model should have name, provider, description, strengths (array), and limitations (array). Return ONLY valid JSON with no explanation or markdown.'
+              content: 'Return a JSON array of the top 15 most used LLM models with their details. For each model include: name, provider, description, strengths (array), and limitations (array). Include diverse models from different providers like OpenAI, Anthropic, Google, Meta, etc. Return ONLY valid JSON with no explanation or markdown formatting.'
             }
           ],
           response_format: { type: "json_object" }
@@ -127,7 +149,7 @@ serve(async (req) => {
       console.log('Parsing model data');
       try {
         const content = data.choices[0].message.content;
-        console.log('Raw content:', content);
+        console.log('Raw content from OpenAI:', content.substring(0, 200) + '...');
         
         const parsedData = JSON.parse(content);
         if (parsedData.models && Array.isArray(parsedData.models)) {
@@ -197,6 +219,7 @@ serve(async (req) => {
       insertedModels: insertedCount 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
     });
   } catch (error) {
     console.error('Error updating AI models:', error);

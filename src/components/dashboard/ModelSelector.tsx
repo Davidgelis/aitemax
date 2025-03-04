@@ -49,9 +49,13 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
         setModels(data);
         setFilteredModels(data);
         setLastUpdate(new Date());
+        setLoading(false);
       } else {
-        console.log('No models found, attempting to trigger update');
-        await triggerModelUpdate();
+        console.log('No models found in database, checking again in a few seconds');
+        // If no models yet, wait 5 seconds and try again
+        setTimeout(() => {
+          fetchModels();
+        }, 5000);
       }
     } catch (error) {
       console.error('Error fetching AI models:', error);
@@ -60,47 +64,7 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
         description: "Could not load AI models. Please try again later.",
         variant: "destructive"
       });
-    } finally {
       setLoading(false);
-    }
-  };
-
-  const triggerModelUpdate = async () => {
-    try {
-      setIsUpdating(true);
-      console.log('Invoking update-ai-models Edge Function...');
-      
-      const { data, error } = await supabase.functions.invoke('update-ai-models', {
-        method: 'POST',
-        headers: {
-          'X-Force-Update': 'true'
-        }
-      });
-      
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to update AI models');
-      }
-      
-      console.log('Edge function response:', data);
-      
-      toast({
-        title: "Models updated",
-        description: "AI models have been refreshed.",
-      });
-      
-      // Re-fetch the models after update
-      await fetchModels();
-      
-    } catch (error) {
-      console.error('Error updating models:', error);
-      toast({
-        title: "Update failed",
-        description: error instanceof Error ? error.message : "Failed to update AI models",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(false);
     }
   };
 
@@ -157,6 +121,9 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
         </div>
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-full" />
+        <div className="mt-4 text-sm text-[#545454] italic">
+          Models are updated automatically every 24 hours
+        </div>
       </div>
     );
   }
@@ -212,6 +179,15 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
           </SelectContent>
         </Select>
       </div>
+      
+      {filteredModels.length === 0 && !loading && (
+        <div className="p-4 bg-background border border-[#084b49] rounded-md">
+          <p className="text-sm text-[#545454]">
+            The AI model database is currently being populated. This happens automatically every 24 hours.
+            Please check back in a few moments.
+          </p>
+        </div>
+      )}
       
       {selectedId && (
         <div className="mt-4 p-4 bg-background border border-[#084b49] rounded-md">
