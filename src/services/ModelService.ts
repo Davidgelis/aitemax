@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { AIModel } from "@/components/dashboard/types";
 import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
@@ -10,6 +9,7 @@ export const ModelService = {
       const { data, error } = await supabase
         .from('ai_models')
         .select('*')
+        .is('is_deleted', null)  // Only fetch models that are not marked as deleted
         .order('provider')
         .order('name');
       
@@ -27,6 +27,7 @@ export const ModelService = {
         const retryResult = await supabase
           .from('ai_models')
           .select('*')
+          .is('is_deleted', null)  // Also filter here
           .order('provider')
           .order('name');
           
@@ -54,6 +55,7 @@ export const ModelService = {
         .from('ai_models')
         .select('*')
         .eq('id', id)
+        .is('is_deleted', null)  // Only get models that are not deleted
         .maybeSingle();
       
       if (error) {
@@ -96,6 +98,7 @@ export const ModelService = {
       const { data, error } = await supabase
         .from('ai_models')
         .select('provider')
+        .is('is_deleted', null)  // Only include non-deleted models
         .order('provider');
       
       if (error) {
@@ -116,7 +119,8 @@ export const ModelService = {
     try {
       const { data, error } = await supabase
         .from('ai_models')
-        .select('provider');
+        .select('provider')
+        .is('is_deleted', null);  // Only count non-deleted models
       
       if (error) {
         console.error('Error fetching model counts:', error);
