@@ -151,9 +151,12 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteModel = async (id: string): Promise<boolean> => {
     try {
       console.log(`Deleting model with ID: ${id}`);
+      
+      // Attempt to delete the model from the database
       const success = await ModelService.deleteModel(id);
       
       if (success) {
+        // If successfully deleted from database, update local state
         setModels(prev => prev.filter(m => m.id !== id));
         
         // If the deleted model is the currently selected model, reset it
@@ -167,6 +170,7 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
         return true;
       }
+      
       return false;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error deleting model';

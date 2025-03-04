@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useModels } from "@/context/ModelContext";
@@ -29,6 +30,8 @@ const MasterPanel = () => {
   const [isMasterUser, setIsMasterUser] = useState(false);
   const [deleteConfirmModel, setDeleteConfirmModel] = useState<AIModel | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Check if current user is the master user
   useEffect(() => {
@@ -110,6 +113,7 @@ const MasterPanel = () => {
     try {
       if (!deleteConfirmModel) return;
       
+      setIsDeleting(true);
       console.log("Attempting to delete model:", deleteConfirmModel.id);
       const success = await deleteModel(deleteConfirmModel.id);
 
@@ -128,14 +132,32 @@ const MasterPanel = () => {
       console.error('Error deleting model:', error);
       toast({
         title: "Error",
-        description: "Failed to delete AI model",
+        description: "Failed to delete AI model. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const handleRefreshModels = async () => {
-    await refreshModels();
+    try {
+      setIsRefreshing(true);
+      await refreshModels();
+      toast({
+        title: "Models Refreshed",
+        description: "AI models have been successfully refreshed.",
+      });
+    } catch (error) {
+      console.error('Error refreshing models:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh AI models. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   if (!isMasterUser) {
@@ -149,10 +171,11 @@ const MasterPanel = () => {
         <div className="flex gap-2">
           <Button 
             onClick={handleRefreshModels} 
-            disabled={isLoading}
+            disabled={isLoading || isRefreshing}
             className="bg-[#084b49] hover:bg-[#084b49]/90 text-white"
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh Models
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} /> 
+            {isRefreshing ? 'Refreshing...' : 'Refresh Models'}
           </Button>
           <Dialog open={isAddModelOpen} onOpenChange={setIsAddModelOpen}>
             <DialogTrigger asChild>
@@ -349,6 +372,7 @@ const MasterPanel = () => {
               variant="outline" 
               onClick={() => setIsDeleteConfirmOpen(false)}
               className="border-gray-300 text-[#545454]"
+              disabled={isDeleting}
             >
               Cancel
             </Button>
@@ -356,8 +380,9 @@ const MasterPanel = () => {
               type="button" 
               onClick={handleDeleteModel}
               className="bg-red-500 hover:bg-red-600 text-white"
+              disabled={isDeleting}
             >
-              Delete Model
+              {isDeleting ? 'Deleting...' : 'Delete Model'}
             </Button>
           </DialogFooter>
         </DialogContent>

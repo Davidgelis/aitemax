@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { AIModel } from "@/components/dashboard/types";
 import { toast } from "@/hooks/use-toast";
@@ -142,6 +143,7 @@ export const ModelService = {
   
   async addModel(model: Partial<AIModel>): Promise<AIModel | null> {
     try {
+      console.log('Adding new model:', model);
       const { data, error } = await supabase
         .from('ai_models')
         .insert({
@@ -155,6 +157,7 @@ export const ModelService = {
         throw error;
       }
       
+      console.log('Model added successfully:', data[0]);
       return data[0] as AIModel;
     } catch (error) {
       console.error('Exception in addModel:', error);
@@ -164,6 +167,7 @@ export const ModelService = {
   
   async updateModel(id: string, model: Partial<AIModel>): Promise<boolean> {
     try {
+      console.log(`Updating model with ID ${id}:`, model);
       const { error } = await supabase
         .from('ai_models')
         .update({
@@ -177,6 +181,7 @@ export const ModelService = {
         throw error;
       }
       
+      console.log(`Model ${id} updated successfully`);
       return true;
     } catch (error) {
       console.error('Exception in updateModel:', error);
@@ -187,17 +192,18 @@ export const ModelService = {
   async deleteModel(id: string): Promise<boolean> {
     try {
       console.log(`Attempting to delete model with ID: ${id}`);
+      
       const { error } = await supabase
         .from('ai_models')
         .delete()
         .eq('id', id);
       
       if (error) {
-        console.error('Error deleting model:', error);
+        console.error('Error deleting model from Supabase:', error);
         throw error;
       }
       
-      console.log(`Successfully deleted model with ID: ${id}`);
+      console.log(`Successfully deleted model with ID: ${id} from database`);
       return true;
     } catch (error) {
       console.error('Exception in deleteModel:', error);
