@@ -192,7 +192,10 @@ export const ModelService = {
       // This ensures the edge function won't recreate it
       const { error: markError } = await supabase
         .from('ai_models')
-        .update({ is_deleted: true })
+        .update({ 
+          updated_at: new Date().toISOString(),
+          is_deleted: true 
+        })
         .eq('id', id);
         
       if (markError) {

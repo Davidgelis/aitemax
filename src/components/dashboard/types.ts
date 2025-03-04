@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface AIModel {
@@ -8,6 +7,7 @@ export interface AIModel {
   description: string;
   strengths: string[];
   limitations: string[];
+  is_deleted?: boolean | null;
 }
 
 export interface Question {
