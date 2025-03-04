@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 interface ModelUpdateResponse {
+  success: boolean;
   data?: {
     message?: string;
     success?: boolean;
@@ -24,7 +25,7 @@ export const triggerInitialModelUpdate = async () => {
       setTimeout(() => reject(new Error('Function timed out after 20 seconds')), 20000);
     });
     
-    const functionPromise = supabase.functions.invoke<ModelUpdateResponse>('update-ai-models', {
+    const functionPromise = supabase.functions.invoke<any>('update-ai-models', {
       method: 'POST',
       headers: {
         'X-Force-Update': 'true'
