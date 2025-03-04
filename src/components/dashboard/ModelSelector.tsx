@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -6,9 +5,10 @@ import { useToast } from '@/hooks/use-toast';
 import { ModelService } from '@/services/ModelService';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Laptop } from 'lucide-react';
+import { Laptop, HelpCircle } from 'lucide-react';
 import { AIModel } from './types';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ModelSelectorProps {
   onSelect: (model: AIModel | null) => void;
@@ -60,7 +60,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
       setIsTransitioning(false);
       setScrollDirection(null);
       setIsAnimating(false);
-    }, 700); // Match this with CSS transition duration
+    }, 700);
   };
 
   const setupWheelListener = () => {
@@ -184,12 +184,10 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
       setupWheelListener();
       window.addEventListener('keydown', handleKeyDown);
       
-      // Set focus to the container for keyboard control
       if (scrollRef.current) {
         scrollRef.current.focus();
       }
       
-      // Setup the wheel event listeners immediately after opening
       setTimeout(() => {
         setupWheelListener();
       }, 100);
@@ -216,7 +214,6 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     setIsAnimating(false);
     
     if (isOpen) {
-      // When opening the dialog, set the active index to match the currently selected model
       if (selectedModel) {
         const index = sortedModels.findIndex(model => model.id === selectedModel.id);
         if (index !== -1) {
@@ -224,7 +221,6 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
         }
       }
       
-      // Setup the wheel listener after a short delay to ensure the component is mounted
       setTimeout(() => {
         setupWheelListener();
       }, 100);
@@ -277,22 +273,77 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     return 'transition-all duration-700 ease-in-out transform';
   };
 
+  const ModelInfoTooltip = ({ model }: { model: AIModel }) => (
+    <TooltipProvider>
+      <Tooltip delayDuration={300}>
+        <TooltipTrigger asChild>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="ml-2 p-0 h-5 w-5 hover:bg-transparent"
+            aria-label={`Information about ${model.name}`}
+          >
+            <HelpCircle className="h-5 w-5 text-[#084b49]" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent 
+          side="right" 
+          align="start" 
+          className="max-w-sm bg-white border border-[#084b49] p-4 rounded-md shadow-md"
+        >
+          <div className="space-y-3">
+            {model.provider && <p className="text-sm text-[#545454]"><span className="font-medium">Provider:</span> {model.provider}</p>}
+            {model.description && <p className="text-sm text-[#545454]">{model.description}</p>}
+            
+            {model.strengths && model.strengths.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-1 text-[#545454]">Strengths:</h4>
+                <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
+                  {model.strengths.map((strength, i) => (
+                    <li key={i}>{strength}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {model.limitations && model.limitations.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mt-2 mb-1 text-[#545454]">Limitations:</h4>
+                <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
+                  {model.limitations.map((limitation, i) => (
+                    <li key={i}>{limitation}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+
   return (
     <div className="w-full mr-auto">
       {isLoading ? (
         <Skeleton className="h-10 w-full" />
       ) : (
         <div>
-          <Button 
-            onClick={() => handleDialogOpen(true)}
-            className="w-full h-10 bg-[#fafafa] border border-[#084b49] text-[#545454] hover:bg-[#f0f0f0] flex justify-between items-center"
-            variant="outline"
-          >
-            <span className="truncate">
-              {selectedModel ? selectedModel.name : "Select AI model"}
-            </span>
-            <Laptop className="ml-2 h-4 w-4 text-[#084b49]" />
-          </Button>
+          <div className="flex items-center">
+            <Button 
+              onClick={() => handleDialogOpen(true)}
+              className="w-full h-10 bg-[#fafafa] border border-[#084b49] text-[#545454] hover:bg-[#f0f0f0] flex justify-between items-center"
+              variant="outline"
+            >
+              <span className="truncate">
+                {selectedModel ? selectedModel.name : "Select AI model"}
+              </span>
+              <Laptop className="ml-2 h-4 w-4 text-[#084b49]" />
+            </Button>
+            
+            {selectedModel && (
+              <ModelInfoTooltip model={selectedModel} />
+            )}
+          </div>
           
           <Dialog open={open} onOpenChange={handleDialogOpen}>
             <DialogContent 
@@ -353,38 +404,6 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
               </div>
             </DialogContent>
           </Dialog>
-          
-          {selectedModel && (
-            <div className="mt-4 p-4 bg-background border border-[#084b49] rounded-md">
-              <div className="space-y-3">
-                <h3 className="font-medium text-lg text-[#545454]">{selectedModel.name}</h3>
-                {selectedModel.provider && <p className="text-sm text-[#545454]">Provider: {selectedModel.provider}</p>}
-                {selectedModel.description && <p className="text-sm text-[#545454]">{selectedModel.description}</p>}
-                
-                {selectedModel.strengths && selectedModel.strengths.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium mt-3 mb-1 text-[#545454]">Strengths:</h4>
-                    <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
-                      {selectedModel.strengths.map((strength, i) => (
-                        <li key={i}>{strength}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                
-                {selectedModel.limitations && selectedModel.limitations.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium mt-3 mb-1 text-[#545454]">Limitations:</h4>
-                    <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
-                      {selectedModel.limitations.map((limitation, i) => (
-                        <li key={i}>{limitation}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
