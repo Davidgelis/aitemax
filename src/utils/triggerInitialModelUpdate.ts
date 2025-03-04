@@ -18,11 +18,11 @@ interface ModelUpdateResponse {
 // This function can be called to trigger the AI model update
 export const triggerInitialModelUpdate = async (): Promise<ModelUpdateResponse> => {
   try {
-    console.log('Triggering AI model update with enhanced data...');
+    console.log('Triggering AI model update with expanded provider coverage...');
     
     // Add a timeout to avoid hanging the UI if the function doesn't respond
     const timeoutPromise = new Promise<ModelUpdateResponse>((_, reject) => {
-      setTimeout(() => reject(new Error('Function timed out after 20 seconds')), 20000);
+      setTimeout(() => reject(new Error('Function timed out after 30 seconds')), 30000);
     });
     
     const functionPromise = supabase.functions.invoke('update-ai-models', {
@@ -40,27 +40,39 @@ export const triggerInitialModelUpdate = async (): Promise<ModelUpdateResponse> 
       return { success: false, error: result.error };
     }
     
-    console.log('Enhanced model update response:', result.data);
+    console.log('Expanded model update response:', result.data);
     
     // Check if any errors occurred during insertion
     if (result.data?.errors && result.data.errors.length > 0) {
-      console.warn('Some enhanced models failed to insert:', result.data.errors);
+      console.warn('Some models failed to insert:', result.data.errors);
+    }
+    
+    // Include provider information in response
+    if (result.data?.insertedModels) {
+      console.log(`Successfully inserted ${result.data.insertedModels} models from multiple providers`);
     }
     
     return { success: true, data: result.data };
   } catch (e: any) {
-    console.error('Exception triggering enhanced model update:', e);
+    console.error('Exception triggering model update:', e);
     
     // Check if models exist despite the error, to avoid repeated failed attempts
     try {
       const { data, error } = await supabase
         .from('ai_models')
-        .select('id')
-        .limit(1);
+        .select('id, provider')
+        .limit(10);
         
       if (!error && data && data.length > 0) {
-        console.log('Models already exist despite function error');
-        return { success: true, data: { message: 'Models already exist, using existing data' } };
+        const providers = new Set(data.map(model => model.provider));
+        console.log(`Models already exist from ${providers.size} providers despite function error`);
+        return { 
+          success: true, 
+          data: { 
+            message: 'Models already exist, using existing data',
+            providers: Array.from(providers) 
+          } 
+        };
       } else {
         console.log('No models found in database after error');
       }

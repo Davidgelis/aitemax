@@ -25,30 +25,31 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { toast } = useToast();
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [providers, setProviders] = useState<string[]>([]);
 
   const fetchModels = async () => {
     try {
       setLoading(true);
       console.log('Fetching AI models from Supabase...');
-      // Fetch models and deduplicate by name and provider
-      // This ensures we don't show duplicates in the UI
+      
       const { data, error } = await supabase
         .from('ai_models')
         .select('*')
+        .order('provider')
         .order('name');
       
       if (error) {
         throw error;
       }
       
-      console.log(`Fetched ${data.length} models from database`);
-      
-      // Deduplicate models based on name and provider
-      // This ensures we only show one of each model in the dropdown
-      const uniqueModels: AIModel[] = [];
-      const modelMap = new Map();
+      console.log(`Fetched ${data?.length || 0} models from database`);
       
       if (data && data.length > 0) {
+        // Create a map to deduplicate models
+        const uniqueModels: AIModel[] = [];
+        const modelMap = new Map();
+        
+        // Process models and deduplicate
         data.forEach((model: AIModel) => {
           const key = `${model.name}-${model.provider}`;
           if (!modelMap.has(key)) {
@@ -58,16 +59,22 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
         });
         
         console.log(`Filtered to ${uniqueModels.length} unique models`);
+        
+        // Extract unique providers for grouping
+        const uniqueProviders = Array.from(new Set(uniqueModels.map(model => model.provider))).sort();
+        setProviders(uniqueProviders);
+        
         setModels(uniqueModels);
         setLastUpdate(new Date());
         
         toast({
           title: "AI Models Loaded",
-          description: `${uniqueModels.length} unique models have been loaded.`,
+          description: `${uniqueModels.length} AI models from ${uniqueProviders.length} providers have been loaded.`,
         });
       } else {
         console.log('No models found in database');
         setModels([]);
+        setProviders([]);
         
         toast({
           title: "No Models Found",
@@ -84,6 +91,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
       });
       setLoading(false);
       setModels([]);
+      setProviders([]);
     }
   };
 
@@ -158,31 +166,22 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
             <SelectValue placeholder="Select an AI model" />
           </SelectTrigger>
           <SelectContent className="bg-white">
-            <SelectGroup>
-              <SelectLabel className="text-[#545454]">AI Models</SelectLabel>
-              {models.length === 0 ? (
-                <div className="p-2 text-center text-[#545454]">No models found</div>
-              ) : (
-                // Sort models by provider to group them nicely in the dropdown
-                models
-                  .sort((a, b) => {
-                    if (a.provider !== b.provider) {
-                      return a.provider.localeCompare(b.provider);
-                    }
-                    return a.name.localeCompare(b.name);
-                  })
-                  .map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      <div className="flex items-center">
+            {providers.length === 0 ? (
+              <div className="p-2 text-center text-[#545454]">No models found</div>
+            ) : (
+              providers.map(provider => (
+                <SelectGroup key={provider}>
+                  <SelectLabel className="text-[#545454]">{provider}</SelectLabel>
+                  {models
+                    .filter(model => model.provider === provider)
+                    .map(model => (
+                      <SelectItem key={model.id} value={model.id}>
                         <span className="text-[#545454]">{model.name}</span>
-                        {model.provider && (
-                          <span className="ml-2 text-xs text-[#545454]">({model.provider})</span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))
-              )}
-            </SelectGroup>
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
+              ))
+            )}
           </SelectContent>
         </Select>
       </div>
