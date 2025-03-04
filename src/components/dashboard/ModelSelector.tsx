@@ -3,8 +3,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
 import { ModelService } from '@/services/ModelService';
 import { 
   Select,
@@ -26,7 +24,6 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
   const [models, setModels] = useState<AIModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
@@ -61,38 +58,6 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
       setLoading(false);
       setModels([]);
       setProviders([]);
-    }
-  };
-
-  const triggerUpdate = async () => {
-    setIsRefreshing(true);
-    try {
-      toast({
-        title: "Updating Models",
-        description: "Triggering model update from all providers...",
-      });
-      
-      const success = await ModelService.triggerModelUpdate(true);
-      
-      if (success) {
-        // Refresh model data after update
-        await fetchModels();
-      } else {
-        toast({
-          title: "Update Failed",
-          description: "Failed to update models. Check console for errors.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error triggering update:', error);
-      toast({
-        title: "Error",
-        description: "An error occurred during the update process",
-        variant: "destructive"
-      });
-    } finally {
-      setIsRefreshing(false);
     }
   };
 
@@ -181,17 +146,6 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
             </SelectContent>
           </Select>
           
-          <div className="flex justify-end">
-            <Button 
-              onClick={triggerUpdate}
-              disabled={isRefreshing || isLoading} 
-              className="bg-[#084b49] hover:bg-[#033332] text-white"
-            >
-              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh Models
-            </Button>
-          </div>
-          
           {selectedId && (
             <div className="mt-4 p-4 bg-background border border-[#084b49] rounded-md">
               {models.filter(m => m.id === selectedId).map(model => (
@@ -230,3 +184,4 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
     </div>
   );
 };
+
