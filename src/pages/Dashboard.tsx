@@ -3,33 +3,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useToast } from "@/hooks/use-toast";
 
-// Custom hooks
-import { usePromptState } from "@/hooks/usePromptState";
-import { usePromptAnalysis } from "@/hooks/usePromptAnalysis";
-import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
-import { usePromptOperations } from "@/hooks/usePromptOperations";
-
-// Custom components
-import { LoadingState } from "@/components/dashboard/LoadingState";
-import { StepIndicator } from "@/components/dashboard/StepIndicator";
-import { FinalPrompt } from "@/components/dashboard/FinalPrompt";
-import { UserSidebar } from "@/components/dashboard/UserSidebar";
-import { StepOne } from "@/components/dashboard/StepOne";
-import { StepTwo } from "@/components/dashboard/StepTwo";
-import { ModelSelector } from "@/components/dashboard/ModelSelector";
+interface AIModel {
+  id: string;
+  name: string;
+  provider: string;
+  description: string;
+  strengths: string[];
+  limitations: string[];
+}
 
 const Dashboard = () => {
-  // User state
   const [user, setUser] = useState<any>(null);
+  const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
   
-  // Refs
   const questionsContainerRef = useRef<HTMLDivElement>(null);
   const variablesContainerRef = useRef<HTMLDivElement>(null);
   
-  // Custom hooks
   const { toast } = useToast();
   
-  // Prompt state and operations
   const promptState = usePromptState(user);
   
   const {
@@ -50,7 +41,6 @@ const Dashboard = () => {
     handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt
   } = promptState;
   
-  // Analysis operations
   const promptAnalysis = usePromptAnalysis(
     promptText,
     setQuestions,
@@ -64,7 +54,6 @@ const Dashboard = () => {
   
   const { isLoading, currentLoadingMessage, handleAnalyze } = promptAnalysis;
   
-  // Question and variable operations
   const questionVarOps = useQuestionsAndVariables(
     questions,
     setQuestions,
@@ -84,7 +73,6 @@ const Dashboard = () => {
     canProceedToStep3
   } = questionVarOps;
   
-  // Prompt utilities
   const promptOperations = usePromptOperations(
     variables,
     setVariables,
@@ -105,7 +93,6 @@ const Dashboard = () => {
     handleRegenerate
   } = promptOperations;
   
-  // User auth effect
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -125,14 +112,12 @@ const Dashboard = () => {
     };
   }, []);
 
-  // Fetch saved prompts when user is set
   useEffect(() => {
     if (user) {
       fetchSavedPrompts();
     }
   }, [user]);
 
-  // Toggle handlers 
   const handlePrimaryToggle = (id: string) => {
     setSelectedPrimary(currentSelected => currentSelected === id ? null : id);
   };
@@ -140,8 +125,7 @@ const Dashboard = () => {
   const handleSecondaryToggle = (id: string) => {
     setSelectedSecondary(currentSelected => currentSelected === id ? null : id);
   };
-  
-  // Step change handler
+
   const handleStepChange = (step: number) => {
     if (step === 2 && !promptText.trim()) {
       toast({
@@ -173,14 +157,12 @@ const Dashboard = () => {
     setCurrentStep(step);
   };
 
-  // Filtered prompts
   const filteredPrompts = savedPrompts.filter(prompt => 
     searchTerm === "" || 
     prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     prompt.promptText.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Render content based on current step
   const renderContent = () => {
     if (isLoading) {
       return <LoadingState currentLoadingMessage={currentLoadingMessage} />;
