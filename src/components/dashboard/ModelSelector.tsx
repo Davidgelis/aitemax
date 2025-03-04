@@ -1,13 +1,12 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { ModelService } from '@/services/ModelService';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Laptop, Search, X, Check } from 'lucide-react';
+import { ChevronDown, Laptop } from 'lucide-react';
 import { AIModel } from './types';
 
 interface ModelSelectorProps {
@@ -20,7 +19,10 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
   const [models, setModels] = useState<AIModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<number>();
   const { toast } = useToast();
   const [providers, setProviders] = useState<string[]>([]);
 
@@ -36,6 +38,14 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
       setProviders(providerList);
       
       console.log(`Fetched ${modelList.length} models from ${providerList.length} providers`);
+      
+      // Find the index of the currently selected model
+      if (selectedModel) {
+        const index = modelList.findIndex(model => model.id === selectedModel.id);
+        if (index !== -1) {
+          setActiveIndex(index);
+        }
+      }
       
       toast({
         title: "AI Models Loaded",
@@ -56,21 +66,10 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     }
   };
 
-  // Filter models based on search query
-  const filteredModels = useMemo(() => {
-    if (!searchQuery.trim()) return models;
-    const query = searchQuery.toLowerCase();
-    return models.filter(model => 
-      model.name.toLowerCase().includes(query) || 
-      (model.description && model.description.toLowerCase().includes(query)) ||
-      model.provider.toLowerCase().includes(query)
-    );
-  }, [models, searchQuery]);
-
-  // Get all models flattened (not grouped by provider), for the centered display
-  const allModels = useMemo(() => {
-    return [...filteredModels].sort((a, b) => a.name.localeCompare(b.name));
-  }, [filteredModels]);
+  // Sort models alphabetically
+  const sortedModels = useMemo(() => {
+    return [...models].sort((a, b) => a.name.localeCompare(b.name));
+  }, [models]);
 
   useEffect(() => {
     fetchModels();
@@ -91,12 +90,108 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     }
   }, [isInitializingModels]);
 
-  const handleSelectModel = (model: AIModel) => {
-    onSelect(model);
+  // Smooth animation for scrolling the models
+  useEffect(() => {
+    if (!scrollDirection || !open) return;
+    
+    const scroll = () => {
+      if (scrollDirection === 'up') {
+        setActiveIndex(prev => {
+          if (prev <= 0) return sortedModels.length - 1;
+          return prev - 1;
+        });
+      } else {
+        setActiveIndex(prev => {
+          if (prev >= sortedModels.length - 1) return 0;
+          return prev + 1;
+        });
+      }
+      animationRef.current = requestAnimationFrame(scroll);
+    };
+    
+    const timeoutId = setTimeout(() => {
+      animationRef.current = requestAnimationFrame(scroll);
+    }, 150);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [scrollDirection, sortedModels.length, open]);
+
+  // Effect for wheel event
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (e.deltaY < 0) {
+        // Scrolling up
+        setScrollDirection('up');
+        setTimeout(() => setScrollDirection(null), 200);
+      } else {
+        // Scrolling down
+        setScrollDirection('down');
+        setTimeout(() => setScrollDirection(null), 200);
+      }
+      e.preventDefault();
+    };
+
+    const scrollContainer = scrollRef.current;
+    if (scrollContainer && open) {
+      scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
+    }
+
+    return () => {
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('wheel', handleWheel);
+      }
+    };
+  }, [open]);
+
+  const handleSelectModel = (selectedIndex: number) => {
+    setActiveIndex(selectedIndex);
+    onSelect(sortedModels[selectedIndex]);
     setOpen(false);
   };
 
+  const handleDialogOpen = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (isOpen && selectedModel) {
+      // Find the index of the currently selected model
+      const index = sortedModels.findIndex(model => model.id === selectedModel.id);
+      if (index !== -1) {
+        setActiveIndex(index);
+      }
+    }
+  };
+
   const isLoading = loading || isInitializingModels;
+
+  // Get models to display in the wheel, including wraparound for continuous scrolling effect
+  const getDisplayModels = () => {
+    if (sortedModels.length === 0) return [];
+    
+    const displayCount = 5; // Total models to show (1 center + 2 above + 2 below)
+    const halfCount = Math.floor(displayCount / 2);
+    
+    let displayModels = [];
+    
+    for (let i = -halfCount; i <= halfCount; i++) {
+      let index = activeIndex + i;
+      
+      // Handle wraparound
+      if (index < 0) index = sortedModels.length + index;
+      if (index >= sortedModels.length) index = index - sortedModels.length;
+      
+      displayModels.push({
+        model: sortedModels[index],
+        position: i,
+        index
+      });
+    }
+    
+    return displayModels;
+  };
 
   return (
     <div className="w-[300px] mr-auto">
@@ -105,7 +200,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
       ) : (
         <div>
           <Button 
-            onClick={() => setOpen(true)}
+            onClick={() => handleDialogOpen(true)}
             className="w-full h-10 bg-[#fafafa] border border-[#084b49] text-[#545454] hover:bg-[#f0f0f0] flex justify-between items-center"
             variant="outline"
           >
@@ -115,57 +210,45 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
             <Laptop className="ml-2 h-4 w-4 text-[#084b49]" />
           </Button>
           
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={handleDialogOpen}>
             <DialogContent 
-              className="p-0 max-w-md max-h-[80vh] w-full overflow-hidden bg-white border border-[#084b49] rounded-lg shadow-xl"
-              overlayClassName="backdrop-blur-sm bg-black/50"
+              className="p-0 max-w-md w-full h-[300px] flex items-center justify-center"
+              overlayClassName="backdrop-blur-sm bg-black/60"
+              transparent={true}
             >
-              <div className="p-4 border-b border-gray-100 sticky top-0 bg-white z-10">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <input
-                    type="text"
-                    placeholder="Search models..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-full bg-[#F1F1F1] text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#084b49]"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <button 
-                  className="absolute right-4 top-4 text-gray-500 hover:text-gray-700" 
-                  onClick={() => setOpen(false)}
-                >
-                  <X className="h-5 w-5" />
-                </button>
+              <div 
+                ref={scrollRef}
+                className="relative h-full flex flex-col items-center justify-center cursor-pointer"
+                onClick={(e) => {
+                  // Only close if clicking the container, not a model name
+                  if (e.currentTarget === e.target) {
+                    setOpen(false);
+                  }
+                }}
+              >
+                {getDisplayModels().map(({ model, position, index }) => (
+                  <div
+                    key={`${model.id}-${position}`}
+                    className={`absolute transition-all duration-300 ease-in-out select-none`}
+                    style={{
+                      transform: `translateY(${position * 60}px) scale(${1 - Math.abs(position) * 0.15})`,
+                      opacity: 1 - Math.abs(position) * 0.25,
+                      zIndex: 10 - Math.abs(position),
+                    }}
+                    onClick={() => handleSelectModel(index)}
+                  >
+                    <div
+                      className={`text-center px-6 py-2 whitespace-nowrap transition-all ${
+                        position === 0 
+                          ? 'text-[#33fea6] font-medium text-3xl'
+                          : 'text-[#545454]/90 text-xl'
+                      }`}
+                    >
+                      {model.name}
+                    </div>
+                  </div>
+                ))}
               </div>
-              
-              <ScrollArea className="h-[calc(80vh-4rem)] w-full">
-                <div className="p-6">
-                  {allModels.length === 0 ? (
-                    <div className="py-10 text-center text-[#545454]">
-                      {searchQuery ? "No models found matching your search" : "No models available"}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center space-y-4">
-                      {allModels.map(model => (
-                        <button
-                          key={model.id}
-                          onClick={() => handleSelectModel(model)}
-                          className="w-full text-center py-3 px-4 transition-all outline-none"
-                        >
-                          <div className={`text-xl ${
-                            selectedModel?.id === model.id 
-                              ? 'text-[#33fea6] font-medium' 
-                              : 'text-[#545454]/60 hover:text-[#545454]'
-                          }`}>
-                            {model.name}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
             </DialogContent>
           </Dialog>
           
