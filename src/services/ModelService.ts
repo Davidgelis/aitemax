@@ -96,7 +96,7 @@ export const ModelService = {
 
   async enhanceModelsWithAI(): Promise<boolean> {
     try {
-      console.log('Enhancing AI models with AI integration, prioritizing incomplete models...');
+      console.log('Enhancing AI models with AI integration, focusing on incomplete models...');
       const response = await supabase.functions.invoke('enhance-ai-models', {
         method: 'POST'
       });

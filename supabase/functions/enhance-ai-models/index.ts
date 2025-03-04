@@ -53,54 +53,28 @@ serve(async (req) => {
       throw new Error(`Error fetching incomplete models: ${incompleteError.message}`);
     }
     
-    // Then, get all remaining models
-    const { data: completeModels, error: completeError } = await supabase
-      .from('ai_models')
-      .select('*')
-      .is('is_deleted', null)
-      .not('description', 'is', null)
-      .not('strengths', 'is', null)
-      .not('limitations', 'is', null);
+    console.log(`Found ${incompleteModels?.length || 0} incomplete models that need enhancement`);
     
-    if (completeError) {
-      throw new Error(`Error fetching complete models: ${completeError.message}`);
-    }
+    // Process only incomplete models if there are any
+    const models = incompleteModels || [];
     
-    // Combine models, with incomplete models first
-    const models = [...(incompleteModels || []), ...(completeModels || [])];
-    
-    if (!models || models.length === 0) {
+    if (models.length === 0) {
       return new Response(
         JSON.stringify({
-          success: false,
-          message: "No models found to enhance"
+          success: true,
+          message: "No incomplete models found that need enhancement",
+          incompleteModelsCount: 0
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    console.log(`Found ${incompleteModels?.length || 0} incomplete models and ${completeModels?.length || 0} complete models`);
-    console.log(`Starting enhancement with incomplete models prioritized`);
-    
     // Process each model with AI enhancement
     let enhancedCount = 0;
-    let incompleteEnhancedCount = 0;
     
     for (const model of models) {
       try {
-        const hasDescription = model.description !== null && model.description !== '';
-        const hasStrengths = model.strengths !== null && Array.isArray(model.strengths) && model.strengths.length > 0;
-        const hasLimitations = model.limitations !== null && Array.isArray(model.limitations) && model.limitations.length > 0;
-        
-        // Skip if the model is already complete and we're not forcing updates for all models
-        const isComplete = hasDescription && hasStrengths && hasLimitations;
-        
-        if (isComplete) {
-          console.log(`Skipping model ${model.name} as it already has complete information`);
-          continue;
-        }
-        
-        console.log(`Enhancing model: ${model.name} (${model.provider || 'Unknown provider'})`);
+        console.log(`Enhancing incomplete model: ${model.name} (${model.provider || 'Unknown provider'})`);
         
         // Generate AI-powered description, strengths, and limitations
         const promptText = `
@@ -126,7 +100,7 @@ serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: 'You are an AI expert tasked with creating detailed, factual information about AI models.'
+                content: 'You are an AI expert tasked with creating detailed, factual information about AI models. Return ONLY valid JSON without code blocks or markdown.'
               },
               {
                 role: 'user',
@@ -148,7 +122,10 @@ serve(async (req) => {
         // Try to parse the JSON response from the AI
         let analysisData;
         try {
-          analysisData = JSON.parse(modelAnalysis);
+          // Remove any markdown code block syntax if present
+          const cleanJSON = modelAnalysis.replace(/```json|```/g, '').trim();
+          analysisData = JSON.parse(cleanJSON);
+          console.log(`Successfully parsed AI response for model ${model.name}`);
         } catch (parseError) {
           console.error(`Error parsing AI response for model ${model.name}:`, parseError);
           console.log('Raw AI response:', modelAnalysis);
@@ -156,40 +133,40 @@ serve(async (req) => {
         }
         
         // Update the model with the AI-generated content
-        // Only update fields that were previously empty or if we're forcing a complete update
         const updateData: Record<string, any> = {
           updated_at: new Date().toISOString()
         };
         
-        if (!hasDescription && analysisData.description) {
+        if (!model.description && analysisData.description) {
           updateData.description = analysisData.description;
         }
         
-        if (!hasStrengths && analysisData.strengths) {
+        if ((!model.strengths || model.strengths.length === 0) && analysisData.strengths) {
           updateData.strengths = analysisData.strengths;
         }
         
-        if (!hasLimitations && analysisData.limitations) {
+        if ((!model.limitations || model.limitations.length === 0) && analysisData.limitations) {
           updateData.limitations = analysisData.limitations;
         }
         
-        // Update the model with the AI-generated content
-        const { error: updateError } = await supabase
-          .from('ai_models')
-          .update(updateData)
-          .eq('id', model.id);
-        
-        if (updateError) {
-          console.error(`Error updating model ${model.name}:`, updateError);
-          continue;
+        // Only update if we have data to update
+        if (Object.keys(updateData).length > 1) { // More than just updated_at
+          console.log(`Updating model ${model.name} with AI-generated data`);
+          const { error: updateError } = await supabase
+            .from('ai_models')
+            .update(updateData)
+            .eq('id', model.id);
+          
+          if (updateError) {
+            console.error(`Error updating model ${model.name}:`, updateError);
+            continue;
+          }
+          
+          enhancedCount++;
+          console.log(`Successfully enhanced model: ${model.name}`);
+        } else {
+          console.log(`No new data to update for model ${model.name}`);
         }
-        
-        enhancedCount++;
-        if (!isComplete) {
-          incompleteEnhancedCount++;
-        }
-        
-        console.log(`Successfully enhanced model: ${model.name}`);
         
         // Add a small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -200,15 +177,14 @@ serve(async (req) => {
       }
     }
     
-    console.log(`AI enhancement completed. Enhanced ${enhancedCount} models, including ${incompleteEnhancedCount} incomplete models`);
+    console.log(`AI enhancement completed. Enhanced ${enhancedCount} out of ${models.length} incomplete models`);
     
     return new Response(
       JSON.stringify({
         success: true,
         message: `Successfully enhanced ${enhancedCount} models with AI-generated information`,
         enhancedCount,
-        incompleteEnhancedCount,
-        totalModels: models.length
+        totalIncompleteModels: models.length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -223,7 +199,7 @@ serve(async (req) => {
       }),
       { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
