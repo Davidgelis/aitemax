@@ -20,7 +20,9 @@ export const ToggleSection = ({
       {toggles.map((item) => (
         <div 
           key={item.id} 
-          className="flex-1 min-w-[200px] flex items-center justify-between py-1.5 px-3 border rounded-lg bg-card"
+          className={`flex items-center justify-between py-1.5 px-3 border rounded-lg bg-card ${
+            item.id === 'image' ? 'flex-1 max-w-[25%] min-w-[150px]' : 'flex-1 min-w-[200px]'
+          }`}
         >
           <span className="text-sm text-card-foreground">{item.label}</span>
           <Switch 
