@@ -1,10 +1,11 @@
+
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { ModelService } from '@/services/ModelService';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Laptop } from 'lucide-react';
 import { AIModel } from './types';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
@@ -25,6 +26,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
   const [providers, setProviders] = useState<string[]>([]);
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
@@ -32,6 +34,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     if (isTransitioning) return;
     
     setIsTransitioning(true);
+    setIsAnimating(true);
     
     if (e.deltaY > 0) {
       setScrollDirection('down');
@@ -56,7 +59,8 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     setTimeout(() => {
       setIsTransitioning(false);
       setScrollDirection(null);
-    }, 700);
+      setIsAnimating(false);
+    }, 700); // Match this with CSS transition duration
   };
 
   const setupWheelListener = () => {
@@ -77,6 +81,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
       e.preventDefault();
       setIsTransitioning(true);
+      setIsAnimating(true);
       setScrollDirection('down');
       setActiveIndex(prev => {
         const next = prev >= sortedModels.length - 1 ? 0 : prev + 1;
@@ -88,10 +93,12 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
       setTimeout(() => {
         setIsTransitioning(false);
         setScrollDirection(null);
+        setIsAnimating(false);
       }, 700);
     } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
       e.preventDefault();
       setIsTransitioning(true);
+      setIsAnimating(true);
       setScrollDirection('up');
       setActiveIndex(prev => {
         const next = prev <= 0 ? sortedModels.length - 1 : prev - 1;
@@ -103,6 +110,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
       setTimeout(() => {
         setIsTransitioning(false);
         setScrollDirection(null);
+        setIsAnimating(false);
       }, 700);
     } else if (e.key === 'Enter' || e.key === 'Space') {
       e.preventDefault();
@@ -175,9 +183,16 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     if (open) {
       setupWheelListener();
       window.addEventListener('keydown', handleKeyDown);
+      
+      // Set focus to the container for keyboard control
       if (scrollRef.current) {
         scrollRef.current.focus();
       }
+      
+      // Setup the wheel event listeners immediately after opening
+      setTimeout(() => {
+        setupWheelListener();
+      }, 100);
       
       return () => {
         if (scrollRef.current) {
@@ -187,12 +202,6 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
       };
     }
   }, [open, sortedModels.length]);
-
-  useEffect(() => {
-    if (open) {
-      setupWheelListener();
-    }
-  }, [models, open]);
 
   const handleSelectModel = (selectedIndex: number) => {
     setActiveIndex(selectedIndex);
@@ -204,12 +213,18 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     setOpen(isOpen);
     setIsTransitioning(false);
     setScrollDirection(null);
+    setIsAnimating(false);
     
-    if (isOpen && selectedModel) {
-      const index = sortedModels.findIndex(model => model.id === selectedModel.id);
-      if (index !== -1) {
-        setActiveIndex(index);
+    if (isOpen) {
+      // When opening the dialog, set the active index to match the currently selected model
+      if (selectedModel) {
+        const index = sortedModels.findIndex(model => model.id === selectedModel.id);
+        if (index !== -1) {
+          setActiveIndex(index);
+        }
       }
+      
+      // Setup the wheel listener after a short delay to ensure the component is mounted
       setTimeout(() => {
         setupWheelListener();
       }, 100);
@@ -243,19 +258,23 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
   };
 
   const getTransitionClass = (position: number) => {
-    if (position === 0) return 'transition-all duration-700 ease-in-out';
-    
-    if (scrollDirection === 'up') {
-      return position < 0 
-        ? 'transition-all duration-700 ease-in-out delay-50'
-        : 'transition-all duration-700 ease-in-out';
-    } else if (scrollDirection === 'down') {
-      return position > 0 
-        ? 'transition-all duration-700 ease-in-out delay-50'
-        : 'transition-all duration-700 ease-in-out';
+    if (isAnimating) {
+      if (position === 0) {
+        return 'transition-all duration-700 ease-in-out transform';
+      }
+      
+      if (scrollDirection === 'up') {
+        return position < 0 
+          ? 'transition-all duration-700 ease-in-out transform delay-50'
+          : 'transition-all duration-700 ease-in-out transform';
+      } else if (scrollDirection === 'down') {
+        return position > 0 
+          ? 'transition-all duration-700 ease-in-out transform delay-50'
+          : 'transition-all duration-700 ease-in-out transform';
+      }
     }
     
-    return 'transition-all duration-700 ease-in-out';
+    return 'transition-all duration-700 ease-in-out transform';
   };
 
   return (
@@ -277,7 +296,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
           
           <Dialog open={open} onOpenChange={handleDialogOpen}>
             <DialogContent 
-              className="p-0 max-w-md w-full h-[300px] flex items-center justify-center bg-transparent border-none shadow-none"
+              className="p-0 max-w-md w-full h-[300px] flex items-center justify-center bg-transparent border-none shadow-none overflow-visible"
               overlayClassName="backdrop-blur-sm bg-black/60"
               transparent={true}
             >
@@ -285,9 +304,13 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
                 <VisuallyHidden>Select AI Model</VisuallyHidden>
               </DialogTitle>
               
+              <DialogDescription className="sr-only">
+                Use mouse wheel or arrow keys to navigate through AI models
+              </DialogDescription>
+              
               <div 
                 ref={scrollRef}
-                className="relative h-full w-full flex flex-col items-center justify-center cursor-pointer"
+                className="relative h-full w-full flex flex-col items-center justify-center cursor-pointer overflow-visible"
                 onClick={(e) => {
                   if (e.currentTarget === e.target) {
                     setOpen(false);
@@ -305,20 +328,22 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
                       transform: `translateY(${position * 60}px) scale(${1 - Math.abs(position) * 0.15})`,
                       opacity: 1 - Math.abs(position) * 0.25,
                       zIndex: 10 - Math.abs(position),
+                      transition: 'all 700ms cubic-bezier(0.4, 0, 0.2, 1)', // matching ease-in-out
                     }}
                     onClick={() => handleSelectModel(index)}
                     role="option"
                     aria-selected={position === 0}
                   >
                     <div
-                      className={`text-center px-6 py-2 whitespace-nowrap transition-all duration-700 ease-in-out font-bold`}
+                      className={`text-center px-6 py-2 whitespace-nowrap font-bold transition-all duration-700 ease-in-out`}
                       style={{
                         color: position === 0 ? '#33fea6' : '#b2b2b2',
                         fontSize: position === 0 ? '1.875rem' : '1.25rem',
-                        fontWeight: 600,
+                        fontWeight: 700,
                         letterSpacing: position === 0 ? '0.5px' : 'normal',
                         transform: `scale(${position === 0 ? 1.05 : 1})`,
-                        filter: position === 0 ? 'drop-shadow(0 0 8px rgba(51, 254, 166, 0.5))' : 'none'
+                        filter: position === 0 ? 'drop-shadow(0 0 8px rgba(51, 254, 166, 0.5))' : 'none',
+                        transition: 'all 700ms cubic-bezier(0.4, 0, 0.2, 1)', // matching ease-in-out
                       }}
                     >
                       {model.name}
