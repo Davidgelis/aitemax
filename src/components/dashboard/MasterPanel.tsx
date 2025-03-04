@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
+import { useModels } from "@/context/ModelContext";
 import { AIModel } from './types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   Dialog, 
   DialogContent, 
@@ -15,23 +14,17 @@ import {
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, RefreshCw, X, Edit } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Edit } from 'lucide-react';
 
 const MasterPanel = () => {
-  const [models, setModels] = useState<AIModel[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { models, isLoading, refreshModels, addModel, updateModel, deleteModel } = useModels();
   const [isAddModelOpen, setIsAddModelOpen] = useState(false);
   const [isEditModelOpen, setIsEditModelOpen] = useState(false);
   const [currentModel, setCurrentModel] = useState<AIModel | null>(null);
   const [newModel, setNewModel] = useState<Partial<AIModel>>({
     name: '',
-    provider: '',
-    description: '',
-    strengths: [],
-    limitations: []
+    provider: ''
   });
-  const [newStrength, setNewStrength] = useState('');
-  const [newLimitation, setNewLimitation] = useState('');
   const { toast } = useToast();
   const [isMasterUser, setIsMasterUser] = useState(false);
   const [deleteConfirmModel, setDeleteConfirmModel] = useState<AIModel | null>(null);
@@ -53,38 +46,6 @@ const MasterPanel = () => {
     checkMasterUser();
   }, []);
 
-  // Fetch models
-  const fetchModels = async () => {
-    try {
-      setLoading(true);
-      
-      const { data, error } = await supabase
-        .from('ai_models')
-        .select('*')
-        .order('provider')
-        .order('name');
-      
-      if (error) throw error;
-      
-      setModels(data || []);
-    } catch (error) {
-      console.error('Error fetching models:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch AI models",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isMasterUser) {
-      fetchModels();
-    }
-  }, [isMasterUser]);
-
   const handleAddModel = async () => {
     try {
       if (!newModel.name || !newModel.provider) {
@@ -96,33 +57,18 @@ const MasterPanel = () => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('ai_models')
-        .insert({
-          name: newModel.name,
-          provider: newModel.provider,
-          description: newModel.description,
-          strengths: newModel.strengths,
-          limitations: newModel.limitations
-        })
-        .select();
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "AI model added successfully",
+      const result = await addModel({
+        name: newModel.name,
+        provider: newModel.provider
       });
 
-      setNewModel({
-        name: '',
-        provider: '',
-        description: '',
-        strengths: [],
-        limitations: []
-      });
-      setIsAddModelOpen(false);
-      fetchModels();
+      if (result) {
+        setNewModel({
+          name: '',
+          provider: ''
+        });
+        setIsAddModelOpen(false);
+      }
     } catch (error) {
       console.error('Error adding model:', error);
       toast({
@@ -137,26 +83,14 @@ const MasterPanel = () => {
     try {
       if (!currentModel || !currentModel.id) return;
       
-      const { error } = await supabase
-        .from('ai_models')
-        .update({
-          name: currentModel.name,
-          provider: currentModel.provider,
-          description: currentModel.description,
-          strengths: currentModel.strengths,
-          limitations: currentModel.limitations
-        })
-        .eq('id', currentModel.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "AI model updated successfully",
+      const success = await updateModel(currentModel.id, {
+        name: currentModel.name,
+        provider: currentModel.provider
       });
 
-      setIsEditModelOpen(false);
-      fetchModels();
+      if (success) {
+        setIsEditModelOpen(false);
+      }
     } catch (error) {
       console.error('Error updating model:', error);
       toast({
@@ -176,21 +110,20 @@ const MasterPanel = () => {
     try {
       if (!deleteConfirmModel) return;
       
-      const { error } = await supabase
-        .from('ai_models')
-        .delete()
-        .eq('id', deleteConfirmModel.id);
+      console.log("Attempting to delete model:", deleteConfirmModel.id);
+      const success = await deleteModel(deleteConfirmModel.id);
 
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "AI model deleted successfully",
-      });
-      
-      setIsDeleteConfirmOpen(false);
-      setDeleteConfirmModel(null);
-      fetchModels();
+      if (success) {
+        toast({
+          title: "Success",
+          description: "AI model deleted successfully",
+        });
+        
+        setIsDeleteConfirmOpen(false);
+        setDeleteConfirmModel(null);
+      } else {
+        throw new Error("Delete operation did not return success");
+      }
     } catch (error) {
       console.error('Error deleting model:', error);
       toast({
@@ -202,110 +135,7 @@ const MasterPanel = () => {
   };
 
   const handleRefreshModels = async () => {
-    try {
-      setLoading(true);
-      toast({
-        title: "Refreshing",
-        description: "Updating AI models...",
-      });
-      
-      const response = await supabase.functions.invoke('update-ai-models', {
-        method: 'POST',
-        headers: {
-          'X-Force-Update': 'true'
-        }
-      });
-
-      if (response.error) throw response.error;
-      
-      console.log('Edge function response:', response.data);
-
-      toast({
-        title: "Success",
-        description: "AI models refreshed successfully",
-      });
-
-      fetchModels();
-    } catch (error) {
-      console.error('Error refreshing models:', error);
-      toast({
-        title: "Error",
-        description: "Failed to refresh AI models",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addStrength = () => {
-    if (!newStrength.trim()) return;
-    
-    if (isEditModelOpen && currentModel) {
-      setCurrentModel({
-        ...currentModel,
-        strengths: [...(currentModel.strengths || []), newStrength]
-      });
-    } else {
-      setNewModel({
-        ...newModel,
-        strengths: [...(newModel.strengths || []), newStrength]
-      });
-    }
-    setNewStrength('');
-  };
-
-  const addLimitation = () => {
-    if (!newLimitation.trim()) return;
-    
-    if (isEditModelOpen && currentModel) {
-      setCurrentModel({
-        ...currentModel,
-        limitations: [...(currentModel.limitations || []), newLimitation]
-      });
-    } else {
-      setNewModel({
-        ...newModel,
-        limitations: [...(newModel.limitations || []), newLimitation]
-      });
-    }
-    setNewLimitation('');
-  };
-
-  const removeStrength = (index: number) => {
-    if (isEditModelOpen && currentModel) {
-      const updatedStrengths = [...(currentModel.strengths || [])];
-      updatedStrengths.splice(index, 1);
-      setCurrentModel({
-        ...currentModel,
-        strengths: updatedStrengths
-      });
-    } else {
-      const updatedStrengths = [...(newModel.strengths || [])];
-      updatedStrengths.splice(index, 1);
-      setNewModel({
-        ...newModel,
-        strengths: updatedStrengths
-      });
-    }
-  };
-
-  const removeLimitation = (index: number) => {
-    if (isEditModelOpen && currentModel) {
-      const updatedLimitations = [...(currentModel.limitations || [])];
-      updatedLimitations.splice(index, 1);
-      setCurrentModel({
-        ...currentModel,
-        limitations: updatedLimitations
-      });
-    } else {
-      const updatedLimitations = [...(newModel.limitations || [])];
-      updatedLimitations.splice(index, 1);
-      setNewModel({
-        ...newModel,
-        limitations: updatedLimitations
-      });
-    }
+    await refreshModels();
   };
 
   if (!isMasterUser) {
@@ -319,10 +149,10 @@ const MasterPanel = () => {
         <div className="flex gap-2">
           <Button 
             onClick={handleRefreshModels} 
-            disabled={loading}
+            disabled={isLoading}
             className="bg-[#084b49] hover:bg-[#084b49]/90 text-white"
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh Models
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh Models
           </Button>
           <Dialog open={isAddModelOpen} onOpenChange={setIsAddModelOpen}>
             <DialogTrigger asChild>
@@ -351,68 +181,8 @@ const MasterPanel = () => {
                     className="mt-1"
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-[#545454]">Description</label>
-                  <Textarea 
-                    value={newModel.description || ''} 
-                    onChange={(e) => setNewModel({...newModel, description: e.target.value})}
-                    className="mt-1"
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-[#545454]">Strengths</label>
-                  <div className="flex gap-2 mt-1">
-                    <Input 
-                      value={newStrength} 
-                      onChange={(e) => setNewStrength(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && addStrength()}
-                      placeholder="Add strength and press Enter"
-                    />
-                    <Button type="button" onClick={addStrength} className="bg-[#33fea6] hover:bg-[#33fea6]/90 text-black">
-                      Add
-                    </Button>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {newModel.strengths?.map((strength, index) => (
-                      <div key={index} className="bg-gray-100 rounded-md px-2 py-1 flex items-center text-[#545454]">
-                        {strength}
-                        <button 
-                          onClick={() => removeStrength(index)}
-                          className="ml-1 text-red-500 hover:text-red-700"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-[#545454]">Limitations</label>
-                  <div className="flex gap-2 mt-1">
-                    <Input 
-                      value={newLimitation} 
-                      onChange={(e) => setNewLimitation(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && addLimitation()}
-                      placeholder="Add limitation and press Enter"
-                    />
-                    <Button type="button" onClick={addLimitation} className="bg-[#33fea6] hover:bg-[#33fea6]/90 text-black">
-                      Add
-                    </Button>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {newModel.limitations?.map((limitation, index) => (
-                      <div key={index} className="bg-gray-100 rounded-md px-2 py-1 flex items-center text-[#545454]">
-                        {limitation}
-                        <button 
-                          onClick={() => removeLimitation(index)}
-                          className="ml-1 text-red-500 hover:text-red-700"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                <div className="text-sm text-gray-500">
+                  <p>Other model details like description, strengths, and limitations will be generated automatically.</p>
                 </div>
               </div>
               <DialogFooter>
@@ -439,7 +209,7 @@ const MasterPanel = () => {
       
       <Separator className="my-4" />
       
-      {loading ? (
+      {isLoading ? (
         <div className="py-10 text-center text-[#545454]">Loading models...</div>
       ) : (
         <div className="grid gap-4 mt-4">
@@ -537,68 +307,8 @@ const MasterPanel = () => {
                   className="mt-1"
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium text-[#545454]">Description</label>
-                <Textarea 
-                  value={currentModel.description || ''} 
-                  onChange={(e) => setCurrentModel({...currentModel, description: e.target.value})}
-                  className="mt-1"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-[#545454]">Strengths</label>
-                <div className="flex gap-2 mt-1">
-                  <Input 
-                    value={newStrength} 
-                    onChange={(e) => setNewStrength(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addStrength()}
-                    placeholder="Add strength and press Enter"
-                  />
-                  <Button type="button" onClick={addStrength} className="bg-[#33fea6] hover:bg-[#33fea6]/90 text-black">
-                    Add
-                  </Button>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {currentModel.strengths?.map((strength, index) => (
-                    <div key={index} className="bg-gray-100 rounded-md px-2 py-1 flex items-center text-[#545454]">
-                      {strength}
-                      <button 
-                        onClick={() => removeStrength(index)}
-                        className="ml-1 text-red-500 hover:text-red-700"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-[#545454]">Limitations</label>
-                <div className="flex gap-2 mt-1">
-                  <Input 
-                    value={newLimitation} 
-                    onChange={(e) => setNewLimitation(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addLimitation()}
-                    placeholder="Add limitation and press Enter"
-                  />
-                  <Button type="button" onClick={addLimitation} className="bg-[#33fea6] hover:bg-[#33fea6]/90 text-black">
-                    Add
-                  </Button>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {currentModel.limitations?.map((limitation, index) => (
-                    <div key={index} className="bg-gray-100 rounded-md px-2 py-1 flex items-center text-[#545454]">
-                      {limitation}
-                      <button 
-                        onClick={() => removeLimitation(index)}
-                        className="ml-1 text-red-500 hover:text-red-700"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+              <div className="text-sm text-gray-500">
+                <p>Other model details like description, strengths, and limitations will be updated automatically.</p>
               </div>
             </div>
           )}

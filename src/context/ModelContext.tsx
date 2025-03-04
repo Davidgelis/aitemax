@@ -150,7 +150,9 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteModel = async (id: string): Promise<boolean> => {
     try {
+      console.log(`Deleting model with ID: ${id}`);
       const success = await ModelService.deleteModel(id);
+      
       if (success) {
         setModels(prev => prev.filter(m => m.id !== id));
         

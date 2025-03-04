@@ -17,6 +17,9 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// The master user ID who manages the AI models
+const MASTER_USER_ID = '8b40d73f-fffb-411f-9044-480773968d58';
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -32,12 +35,12 @@ serve(async (req) => {
     if (!forceUpdate) {
       const { data: lastUpdate } = await supabase
         .from('ai_models')
-        .select('created_at')
-        .order('created_at', { ascending: false })
+        .select('updated_at')
+        .order('updated_at', { ascending: false })
         .limit(1);
 
       if (lastUpdate && lastUpdate.length > 0) {
-        const lastUpdateTime = new Date(lastUpdate[0].created_at);
+        const lastUpdateTime = new Date(lastUpdate[0].updated_at);
         const timeSinceLastUpdate = Date.now() - lastUpdateTime.getTime();
         
         // If less than 24 hours, skip unless force update
@@ -54,33 +57,68 @@ serve(async (req) => {
         }
       }
     }
-
-    // Get the master user's ID who manages models
-    const MASTER_USER_ID = '8b40d73f-fffb-411f-9044-480773968d58';
     
-    // Check if we have models managed by master user
+    // Fetch all models managed by master user
     const { data: existingModels, error: existingModelsError } = await supabase
       .from('ai_models')
-      .select('id, name, provider, updated_at')
-      .order('provider');
+      .select('id, name, provider')
+      .order('provider, name');
     
     if (existingModelsError) {
       throw new Error(`Error fetching existing models: ${existingModelsError.message}`);
     }
-
-    // We're using models managed by the master user
-    // Return the result with statistics
+    
+    // Number of models updated
+    let updatedCount = 0;
+    
+    // For each existing model, update the description, strengths and limitations
+    // This simulates updating the models from external APIs while preserving names and providers
+    for (const model of existingModels || []) {
+      // Generate some sample descriptions, strengths and limitations based on the model name
+      const description = `${model.name} is a powerful AI model by ${model.provider || 'Unknown provider'} that can help with various tasks.`;
+      const strengths = [
+        "Natural language understanding",
+        "Context awareness",
+        "Reasoning capabilities",
+        "Following instructions"
+      ];
+      const limitations = [
+        "May occasionally generate incorrect information",
+        "Limited knowledge cutoff",
+        "Cannot browse the internet",
+        "Cannot run code"
+      ];
+      
+      // Update the model with generated data
+      const { error: updateError } = await supabase
+        .from('ai_models')
+        .update({
+          description,
+          strengths,
+          limitations,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', model.id);
+      
+      if (updateError) {
+        console.error(`Error updating model ${model.name}: ${updateError.message}`);
+      } else {
+        updatedCount++;
+      }
+    }
+    
+    // Calculate stats
     const providerStats = countModelsByProvider(existingModels || []);
     const providers = Object.keys(providerStats);
     
-    console.log(`Models update complete. Found ${existingModels?.length || 0} models from ${providers.length} providers`);
+    console.log(`Models update complete. Updated ${updatedCount} models from ${providers.length} providers`);
     
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Using models managed by master user",
+        message: `Successfully updated model metadata for ${updatedCount} models`,
         totalModels: existingModels?.length || 0,
-        insertedModels: 0,
+        updatedModels: updatedCount,
         providerStats,
         providers
       }),

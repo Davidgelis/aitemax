@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { AIModel } from "@/components/dashboard/types";
 import { toast } from "@/hooks/use-toast";
@@ -141,17 +140,13 @@ export const ModelService = {
     }
   },
   
-  // Methods for the master panel
   async addModel(model: Partial<AIModel>): Promise<AIModel | null> {
     try {
       const { data, error } = await supabase
         .from('ai_models')
         .insert({
           name: model.name,
-          provider: model.provider,
-          description: model.description,
-          strengths: model.strengths,
-          limitations: model.limitations
+          provider: model.provider
         })
         .select();
       
@@ -173,10 +168,7 @@ export const ModelService = {
         .from('ai_models')
         .update({
           name: model.name,
-          provider: model.provider,
-          description: model.description,
-          strengths: model.strengths,
-          limitations: model.limitations
+          provider: model.provider
         })
         .eq('id', id);
       
@@ -194,6 +186,7 @@ export const ModelService = {
   
   async deleteModel(id: string): Promise<boolean> {
     try {
+      console.log(`Attempting to delete model with ID: ${id}`);
       const { error } = await supabase
         .from('ai_models')
         .delete()
@@ -204,6 +197,7 @@ export const ModelService = {
         throw error;
       }
       
+      console.log(`Successfully deleted model with ID: ${id}`);
       return true;
     } catch (error) {
       console.error('Exception in deleteModel:', error);
