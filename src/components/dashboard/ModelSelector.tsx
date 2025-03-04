@@ -18,9 +18,10 @@ import { AIModel } from './types';
 
 interface ModelSelectorProps {
   onSelect: (model: AIModel | null) => void;
+  isInitializingModels?: boolean;
 }
 
-export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
+export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelSelectorProps) => {
   const [models, setModels] = useState<AIModel[]>([]);
   const [filteredModels, setFilteredModels] = useState<AIModel[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,10 +52,10 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
         setLastUpdate(new Date());
         setLoading(false);
       } else {
-        console.log('No models found in database, checking again in a few seconds');
-        // If no models yet, wait 5 seconds and try again
+        console.log('No models found in database');
+        // Even if no models were found, stop the loading state after a reasonable timeout
         setTimeout(() => {
-          fetchModels();
+          setLoading(false);
         }, 5000);
       }
     } catch (error) {
@@ -79,6 +80,13 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
     
     return () => clearInterval(intervalId);
   }, []);
+
+  // Refetch models when initialization status changes
+  useEffect(() => {
+    if (!isInitializingModels && models.length === 0) {
+      fetchModels();
+    }
+  }, [isInitializingModels, models.length]);
 
   useEffect(() => {
     if (searchTerm.trim() === '') {
@@ -112,12 +120,16 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
     });
   };
 
-  if (loading) {
+  const isLoading = loading || isInitializingModels;
+
+  if (isLoading) {
     return (
       <div className="w-full max-w-md space-y-2">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-medium text-[#545454]">AI Model Selection</h3>
-          <div className="text-xs text-[#545454]">Loading models...</div>
+          <div className="text-xs text-[#545454]">
+            {isInitializingModels ? "Initializing models..." : "Loading models..."}
+          </div>
         </div>
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-full" />
@@ -180,10 +192,10 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
         </Select>
       </div>
       
-      {filteredModels.length === 0 && !loading && (
+      {filteredModels.length === 0 && !isLoading && (
         <div className="p-4 bg-background border border-[#084b49] rounded-md">
           <p className="text-sm text-[#545454]">
-            The AI model database is currently being populated. This happens automatically every 24 hours.
+            No AI models found. The models database is currently being populated. This happens automatically in the background.
             Please check back in a few moments.
           </p>
         </div>

@@ -44,6 +44,41 @@ const fallbackModels = [
     description: "Google's advanced multimodal model with extended context window and improved reasoning.",
     strengths: ["Very large context window", "Strong multimodal understanding", "Good reasoning capabilities", "Efficient processing"],
     limitations: ["May struggle with certain specialized domains", "Potential for generating incorrect information", "Less tested than some alternatives"]
+  },
+  {
+    name: "Claude 3 Sonnet",
+    provider: "Anthropic",
+    description: "A balanced model from Anthropic offering strong performance with improved efficiency.",
+    strengths: ["Excellent instruction following", "Good balance of quality and speed", "Reduced hallucinations", "Strong reasoning"],
+    limitations: ["Not as powerful as Claude 3 Opus", "Limited knowledge cutoff", "May struggle with complex multi-step reasoning"]
+  },
+  {
+    name: "GPT-3.5 Turbo",
+    provider: "OpenAI",
+    description: "OpenAI's efficient and cost-effective language model for most everyday tasks.",
+    strengths: ["Fast response times", "Low cost", "Good general capabilities", "Widely used and tested"],
+    limitations: ["Less capable on complex tasks than GPT-4", "Limited reasoning ability", "May produce more hallucinations than newer models"]
+  },
+  {
+    name: "Llama 3 70B",
+    provider: "Meta",
+    description: "The largest variant of Meta's Llama 3 family with strong overall performance.",
+    strengths: ["Strong performance across tasks", "Open weights for research", "Good instruction following", "Competitive with closed models"],
+    limitations: ["High hardware requirements", "Less training data than proprietary alternatives", "May lag behind commercial alternatives in some areas"]
+  },
+  {
+    name: "Claude 3 Haiku",
+    provider: "Anthropic",
+    description: "Anthropic's fastest and most compact model, designed for low-latency applications.",
+    strengths: ["Very fast response times", "Low cost", "Good for real-time applications", "Maintains accuracy on many tasks"],
+    limitations: ["Reduced capabilities compared to larger Claude models", "Limited context window", "Less capable on complex reasoning"]
+  },
+  {
+    name: "Mistral Large",
+    provider: "Mistral AI",
+    description: "Mistral AI's flagship model, optimized for performance and versatility.",
+    strengths: ["Strong performance across reasoning tasks", "Good instruction following", "Competitive with larger models", "Efficient architecture"],
+    limitations: ["Less established than models from larger companies", "Limited training data compared to some alternatives"]
   }
 ];
 
@@ -67,8 +102,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
     console.log('Supabase client initialized');
 
-    // First check - do we already have models in the database?
-    // If so, we'll skip the update unless forced
+    // Check if we already have models in the database
     const { data: existingModels, error: checkError } = await supabase
       .from('ai_models')
       .select('id')
@@ -99,86 +133,7 @@ serve(async (req) => {
       });
     }
 
-    // Proceed with getting model data, either from OpenAI or fallback
-    let modelsData;
-    
-    try {
-      console.log('Fetching AI model data from OpenAI GPT-4o');
-      const openaiKey = Deno.env.get('OPENAI_API_KEY');
-      
-      if (!openaiKey) {
-        throw new Error('OpenAI API key is not configured');
-      }
-      
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an AI expert who keeps track of the latest AI models. You have access to the web to look up current information about the most used LLM models as of today.'
-            },
-            {
-              role: 'user',
-              content: 'Return a JSON array of the top 15 most used LLM models with their details. For each model include: name, provider, description, strengths (array), and limitations (array). Include diverse models from different providers like OpenAI, Anthropic, Google, Meta, etc. Return ONLY valid JSON with no explanation or markdown formatting.'
-            }
-          ],
-          response_format: { type: "json_object" }
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`OpenAI API error: ${response.status} - ${errorText}`);
-        throw new Error(`OpenAI API returned ${response.status}: ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('Received response from OpenAI');
-      
-      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        console.error('Invalid response structure from OpenAI:', JSON.stringify(data));
-        throw new Error('Invalid response from OpenAI');
-      }
-      
-      console.log('Parsing model data');
-      try {
-        const content = data.choices[0].message.content;
-        console.log('Raw content from OpenAI:', content.substring(0, 200) + '...');
-        
-        const parsedData = JSON.parse(content);
-        if (parsedData.models && Array.isArray(parsedData.models)) {
-          modelsData = parsedData.models;
-        } else if (Array.isArray(parsedData)) {
-          modelsData = parsedData;
-        } else {
-          console.error('Parsed data has unexpected structure:', parsedData);
-          throw new Error('Invalid model data format: unexpected structure');
-        }
-        
-        console.log(`Successfully parsed model data, found ${modelsData.length} models`);
-      } catch (parseError) {
-        console.error('Error parsing JSON from OpenAI response:', parseError);
-        console.error('Raw content:', data.choices[0].message.content);
-        throw new Error('Failed to parse model data from OpenAI');
-      }
-    } catch (openaiError) {
-      console.error('Error with OpenAI API, using fallback models:', openaiError);
-      modelsData = fallbackModels;
-      console.log(`Using ${modelsData.length} fallback models instead`);
-    }
-
-    if (!Array.isArray(modelsData)) {
-      console.error('Model data is not an array, using fallback models');
-      modelsData = fallbackModels;
-    }
-
-    // Clear existing models and insert new ones
+    // Clear existing models before inserting new ones
     console.log('Clearing existing models from database');
     const { error: deleteError } = await supabase
       .from('ai_models')
@@ -190,9 +145,11 @@ serve(async (req) => {
       throw new Error(`Database error when clearing models: ${deleteError.message}`);
     }
 
-    console.log('Inserting new models into database');
+    // Always use fallback models for now to ensure we have data
+    console.log('Using fallback models to populate the database');
     let insertedCount = 0;
-    for (const model of modelsData) {
+    
+    for (const model of fallbackModels) {
       console.log(`Inserting model: ${model.name}`);
       const { error: insertError } = await supabase
         .from('ai_models')
@@ -212,10 +169,10 @@ serve(async (req) => {
       insertedCount++;
     }
 
-    console.log(`AI models update completed. Successfully inserted ${insertedCount} of ${modelsData.length} models.`);
+    console.log(`AI models update completed. Successfully inserted ${insertedCount} of ${fallbackModels.length} models.`);
     return new Response(JSON.stringify({ 
       success: true, 
-      totalModels: modelsData.length,
+      totalModels: fallbackModels.length,
       insertedModels: insertedCount 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

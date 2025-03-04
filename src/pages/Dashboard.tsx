@@ -12,6 +12,7 @@ const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
   const [modelsInitialized, setModelsInitialized] = useState(false);
+  const [isUpdatingModels, setIsUpdatingModels] = useState(false);
   
   // Use the prompt state hook to get the state and functions
   const promptState = usePromptState(user);
@@ -40,12 +41,14 @@ const Dashboard = () => {
     };
   }, []);
 
-  // Check if we have models in the database
+  // Check if we have models in the database and initialize them if needed
   useEffect(() => {
     const checkAndInitializeModels = async () => {
-      if (modelsInitialized) return;
+      if (modelsInitialized || isUpdatingModels) return;
       
       try {
+        setIsUpdatingModels(true);
+        
         // First, check if we have any models
         const { data, error } = await supabase
           .from('ai_models')
@@ -54,25 +57,34 @@ const Dashboard = () => {
           
         if (error) {
           console.error('Error checking for models:', error);
+          setIsUpdatingModels(false);
           return;
         }
         
         // If no models exist, trigger the update once
         if (!data || data.length === 0) {
           console.log('No models found, triggering initial update');
-          await triggerInitialModelUpdate();
+          const result = await triggerInitialModelUpdate();
+          console.log('Initial model update result:', result);
+          
+          if (!result.success) {
+            console.error('Failed to update models:', result.error);
+          }
         } else {
           console.log('Models already exist, no need to initialize');
         }
         
         setModelsInitialized(true);
+        setIsUpdatingModels(false);
       } catch (e) {
         console.error('Error in model initialization check:', e);
+        setIsUpdatingModels(false);
       }
     };
     
+    // Run the check immediately when the component mounts
     checkAndInitializeModels();
-  }, [modelsInitialized]);
+  }, [modelsInitialized, isUpdatingModels]);
 
   // Fetch saved prompts when user changes
   useEffect(() => {
@@ -86,7 +98,12 @@ const Dashboard = () => {
       <div className="min-h-screen flex w-full bg-background">
         <main className="flex-1 p-6">
           <div className="max-w-6xl mx-auto min-h-screen flex items-center justify-center">
-            <StepController user={user} selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
+            <StepController 
+              user={user} 
+              selectedModel={selectedModel} 
+              setSelectedModel={setSelectedModel}
+              isInitializingModels={isUpdatingModels}
+            />
           </div>
         </main>
 
