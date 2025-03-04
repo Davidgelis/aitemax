@@ -5,9 +5,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { ModelService } from '@/services/ModelService';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { ChevronDown, Laptop } from 'lucide-react';
 import { AIModel } from './types';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 interface ModelSelectorProps {
   onSelect: (model: AIModel | null) => void;
@@ -20,11 +21,29 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>();
   const { toast } = useToast();
   const [providers, setProviders] = useState<string[]>([]);
+
+  // Handle wheel event for scrolling through models
+  const handleWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    
+    // Determine direction (positive deltaY means scrolling down)
+    if (e.deltaY > 0) {
+      // Scrolling down - move to next model
+      setActiveIndex(prev => {
+        const next = prev >= sortedModels.length - 1 ? 0 : prev + 1;
+        return next;
+      });
+    } else {
+      // Scrolling up - move to previous model
+      setActiveIndex(prev => {
+        const next = prev <= 0 ? sortedModels.length - 1 : prev - 1;
+        return next;
+      });
+    }
+  };
 
   const fetchModels = async () => {
     try {
@@ -90,70 +109,26 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     }
   }, [isInitializingModels]);
 
-  // Smooth animation for scrolling the models
+  // Effect for wheel event - Improved implementation
   useEffect(() => {
-    if (!scrollDirection || !open) return;
-    
-    const scroll = () => {
-      if (scrollDirection === 'up') {
-        setActiveIndex(prev => {
-          if (prev <= 0) return sortedModels.length - 1;
-          return prev - 1;
-        });
-      } else {
-        setActiveIndex(prev => {
-          if (prev >= sortedModels.length - 1) return 0;
-          return prev + 1;
-        });
-      }
-      animationRef.current = requestAnimationFrame(scroll);
-    };
-    
-    const timeoutId = setTimeout(() => {
-      animationRef.current = requestAnimationFrame(scroll);
-    }, 150);
-    
-    return () => {
-      clearTimeout(timeoutId);
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [scrollDirection, sortedModels.length, open]);
-
-  // Effect for wheel event
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      if (e.deltaY < 0) {
-        // Scrolling up
-        setScrollDirection('up');
-        setTimeout(() => setScrollDirection(null), 200);
-      } else {
-        // Scrolling down
-        setScrollDirection('down');
-        setTimeout(() => setScrollDirection(null), 200);
-      }
-      e.preventDefault();
-    };
-
     const scrollContainer = scrollRef.current;
+    
     if (scrollContainer && open) {
       scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
-    }
-
-    return () => {
-      if (scrollContainer) {
+      return () => {
         scrollContainer.removeEventListener('wheel', handleWheel);
-      }
-    };
-  }, [open]);
+      };
+    }
+  }, [open, sortedModels.length]);
 
+  // Handle model selection
   const handleSelectModel = (selectedIndex: number) => {
     setActiveIndex(selectedIndex);
     onSelect(sortedModels[selectedIndex]);
     setOpen(false);
   };
 
+  // Handle dialog open/close
   const handleDialogOpen = (isOpen: boolean) => {
     setOpen(isOpen);
     if (isOpen && selectedModel) {
@@ -167,7 +142,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
 
   const isLoading = loading || isInitializingModels;
 
-  // Get models to display in the wheel, including wraparound for continuous scrolling effect
+  // Get models to display in the carousel/wheel
   const getDisplayModels = () => {
     if (sortedModels.length === 0) return [];
     
@@ -212,13 +187,17 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
           
           <Dialog open={open} onOpenChange={handleDialogOpen}>
             <DialogContent 
-              className="p-0 max-w-md w-full h-[300px] flex items-center justify-center"
+              className="p-0 max-w-md w-full h-[300px] flex items-center justify-center bg-transparent border-none shadow-none"
               overlayClassName="backdrop-blur-sm bg-black/60"
               transparent={true}
             >
+              <DialogTitle className="sr-only">
+                <VisuallyHidden>Select AI Model</VisuallyHidden>
+              </DialogTitle>
+              
               <div 
                 ref={scrollRef}
-                className="relative h-full flex flex-col items-center justify-center cursor-pointer"
+                className="relative h-full w-full flex flex-col items-center justify-center cursor-pointer"
                 onClick={(e) => {
                   // Only close if clicking the container, not a model name
                   if (e.currentTarget === e.target) {
