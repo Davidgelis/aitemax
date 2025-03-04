@@ -1,8 +1,9 @@
+
 import { ToggleSection } from "./ToggleSection";
 import { PromptEditor } from "./PromptEditor";
 import { Separator } from "@/components/ui/separator";
 import { primaryToggles, secondaryToggles } from "./constants";
-import { ModelSelector } from "./ModelSelector";
+import { ModelSelector } from "./model-selector";
 import { AIModel } from "./types";
 
 interface StepOneContentProps {

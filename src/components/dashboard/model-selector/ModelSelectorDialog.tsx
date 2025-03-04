@@ -46,7 +46,7 @@ export const ModelSelectorDialog = ({
     
     if (e.deltaY > 0) {
       setScrollDirection('down');
-      setActiveIndex(prev => {
+      setActiveIndex((prev: number) => {
         const next = prev >= sortedModels.length - 1 ? 0 : prev + 1;
         if (sortedModels[next]) {
           onSelect(sortedModels[next]);
@@ -55,7 +55,7 @@ export const ModelSelectorDialog = ({
       });
     } else {
       setScrollDirection('up');
-      setActiveIndex(prev => {
+      setActiveIndex((prev: number) => {
         const next = prev <= 0 ? sortedModels.length - 1 : prev - 1;
         if (sortedModels[next]) {
           onSelect(sortedModels[next]);
@@ -91,7 +91,7 @@ export const ModelSelectorDialog = ({
       setIsTransitioning(true);
       setIsAnimating(true);
       setScrollDirection('down');
-      setActiveIndex(prev => {
+      setActiveIndex((prev: number) => {
         const next = prev >= sortedModels.length - 1 ? 0 : prev + 1;
         if (sortedModels[next]) {
           onSelect(sortedModels[next]);
@@ -108,7 +108,7 @@ export const ModelSelectorDialog = ({
       setIsTransitioning(true);
       setIsAnimating(true);
       setScrollDirection('up');
-      setActiveIndex(prev => {
+      setActiveIndex((prev: number) => {
         const next = prev <= 0 ? sortedModels.length - 1 : prev - 1;
         if (sortedModels[next]) {
           onSelect(sortedModels[next]);
