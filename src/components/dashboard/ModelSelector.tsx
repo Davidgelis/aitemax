@@ -67,19 +67,10 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     );
   }, [models, searchQuery]);
 
-  // Group filtered models by provider
-  const filteredModelsByProvider = useMemo(() => {
-    const grouped: Record<string, AIModel[]> = {};
-    
-    providers.forEach(provider => {
-      const providerModels = filteredModels.filter(model => model.provider === provider);
-      if (providerModels.length > 0) {
-        grouped[provider] = providerModels;
-      }
-    });
-    
-    return grouped;
-  }, [filteredModels, providers]);
+  // Get all models flattened (not grouped by provider), for the centered display
+  const allModels = useMemo(() => {
+    return [...filteredModels].sort((a, b) => a.name.localeCompare(b.name));
+  }, [filteredModels]);
 
   useEffect(() => {
     fetchModels();
@@ -126,8 +117,8 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
           
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent 
-              className="p-0 max-w-xl max-h-[80vh] w-full overflow-hidden bg-white border border-[#084b49] rounded-lg shadow-xl"
-              overlayClassName="backdrop-blur-sm bg-black/30"
+              className="p-0 max-w-md max-h-[80vh] w-full overflow-hidden bg-white border border-[#084b49] rounded-lg shadow-xl"
+              overlayClassName="backdrop-blur-sm bg-black/50"
             >
               <div className="p-4 border-b border-gray-100 sticky top-0 bg-white z-10">
                 <div className="relative">
@@ -150,36 +141,26 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
               
               <ScrollArea className="h-[calc(80vh-4rem)] w-full">
                 <div className="p-6">
-                  {Object.keys(filteredModelsByProvider).length === 0 ? (
+                  {allModels.length === 0 ? (
                     <div className="py-10 text-center text-[#545454]">
                       {searchQuery ? "No models found matching your search" : "No models available"}
                     </div>
                   ) : (
-                    <div className="space-y-8">
-                      {Object.entries(filteredModelsByProvider).map(([provider, providerModels]) => (
-                        <div key={provider} className="space-y-3">
-                          <h3 className="text-[#545454] font-semibold text-sm uppercase tracking-wider">{provider}</h3>
-                          <div className="grid grid-cols-1 gap-2">
-                            {providerModels.map(model => (
-                              <button
-                                key={model.id}
-                                onClick={() => handleSelectModel(model)}
-                                className={`w-full text-center py-3 px-4 rounded-md transition-all ${
-                                  selectedModel?.id === model.id 
-                                    ? 'bg-[#33fea6] text-[#041524] font-medium' 
-                                    : 'bg-[#fafafa] text-[#545454] hover:bg-[#f0f0f0]'
-                                }`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-medium">{model.name}</span>
-                                  {selectedModel?.id === model.id && (
-                                    <Check className="h-4 w-4" />
-                                  )}
-                                </div>
-                              </button>
-                            ))}
+                    <div className="flex flex-col items-center space-y-4">
+                      {allModels.map(model => (
+                        <button
+                          key={model.id}
+                          onClick={() => handleSelectModel(model)}
+                          className="w-full text-center py-3 px-4 transition-all outline-none"
+                        >
+                          <div className={`text-xl ${
+                            selectedModel?.id === model.id 
+                              ? 'text-[#33fea6] font-medium' 
+                              : 'text-[#545454]/60 hover:text-[#545454]'
+                          }`}>
+                            {model.name}
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
