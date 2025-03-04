@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useModels } from "@/context/ModelContext";
@@ -129,7 +128,6 @@ const MasterPanel = () => {
       const modelName = deleteConfirmModel.name;
       const modelId = deleteConfirmModel.id;
       
-      // Adding a console log to track the deleteModel call
       console.log(`MasterPanel: Calling deleteModel on ModelContext with ID: ${modelId}`);
       
       const result = await deleteModel(modelId);
@@ -139,16 +137,7 @@ const MasterPanel = () => {
         setIsDeleteConfirmOpen(false);
         setDeleteConfirmModel(null);
         
-        // Display success toast but this will also be shown by the context
-        toast({
-          title: "Model Deleted",
-          description: `Model "${modelName}" has been successfully removed`,
-        });
-        
-        // Force refresh models to ensure UI is in sync with database
-        setTimeout(() => {
-          refreshModels();
-        }, 1000);
+        await refreshModels();
       } else {
         console.error(`MasterPanel: Delete operation failed for model ${modelId}`);
         toast({

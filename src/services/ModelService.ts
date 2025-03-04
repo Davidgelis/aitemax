@@ -188,15 +188,26 @@ export const ModelService = {
     try {
       console.log(`ModelService: Starting deletion for model ID: ${id}`);
       
-      // Explicitly log the supabase client to verify it's working
-      console.log('Supabase client available:', !!supabase);
+      // First verify the model exists
+      const { data: modelExists } = await supabase
+        .from('ai_models')
+        .select('id')
+        .eq('id', id)
+        .single();
+        
+      if (!modelExists) {
+        console.error(`ModelService: Model with ID ${id} does not exist in the database`);
+        return false;
+      }
       
-      // Use await to properly wait for the deletion to complete
-      const { error, count } = await supabase
+      // Explicitly log the delete operation
+      console.log(`ModelService: Executing delete operation for model ID: ${id}`);
+      
+      // Execute the delete operation without using select('count')
+      const { error } = await supabase
         .from('ai_models')
         .delete()
-        .eq('id', id)
-        .select('count');
+        .eq('id', id);
       
       if (error) {
         console.error('Error from Supabase during delete operation:', error);
@@ -206,12 +217,15 @@ export const ModelService = {
         return false;
       }
       
-      // Log the count of deleted rows to verify deletion
-      console.log(`ModelService: Successfully deleted ${count} rows with ID ${id}`);
-      
-      // Validate that at least one row was deleted
-      if (count === 0) {
-        console.error(`ModelService: No rows were deleted for ID ${id}`);
+      // Verify deletion by checking if the model still exists
+      const { data: checkDeleted } = await supabase
+        .from('ai_models')
+        .select('id')
+        .eq('id', id)
+        .maybeSingle();
+        
+      if (checkDeleted) {
+        console.error(`ModelService: Model with ID ${id} still exists after deletion attempt`);
         return false;
       }
       

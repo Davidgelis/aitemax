@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AIModel } from "@/components/dashboard/types";
 import { ModelService } from "@/services/ModelService";
@@ -180,9 +179,7 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       
       // Force a refresh to ensure UI and database are in sync
-      setTimeout(() => {
-        fetchModels();
-      }, 500);
+      await fetchModels();
       
       toast({
         title: "Model Deleted",
