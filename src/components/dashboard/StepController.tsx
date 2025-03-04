@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -16,9 +15,10 @@ interface StepControllerProps {
   user: any;
   selectedModel: AIModel | null;
   setSelectedModel: (model: AIModel | null) => void;
+  isInitializingModels?: boolean;
 }
 
-export const StepController = ({ user, selectedModel, setSelectedModel }: StepControllerProps) => {
+export const StepController = ({ user, selectedModel, setSelectedModel, isInitializingModels = false }: StepControllerProps) => {
   const questionsContainerRef = useRef<HTMLDivElement>(null);
   const variablesContainerRef = useRef<HTMLDivElement>(null);
   
@@ -148,8 +148,8 @@ export const StepController = ({ user, selectedModel, setSelectedModel }: StepCo
   );
 
   const renderContent = () => {
-    if (isLoading) {
-      return <LoadingState currentLoadingMessage={currentLoadingMessage} />;
+    if (isLoading || isInitializingModels) {
+      return <LoadingState currentLoadingMessage={isInitializingModels ? "Initializing AI models..." : currentLoadingMessage} />;
     }
 
     switch (currentStep) {

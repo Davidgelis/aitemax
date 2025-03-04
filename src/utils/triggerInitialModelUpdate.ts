@@ -1,17 +1,28 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+interface ModelUpdateResponse {
+  data?: {
+    message?: string;
+    success?: boolean;
+    totalModels?: number;
+    insertedModels?: number;
+    [key: string]: any;
+  };
+  error?: any;
+}
+
 // This function can be called once to trigger the initial model update
 export const triggerInitialModelUpdate = async () => {
   try {
     console.log('Triggering initial AI model update...');
     
     // Add a timeout to avoid hanging the UI if the function doesn't respond
-    const timeoutPromise = new Promise((_, reject) => {
+    const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Function timed out after 10 seconds')), 10000);
     });
     
-    const functionPromise = supabase.functions.invoke('update-ai-models', {
+    const functionPromise = supabase.functions.invoke<ModelUpdateResponse>('update-ai-models', {
       method: 'POST',
       headers: {
         'X-Force-Update': 'true'
@@ -21,7 +32,7 @@ export const triggerInitialModelUpdate = async () => {
     // Use Promise.race to handle potential timeouts
     const result = await Promise.race([functionPromise, timeoutPromise]);
     
-    if ('error' in result && result.error) {
+    if (result.error) {
       console.error('Error triggering model update:', result.error);
       return { success: false, error: result.error };
     }
