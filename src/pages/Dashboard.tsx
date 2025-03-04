@@ -3,6 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useToast } from "@/hooks/use-toast";
 
+import { usePromptState } from "@/hooks/usePromptState";
+import { usePromptAnalysis } from "@/hooks/usePromptAnalysis";
+import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
+import { usePromptOperations } from "@/hooks/usePromptOperations";
+
+import { LoadingState } from "@/components/dashboard/LoadingState";
+import { StepIndicator } from "@/components/dashboard/StepIndicator";
+import { FinalPrompt } from "@/components/dashboard/FinalPrompt";
+import { UserSidebar } from "@/components/dashboard/UserSidebar";
+import { StepOne } from "@/components/dashboard/StepOne";
+import { StepTwo } from "@/components/dashboard/StepTwo";
+import { ModelSelector } from "@/components/dashboard/ModelSelector";
+
 interface AIModel {
   id: string;
   name: string;
