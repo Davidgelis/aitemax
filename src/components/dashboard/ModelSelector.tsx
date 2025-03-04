@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -331,7 +332,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
           <div className="flex items-center">
             <Button 
               onClick={() => handleDialogOpen(true)}
-              className="w-full h-10 bg-[#fafafa] border border-[#084b49] text-[#545454] hover:bg-[#f0f0f0] flex justify-between items-center"
+              className="w-[30%] h-10 bg-[#fafafa] border border-[#084b49] text-[#545454] hover:bg-[#f0f0f0] flex justify-between items-center"
               variant="outline"
             >
               <span className="truncate">
