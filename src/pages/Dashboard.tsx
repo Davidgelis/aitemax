@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -8,6 +7,7 @@ import { StepController } from "@/components/dashboard/StepController";
 import { usePromptState } from "@/hooks/usePromptState";
 import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
 import { useToast } from "@/hooks/use-toast";
+import { ModelFetchTester } from '@/components/dashboard/ModelFetchTester';
 
 const fallbackModels = [
   {
@@ -186,6 +186,7 @@ const Dashboard = () => {
               setSelectedModel={setSelectedModel}
               isInitializingModels={isUpdatingModels}
             />
+            <ModelFetchTester />
           </div>
         </main>
 
