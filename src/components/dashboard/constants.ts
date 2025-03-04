@@ -23,21 +23,21 @@ export const loadingMessages = [
 ];
 
 export const mockQuestions: Question[] = [
-  // Task-focused questions about WHAT needs to be done
-  { id: "q1", text: "What exactly do you want to accomplish with this?", isRelevant: null, answer: "", category: "Task" },
-  { id: "q2", text: "How would you describe your ideal outcome?", isRelevant: null, answer: "", category: "Task" },
+  // Task-focused questions about broader context
+  { id: "q1", text: "What is the scale or complexity of the data you're working with?", isRelevant: null, answer: "", category: "Task" },
+  { id: "q2", text: "Are there any specific performance concerns or constraints?", isRelevant: null, answer: "", category: "Task" },
   
-  // Persona-focused questions about WHO and TONE
-  { id: "q3", text: "What is your relationship with the recipient?", isRelevant: null, answer: "", category: "Persona" },
-  { id: "q4", text: "Should the tone be formal, casual, or something else?", isRelevant: null, answer: "", category: "Persona" },
+  // Persona-focused questions about users and audience
+  { id: "q3", text: "Who will be using the output of this prompt?", isRelevant: null, answer: "", category: "Persona" },
+  { id: "q4", text: "What is the technical expertise of the end users?", isRelevant: null, answer: "", category: "Persona" },
   
-  // Conditions-focused questions about LIMITATIONS
-  { id: "q5", text: "Are there any sensitive topics to avoid?", isRelevant: null, answer: "", category: "Conditions" },
-  { id: "q6", text: "How long should the final result be?", isRelevant: null, answer: "", category: "Conditions" },
+  // Conditions-focused questions about limitations
+  { id: "q5", text: "Are there any security or privacy considerations?", isRelevant: null, answer: "", category: "Conditions" },
+  { id: "q6", text: "What is the expected frequency of use for this solution?", isRelevant: null, answer: "", category: "Conditions" },
   
-  // Instructions-focused questions about HOW to proceed
-  { id: "q7", text: "Should specific points be included in order of importance?", isRelevant: null, answer: "", category: "Instructions" },
-  { id: "q8", text: "Do you want suggestions for follow-up actions?", isRelevant: null, answer: "", category: "Instructions" },
+  // Instructions-focused questions about implementation details
+  { id: "q7", text: "Should the solution prioritize readability or efficiency?", isRelevant: null, answer: "", category: "Instructions" },
+  { id: "q8", text: "Are there any specific coding patterns or styles to follow?", isRelevant: null, answer: "", category: "Instructions" },
 ];
 
 export const defaultVariables: Variable[] = [
@@ -72,3 +72,51 @@ You will address {{Audience}} while maintaining a {{ToneStyle}} throughout your 
 This prompt has been optimized based on the four-pillar framework: Task, Persona, Conditions, and Instructions.`;
 
 export const QUESTIONS_PER_PAGE = 3;
+
+// Helper function to filter out category names from variables
+export const filterCategoryVariables = (variables: Variable[]): Variable[] => {
+  return variables.filter(v => 
+    v.name !== 'Task' && 
+    v.name !== 'Persona' && 
+    v.name !== 'Conditions' && 
+    v.name !== 'Instructions'
+  );
+};
+
+// Generate context-specific default questions based on prompt type
+export const generateContextQuestions = (promptText: string): Question[] => {
+  const lowerPrompt = promptText.toLowerCase();
+  
+  // For Google Sheets / spreadsheet scripts
+  if (lowerPrompt.includes('google sheet') || lowerPrompt.includes('spreadsheet') || lowerPrompt.includes('excel')) {
+    return [
+      { id: "q1", text: "How many rows of data will typically be processed?", isRelevant: null, answer: "", category: "Task" },
+      { id: "q2", text: "Is this script meant to run automatically or manually?", isRelevant: null, answer: "", category: "Conditions" },
+      { id: "q3", text: "Will non-technical users need to modify the script later?", isRelevant: null, answer: "", category: "Persona" },
+      { id: "q4", text: "Are there any performance concerns with large datasets?", isRelevant: null, answer: "", category: "Instructions" },
+    ];
+  }
+  
+  // For email-related prompts
+  if (lowerPrompt.includes('email') || lowerPrompt.includes('message') || lowerPrompt.includes('communication')) {
+    return [
+      { id: "q1", text: "What is the ongoing relationship with the recipient?", isRelevant: null, answer: "", category: "Persona" },
+      { id: "q2", text: "Is this a one-time message or part of a series?", isRelevant: null, answer: "", category: "Task" },
+      { id: "q3", text: "Are there any sensitive topics to approach carefully?", isRelevant: null, answer: "", category: "Conditions" },
+      { id: "q4", text: "What's the expected response you're hoping to receive?", isRelevant: null, answer: "", category: "Instructions" },
+    ];
+  }
+  
+  // For coding/programming tasks
+  if (lowerPrompt.includes('code') || lowerPrompt.includes('script') || lowerPrompt.includes('program') || lowerPrompt.includes('function')) {
+    return [
+      { id: "q1", text: "What is the expected execution environment?", isRelevant: null, answer: "", category: "Conditions" },
+      { id: "q2", text: "Are there any specific libraries or dependencies to use or avoid?", isRelevant: null, answer: "", category: "Instructions" },
+      { id: "q3", text: "What scale of data will this solution need to handle?", isRelevant: null, answer: "", category: "Task" },
+      { id: "q4", text: "Who will maintain this code in the future?", isRelevant: null, answer: "", category: "Persona" },
+    ];
+  }
+  
+  // Default to general context questions
+  return mockQuestions;
+};

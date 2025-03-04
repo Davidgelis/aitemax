@@ -33,11 +33,18 @@ serve(async (req) => {
       - The final goal is to structure a prompt with these four key pillars: Task, Persona, Conditions, and Instructions.
       
       Your output must include:
-      1. A set of targeted questions to fill important gaps in the prompt structure, organized by category.
-      2. A set of SPECIFIC variables for customization - these should be CONTEXTUAL words or phrases that can be replaced without changing the prompt meaning.
-         - For example, if the prompt is about emails, variables might include: {{RecipientName}}, {{EmailTopic}}, {{DesiredTone}}, {{ParagraphCount}}, {{SignatureLine}}
-         - DO NOT use generic variables like "TaskType" or "Audience" - use specific names based on the context
-         - Variables should represent changeable elements that users might want to adjust later
+      1. A set of targeted CONTEXT QUESTIONS to fill important gaps in the prompt structure, organized by category.
+         - Questions should seek deeper understanding of the user's needs, not just ask for variables.
+         - Examples of good context questions: "How often will this be used?", "What is the scale of data being processed?"
+         - These questions should NOT duplicate information asked for in variables.
+         
+      2. A set of SPECIFIC VARIABLES for customization - these should be CONTEXTUAL words or phrases that can be replaced.
+         - Variables should be VERY SPECIFIC placeholder values that the user might want to change later.
+         - For example, if about Google Sheets: {{HighlightColor}}, {{ResultColumnName}}, {{SheetTabName}}
+         - For email prompts: {{RecipientName}}, {{EmailSubject}}, {{SignatureLine}}
+         - DO NOT use the category names (Task, Persona, etc.) as variable names
+         - Variables represent specific changeable elements that appear directly in the final prompt
+      
       3. A master command describing the essence of what the user wants.
       4. An enhanced version of the original prompt that follows best practices.
 
@@ -45,10 +52,10 @@ serve(async (req) => {
       - Primary toggle: ${primaryToggle || 'None'}
       - Secondary toggle: ${secondaryToggle || 'None'}
       
-      IMPORTANT: Only ask questions that provide genuinely NEW information. Don't ask for information that:
-      - Is already in the original prompt
-      - Would be obvious to an AI based on context
-      - Doesn't meaningfully improve the prompt structure
+      IMPORTANT: Questions and variables must be clearly distinct:
+      - Questions seek CONTEXT to help understand requirements and usage scenarios
+      - Variables are SPECIFIC PLACEHOLDERS in the prompt that the user will want to modify
+      - NEVER make questions ask for information that is already covered by a variable
     `;
     
     const userMessage = `Analyze this prompt: "${promptText}"`;
@@ -81,8 +88,8 @@ serve(async (req) => {
     // Try to extract structured data from the analysis
     try {
       // Process the analysis to extract questions, variables, etc.
-      const questions = extractQuestions(analysis);
-      const variables = extractVariables(analysis);
+      const questions = extractQuestions(analysis, promptText);
+      const variables = extractVariables(analysis, promptText);
       const masterCommand = extractMasterCommand(analysis);
       const enhancedPrompt = extractEnhancedPrompt(analysis);
       
@@ -101,10 +108,13 @@ serve(async (req) => {
     } catch (extractionError) {
       console.error("Error extracting structured data from analysis:", extractionError);
       
+      // Fallback to context-specific questions
+      const contextQuestions = generateContextQuestionsForPrompt(promptText);
+      
       // Fallback to mock data but still return a 200 status code
       return new Response(JSON.stringify({
-        questions: generateMockQuestions(),
-        variables: generateMockVariables(),
+        questions: contextQuestions,
+        variables: generateContextualVariablesForPrompt(promptText),
         masterCommand: "Analyzed prompt: " + promptText.substring(0, 50) + "...",
         enhancedPrompt: "# Enhanced Prompt\n\n" + promptText,
         error: extractionError.message,
@@ -119,8 +129,8 @@ serve(async (req) => {
     
     // Always return a 200 status code even on error, with error details in the response body
     return new Response(JSON.stringify({
-      questions: generateMockQuestions(),
-      variables: generateMockVariables(),
+      questions: generateContextQuestionsForPrompt(""),
+      variables: generateContextualVariablesForPrompt(""),
       masterCommand: "Error analyzing prompt",
       enhancedPrompt: "# Error\n\nThere was an error analyzing your prompt. Please try again.",
       error: error.message
@@ -132,7 +142,7 @@ serve(async (req) => {
 });
 
 // Helper function to extract questions from the analysis
-function extractQuestions(analysis) {
+function extractQuestions(analysis, promptText) {
   // Try to find a JSON block containing questions
   const jsonMatch = analysis.match(/```json\s*({[\s\S]*?})\s*```/);
   
@@ -193,11 +203,54 @@ function extractQuestions(analysis) {
     }
   }
   
-  return questions.length > 0 ? questions : generateMockQuestions();
+  return questions.length > 0 ? questions : generateContextQuestionsForPrompt(promptText);
+}
+
+// Generate context-appropriate questions based on prompt text
+function generateContextQuestionsForPrompt(promptText) {
+  const lowerPrompt = promptText.toLowerCase();
+  
+  // For Google Sheets / spreadsheet scripts
+  if (lowerPrompt.includes('google sheet') || lowerPrompt.includes('spreadsheet') || lowerPrompt.includes('excel')) {
+    return [
+      { id: "q1", text: "How many rows of data will typically be processed?", isRelevant: null, answer: "", category: "Task" },
+      { id: "q2", text: "Is this script meant to run automatically or manually?", isRelevant: null, answer: "", category: "Conditions" },
+      { id: "q3", text: "Will non-technical users need to modify the script later?", isRelevant: null, answer: "", category: "Persona" },
+      { id: "q4", text: "Are there any performance concerns with large datasets?", isRelevant: null, answer: "", category: "Instructions" },
+    ];
+  }
+  
+  // For email-related prompts
+  if (lowerPrompt.includes('email') || lowerPrompt.includes('message') || lowerPrompt.includes('communication')) {
+    return [
+      { id: "q1", text: "What is the ongoing relationship with the recipient?", isRelevant: null, answer: "", category: "Persona" },
+      { id: "q2", text: "Is this a one-time message or part of a series?", isRelevant: null, answer: "", category: "Task" },
+      { id: "q3", text: "Are there any sensitive topics to approach carefully?", isRelevant: null, answer: "", category: "Conditions" },
+      { id: "q4", text: "What's the expected response you're hoping to receive?", isRelevant: null, answer: "", category: "Instructions" },
+    ];
+  }
+  
+  // For coding/programming tasks
+  if (lowerPrompt.includes('code') || lowerPrompt.includes('script') || lowerPrompt.includes('program') || lowerPrompt.includes('function')) {
+    return [
+      { id: "q1", text: "What is the expected execution environment?", isRelevant: null, answer: "", category: "Conditions" },
+      { id: "q2", text: "Are there any specific libraries or dependencies to use or avoid?", isRelevant: null, answer: "", category: "Instructions" },
+      { id: "q3", text: "What scale of data will this solution need to handle?", isRelevant: null, answer: "", category: "Task" },
+      { id: "q4", text: "Who will maintain this code in the future?", isRelevant: null, answer: "", category: "Persona" },
+    ];
+  }
+  
+  // Default to general context questions
+  return [
+    { id: "q1", text: "What specific outcome or result are you looking to achieve?", isRelevant: null, answer: "", category: "Task" },
+    { id: "q2", text: "Who is the intended audience for this output?", isRelevant: null, answer: "", category: "Persona" },
+    { id: "q3", text: "Are there any time constraints or deadlines?", isRelevant: null, answer: "", category: "Conditions" },
+    { id: "q4", text: "What format or structure is most important for the output?", isRelevant: null, answer: "", category: "Instructions" }
+  ];
 }
 
 // Helper function to extract variables from the analysis
-function extractVariables(analysis) {
+function extractVariables(analysis, promptText) {
   // Try to find a JSON block containing variables
   const jsonMatch = analysis.match(/```json\s*({[\s\S]*?})\s*```/);
   
@@ -205,13 +258,21 @@ function extractVariables(analysis) {
     try {
       const parsedJson = JSON.parse(jsonMatch[1]);
       if (parsedJson.variables && Array.isArray(parsedJson.variables)) {
-        return parsedJson.variables.map((v, i) => ({
-          id: v.id || `v${i+1}`,
-          name: v.name,
-          value: v.value || "",
-          isRelevant: null,
-          category: v.category || "Task"
-        }));
+        // Filter out any variables that match category names
+        return parsedJson.variables
+          .filter(v => 
+            v.name && 
+            v.name !== 'Task' && 
+            v.name !== 'Persona' && 
+            v.name !== 'Conditions' && 
+            v.name !== 'Instructions')
+          .map((v, i) => ({
+            id: v.id || `v${i+1}`,
+            name: v.name,
+            value: v.value || "",
+            isRelevant: null,
+            category: v.category || "Task"
+          }));
       }
     } catch (e) {
       console.error("Error parsing JSON from analysis:", e);
@@ -226,8 +287,12 @@ function extractVariables(analysis) {
   
   while ((match = variableRegex.exec(enhancedPrompt)) !== null) {
     const name = match[1];
-    // Check if variable already exists
-    if (!contextualVariables.some(v => v.name === name)) {
+    // Check if variable already exists and isn't a category name
+    if (name !== 'Task' && 
+        name !== 'Persona' && 
+        name !== 'Conditions' && 
+        name !== 'Instructions' && 
+        !contextualVariables.some(v => v.name === name)) {
       contextualVariables.push({
         id: `v${contextualVariables.length + 1}`,
         name,
@@ -252,6 +317,11 @@ function extractVariables(analysis) {
     const name = match[2].trim();
     const value = match[3] ? match[3].trim() : "";
     
+    // Skip category names
+    if (name === 'Task' || name === 'Persona' || name === 'Conditions' || name === 'Instructions') {
+      continue;
+    }
+    
     if (name && !variables.some(v => v.name === name)) {
       variables.push({
         id: `v${variables.length + 1}`,
@@ -268,8 +338,22 @@ function extractVariables(analysis) {
     return variables;
   }
   
-  // If we still haven't found any variables, generate contextual ones based on the prompt content
-  const promptContext = analysis.toLowerCase();
+  return generateContextualVariablesForPrompt(promptText);
+}
+
+// Helper function to generate context-appropriate variables
+function generateContextualVariablesForPrompt(promptText) {
+  const promptContext = promptText.toLowerCase();
+  
+  // For Google Sheets related prompts
+  if (promptContext.includes('google sheet') || promptContext.includes('spreadsheet') || promptContext.includes('excel')) {
+    return [
+      { id: "v1", name: "HighlightColor", value: "", isRelevant: null, category: "Task" },
+      { id: "v2", name: "ResultsTabName", value: "", isRelevant: null, category: "Conditions" },
+      { id: "v3", name: "SourceTabName", value: "", isRelevant: null, category: "Task" },
+      { id: "v4", name: "SumFormula", value: "", isRelevant: null, category: "Instructions" }
+    ];
+  }
   
   // For email-related prompts
   if (promptContext.includes("email") || promptContext.includes("message")) {
@@ -302,8 +386,13 @@ function extractVariables(analysis) {
     ];
   }
   
-  // Default to generated mock variables if none of the above patterns match
-  return generateContextualMockVariables();
+  // Default variables
+  return [
+    { id: "v1", name: "TaskDescription", value: "", isRelevant: null, category: "Task" },
+    { id: "v2", name: "RecipientName", value: "", isRelevant: null, category: "Persona" },
+    { id: "v3", name: "WordCount", value: "", isRelevant: null, category: "Conditions" },
+    { id: "v4", name: "FormatStyle", value: "", isRelevant: null, category: "Instructions" }
+  ];
 }
 
 // Helper function to extract master command from the analysis
@@ -380,29 +469,3 @@ function getCategoryFromVariableName(name) {
     return "Task";
   }
 }
-
-// Helper function to generate mock questions if extraction fails
-function generateMockQuestions() {
-  return [
-    { id: "q1", text: "What specific task or output are you looking to accomplish?", isRelevant: null, answer: "", category: "Task" },
-    { id: "q2", text: "Who is the intended audience or recipient?", isRelevant: null, answer: "", category: "Persona" },
-    { id: "q3", text: "Are there any constraints or limitations to be aware of?", isRelevant: null, answer: "", category: "Conditions" },
-    { id: "q4", text: "What specific instructions or format requirements do you have?", isRelevant: null, answer: "", category: "Instructions" }
-  ];
-}
-
-// Helper function to generate contextual mock variables
-function generateContextualMockVariables() {
-  return [
-    { id: "v1", name: "TaskDescription", value: "", isRelevant: null, category: "Task" },
-    { id: "v2", name: "RecipientName", value: "", isRelevant: null, category: "Persona" },
-    { id: "v3", name: "WordCount", value: "", isRelevant: null, category: "Conditions" },
-    { id: "v4", name: "FormatStyle", value: "", isRelevant: null, category: "Instructions" }
-  ];
-}
-
-// Legacy function needed for compatibility
-function generateMockVariables() {
-  return generateContextualMockVariables();
-}
-

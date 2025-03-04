@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Variable } from "./types";
 import { RefObject } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { filterCategoryVariables } from "./constants";
 
 interface VariableListProps {
   variables: Variable[];
@@ -26,19 +27,13 @@ export const VariableList = ({
   setVariableToDelete,
   containerRef
 }: VariableListProps) => {
+  // Filter out category names and empty names
+  const filteredVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
+  
   // Group variables by category
   const groupedVariables: Record<string, Variable[]> = {};
   
-  variables.forEach(variable => {
-    // Skip variables with empty names or names that exactly match category names
-    if (!variable.name || 
-        variable.name === 'Task' || 
-        variable.name === 'Persona' || 
-        variable.name === 'Conditions' || 
-        variable.name === 'Instructions') {
-      return;
-    }
-    
+  filteredVariables.forEach(variable => {
     const category = variable.category || 'Other';
     if (!groupedVariables[category]) {
       groupedVariables[category] = [];
@@ -46,7 +41,7 @@ export const VariableList = ({
     groupedVariables[category].push(variable);
   });
 
-  // Get all categories
+  // Get all categories with valid variables
   const categories = Object.keys(groupedVariables);
   const hasValidVariables = categories.length > 0 && 
     categories.some(category => groupedVariables[category].length > 0);

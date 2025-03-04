@@ -1,5 +1,6 @@
 
 import { Question, Variable } from "@/components/dashboard/types";
+import { filterCategoryVariables } from "@/components/dashboard/constants";
 import { useToast } from "@/hooks/use-toast";
 
 export const useQuestionsAndVariables = (
@@ -37,9 +38,12 @@ export const useQuestionsAndVariables = (
   };
 
   const addVariable = () => {
-    if (variables.length < 12) {
+    // Filter out category names and empty names for the count
+    const validVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
+    
+    if (validVariables.length < 12) {
       const newId = `v${Date.now()}`;
-      setVariables([...variables, { id: newId, name: "", value: "", isRelevant: null }]);
+      setVariables([...variables, { id: newId, name: "", value: "", isRelevant: null, category: "Task" }]);
     } else {
       toast({
         title: "Limit reached",
@@ -52,7 +56,10 @@ export const useQuestionsAndVariables = (
   const removeVariable = () => {
     if (!variableToDelete) return;
     
-    if (variables.length > 1) {
+    // Filter out category names for the count
+    const validVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
+    
+    if (validVariables.length > 1) {
       setVariables(variables.filter(v => v.id !== variableToDelete));
       setVariableToDelete(null);
       toast({
@@ -70,7 +77,11 @@ export const useQuestionsAndVariables = (
   };
 
   const allQuestionsAnswered = questions.every(q => q.isRelevant !== null);
-  const allVariablesAnswered = variables.every(v => v.isRelevant !== null);
+  
+  // Only check relevant variables (filtered)
+  const validVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
+  const allVariablesAnswered = validVariables.every(v => v.isRelevant !== null);
+  
   const canProceedToStep3 = allQuestionsAnswered && allVariablesAnswered;
 
   return {
