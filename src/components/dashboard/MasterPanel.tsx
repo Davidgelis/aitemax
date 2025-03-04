@@ -114,45 +114,52 @@ const MasterPanel = () => {
   };
 
   const handleDeleteModel = async () => {
+    if (!deleteConfirmModel || !deleteConfirmModel.id) {
+      toast({
+        title: "Error",
+        description: "No model selected for deletion",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
-      if (!deleteConfirmModel || !deleteConfirmModel.id) return;
-      
       setIsDeleting(true);
-      console.log("Attempting to delete model:", deleteConfirmModel.id);
+      console.log(`Starting deletion process for model: ${deleteConfirmModel.id}`);
       
-      // Call the delete method and handle success/failure
       try {
-        const success = await deleteModel(deleteConfirmModel.id);
+        // Attempt to delete the model
+        const result = await deleteModel(deleteConfirmModel.id);
         
-        if (success) {
-          toast({
-            title: "Success",
-            description: "AI model deleted successfully",
-          });
+        if (result) {
+          console.log("Delete operation reported success");
           
+          // Close the dialog
           setIsDeleteConfirmOpen(false);
           setDeleteConfirmModel(null);
           
           // Force refresh the model list to ensure UI is updated
           await refreshModels();
+          
+          toast({
+            title: "Model Deleted",
+            description: "AI model has been successfully removed from the database",
+          });
         } else {
-          throw new Error("Delete operation did not return success");
+          throw new Error("Delete operation failed");
         }
       } catch (error) {
-        console.error('Error during model deletion:', error);
+        console.error('Delete operation error:', error);
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : 'Unknown deletion error';
+        
         toast({
-          title: "Error",
-          description: "Failed to delete AI model. The database may not have been updated.",
+          title: "Deletion Failed",
+          description: `Could not delete model: ${errorMessage}`,
           variant: "destructive"
         });
       }
-    } catch (error) {
-      console.error('Error in handleDeleteModel:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete AI model. Please try again.",
-        variant: "destructive"
-      });
     } finally {
       setIsDeleting(false);
     }

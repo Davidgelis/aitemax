@@ -55,11 +55,12 @@ export const ModelService = {
   
   async getModelById(id: string): Promise<AIModel | null> {
     try {
+      console.log(`Fetching model with ID: ${id}`);
       const { data, error } = await supabase
         .from('ai_models')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error('Error fetching model by id:', error);
@@ -191,42 +192,42 @@ export const ModelService = {
   
   async deleteModel(id: string): Promise<boolean> {
     try {
-      console.log(`Attempting to delete model with ID: ${id}`);
+      console.log(`Attempting to delete model with ID: ${id} from Supabase`);
       
-      // First verify if the model exists
-      const model = await this.getModelById(id);
-      if (!model) {
-        console.error(`Model with ID ${id} not found, cannot delete`);
-        throw new Error("Model not found");
-      }
-      
-      // Perform the delete operation
+      // Direct deletion - simplified approach to minimize errors
       const { error } = await supabase
         .from('ai_models')
         .delete()
         .eq('id', id);
       
       if (error) {
-        console.error('Error deleting model from Supabase:', error);
-        throw error;
+        console.error('Error from Supabase during delete operation:', error);
+        throw new Error(`Database error: ${error.message}`);
       }
       
-      // Verify the deletion was successful by checking if the model still exists
-      const checkDelete = await this.getModelById(id);
-      if (checkDelete) {
-        console.error(`Model with ID ${id} still exists after delete operation`);
-        throw new Error("Failed to delete model");
+      // Double-check deletion success using a small delay to allow for database propagation
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const checkModel = await this.getModelById(id);
+      if (checkModel) {
+        console.error(`Verification failed: Model ${id} still exists after delete operation`);
+        throw new Error("Deletion verification failed");
       }
       
-      console.log(`Successfully deleted model with ID: ${id} from database`);
+      console.log(`Model ${id} successfully deleted from database`);
       return true;
     } catch (error) {
       console.error('Exception in deleteModel:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Unknown error deleting model';
+      
       toast({
         title: "Error Deleting Model",
-        description: "Failed to delete AI model from the database. Please try again.",
+        description: `Failed to delete AI model: ${errorMessage}`,
         variant: "destructive"
       });
+      
       throw error;
     }
   }
