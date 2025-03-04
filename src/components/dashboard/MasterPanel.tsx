@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useModels } from "@/context/ModelContext";
@@ -189,7 +188,7 @@ const MasterPanel = () => {
       setIsEnhancing(true);
       toast({
         title: "AI Enhancement Started",
-        description: "Starting AI enhancement for all models. This may take a few minutes...",
+        description: "Starting AI enhancement for all incomplete models. This may take a few minutes...",
       });
       
       const result = await ModelService.enhanceModelsWithAI();
@@ -200,7 +199,7 @@ const MasterPanel = () => {
         
         toast({
           title: "AI Enhancement Complete",
-          description: "Models have been enhanced with AI-generated information.",
+          description: "Models have been enhanced with AI-generated information, prioritizing incomplete ones.",
         });
       } else {
         toast({
@@ -243,6 +242,7 @@ const MasterPanel = () => {
             onClick={handleEnhanceModels} 
             disabled={isLoading || isRefreshing || isEnhancing}
             className="bg-[#041524] hover:bg-[#041524]/90 text-white"
+            title="Enhances all models with missing information using AI"
           >
             <Brain className={`mr-2 h-4 w-4 ${isEnhancing ? 'animate-pulse' : ''}`} /> 
             {isEnhancing ? 'Enhancing...' : 'AI Enhance'}
