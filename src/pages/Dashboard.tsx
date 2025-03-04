@@ -5,10 +5,19 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AIModel } from "@/components/dashboard/types";
 import { UserSidebar } from "@/components/dashboard/UserSidebar";
 import { StepController } from "@/components/dashboard/StepController";
+import { usePromptState } from "@/hooks/usePromptState";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
+  
+  // Use the prompt state hook to get the state and functions
+  const promptState = usePromptState(user);
+  
+  // Compute filtered prompts based on search term
+  const filteredPrompts = promptState.savedPrompts.filter(
+    (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm.toLowerCase())
+  );
   
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -29,6 +38,13 @@ const Dashboard = () => {
     };
   }, []);
 
+  // Fetch saved prompts when user changes
+  useEffect(() => {
+    if (user) {
+      promptState.fetchSavedPrompts();
+    }
+  }, [user]);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -38,7 +54,18 @@ const Dashboard = () => {
           </div>
         </main>
 
-        <UserSidebar user={user} />
+        <UserSidebar 
+          user={user}
+          savedPrompts={promptState.savedPrompts}
+          filteredPrompts={filteredPrompts}
+          searchTerm={promptState.searchTerm}
+          setSearchTerm={promptState.setSearchTerm}
+          isLoadingPrompts={promptState.isLoadingPrompts}
+          handleNewPrompt={promptState.handleNewPrompt}
+          handleDeletePrompt={promptState.handleDeletePrompt}
+          handleDuplicatePrompt={promptState.handleDuplicatePrompt}
+          handleRenamePrompt={promptState.handleRenamePrompt}
+        />
 
         <div className="absolute top-6 right-6 z-50">
           <SidebarTrigger className="bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
