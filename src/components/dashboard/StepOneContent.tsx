@@ -34,7 +34,10 @@ export const StepOneContent = ({
   return (
     <div className="space-y-6 w-full">
       <div className="max-w-md w-full mx-auto">
-        <ModelSelector onSelect={setSelectedModel} />
+        <ModelSelector 
+          onSelect={setSelectedModel} 
+          selectedModel={selectedModel}
+        />
       </div>
       
       <Separator className="my-4" />

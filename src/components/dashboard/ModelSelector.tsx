@@ -4,26 +4,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { ModelService } from '@/services/ModelService';
-import { 
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Laptop } from 'lucide-react';
 import { AIModel } from './types';
 
 interface ModelSelectorProps {
   onSelect: (model: AIModel | null) => void;
   isInitializingModels?: boolean;
+  selectedModel: AIModel | null;
 }
 
-export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelSelectorProps) => {
+export const ModelSelector = ({ onSelect, isInitializingModels = false, selectedModel }: ModelSelectorProps) => {
   const [models, setModels] = useState<AIModel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const [providers, setProviders] = useState<string[]>([]);
 
@@ -89,10 +85,9 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
     }
   }, [isInitializingModels]);
 
-  const handleSelectModel = (id: string) => {
-    const model = models.find(m => m.id === id);
-    setSelectedId(id);
-    onSelect(model || null);
+  const handleSelectModel = (model: AIModel) => {
+    onSelect(model);
+    setOpen(false);
   };
 
   const isLoading = loading || isInitializingModels;
@@ -102,60 +97,88 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
       {isLoading ? (
         <Skeleton className="h-10 w-full" />
       ) : (
-        <div className="space-y-4">
-          <Select value={selectedId || ''} onValueChange={handleSelectModel}>
-            <SelectTrigger className="w-full bg-[#fafafa] border-[#084b49] text-[#545454]">
-              <SelectValue placeholder="Select an AI model" />
-            </SelectTrigger>
-            <SelectContent className="bg-white z-50">
-              {providers.length === 0 ? (
-                <div className="p-2 text-center text-[#545454]">No models found</div>
-              ) : (
-                providers.map(provider => (
-                  <SelectGroup key={provider}>
-                    <SelectLabel className="text-[#545454]">{provider}</SelectLabel>
-                    {modelsByProvider[provider] && modelsByProvider[provider].map(model => (
-                      <SelectItem key={model.id} value={model.id}>
-                        <span className="text-[#545454]">{model.name}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                ))
-              )}
-            </SelectContent>
-          </Select>
+        <div>
+          <Button 
+            onClick={() => setOpen(true)}
+            className="w-full h-10 bg-[#fafafa] border border-[#084b49] text-[#545454] hover:bg-[#f0f0f0] flex justify-between items-center"
+            variant="outline"
+          >
+            <span className="truncate">
+              {selectedModel ? selectedModel.name : "Select AI model"}
+            </span>
+            <Laptop className="ml-2 h-4 w-4 text-[#084b49]" />
+          </Button>
           
-          {selectedId && (
-            <div className="mt-4 p-4 bg-background border border-[#084b49] rounded-md">
-              {models.filter(m => m.id === selectedId).map(model => (
-                <div key={model.id} className="space-y-3">
-                  <h3 className="font-medium text-lg text-[#545454]">{model.name}</h3>
-                  {model.provider && <p className="text-sm text-[#545454]">Provider: {model.provider}</p>}
-                  {model.description && <p className="text-sm text-[#545454]">{model.description}</p>}
-                  
-                  {model.strengths && model.strengths.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mt-3 mb-1 text-[#545454]">Strengths:</h4>
-                      <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
-                        {model.strengths.map((strength, i) => (
-                          <li key={i}>{strength}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  
-                  {model.limitations && model.limitations.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mt-3 mb-1 text-[#545454]">Limitations:</h4>
-                      <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
-                        {model.limitations.map((limitation, i) => (
-                          <li key={i}>{limitation}</li>
-                        ))}
-                      </ul>
-                    </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogContent 
+              className="p-0 max-w-md max-h-[70vh] w-full overflow-hidden bg-white border border-[#084b49]"
+              overlayClassName="backdrop-blur-sm bg-black/30"
+            >
+              <ScrollArea className="h-[65vh] w-full p-4">
+                <div className="space-y-6">
+                  {providers.length === 0 ? (
+                    <div className="p-4 text-center text-[#545454]">No models found</div>
+                  ) : (
+                    providers.map(provider => (
+                      <div key={provider} className="space-y-2">
+                        <h3 className="text-[#545454] font-semibold text-lg">{provider}</h3>
+                        <div className="space-y-2">
+                          {modelsByProvider[provider] && modelsByProvider[provider].map(model => (
+                            <div 
+                              key={model.id}
+                              onClick={() => handleSelectModel(model)}
+                              className={`p-3 rounded-md cursor-pointer transition-colors ${
+                                selectedModel?.id === model.id 
+                                  ? 'bg-[#084b49] text-white' 
+                                  : 'bg-[#fafafa] text-[#545454] hover:bg-[#f0f0f0]'
+                              }`}
+                            >
+                              <div className="font-medium">{model.name}</div>
+                              {model.description && (
+                                <div className="text-sm mt-1 opacity-90 line-clamp-2">
+                                  {model.description}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
-              ))}
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+          
+          {selectedModel && (
+            <div className="mt-4 p-4 bg-background border border-[#084b49] rounded-md">
+              <div className="space-y-3">
+                <h3 className="font-medium text-lg text-[#545454]">{selectedModel.name}</h3>
+                {selectedModel.provider && <p className="text-sm text-[#545454]">Provider: {selectedModel.provider}</p>}
+                {selectedModel.description && <p className="text-sm text-[#545454]">{selectedModel.description}</p>}
+                
+                {selectedModel.strengths && selectedModel.strengths.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mt-3 mb-1 text-[#545454]">Strengths:</h4>
+                    <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
+                      {selectedModel.strengths.map((strength, i) => (
+                        <li key={i}>{strength}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {selectedModel.limitations && selectedModel.limitations.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mt-3 mb-1 text-[#545454]">Limitations:</h4>
+                    <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
+                      {selectedModel.limitations.map((limitation, i) => (
+                        <li key={i}>{limitation}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
