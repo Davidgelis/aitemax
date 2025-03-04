@@ -76,13 +76,17 @@ serve(async (req) => {
     
     console.log(`Models metadata update complete. Found ${existingModels?.length || 0} models from ${providers.length} providers`);
     
-    // After updating model metadata, trigger the AI enhancement function
+    // After updating model metadata, trigger the AI enhancement function with a flag to check for significant changes
     console.log('Triggering AI enhancement function to update model descriptions and characteristics...');
     
     try {
       // Call the enhance-ai-models function to update descriptions, strengths, and limitations
+      // Include flag to check for significant differences before updating
       const enhanceResponse = await supabase.functions.invoke('enhance-ai-models', {
-        method: 'POST'
+        method: 'POST',
+        body: {
+          checkSignificantChanges: true
+        }
       });
       
       if (enhanceResponse.error) {

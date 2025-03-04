@@ -14,6 +14,7 @@ export const useModelSelector = (selectedModel: AIModel | null, onSelect: (model
   const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   const sortedModels = useMemo(() => {
     return [...models].sort((a, b) => a.name.localeCompare(b.name));
@@ -27,6 +28,18 @@ export const useModelSelector = (selectedModel: AIModel | null, onSelect: (model
       
       const providerList = await ModelService.getProviders();
       setProviders(providerList);
+      
+      // Get latest update timestamp
+      if (modelList.length > 0) {
+        const updatedDates = modelList
+          .map(model => model.updated_at ? new Date(model.updated_at) : null)
+          .filter(date => date !== null) as Date[];
+          
+        if (updatedDates.length > 0) {
+          const latestUpdate = new Date(Math.max(...updatedDates.map(date => date.getTime())));
+          setLastUpdate(latestUpdate);
+        }
+      }
       
       console.log(`Fetched ${modelList.length} models from ${providerList.length} providers`);
       
@@ -78,7 +91,7 @@ export const useModelSelector = (selectedModel: AIModel | null, onSelect: (model
     const intervalId = setInterval(() => {
       console.log('Checking for model updates (daily polling)');
       fetchModels();
-    }, 86400000);
+    }, 86400000); // 24 hours
     
     return () => clearInterval(intervalId);
   }, []);
@@ -104,6 +117,7 @@ export const useModelSelector = (selectedModel: AIModel | null, onSelect: (model
     isAnimating,
     setIsAnimating,
     handleDialogOpen,
+    lastUpdate,
     isLoading: loading || isInitializingModels
   };
 };

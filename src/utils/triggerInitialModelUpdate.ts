@@ -13,6 +13,8 @@ interface ModelUpdateResponse {
     providerStats?: Record<string, number>;
     providers?: string[];
     skipped?: boolean;
+    significantChanges?: number;
+    unchangedModels?: number;
     errors?: Array<{model: string, error: string}>;
     [key: string]: any;
   };
@@ -38,6 +40,9 @@ export const triggerInitialModelUpdate = async (forceUpdate = true): Promise<Mod
       method: 'POST',
       headers: {
         'X-Force-Update': forceUpdate ? 'true' : 'false'
+      },
+      body: {
+        checkSignificantChanges: true
       }
     });
     
@@ -65,32 +70,34 @@ export const triggerInitialModelUpdate = async (forceUpdate = true): Promise<Mod
         description: "AI models are already up to date. No changes were made.",
       });
     } else {
-      const totalModels = result.data?.insertedModels || 0;
+      const totalModels = result.data?.totalModels || 0;
+      const updatedModels = result.data?.significantChanges || 0;
+      const unchangedModels = result.data?.unchangedModels || 0;
       const providers = result.data?.providers || [];
       
       toast({
         title: "AI Models Updated Successfully",
-        description: `Added ${totalModels} models from ${providers.length} providers.`,
+        description: `Updated ${updatedModels} models with significant changes (${unchangedModels} unchanged) from ${providers.length} providers.`,
       });
     }
     
     // Check if any errors occurred during insertion
     if (result.data?.errors && result.data.errors.length > 0) {
-      console.warn('Some models failed to insert:', result.data.errors);
+      console.warn('Some models failed to update:', result.data.errors);
       
       toast({
         title: "Some Models Failed",
-        description: `${result.data.errors.length} models couldn't be added due to errors.`,
+        description: `${result.data.errors.length} models couldn't be updated due to errors.`,
         variant: "destructive"
       });
     }
     
     // Log provider statistics if available
     if (result.data?.providerStats) {
-      console.log('Models inserted by provider:', result.data.providerStats);
+      console.log('Models by provider:', result.data.providerStats);
       const providers = result.data.providers || Object.keys(result.data.providerStats);
       const totalProviders = providers.length;
-      console.log(`Successfully inserted models from ${totalProviders} providers: ${providers.join(', ')}`);
+      console.log(`Successfully processed models from ${totalProviders} providers: ${providers.join(', ')}`);
     }
     
     return { success: true, data: result.data };
@@ -139,7 +146,7 @@ export const testModelFetch = async (): Promise<boolean> => {
     // Fetch a sample of models to verify they exist
     const { data, error } = await supabase
       .from('ai_models')
-      .select('provider, name')
+      .select('provider, name, updated_at')
       .limit(50);
     
     if (error) {
@@ -154,12 +161,25 @@ export const testModelFetch = async (): Promise<boolean> => {
     
     // Count models by provider to verify diversity
     const providerCounts: Record<string, number> = {};
+    let latestUpdateTimestamp = 0;
+    
     data.forEach(model => {
       const provider = model.provider || 'Unknown';
       providerCounts[provider] = (providerCounts[provider] || 0) + 1;
+      
+      // Track the most recent update time
+      if (model.updated_at) {
+        const updateTime = new Date(model.updated_at).getTime();
+        latestUpdateTimestamp = Math.max(latestUpdateTimestamp, updateTime);
+      }
     });
     
+    const latestUpdateDate = latestUpdateTimestamp > 0 
+      ? new Date(latestUpdateTimestamp).toLocaleString() 
+      : 'unknown';
+    
     console.log(`Found ${data.length} models in database from ${Object.keys(providerCounts).length} providers`);
+    console.log(`Last model update: ${latestUpdateDate}`);
     console.log('Models by provider:', providerCounts);
     
     // Check if we have a good variety of providers
