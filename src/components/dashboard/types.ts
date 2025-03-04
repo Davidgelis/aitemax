@@ -1,6 +1,15 @@
 
 import { Json } from "@/integrations/supabase/types";
 
+export interface AIModel {
+  id: string;
+  name: string;
+  provider: string;
+  description: string;
+  strengths: string[];
+  limitations: string[];
+}
+
 export interface Question {
   id: string;
   text: string;
