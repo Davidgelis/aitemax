@@ -42,28 +42,24 @@ serve(async (req) => {
 
     console.log('Starting AI enhancement for models...');
     
-    // First, prioritize models with missing data (newly added models)
-    const { data: incompleteModels, error: incompleteError } = await supabase
+    // First, fetch all non-deleted models
+    const { data: models, error: fetchError } = await supabase
       .from('ai_models')
       .select('*')
-      .is('is_deleted', null)
-      .or('description.is.null,strengths.is.null,limitations.is.null');
+      .is('is_deleted', null);
     
-    if (incompleteError) {
-      throw new Error(`Error fetching incomplete models: ${incompleteError.message}`);
+    if (fetchError) {
+      throw new Error(`Error fetching models: ${fetchError.message}`);
     }
     
-    console.log(`Found ${incompleteModels?.length || 0} incomplete models that need enhancement`);
-    
-    // Process only incomplete models if there are any
-    const models = incompleteModels || [];
+    console.log(`Found ${models?.length || 0} non-deleted models`);
     
     if (models.length === 0) {
       return new Response(
         JSON.stringify({
           success: true,
-          message: "No incomplete models found that need enhancement",
-          incompleteModelsCount: 0
+          message: "No models found to enhance",
+          modelsCount: 0
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -74,17 +70,17 @@ serve(async (req) => {
     
     for (const model of models) {
       try {
-        console.log(`Enhancing incomplete model: ${model.name} (${model.provider || 'Unknown provider'})`);
+        console.log(`Enhancing model: ${model.name} (${model.provider || 'Unknown provider'})`);
         
         // Generate AI-powered description, strengths, and limitations
         const promptText = `
-        Create a detailed analysis of the AI model "${model.name}" by ${model.provider || 'an unknown provider'}. 
+        Create a brief analysis of the AI model "${model.name}" by ${model.provider || 'an unknown provider'}. 
         Format your response as a JSON object with the following keys:
-        1. description: A comprehensive description of the model, focusing on its purpose, capabilities, and typical use cases.
-        2. strengths: An array of 4-6 specific strengths or advantages of this model.
-        3. limitations: An array of 4-6 specific limitations or weaknesses of this model.
+        1. description: A single sentence (max 100 characters) describing the model's main purpose.
+        2. strengths: An array of exactly 3 short phrases (each max 30 characters) highlighting key strengths.
+        3. limitations: An array of exactly 3 short phrases (each max 30 characters) highlighting key limitations.
         
-        Make your response specific to this model based on what is publicly known about it, and ensure all information is factual.
+        Be very concise and specific. Each strength and limitation should be a brief phrase, not a full sentence.
         Return only valid JSON with those three keys.
         `;
         
@@ -100,7 +96,7 @@ serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: 'You are an AI expert tasked with creating detailed, factual information about AI models. Return ONLY valid JSON without code blocks or markdown.'
+                content: 'You are an AI expert tasked with creating concise, factual information about AI models. Return ONLY valid JSON without code blocks or markdown.'
               },
               {
                 role: 'user',
@@ -133,40 +129,23 @@ serve(async (req) => {
         }
         
         // Update the model with the AI-generated content
-        const updateData: Record<string, any> = {
-          updated_at: new Date().toISOString()
-        };
+        const { error: updateError } = await supabase
+          .from('ai_models')
+          .update({
+            description: analysisData.description,
+            strengths: analysisData.strengths,
+            limitations: analysisData.limitations,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', model.id);
         
-        if (!model.description && analysisData.description) {
-          updateData.description = analysisData.description;
+        if (updateError) {
+          console.error(`Error updating model ${model.name}:`, updateError);
+          continue;
         }
         
-        if ((!model.strengths || model.strengths.length === 0) && analysisData.strengths) {
-          updateData.strengths = analysisData.strengths;
-        }
-        
-        if ((!model.limitations || model.limitations.length === 0) && analysisData.limitations) {
-          updateData.limitations = analysisData.limitations;
-        }
-        
-        // Only update if we have data to update
-        if (Object.keys(updateData).length > 1) { // More than just updated_at
-          console.log(`Updating model ${model.name} with AI-generated data`);
-          const { error: updateError } = await supabase
-            .from('ai_models')
-            .update(updateData)
-            .eq('id', model.id);
-          
-          if (updateError) {
-            console.error(`Error updating model ${model.name}:`, updateError);
-            continue;
-          }
-          
-          enhancedCount++;
-          console.log(`Successfully enhanced model: ${model.name}`);
-        } else {
-          console.log(`No new data to update for model ${model.name}`);
-        }
+        enhancedCount++;
+        console.log(`Successfully enhanced model: ${model.name}`);
         
         // Add a small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -177,14 +156,14 @@ serve(async (req) => {
       }
     }
     
-    console.log(`AI enhancement completed. Enhanced ${enhancedCount} out of ${models.length} incomplete models`);
+    console.log(`AI enhancement completed. Enhanced ${enhancedCount} out of ${models.length} models`);
     
     return new Response(
       JSON.stringify({
         success: true,
         message: `Successfully enhanced ${enhancedCount} models with AI-generated information`,
         enhancedCount,
-        totalIncompleteModels: models.length
+        totalModels: models.length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -188,7 +188,7 @@ const MasterPanel = () => {
       setIsEnhancing(true);
       toast({
         title: "AI Enhancement Started",
-        description: "Starting AI enhancement for incomplete models. This will fill in missing descriptions, strengths, and limitations...",
+        description: "Enhancing all models with concise AI-generated information...",
       });
       
       const result = await ModelService.enhanceModelsWithAI();
@@ -199,7 +199,7 @@ const MasterPanel = () => {
         
         toast({
           title: "AI Enhancement Complete",
-          description: "Newly added models have been enhanced with AI-generated information.",
+          description: "All models have been updated with concise AI-generated descriptions, strengths, and limitations.",
         });
       } else {
         toast({
@@ -242,7 +242,7 @@ const MasterPanel = () => {
             onClick={handleEnhanceModels} 
             disabled={isLoading || isRefreshing || isEnhancing}
             className="bg-[#041524] hover:bg-[#041524]/90 text-white"
-            title="Fills in missing descriptions, strengths, and limitations for newly added models using AI"
+            title="Updates all models with concise AI-generated information"
           >
             <Brain className={`mr-2 h-4 w-4 ${isEnhancing ? 'animate-pulse' : ''}`} /> 
             {isEnhancing ? 'Enhancing...' : 'AI Enhance'}

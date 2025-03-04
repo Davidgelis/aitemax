@@ -70,57 +70,35 @@ serve(async (req) => {
       throw new Error(`Error fetching existing models: ${existingModelsError.message}`);
     }
     
-    // Number of models updated
-    let updatedCount = 0;
-    
-    // For each existing model, update the description, strengths and limitations
-    // This simulates updating the models from external APIs while preserving names and providers
-    for (const model of existingModels || []) {
-      // Generate some sample descriptions, strengths and limitations based on the model name
-      const description = `${model.name} is a powerful AI model by ${model.provider || 'Unknown provider'} that can help with various tasks.`;
-      const strengths = [
-        "Natural language understanding",
-        "Context awareness",
-        "Reasoning capabilities",
-        "Following instructions"
-      ];
-      const limitations = [
-        "May occasionally generate incorrect information",
-        "Limited knowledge cutoff",
-        "Cannot browse the internet",
-        "Cannot run code"
-      ];
-      
-      // Update the model with generated data
-      const { error: updateError } = await supabase
-        .from('ai_models')
-        .update({
-          description,
-          strengths,
-          limitations,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', model.id);
-      
-      if (updateError) {
-        console.error(`Error updating model ${model.name}: ${updateError.message}`);
-      } else {
-        updatedCount++;
-      }
-    }
-    
     // Calculate stats
     const providerStats = countModelsByProvider(existingModels || []);
     const providers = Object.keys(providerStats);
     
-    console.log(`Models update complete. Updated ${updatedCount} models from ${providers.length} providers`);
+    console.log(`Models metadata update complete. Found ${existingModels?.length || 0} models from ${providers.length} providers`);
+    
+    // After updating model metadata, trigger the AI enhancement function
+    console.log('Triggering AI enhancement function to update model descriptions and characteristics...');
+    
+    try {
+      // Call the enhance-ai-models function to update descriptions, strengths, and limitations
+      const enhanceResponse = await supabase.functions.invoke('enhance-ai-models', {
+        method: 'POST'
+      });
+      
+      if (enhanceResponse.error) {
+        console.error('Error calling enhance-ai-models function:', enhanceResponse.error);
+      } else {
+        console.log('AI enhancement triggered successfully:', enhanceResponse.data);
+      }
+    } catch (enhanceError) {
+      console.error('Error triggering AI enhancement:', enhanceError);
+    }
     
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Successfully updated model metadata for ${updatedCount} models`,
+        message: `Successfully updated model metadata and triggered AI enhancement`,
         totalModels: existingModels?.length || 0,
-        updatedModels: updatedCount,
         providerStats,
         providers
       }),
