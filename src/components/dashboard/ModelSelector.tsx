@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { AIModel } from './types';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
 interface ModelSelectorProps {
   onSelect: (model: AIModel | null) => void;
@@ -50,14 +52,12 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
         setModels(data);
         setFilteredModels(data);
         setLastUpdate(new Date());
-        setLoading(false);
       } else {
         console.log('No models found in database');
-        // Even if no models were found, stop the loading state after a reasonable timeout
-        setTimeout(() => {
-          setLoading(false);
-        }, 5000);
+        setModels([]);
+        setFilteredModels([]);
       }
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching AI models:', error);
       toast({
@@ -66,6 +66,43 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
         variant: "destructive"
       });
       setLoading(false);
+    }
+  };
+  
+  const handleRefreshModels = async () => {
+    try {
+      setIsUpdating(true);
+      const { data: beforeData } = await supabase.from('ai_models').select('id').limit(1);
+      
+      // Delete all models first to ensure clean state
+      await supabase.from('ai_models').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      // Call the edge function to repopulate models
+      const { error } = await supabase.functions.invoke('update-ai-models', {
+        method: 'POST',
+        headers: { 'X-Force-Update': 'true' }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Fetch the updated models
+      await fetchModels();
+      
+      toast({
+        title: "Models refreshed",
+        description: "AI models have been refreshed successfully.",
+      });
+    } catch (error) {
+      console.error('Error refreshing models:', error);
+      toast({
+        title: "Error refreshing models",
+        description: "Failed to refresh AI models. Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -83,10 +120,10 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
 
   // Refetch models when initialization status changes
   useEffect(() => {
-    if (!isInitializingModels && models.length === 0) {
+    if (!isInitializingModels && loading) {
       fetchModels();
     }
-  }, [isInitializingModels, models.length]);
+  }, [isInitializingModels]);
 
   useEffect(() => {
     if (searchTerm.trim() === '') {
@@ -120,7 +157,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
     });
   };
 
-  const isLoading = loading || isInitializingModels;
+  const isLoading = loading || isInitializingModels || isUpdating;
 
   if (isLoading) {
     return (
@@ -128,7 +165,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-medium text-[#545454]">AI Model Selection</h3>
           <div className="text-xs text-[#545454]">
-            {isInitializingModels ? "Initializing models..." : "Loading models..."}
+            {isInitializingModels ? "Initializing models..." : isUpdating ? "Updating models..." : "Loading models..."}
           </div>
         </div>
         <Skeleton className="h-10 w-full" />
@@ -144,14 +181,20 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
     <div className="w-full space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium text-[#545454]">AI Model Selection</h3>
-        <div className="text-xs text-[#545454]">
-          {isUpdating ? (
-            "Updating models..."
-          ) : (
-            lastUpdate ? 
-              `Last updated: ${formatUpdateTime(lastUpdate)}` : 
-              'Models update daily'
-          )}
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleRefreshModels}
+            disabled={isUpdating}
+            className="text-xs h-7 px-2 text-[#545454] border-[#545454]"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Refresh
+          </Button>
+          <div className="text-xs text-[#545454]">
+            {lastUpdate ? `Last updated: ${formatUpdateTime(lastUpdate)}` : 'Models update daily'}
+          </div>
         </div>
       </div>
       
@@ -195,8 +238,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
       {filteredModels.length === 0 && !isLoading && (
         <div className="p-4 bg-background border border-[#084b49] rounded-md">
           <p className="text-sm text-[#545454]">
-            No AI models found. The models database is currently being populated. This happens automatically in the background.
-            Please check back in a few moments.
+            No AI models found. Click the Refresh button above to try adding models again, or check back in a few moments.
           </p>
         </div>
       )}

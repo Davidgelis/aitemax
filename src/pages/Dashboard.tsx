@@ -7,12 +7,53 @@ import { UserSidebar } from "@/components/dashboard/UserSidebar";
 import { StepController } from "@/components/dashboard/StepController";
 import { usePromptState } from "@/hooks/usePromptState";
 import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
+import { useToast } from "@/hooks/use-toast";
+
+// Define fallback models that match our database schema
+const fallbackModels = [
+  {
+    name: "GPT-4o",
+    provider: "OpenAI",
+    description: "OpenAI's most advanced multimodal model combining vision and language capabilities.",
+    strengths: ["Multimodal capabilities", "State-of-the-art performance", "Handles complex reasoning", "Faster processing than GPT-4"],
+    limitations: ["May produce convincing but incorrect information", "Limited knowledge cutoff", "Not specialized for specific domains"]
+  },
+  {
+    name: "Claude 3 Opus",
+    provider: "Anthropic",
+    description: "Anthropic's most capable model with excellent performance across reasoning, math, and coding tasks.",
+    strengths: ["Strong reasoning abilities", "Code generation", "Less tendency to hallucinate", "Good at following instructions"],
+    limitations: ["Higher latency than smaller models", "Less widely available than some competitors", "Limited context window"]
+  },
+  {
+    name: "Llama 3",
+    provider: "Meta",
+    description: "Meta's latest open-source large language model with improved reasoning and instruction following.",
+    strengths: ["Open-source architecture", "Strong performance for its size", "Active community development", "Multiple size variants"],
+    limitations: ["Smaller context window than some competitors", "Less training data than closed models", "May require more explicit prompting"]
+  },
+  {
+    name: "GPT-4o mini",
+    provider: "OpenAI",
+    description: "A smaller, faster, and more cost-effective version of GPT-4o.",
+    strengths: ["Faster response time", "Lower cost", "Good balance of performance and efficiency", "Multimodal capabilities"],
+    limitations: ["Less capable than full GPT-4o on complex tasks", "Reduced reasoning ability compared to larger models", "Limited context window"]
+  },
+  {
+    name: "Gemini 1.5 Pro",
+    provider: "Google",
+    description: "Google's advanced multimodal model with extended context window and improved reasoning.",
+    strengths: ["Very large context window", "Strong multimodal understanding", "Good reasoning capabilities", "Efficient processing"],
+    limitations: ["May struggle with certain specialized domains", "Potential for generating incorrect information", "Less tested than some alternatives"]
+  }
+];
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
   const [modelsInitialized, setModelsInitialized] = useState(false);
   const [isUpdatingModels, setIsUpdatingModels] = useState(false);
+  const { toast } = useToast();
   
   // Use the prompt state hook to get the state and functions
   const promptState = usePromptState(user);
@@ -61,14 +102,52 @@ const Dashboard = () => {
           return;
         }
         
-        // If no models exist, trigger the update once
+        // If no models exist, try the edge function first
         if (!data || data.length === 0) {
           console.log('No models found, triggering initial update');
           const result = await triggerInitialModelUpdate();
           console.log('Initial model update result:', result);
           
+          // If the edge function failed, insert fallback models directly
           if (!result.success) {
             console.error('Failed to update models:', result.error);
+            
+            // Let's insert the fallback models directly into the database
+            console.log('Inserting fallback models directly...');
+            let insertedCount = 0;
+            
+            for (const model of fallbackModels) {
+              const { error: insertError } = await supabase
+                .from('ai_models')
+                .insert({
+                  name: model.name,
+                  provider: model.provider,
+                  description: model.description,
+                  strengths: model.strengths,
+                  limitations: model.limitations,
+                });
+                
+              if (insertError) {
+                console.error(`Error inserting model ${model.name}:`, insertError);
+              } else {
+                insertedCount++;
+              }
+            }
+            
+            console.log(`Inserted ${insertedCount} fallback models directly`);
+            
+            if (insertedCount > 0) {
+              toast({
+                title: "AI Models Loaded",
+                description: `${insertedCount} AI models have been loaded successfully.`,
+              });
+            } else {
+              toast({
+                title: "Failed to Load Models",
+                description: "Could not load AI models. Please try refreshing the page.",
+                variant: "destructive"
+              });
+            }
           }
         } else {
           console.log('Models already exist, no need to initialize');
@@ -79,12 +158,18 @@ const Dashboard = () => {
       } catch (e) {
         console.error('Error in model initialization check:', e);
         setIsUpdatingModels(false);
+        
+        toast({
+          title: "Model Initialization Error",
+          description: "There was an error initializing AI models. Please try refreshing the page.",
+          variant: "destructive"
+        });
       }
     };
     
     // Run the check immediately when the component mounts
     checkAndInitializeModels();
-  }, [modelsInitialized, isUpdatingModels]);
+  }, [modelsInitialized, isUpdatingModels, toast]);
 
   // Fetch saved prompts when user changes
   useEffect(() => {

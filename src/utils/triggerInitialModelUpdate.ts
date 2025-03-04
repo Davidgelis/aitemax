@@ -18,7 +18,7 @@ export const triggerInitialModelUpdate = async () => {
     console.log('Triggering initial AI model update...');
     
     // Add a timeout to avoid hanging the UI if the function doesn't respond
-    const timeoutPromise = new Promise<never>((_, reject) => {
+    const timeoutPromise = new Promise<ModelUpdateResponse>((_, reject) => {
       setTimeout(() => reject(new Error('Function timed out after 10 seconds')), 10000);
     });
     
