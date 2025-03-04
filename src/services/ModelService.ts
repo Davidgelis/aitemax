@@ -1,7 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { AIModel } from "@/components/dashboard/types";
-import { useToast } from "@/hooks/use-toast";
 import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
 
 export const ModelService = {
@@ -44,11 +42,6 @@ export const ModelService = {
       return data as AIModel[];
     } catch (error) {
       console.error('Exception in fetchModels:', error);
-      toast({
-        title: "Error Fetching Models",
-        description: "Failed to load AI models. Please try again later.",
-        variant: "destructive"
-      });
       throw error;
     }
   },
