@@ -14,7 +14,6 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { AIModel } from './types';
 
 interface ModelSelectorProps {
@@ -26,7 +25,6 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
   const [filteredModels, setFilteredModels] = useState<AIModel[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [loadingUpdate, setLoadingUpdate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -59,44 +57,16 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
     }
   };
 
-  const updateAiModels = async () => {
-    try {
-      setLoadingUpdate(true);
-      console.log('Invoking update-ai-models Edge Function...');
-      
-      // Call the Supabase Edge Function directly
-      const { data, error } = await supabase.functions.invoke('update-ai-models', {
-        method: 'POST',
-      });
-      
-      if (error) {
-        console.error('Edge function error:', error);
-        throw new Error(error.message || 'Failed to update AI models');
-      }
-      
-      console.log('Edge function response:', data);
-      
-      toast({
-        title: "Success",
-        description: "AI models updated successfully.",
-      });
-      
-      // Refetch the models after update
-      fetchModels();
-    } catch (error) {
-      console.error('Error updating AI models:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update AI models. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoadingUpdate(false);
-    }
-  };
-
   useEffect(() => {
     fetchModels();
+    
+    // Set up a polling interval to check for new models every hour
+    // This is just a fallback in case the cron job fails
+    const intervalId = setInterval(() => {
+      fetchModels();
+    }, 3600000); // 1 hour in milliseconds
+    
+    return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -134,15 +104,7 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
     <div className="w-full space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium text-gray-700">AI Model Selection</h3>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={updateAiModels} 
-          disabled={loadingUpdate}
-          className="text-sm"
-        >
-          {loadingUpdate ? 'Updating...' : 'Update Models'}
-        </Button>
+        <div className="text-xs text-gray-500">Updated daily</div>
       </div>
       
       <div className="space-y-2">
