@@ -42,17 +42,39 @@ serve(async (req) => {
 
     console.log('Starting AI enhancement for models...');
     
-    // First, fetch all non-deleted models
-    const { data: models, error: fetchError } = await supabase
+    // First, prioritize models with missing data
+    const { data: missingDataModels, error: missingDataError } = await supabase
       .from('ai_models')
       .select('*')
-      .is('is_deleted', null);
+      .is('is_deleted', null)
+      .or('description.is.null,strengths.is.null,limitations.is.null');
     
-    if (fetchError) {
-      throw new Error(`Error fetching models: ${fetchError.message}`);
+    if (missingDataError) {
+      throw new Error(`Error fetching models with missing data: ${missingDataError.message}`);
     }
     
-    console.log(`Found ${models?.length || 0} non-deleted models`);
+    console.log(`Found ${missingDataModels?.length || 0} models with missing data`);
+    
+    // Then get all other non-deleted models
+    const { data: completeModels, error: completeModelsError } = await supabase
+      .from('ai_models')
+      .select('*')
+      .is('is_deleted', null)
+      .not('description', 'is', null)
+      .not('strengths', 'is', null) 
+      .not('limitations', 'is', null);
+    
+    if (completeModelsError) {
+      throw new Error(`Error fetching complete models: ${completeModelsError.message}`);
+    }
+    
+    // Combine models, prioritizing those with missing data
+    const models = [
+      ...(missingDataModels || []),
+      ...(completeModels || [])
+    ];
+    
+    console.log(`Processing ${models.length} total models`);
     
     if (models.length === 0) {
       return new Response(
@@ -76,11 +98,12 @@ serve(async (req) => {
         const promptText = `
         Create a brief analysis of the AI model "${model.name}" by ${model.provider || 'an unknown provider'}. 
         Format your response as a JSON object with the following keys:
-        1. description: A single sentence (max 100 characters) describing the model's main purpose.
+        1. description: A single sentence (max 100 characters) that MUST specify what applications this model is best suited for (e.g., coding, content writing, image analysis, data processing, chat, etc.)
         2. strengths: An array of exactly 3 short phrases (each max 30 characters) highlighting key strengths.
         3. limitations: An array of exactly 3 short phrases (each max 30 characters) highlighting key limitations.
         
         Be very concise and specific. Each strength and limitation should be a brief phrase, not a full sentence.
+        The description MUST mention the specific applications the model excels at.
         Return only valid JSON with those three keys.
         `;
         
