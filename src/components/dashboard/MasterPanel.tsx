@@ -93,6 +93,10 @@ const MasterPanel = () => {
 
       if (success) {
         setIsEditModelOpen(false);
+        toast({
+          title: "Success",
+          description: "AI model updated successfully",
+        });
       }
     } catch (error) {
       console.error('Error updating model:', error);
@@ -111,25 +115,39 @@ const MasterPanel = () => {
 
   const handleDeleteModel = async () => {
     try {
-      if (!deleteConfirmModel) return;
+      if (!deleteConfirmModel || !deleteConfirmModel.id) return;
       
       setIsDeleting(true);
       console.log("Attempting to delete model:", deleteConfirmModel.id);
-      const success = await deleteModel(deleteConfirmModel.id);
-
-      if (success) {
-        toast({
-          title: "Success",
-          description: "AI model deleted successfully",
-        });
+      
+      // Call the delete method and handle success/failure
+      try {
+        const success = await deleteModel(deleteConfirmModel.id);
         
-        setIsDeleteConfirmOpen(false);
-        setDeleteConfirmModel(null);
-      } else {
-        throw new Error("Delete operation did not return success");
+        if (success) {
+          toast({
+            title: "Success",
+            description: "AI model deleted successfully",
+          });
+          
+          setIsDeleteConfirmOpen(false);
+          setDeleteConfirmModel(null);
+          
+          // Force refresh the model list to ensure UI is updated
+          await refreshModels();
+        } else {
+          throw new Error("Delete operation did not return success");
+        }
+      } catch (error) {
+        console.error('Error during model deletion:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete AI model. The database may not have been updated.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
-      console.error('Error deleting model:', error);
+      console.error('Error in handleDeleteModel:', error);
       toast({
         title: "Error",
         description: "Failed to delete AI model. Please try again.",

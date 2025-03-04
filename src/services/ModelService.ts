@@ -193,6 +193,14 @@ export const ModelService = {
     try {
       console.log(`Attempting to delete model with ID: ${id}`);
       
+      // First verify if the model exists
+      const model = await this.getModelById(id);
+      if (!model) {
+        console.error(`Model with ID ${id} not found, cannot delete`);
+        throw new Error("Model not found");
+      }
+      
+      // Perform the delete operation
       const { error } = await supabase
         .from('ai_models')
         .delete()
@@ -203,10 +211,22 @@ export const ModelService = {
         throw error;
       }
       
+      // Verify the deletion was successful by checking if the model still exists
+      const checkDelete = await this.getModelById(id);
+      if (checkDelete) {
+        console.error(`Model with ID ${id} still exists after delete operation`);
+        throw new Error("Failed to delete model");
+      }
+      
       console.log(`Successfully deleted model with ID: ${id} from database`);
       return true;
     } catch (error) {
       console.error('Exception in deleteModel:', error);
+      toast({
+        title: "Error Deleting Model",
+        description: "Failed to delete AI model from the database. Please try again.",
+        variant: "destructive"
+      });
       throw error;
     }
   }
