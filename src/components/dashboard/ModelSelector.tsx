@@ -28,6 +28,7 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { toast } = useToast();
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchModels = async () => {
     try {
@@ -66,10 +67,14 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
 
   const triggerModelUpdate = async () => {
     try {
+      setIsUpdating(true);
       console.log('Invoking update-ai-models Edge Function...');
       
       const { data, error } = await supabase.functions.invoke('update-ai-models', {
         method: 'POST',
+        headers: {
+          'X-Force-Update': 'true'
+        }
       });
       
       if (error) {
@@ -81,7 +86,7 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
       
       toast({
         title: "Models updated",
-        description: "AI models have been refreshed from OpenAI.",
+        description: "AI models have been refreshed.",
       });
       
       // Re-fetch the models after update
@@ -94,6 +99,8 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
         description: error instanceof Error ? error.message : "Failed to update AI models",
         variant: "destructive"
       });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -144,6 +151,10 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
   if (loading) {
     return (
       <div className="w-full max-w-md space-y-2">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium text-[#545454]">AI Model Selection</h3>
+          <div className="text-xs text-[#545454]">Loading models...</div>
+        </div>
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-full" />
       </div>
@@ -155,9 +166,13 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium text-[#545454]">AI Model Selection</h3>
         <div className="text-xs text-[#545454]">
-          {lastUpdate ? 
-            `Last updated: ${formatUpdateTime(lastUpdate)}` : 
-            'Models update daily'}
+          {isUpdating ? (
+            "Updating models..."
+          ) : (
+            lastUpdate ? 
+              `Last updated: ${formatUpdateTime(lastUpdate)}` : 
+              'Models update daily'
+          )}
         </div>
       </div>
       

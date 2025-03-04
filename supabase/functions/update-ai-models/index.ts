@@ -8,6 +8,45 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Define fallback model data to use if OpenAI API fails
+const fallbackModels = [
+  {
+    name: "GPT-4o",
+    provider: "OpenAI",
+    description: "OpenAI's most advanced multimodal model combining vision and language capabilities.",
+    strengths: ["Multimodal capabilities", "State-of-the-art performance", "Handles complex reasoning", "Faster processing than GPT-4"],
+    limitations: ["May produce convincing but incorrect information", "Limited knowledge cutoff", "Not specialized for specific domains"]
+  },
+  {
+    name: "Claude 3 Opus",
+    provider: "Anthropic",
+    description: "Anthropic's most capable model with excellent performance across reasoning, math, and coding tasks.",
+    strengths: ["Strong reasoning abilities", "Code generation", "Less tendency to hallucinate", "Good at following instructions"],
+    limitations: ["Higher latency than smaller models", "Less widely available than some competitors", "Limited context window"]
+  },
+  {
+    name: "Llama 3",
+    provider: "Meta",
+    description: "Meta's latest open-source large language model with improved reasoning and instruction following.",
+    strengths: ["Open-source architecture", "Strong performance for its size", "Active community development", "Multiple size variants"],
+    limitations: ["Smaller context window than some competitors", "Less training data than closed models", "May require more explicit prompting"]
+  },
+  {
+    name: "GPT-4o mini",
+    provider: "OpenAI",
+    description: "A smaller, faster, and more cost-effective version of GPT-4o.",
+    strengths: ["Faster response time", "Lower cost", "Good balance of performance and efficiency", "Multimodal capabilities"],
+    limitations: ["Less capable than full GPT-4o on complex tasks", "Reduced reasoning ability compared to larger models", "Limited context window"]
+  },
+  {
+    name: "Gemini 1.5 Pro",
+    provider: "Google",
+    description: "Google's advanced multimodal model with extended context window and improved reasoning.",
+    strengths: ["Very large context window", "Strong multimodal understanding", "Good reasoning capabilities", "Efficient processing"],
+    limitations: ["May struggle with certain specialized domains", "Potential for generating incorrect information", "Less tested than some alternatives"]
+  }
+];
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -46,56 +85,75 @@ serve(async (req) => {
       });
     }
 
-    console.log('Fetching AI model data from OpenAI');
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an AI expert who keeps track of the latest AI models. Create a list of the top 15 most used LLM models with their details.'
-          },
-          {
-            role: 'user',
-            content: 'Provide a comprehensive list of the top 15 most used LLM models with their detailed strengths and limitations. Format the response as a JSON array with each model having name, provider, description, strengths (array), and limitations (array) fields.'
-          }
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`OpenAI API error: ${response.status} - ${errorText}`);
-      throw new Error(`OpenAI API returned ${response.status}: ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log('Received response from OpenAI');
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('Invalid response structure from OpenAI:', JSON.stringify(data));
-      throw new Error('Invalid response from OpenAI');
-    }
-    
-    console.log('Parsing model data');
     let modelsData;
     try {
-      modelsData = JSON.parse(data.choices[0].message.content);
-      console.log(`Successfully parsed model data, found ${modelsData.length} models`);
-    } catch (parseError) {
-      console.error('Error parsing JSON from OpenAI response:', parseError);
-      console.error('Raw content:', data.choices[0].message.content);
-      throw new Error('Failed to parse model data from OpenAI');
+      console.log('Fetching AI model data from OpenAI');
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an AI expert who keeps track of the latest AI models.'
+            },
+            {
+              role: 'user',
+              content: 'Return a JSON array of the top 15 most used LLM models with their details. Each model should have name, provider, description, strengths (array), and limitations (array). Return ONLY valid JSON with no explanation or markdown.'
+            }
+          ],
+          response_format: { type: "json_object" }
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`OpenAI API error: ${response.status} - ${errorText}`);
+        throw new Error(`OpenAI API returned ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Received response from OpenAI');
+      
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error('Invalid response structure from OpenAI:', JSON.stringify(data));
+        throw new Error('Invalid response from OpenAI');
+      }
+      
+      console.log('Parsing model data');
+      try {
+        const content = data.choices[0].message.content;
+        console.log('Raw content:', content);
+        
+        const parsedData = JSON.parse(content);
+        if (parsedData.models && Array.isArray(parsedData.models)) {
+          modelsData = parsedData.models;
+        } else if (Array.isArray(parsedData)) {
+          modelsData = parsedData;
+        } else {
+          console.error('Parsed data has unexpected structure:', parsedData);
+          throw new Error('Invalid model data format: unexpected structure');
+        }
+        
+        console.log(`Successfully parsed model data, found ${modelsData.length} models`);
+      } catch (parseError) {
+        console.error('Error parsing JSON from OpenAI response:', parseError);
+        console.error('Raw content:', data.choices[0].message.content);
+        throw new Error('Failed to parse model data from OpenAI');
+      }
+    } catch (openaiError) {
+      console.error('Error with OpenAI API, using fallback models:', openaiError);
+      modelsData = fallbackModels;
+      console.log(`Using ${modelsData.length} fallback models instead`);
     }
 
     if (!Array.isArray(modelsData)) {
-      console.error('Parsed data is not an array:', modelsData);
-      throw new Error('Invalid model data format: not an array');
+      console.error('Model data is not an array, using fallback models');
+      modelsData = fallbackModels;
     }
 
     // Clear existing models and insert new ones
