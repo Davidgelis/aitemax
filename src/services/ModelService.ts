@@ -186,13 +186,17 @@ export const ModelService = {
   
   async deleteModel(id: string): Promise<boolean> {
     try {
-      console.log(`ModelService: Attempting to delete model with ID: ${id}`);
+      console.log(`ModelService: Starting deletion for model ID: ${id}`);
       
-      // Simplified delete operation with better error handling
-      const { error } = await supabase
+      // Explicitly log the supabase client to verify it's working
+      console.log('Supabase client available:', !!supabase);
+      
+      // Use await to properly wait for the deletion to complete
+      const { error, count } = await supabase
         .from('ai_models')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select('count');
       
       if (error) {
         console.error('Error from Supabase during delete operation:', error);
@@ -202,11 +206,20 @@ export const ModelService = {
         return false;
       }
       
+      // Log the count of deleted rows to verify deletion
+      console.log(`ModelService: Successfully deleted ${count} rows with ID ${id}`);
+      
+      // Validate that at least one row was deleted
+      if (count === 0) {
+        console.error(`ModelService: No rows were deleted for ID ${id}`);
+        return false;
+      }
+      
       console.log(`ModelService: Successfully deleted model ${id} from database`);
       return true;
     } catch (error) {
       console.error('Exception in deleteModel:', error);
-      return false; // Return false instead of throwing to handle error in the UI
+      return false;
     }
   }
 };

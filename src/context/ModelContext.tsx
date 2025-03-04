@@ -152,6 +152,10 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       console.log(`ModelContext: Attempting to delete model with ID: ${id}`);
       
+      // First find the model to get its name for the toast
+      const modelToDelete = models.find(m => m.id === id);
+      const modelName = modelToDelete?.name || 'Unknown model';
+      
       // Call the service to delete the model
       const success = await ModelService.deleteModel(id);
       
@@ -159,7 +163,7 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.log(`ModelContext: Model deletion failed`);
         toast({
           title: "Error Deleting Model",
-          description: "Failed to delete the model. Please try again.",
+          description: "Failed to delete the model from the database. Please try again.",
           variant: "destructive"
         });
         return false;
@@ -175,9 +179,14 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setSelectedModel(null);
       }
       
+      // Force a refresh to ensure UI and database are in sync
+      setTimeout(() => {
+        fetchModels();
+      }, 500);
+      
       toast({
         title: "Model Deleted",
-        description: "The AI model has been successfully deleted.",
+        description: `The model "${modelName}" has been successfully deleted.`,
       });
       
       return true;
