@@ -30,6 +30,8 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
     try {
       setLoading(true);
       console.log('Fetching AI models from Supabase...');
+      // Fetch models and deduplicate by name and provider
+      // This ensures we don't show duplicates in the UI
       const { data, error } = await supabase
         .from('ai_models')
         .select('*')
@@ -39,15 +41,29 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
         throw error;
       }
       
-      console.log('Fetched AI models:', data);
+      console.log(`Fetched ${data.length} models from database`);
+      
+      // Deduplicate models based on name and provider
+      // This ensures we only show one of each model in the dropdown
+      const uniqueModels: AIModel[] = [];
+      const modelMap = new Map();
       
       if (data && data.length > 0) {
-        setModels(data);
+        data.forEach((model: AIModel) => {
+          const key = `${model.name}-${model.provider}`;
+          if (!modelMap.has(key)) {
+            modelMap.set(key, true);
+            uniqueModels.push(model);
+          }
+        });
+        
+        console.log(`Filtered to ${uniqueModels.length} unique models`);
+        setModels(uniqueModels);
         setLastUpdate(new Date());
         
         toast({
           title: "AI Models Loaded",
-          description: `${data.length} models have been loaded successfully.`,
+          description: `${uniqueModels.length} unique models have been loaded.`,
         });
       } else {
         console.log('No models found in database');
@@ -147,16 +163,24 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
               {models.length === 0 ? (
                 <div className="p-2 text-center text-[#545454]">No models found</div>
               ) : (
-                models.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    <div className="flex items-center">
-                      <span className="text-[#545454]">{model.name}</span>
-                      {model.provider && (
-                        <span className="ml-2 text-xs text-[#545454]">({model.provider})</span>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))
+                // Sort models by provider to group them nicely in the dropdown
+                models
+                  .sort((a, b) => {
+                    if (a.provider !== b.provider) {
+                      return a.provider.localeCompare(b.provider);
+                    }
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      <div className="flex items-center">
+                        <span className="text-[#545454]">{model.name}</span>
+                        {model.provider && (
+                          <span className="ml-2 text-xs text-[#545454]">({model.provider})</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))
               )}
             </SelectGroup>
           </SelectContent>

@@ -33,7 +33,7 @@ export const triggerInitialModelUpdate = async (): Promise<ModelUpdateResponse> 
     });
     
     // Use Promise.race to handle potential timeouts
-    const result = await Promise.race([functionPromise, timeoutPromise]);
+    const result = await Promise.race([functionPromise, timeoutPromise]) as any;
     
     if (result.error) {
       console.error('Error from edge function:', result.error);
@@ -48,7 +48,7 @@ export const triggerInitialModelUpdate = async (): Promise<ModelUpdateResponse> 
     }
     
     return { success: true, data: result.data };
-  } catch (e) {
+  } catch (e: any) {
     console.error('Exception triggering enhanced model update:', e);
     
     // Check if models exist despite the error, to avoid repeated failed attempts

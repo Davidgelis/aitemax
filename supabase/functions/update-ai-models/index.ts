@@ -9,6 +9,7 @@ const corsHeaders = {
 };
 
 // Enhanced AI model data with more detailed strengths and limitations
+// No duplicates, just one entry per unique model
 const aiModels = [
   {
     name: "GPT-4o",
@@ -246,7 +247,7 @@ serve(async (req) => {
     // Check if we already have models in the database
     const { data: existingModels, error: checkError } = await supabase
       .from('ai_models')
-      .select('id')
+      .select('id, name, provider')
       .limit(1);
     
     if (checkError) {
@@ -288,13 +289,36 @@ serve(async (req) => {
       }
     }
 
-    // Insert models
-    console.log(`Inserting ${aiModels.length} AI models with enhanced details`);
+    // Insert models, preventing duplicates based on name and provider
+    console.log(`Inserting ${aiModels.length} unique AI models with enhanced details`);
     let insertedCount = 0;
     let errors = [];
     
+    // Insert each model one by one to prevent duplicates
     for (const model of aiModels) {
-      console.log(`Inserting enhanced model: ${model.name}`);
+      console.log(`Inserting enhanced model: ${model.name} (${model.provider})`);
+      
+      // Check if this exact model already exists in the database
+      const { data: existingModel, error: checkError } = await supabase
+        .from('ai_models')
+        .select('id')
+        .eq('name', model.name)
+        .eq('provider', model.provider)
+        .limit(1);
+        
+      if (checkError) {
+        console.error(`Error checking if model ${model.name} exists:`, checkError);
+        errors.push({ model: model.name, error: checkError.message });
+        continue;
+      }
+      
+      // Skip if model already exists
+      if (existingModel && existingModel.length > 0) {
+        console.log(`Model ${model.name} (${model.provider}) already exists, skipping.`);
+        continue;
+      }
+      
+      // Insert the model
       const { error: insertError } = await supabase
         .from('ai_models')
         .insert({
