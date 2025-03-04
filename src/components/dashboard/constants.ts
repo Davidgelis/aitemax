@@ -1,3 +1,4 @@
+
 import { Question, Toggle, Variable } from "./types";
 
 export const primaryToggles: Toggle[] = [
@@ -9,7 +10,7 @@ export const primaryToggles: Toggle[] = [
 ];
 
 export const secondaryToggles: Toggle[] = [
-  { label: "Token Saver prompt", id: "token" },
+  { label: "Token Saver", id: "token" },
   { label: "Strict Response", id: "strict" },
   { label: "Creative", id: "creative" },
 ];
