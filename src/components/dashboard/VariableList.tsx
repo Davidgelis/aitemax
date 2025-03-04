@@ -30,6 +30,15 @@ export const VariableList = ({
   const groupedVariables: Record<string, Variable[]> = {};
   
   variables.forEach(variable => {
+    // Skip variables with empty names or names that exactly match category names
+    if (!variable.name || 
+        variable.name === 'Task' || 
+        variable.name === 'Persona' || 
+        variable.name === 'Conditions' || 
+        variable.name === 'Instructions') {
+      return;
+    }
+    
     const category = variable.category || 'Other';
     if (!groupedVariables[category]) {
       groupedVariables[category] = [];
@@ -39,6 +48,8 @@ export const VariableList = ({
 
   // Get all categories
   const categories = Object.keys(groupedVariables);
+  const hasValidVariables = categories.length > 0 && 
+    categories.some(category => groupedVariables[category].length > 0);
 
   return (
     <>
@@ -54,68 +65,70 @@ export const VariableList = ({
       </div>
       
       <div ref={containerRef} className="max-h-[280px] overflow-y-auto pr-2 space-y-4">
-        {categories.length > 0 ? (
+        {hasValidVariables ? (
           categories.map((category) => (
-            <div key={category} className="space-y-3">
-              <h4 className="font-medium text-sm text-accent">{category}</h4>
-              
-              {groupedVariables[category].map((variable, index) => (
-                <div key={variable.id} className="flex gap-3 items-center">
-                  <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
-                    {index + 1}
+            groupedVariables[category].length > 0 && (
+              <div key={category} className="space-y-3">
+                <h4 className="font-medium text-sm text-accent">{category}</h4>
+                
+                {groupedVariables[category].map((variable, index) => (
+                  <div key={variable.id} className="flex gap-3 items-center">
+                    <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Input
+                        placeholder="Variable name"
+                        value={variable.name}
+                        onChange={(e) => onVariableChange(variable.id, 'name', e.target.value)}
+                        className="flex-1 h-9"
+                      />
+                      <Input
+                        placeholder="Value"
+                        value={variable.value}
+                        onChange={(e) => onVariableChange(variable.id, 'value', e.target.value)}
+                        className="flex-1 h-9"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            onClick={() => setVariableToDelete(variable.id)}
+                            className="p-2 rounded-full hover:bg-[#33fea6]/20"
+                            title="Delete variable"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete variable?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this variable? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDeleteVariable(variable.id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      
+                      <button
+                        onClick={() => onVariableRelevance(variable.id, true)}
+                        className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
+                          variable.isRelevant === true ? 'bg-[#33fea6]/80' : ''
+                        }`}
+                        title="Keep variable"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input
-                      placeholder="Variable name"
-                      value={variable.name}
-                      onChange={(e) => onVariableChange(variable.id, 'name', e.target.value)}
-                      className="flex-1 h-9"
-                    />
-                    <Input
-                      placeholder="Value"
-                      value={variable.value}
-                      onChange={(e) => onVariableChange(variable.id, 'value', e.target.value)}
-                      className="flex-1 h-9"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
-                      <AlertDialogTrigger asChild>
-                        <button
-                          onClick={() => setVariableToDelete(variable.id)}
-                          className="p-2 rounded-full hover:bg-[#33fea6]/20"
-                          title="Delete variable"
-                        >
-                          <Trash className="w-4 h-4" />
-                        </button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete variable?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this variable? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => onDeleteVariable(variable.id)}>Delete</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                    
-                    <button
-                      onClick={() => onVariableRelevance(variable.id, true)}
-                      className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
-                        variable.isRelevant === true ? 'bg-[#33fea6]/80' : ''
-                      }`}
-                      title="Keep variable"
-                    >
-                      <Check className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )
           ))
         ) : (
           <div className="text-center text-muted-foreground py-4">

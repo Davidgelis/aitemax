@@ -41,32 +41,32 @@ export const mockQuestions: Question[] = [
 ];
 
 export const defaultVariables: Variable[] = [
-  // Variables are specific, replaceable elements that don't change context
-  { id: "v1", name: "TaskType", value: "", isRelevant: null, category: "Task" },
-  { id: "v2", name: "Outcome", value: "", isRelevant: null, category: "Task" },
-  { id: "v3", name: "Recipient", value: "", isRelevant: null, category: "Persona" },
+  // More specific variables with meaningful names
+  { id: "v1", name: "ContentType", value: "", isRelevant: null, category: "Task" },
+  { id: "v2", name: "Objective", value: "", isRelevant: null, category: "Task" },
+  { id: "v3", name: "Audience", value: "", isRelevant: null, category: "Persona" },
   { id: "v4", name: "ToneStyle", value: "", isRelevant: null, category: "Persona" },
-  { id: "v5", name: "TimeFrame", value: "", isRelevant: null, category: "Conditions" },
+  { id: "v5", name: "Deadline", value: "", isRelevant: null, category: "Conditions" },
   { id: "v6", name: "WordCount", value: "", isRelevant: null, category: "Conditions" },
-  { id: "v7", name: "Structure", value: "", isRelevant: null, category: "Instructions" },
-  { id: "v8", name: "Closing", value: "", isRelevant: null, category: "Instructions" },
+  { id: "v7", name: "Format", value: "", isRelevant: null, category: "Instructions" },
+  { id: "v8", name: "CallToAction", value: "", isRelevant: null, category: "Instructions" },
 ];
 
 export const sampleFinalPrompt = `# Enhanced Prompt Template
 
 ## Task
-Your task is to {{TaskType}} and produce {{Outcome}}.
+Your task is to {{ContentType}} and produce {{Objective}}.
 
 ## Persona
-You will address {{Recipient}} while maintaining a {{ToneStyle}} throughout your response.
+You will address {{Audience}} while maintaining a {{ToneStyle}} throughout your response.
 
 ## Conditions
-- Complete this within {{TimeFrame}}
+- Complete this within {{Deadline}}
 - Keep the response around {{WordCount}} words
 
 ## Instructions
-1. Structure your response with {{Structure}}
-2. End with {{Closing}}
+1. Structure your response with {{Format}}
+2. End with {{CallToAction}}
 
 ## Notes
 This prompt has been optimized based on the four-pillar framework: Task, Persona, Conditions, and Instructions.`;
