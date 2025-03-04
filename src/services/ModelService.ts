@@ -75,8 +75,21 @@ export const ModelService = {
   
   async triggerModelUpdate(forceUpdate = true): Promise<boolean> {
     try {
-      const result = await triggerInitialModelUpdate(forceUpdate);
-      return result.success;
+      console.log(`Triggering AI model update. Force update: ${forceUpdate}`);
+      const response = await supabase.functions.invoke('update-ai-models', {
+        method: 'POST',
+        headers: {
+          'X-Force-Update': forceUpdate ? 'true' : 'false'
+        }
+      });
+      
+      if (response.error) {
+        console.error('Error from edge function:', response.error);
+        throw response.error;
+      }
+      
+      console.log('Model update response:', response.data);
+      return response.data.success;
     } catch (error) {
       console.error('Error triggering model update:', error);
       return false;
@@ -128,7 +141,7 @@ export const ModelService = {
     }
   },
   
-  // New methods for the master panel
+  // Methods for the master panel
   async addModel(model: Partial<AIModel>): Promise<AIModel | null> {
     try {
       const { data, error } = await supabase
@@ -144,13 +157,13 @@ export const ModelService = {
       
       if (error) {
         console.error('Error adding model:', error);
-        return null;
+        throw error;
       }
       
       return data[0] as AIModel;
     } catch (error) {
       console.error('Exception in addModel:', error);
-      return null;
+      throw error;
     }
   },
   
@@ -169,13 +182,13 @@ export const ModelService = {
       
       if (error) {
         console.error('Error updating model:', error);
-        return false;
+        throw error;
       }
       
       return true;
     } catch (error) {
       console.error('Exception in updateModel:', error);
-      return false;
+      throw error;
     }
   },
   
@@ -188,13 +201,13 @@ export const ModelService = {
       
       if (error) {
         console.error('Error deleting model:', error);
-        return false;
+        throw error;
       }
       
       return true;
     } catch (error) {
       console.error('Exception in deleteModel:', error);
-      return false;
+      throw error;
     }
   }
 };

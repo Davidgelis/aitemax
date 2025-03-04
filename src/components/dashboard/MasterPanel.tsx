@@ -34,6 +34,8 @@ const MasterPanel = () => {
   const [newLimitation, setNewLimitation] = useState('');
   const { toast } = useToast();
   const [isMasterUser, setIsMasterUser] = useState(false);
+  const [deleteConfirmModel, setDeleteConfirmModel] = useState<AIModel | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   
   // Check if current user is the master user
   useEffect(() => {
@@ -165,12 +167,19 @@ const MasterPanel = () => {
     }
   };
 
-  const handleDeleteModel = async (id: string) => {
+  const confirmDeleteModel = (model: AIModel) => {
+    setDeleteConfirmModel(model);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteModel = async () => {
     try {
+      if (!deleteConfirmModel) return;
+      
       const { error } = await supabase
         .from('ai_models')
         .delete()
-        .eq('id', id);
+        .eq('id', deleteConfirmModel.id);
 
       if (error) throw error;
 
@@ -178,7 +187,9 @@ const MasterPanel = () => {
         title: "Success",
         description: "AI model deleted successfully",
       });
-
+      
+      setIsDeleteConfirmOpen(false);
+      setDeleteConfirmModel(null);
       fetchModels();
     } catch (error) {
       console.error('Error deleting model:', error);
@@ -193,6 +204,11 @@ const MasterPanel = () => {
   const handleRefreshModels = async () => {
     try {
       setLoading(true);
+      toast({
+        title: "Refreshing",
+        description: "Updating AI models...",
+      });
+      
       const response = await supabase.functions.invoke('update-ai-models', {
         method: 'POST',
         headers: {
@@ -201,6 +217,8 @@ const MasterPanel = () => {
       });
 
       if (response.error) throw response.error;
+      
+      console.log('Edge function response:', response.data);
 
       toast({
         title: "Success",
@@ -304,7 +322,7 @@ const MasterPanel = () => {
             disabled={loading}
             className="bg-[#084b49] hover:bg-[#084b49]/90 text-white"
           >
-            <RefreshCw className="mr-2 h-4 w-4" /> Refresh Models
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh Models
           </Button>
           <Dialog open={isAddModelOpen} onOpenChange={setIsAddModelOpen}>
             <DialogTrigger asChild>
@@ -312,7 +330,7 @@ const MasterPanel = () => {
                 <Plus className="mr-2 h-4 w-4" /> Add Model
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg bg-white">
               <DialogHeader>
                 <DialogTitle className="text-[#545454]">Add New AI Model</DialogTitle>
               </DialogHeader>
@@ -453,7 +471,7 @@ const MasterPanel = () => {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => handleDeleteModel(model.id)}
+                      onClick={() => confirmDeleteModel(model)}
                       className="border-red-200 text-red-500 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -497,7 +515,7 @@ const MasterPanel = () => {
 
       {/* Edit Model Dialog */}
       <Dialog open={isEditModelOpen} onOpenChange={setIsEditModelOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg bg-white">
           <DialogHeader>
             <DialogTitle className="text-[#545454]">Edit AI Model</DialogTitle>
           </DialogHeader>
@@ -599,6 +617,37 @@ const MasterPanel = () => {
               className="bg-[#33fea6] hover:bg-[#33fea6]/90 text-black"
             >
               Update Model
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent className="max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#545454]">Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-[#545454]">
+              Are you sure you want to delete the model "{deleteConfirmModel?.name}"? This action cannot be undone.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsDeleteConfirmOpen(false)}
+              className="border-gray-300 text-[#545454]"
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="button" 
+              onClick={handleDeleteModel}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Delete Model
             </Button>
           </DialogFooter>
         </DialogContent>

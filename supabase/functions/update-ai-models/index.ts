@@ -55,8 +55,7 @@ serve(async (req) => {
       }
     }
 
-    // First, check if we have any master-defined models (from the master user)
-    // Get the master user's profile ID - the one who manages models
+    // Get the master user's ID who manages models
     const MASTER_USER_ID = '8b40d73f-fffb-411f-9044-480773968d58';
     
     // Check if we have models managed by master user
@@ -69,9 +68,7 @@ serve(async (req) => {
       throw new Error(`Error fetching existing models: ${existingModelsError.message}`);
     }
 
-    // We're not going to auto-populate the models database anymore
-    // Instead, only the master user will manage models
-    
+    // We're using models managed by the master user
     // Return the result with statistics
     const providerStats = countModelsByProvider(existingModels || []);
     const providers = Object.keys(providerStats);

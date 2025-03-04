@@ -67,12 +67,29 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       description: "Loading the latest AI models data...",
     });
     
-    await fetchModels();
-    
-    toast({
-      title: "Models Refreshed",
-      description: `${models.length} AI models loaded.`,
-    });
+    try {
+      // Try to force refresh models from the edge function first
+      const refreshSuccess = await ModelService.triggerModelUpdate(true);
+      
+      if (!refreshSuccess) {
+        console.log('Model update through edge function failed, falling back to direct database fetch');
+      }
+      
+      // Fetch models from database
+      await fetchModels();
+      
+      toast({
+        title: "Models Refreshed",
+        description: `${models.length} AI models loaded.`,
+      });
+    } catch (err) {
+      console.error('Error during model refresh:', err);
+      toast({
+        title: "Error Refreshing Models",
+        description: "Failed to refresh models. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const addModel = async (model: Partial<AIModel>): Promise<AIModel | null> => {
@@ -105,6 +122,12 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const success = await ModelService.updateModel(id, model);
       if (success) {
         setModels(prev => prev.map(m => m.id === id ? { ...m, ...model } : m));
+        
+        // If the updated model is the currently selected model, update it
+        if (selectedModel && selectedModel.id === id) {
+          setSelectedModel({ ...selectedModel, ...model });
+        }
+        
         toast({
           title: "Success",
           description: "AI model updated successfully",
@@ -130,6 +153,12 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const success = await ModelService.deleteModel(id);
       if (success) {
         setModels(prev => prev.filter(m => m.id !== id));
+        
+        // If the deleted model is the currently selected model, reset it
+        if (selectedModel && selectedModel.id === id) {
+          setSelectedModel(null);
+        }
+        
         toast({
           title: "Success",
           description: "AI model deleted successfully",

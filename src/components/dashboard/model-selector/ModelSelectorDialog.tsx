@@ -204,9 +204,8 @@ export const ModelSelectorDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="p-0 max-w-md w-full h-[300px] flex items-center justify-center bg-transparent border-none shadow-none overflow-visible"
+        className="p-0 max-w-md w-full h-[300px] flex items-center justify-center bg-white border shadow-md overflow-visible"
         overlayClassName="backdrop-blur-sm bg-black/60"
-        transparent={true}
       >
         <DialogTitle className="sr-only">
           <VisuallyHidden>Select AI Model</VisuallyHidden>
