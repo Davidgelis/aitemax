@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -17,6 +16,7 @@ import { FinalPrompt } from "@/components/dashboard/FinalPrompt";
 import { UserSidebar } from "@/components/dashboard/UserSidebar";
 import { StepOne } from "@/components/dashboard/StepOne";
 import { StepTwo } from "@/components/dashboard/StepTwo";
+import { ModelSelector } from "@/components/dashboard/ModelSelector";
 
 const Dashboard = () => {
   // User state
@@ -189,16 +189,21 @@ const Dashboard = () => {
     switch (currentStep) {
       case 1:
         return (
-          <StepOne
-            promptText={promptText}
-            setPromptText={setPromptText}
-            selectedPrimary={selectedPrimary}
-            selectedSecondary={selectedSecondary}
-            handlePrimaryToggle={handlePrimaryToggle}
-            handleSecondaryToggle={handleSecondaryToggle}
-            onAnalyze={handleAnalyze}
-            isLoading={isLoading}
-          />
+          <div className="space-y-6">
+            <div className="w-full max-w-md">
+              <ModelSelector onSelect={setSelectedModel} />
+            </div>
+            <StepOne
+              promptText={promptText}
+              setPromptText={setPromptText}
+              selectedPrimary={selectedPrimary}
+              selectedSecondary={selectedSecondary}
+              handlePrimaryToggle={handlePrimaryToggle}
+              handleSecondaryToggle={handleSecondaryToggle}
+              onAnalyze={handleAnalyze}
+              isLoading={isLoading}
+            />
+          </div>
         );
 
       case 2:
