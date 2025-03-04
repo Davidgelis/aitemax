@@ -7,6 +7,7 @@ interface ModelUpdateResponse {
     success?: boolean;
     totalModels?: number;
     insertedModels?: number;
+    skipped?: boolean;
     [key: string]: any;
   };
   error?: any;
@@ -19,7 +20,7 @@ export const triggerInitialModelUpdate = async () => {
     
     // Add a timeout to avoid hanging the UI if the function doesn't respond
     const timeoutPromise = new Promise<ModelUpdateResponse>((_, reject) => {
-      setTimeout(() => reject(new Error('Function timed out after 10 seconds')), 10000);
+      setTimeout(() => reject(new Error('Function timed out after 15 seconds')), 15000);
     });
     
     const functionPromise = supabase.functions.invoke<ModelUpdateResponse>('update-ai-models', {
@@ -37,7 +38,7 @@ export const triggerInitialModelUpdate = async () => {
       return { success: false, error: result.error };
     }
     
-    console.log('Model update successfully triggered:', result.data);
+    console.log('Model update response:', result.data);
     return { success: true, data: result.data };
   } catch (e) {
     console.error('Exception triggering model update:', e);

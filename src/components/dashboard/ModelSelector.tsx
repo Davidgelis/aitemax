@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { AIModel } from './types';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { triggerInitialModelUpdate } from '@/utils/triggerInitialModelUpdate';
 
 interface ModelSelectorProps {
   onSelect: (model: AIModel | null) => void;
@@ -52,6 +52,11 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
         setModels(data);
         setFilteredModels(data);
         setLastUpdate(new Date());
+        
+        toast({
+          title: "AI Models Loaded",
+          description: `${data.length} models have been loaded successfully.`,
+        });
       } else {
         console.log('No models found in database');
         setModels([]);
@@ -72,19 +77,17 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
   const handleRefreshModels = async () => {
     try {
       setIsUpdating(true);
-      const { data: beforeData } = await supabase.from('ai_models').select('id').limit(1);
       
-      // Delete all models first to ensure clean state
-      await supabase.from('ai_models').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      
-      // Call the edge function to repopulate models
-      const { error } = await supabase.functions.invoke('update-ai-models', {
-        method: 'POST',
-        headers: { 'X-Force-Update': 'true' }
+      toast({
+        title: "Refreshing AI Models",
+        description: "Contacting the server to update AI models. This may take a moment...",
       });
       
-      if (error) {
-        throw error;
+      // Call the edge function to repopulate models
+      const result = await triggerInitialModelUpdate();
+      
+      if (!result.success) {
+        throw new Error('Failed to update models');
       }
       
       // Fetch the updated models

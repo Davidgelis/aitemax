@@ -91,7 +91,7 @@ serve(async (req) => {
   try {
     console.log('Starting AI models update process');
     
-    // Initialize Supabase client
+    // Initialize Supabase client with service role key to bypass RLS
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
@@ -100,7 +100,7 @@ serve(async (req) => {
     }
     
     const supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('Supabase client initialized');
+    console.log('Supabase client initialized with service role key');
 
     // Check if we already have models in the database
     const { data: existingModels, error: checkError } = await supabase
@@ -134,19 +134,21 @@ serve(async (req) => {
     }
 
     // Clear existing models before inserting new ones
-    console.log('Clearing existing models from database');
-    const { error: deleteError } = await supabase
-      .from('ai_models')
-      .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000');
-    
-    if (deleteError) {
-      console.error('Error deleting existing models:', deleteError);
-      throw new Error(`Database error when clearing models: ${deleteError.message}`);
+    if (hasExistingModels) {
+      console.log('Clearing existing models from database');
+      const { error: deleteError } = await supabase
+        .from('ai_models')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      if (deleteError) {
+        console.error('Error deleting existing models:', deleteError);
+        throw new Error(`Database error when clearing models: ${deleteError.message}`);
+      }
     }
 
-    // Always use fallback models for now to ensure we have data
-    console.log('Using fallback models to populate the database');
+    // Use the service role key to bypass RLS and insert the models
+    console.log('Inserting models using service role key to bypass RLS');
     let insertedCount = 0;
     
     for (const model of fallbackModels) {

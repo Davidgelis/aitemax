@@ -89,6 +89,10 @@ const Dashboard = () => {
       
       try {
         setIsUpdatingModels(true);
+        toast({
+          title: "Initializing AI Models",
+          description: "Please wait while we load the available AI models...",
+        });
         
         // First, check if we have any models
         const { data, error } = await supabase
@@ -99,18 +103,27 @@ const Dashboard = () => {
         if (error) {
           console.error('Error checking for models:', error);
           setIsUpdatingModels(false);
-          return;
+          toast({
+            title: "Error Checking Models",
+            description: "Could not verify if AI models exist. Will attempt to load them.",
+            variant: "destructive"
+          });
         }
         
-        // If no models exist, try the edge function first
+        // If no models exist, try the edge function
         if (!data || data.length === 0) {
-          console.log('No models found, triggering initial update');
+          console.log('No models found, triggering initial update via edge function');
           const result = await triggerInitialModelUpdate();
           console.log('Initial model update result:', result);
           
           // If the edge function failed, insert fallback models directly
           if (!result.success) {
-            console.error('Failed to update models:', result.error);
+            console.error('Failed to update models via edge function:', result.error);
+            toast({
+              title: "Edge Function Failed",
+              description: "Could not load AI models from server. Using local fallback data.",
+              variant: "destructive"
+            });
             
             // Let's insert the fallback models directly into the database
             console.log('Inserting fallback models directly...');
@@ -138,7 +151,7 @@ const Dashboard = () => {
             
             if (insertedCount > 0) {
               toast({
-                title: "AI Models Loaded",
+                title: "Fallback AI Models Loaded",
                 description: `${insertedCount} AI models have been loaded successfully.`,
               });
             } else {
@@ -148,9 +161,18 @@ const Dashboard = () => {
                 variant: "destructive"
               });
             }
+          } else {
+            toast({
+              title: "AI Models Loaded",
+              description: "AI models have been loaded successfully from the server.",
+            });
           }
         } else {
           console.log('Models already exist, no need to initialize');
+          toast({
+            title: "AI Models Ready",
+            description: "AI models are already available.",
+          });
         }
         
         setModelsInitialized(true);
