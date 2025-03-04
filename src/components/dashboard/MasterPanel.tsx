@@ -123,43 +123,41 @@ const MasterPanel = () => {
     
     try {
       setIsDeleting(true);
-      console.log(`MasterPanel: Starting deletion process for model: ${deleteConfirmModel.id}`);
+      console.log(`MasterPanel: Starting deletion process for model ID: ${deleteConfirmModel.id}, name: ${deleteConfirmModel.name}`);
       
       const modelName = deleteConfirmModel.name;
       const modelId = deleteConfirmModel.id;
       
-      try {
-        const result = await deleteModel(modelId);
+      const result = await deleteModel(modelId);
         
-        if (result) {
-          console.log(`MasterPanel: Delete operation succeeded for model ${modelId}`);
-          
-          setIsDeleteConfirmOpen(false);
-          setDeleteConfirmModel(null);
-          
-          await refreshModels();
-          
-          toast({
-            title: "Model Deleted",
-            description: `Model "${modelName}" has been successfully removed`,
-          });
-        } else {
-          throw new Error("Delete operation returned false");
-        }
-      } catch (error) {
-        console.error('MasterPanel: Delete operation error:', error);
-        const errorMessage = error instanceof Error 
-          ? error.message 
-          : 'The database has not been updated';
+      if (result) {
+        console.log(`MasterPanel: Delete operation successful for model ${modelId}`);
+        setIsDeleteConfirmOpen(false);
+        setDeleteConfirmModel(null);
         
         toast({
+          title: "Model Deleted",
+          description: `Model "${modelName}" has been successfully removed`,
+        });
+      } else {
+        console.error(`MasterPanel: Delete operation failed for model ${modelId}`);
+        toast({
           title: "Deletion Failed",
-          description: `Could not delete model: ${errorMessage}`,
+          description: "Could not delete model. Please try again later.",
           variant: "destructive"
         });
-        
-        await refreshModels();
       }
+    } catch (error) {
+      console.error('MasterPanel: Delete operation error:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'An unexpected error occurred';
+      
+      toast({
+        title: "Deletion Failed",
+        description: `Could not delete model: ${errorMessage}`,
+        variant: "destructive"
+      });
     } finally {
       setIsDeleting(false);
     }

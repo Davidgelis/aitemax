@@ -150,40 +150,37 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteModel = async (id: string): Promise<boolean> => {
     try {
-      console.log(`ModelContext: Initiating model deletion for ID: ${id}`);
+      console.log(`ModelContext: Attempting to delete model with ID: ${id}`);
       
-      // Direct approach - call the service to delete from the database
-      let success = false;
+      // Call the service to delete the model
+      const success = await ModelService.deleteModel(id);
       
-      try {
-        // Attempt to delete directly using the service
-        success = await ModelService.deleteModel(id);
-        
-        if (!success) {
-          console.log(`ModelContext: Model ${id} deletion failed from service`);
-          return false;
-        }
-      } catch (error) {
-        console.error('Error from ModelService.deleteModel:', error);
-        throw error; // Re-throw to handle in the outer catch
+      if (!success) {
+        console.log(`ModelContext: Model deletion failed`);
+        toast({
+          title: "Error Deleting Model",
+          description: "Failed to delete the model. Please try again.",
+          variant: "destructive"
+        });
+        return false;
       }
       
-      console.log(`ModelContext: Model ${id} deleted successfully from database`);
+      console.log(`ModelContext: Model ${id} deleted successfully`);
       
-      // Only update local state if confirmed the deletion happened in database
-      if (success) {
-        // Update models list by filtering out the deleted model
-        setModels(prev => prev.filter(m => m.id !== id));
-        
-        // If the deleted model is the currently selected model, reset it
-        if (selectedModel && selectedModel.id === id) {
-          setSelectedModel(null);
-        }
-        
-        return true;
+      // Update the local state if the deletion was successful
+      setModels(prev => prev.filter(m => m.id !== id));
+      
+      // If the deleted model is the currently selected model, reset it
+      if (selectedModel && selectedModel.id === id) {
+        setSelectedModel(null);
       }
       
-      return false;
+      toast({
+        title: "Model Deleted",
+        description: "The AI model has been successfully deleted.",
+      });
+      
+      return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error deleting model';
       console.error('Exception in ModelContext.deleteModel:', err);
