@@ -7,7 +7,7 @@ import { ModelService } from '@/services/ModelService';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Laptop } from 'lucide-react';
+import { Laptop, Search, X, Check } from 'lucide-react';
 import { AIModel } from './types';
 
 interface ModelSelectorProps {
@@ -20,6 +20,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
   const [models, setModels] = useState<AIModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
   const [providers, setProviders] = useState<string[]>([]);
 
@@ -55,16 +56,30 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     }
   };
 
-  // Memoize models grouped by provider to avoid recalculations
-  const modelsByProvider = useMemo(() => {
+  // Filter models based on search query
+  const filteredModels = useMemo(() => {
+    if (!searchQuery.trim()) return models;
+    const query = searchQuery.toLowerCase();
+    return models.filter(model => 
+      model.name.toLowerCase().includes(query) || 
+      (model.description && model.description.toLowerCase().includes(query)) ||
+      model.provider.toLowerCase().includes(query)
+    );
+  }, [models, searchQuery]);
+
+  // Group filtered models by provider
+  const filteredModelsByProvider = useMemo(() => {
     const grouped: Record<string, AIModel[]> = {};
     
     providers.forEach(provider => {
-      grouped[provider] = models.filter(model => model.provider === provider);
+      const providerModels = filteredModels.filter(model => model.provider === provider);
+      if (providerModels.length > 0) {
+        grouped[provider] = providerModels;
+      }
     });
     
     return grouped;
-  }, [models, providers]);
+  }, [filteredModels, providers]);
 
   useEffect(() => {
     fetchModels();
@@ -111,39 +126,62 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
           
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent 
-              className="p-0 max-w-md max-h-[70vh] w-full overflow-hidden bg-white border border-[#084b49]"
+              className="p-0 max-w-xl max-h-[80vh] w-full overflow-hidden bg-white border border-[#084b49] rounded-lg shadow-xl"
               overlayClassName="backdrop-blur-sm bg-black/30"
             >
-              <ScrollArea className="h-[65vh] w-full p-4">
-                <div className="space-y-6">
-                  {providers.length === 0 ? (
-                    <div className="p-4 text-center text-[#545454]">No models found</div>
+              <div className="p-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <input
+                    type="text"
+                    placeholder="Search models..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-full bg-[#F1F1F1] text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#084b49]"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <button 
+                  className="absolute right-4 top-4 text-gray-500 hover:text-gray-700" 
+                  onClick={() => setOpen(false)}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              
+              <ScrollArea className="h-[calc(80vh-4rem)] w-full">
+                <div className="p-6">
+                  {Object.keys(filteredModelsByProvider).length === 0 ? (
+                    <div className="py-10 text-center text-[#545454]">
+                      {searchQuery ? "No models found matching your search" : "No models available"}
+                    </div>
                   ) : (
-                    providers.map(provider => (
-                      <div key={provider} className="space-y-2">
-                        <h3 className="text-[#545454] font-semibold text-lg">{provider}</h3>
-                        <div className="space-y-2">
-                          {modelsByProvider[provider] && modelsByProvider[provider].map(model => (
-                            <div 
-                              key={model.id}
-                              onClick={() => handleSelectModel(model)}
-                              className={`p-3 rounded-md cursor-pointer transition-colors ${
-                                selectedModel?.id === model.id 
-                                  ? 'bg-[#084b49] text-white' 
-                                  : 'bg-[#fafafa] text-[#545454] hover:bg-[#f0f0f0]'
-                              }`}
-                            >
-                              <div className="font-medium">{model.name}</div>
-                              {model.description && (
-                                <div className="text-sm mt-1 opacity-90 line-clamp-2">
-                                  {model.description}
+                    <div className="space-y-8">
+                      {Object.entries(filteredModelsByProvider).map(([provider, providerModels]) => (
+                        <div key={provider} className="space-y-3">
+                          <h3 className="text-[#545454] font-semibold text-sm uppercase tracking-wider">{provider}</h3>
+                          <div className="grid grid-cols-1 gap-2">
+                            {providerModels.map(model => (
+                              <button
+                                key={model.id}
+                                onClick={() => handleSelectModel(model)}
+                                className={`w-full text-center py-3 px-4 rounded-md transition-all ${
+                                  selectedModel?.id === model.id 
+                                    ? 'bg-[#33fea6] text-[#041524] font-medium' 
+                                    : 'bg-[#fafafa] text-[#545454] hover:bg-[#f0f0f0]'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-medium">{model.name}</span>
+                                  {selectedModel?.id === model.id && (
+                                    <Check className="h-4 w-4" />
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          ))}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   )}
                 </div>
               </ScrollArea>

@@ -33,7 +33,7 @@ export const StepOneContent = ({
 }: StepOneContentProps) => {
   return (
     <div className="space-y-6 w-full">
-      <div className="max-w-md w-full mx-auto">
+      <div className="w-[300px]">
         <ModelSelector 
           onSelect={setSelectedModel} 
           selectedModel={selectedModel}
