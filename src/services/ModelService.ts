@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { AIModel } from "@/components/dashboard/types";
 import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
@@ -187,7 +188,19 @@ export const ModelService = {
     try {
       console.log(`ModelService: Starting deletion for model ID: ${id}`);
       
-      // COMPLETELY SIMPLIFIED APPROACH - Direct delete without verification
+      // Mark the model as deleted in the database using a dedicated column
+      // This ensures the edge function won't recreate it
+      const { error: markError } = await supabase
+        .from('ai_models')
+        .update({ is_deleted: true })
+        .eq('id', id);
+        
+      if (markError) {
+        console.error('Error marking model as deleted:', markError);
+        return false;
+      }
+      
+      // Now perform the actual deletion
       const { error } = await supabase
         .from('ai_models')
         .delete()

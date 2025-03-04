@@ -59,9 +59,11 @@ serve(async (req) => {
     }
     
     // Fetch all models managed by master user
+    // IMPORTANT: Only select models that haven't been manually deleted
     const { data: existingModels, error: existingModelsError } = await supabase
       .from('ai_models')
       .select('id, name, provider')
+      .is('is_deleted', null)  // Only select models that are not marked as deleted
       .order('provider, name');
     
     if (existingModelsError) {
