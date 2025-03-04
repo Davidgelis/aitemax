@@ -98,7 +98,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
   const isLoading = loading || isInitializingModels;
 
   return (
-    <div className="w-[60%] ml-0">
+    <div className="w-[300px] mr-auto">
       {isLoading ? (
         <Skeleton className="h-10 w-full" />
       ) : (
