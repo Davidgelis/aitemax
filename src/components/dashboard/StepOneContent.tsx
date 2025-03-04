@@ -33,35 +33,33 @@ export const StepOneContent = ({
 }: StepOneContentProps) => {
   return (
     <div className="space-y-6 w-full">
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        <div className="md:col-span-6">
-          <ModelSelector 
-            onSelect={setSelectedModel} 
-            selectedModel={selectedModel}
+      <div className="w-full">
+        <ModelSelector 
+          onSelect={setSelectedModel} 
+          selectedModel={selectedModel}
+        />
+        
+        <div className="mt-6">
+          <ToggleSection 
+            toggles={primaryToggles} 
+            selectedToggle={selectedPrimary} 
+            onToggleChange={handlePrimaryToggle} 
+            variant="primary"
+            cols={2}
           />
-          
-          <div className="mt-6">
-            <ToggleSection 
-              toggles={primaryToggles} 
-              selectedToggle={selectedPrimary} 
-              onToggleChange={handlePrimaryToggle} 
-              variant="primary"
-              cols={2}
-            />
-          </div>
-          
-          <div className="mt-6">
-            <ToggleSection 
-              toggles={secondaryToggles} 
-              selectedToggle={selectedSecondary} 
-              onToggleChange={handleSecondaryToggle} 
-              variant="secondary"
-              cols={2}
-            />
-          </div>
         </div>
         
-        <div className="md:col-span-6">
+        <div className="mt-6">
+          <ToggleSection 
+            toggles={secondaryToggles} 
+            selectedToggle={selectedSecondary} 
+            onToggleChange={handleSecondaryToggle} 
+            variant="secondary"
+            cols={2}
+          />
+        </div>
+        
+        <div className="mt-6">
           <PromptEditor 
             promptText={promptText}
             setPromptText={setPromptText}
