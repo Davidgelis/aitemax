@@ -42,27 +42,53 @@ serve(async (req) => {
       }),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`OpenAI API error: ${response.status} - ${errorText}`);
+      throw new Error(`OpenAI API returned ${response.status}: ${errorText}`);
+    }
+
     const data = await response.json();
     console.log('Received response from OpenAI');
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Invalid response structure from OpenAI:', JSON.stringify(data));
       throw new Error('Invalid response from OpenAI');
     }
     
     console.log('Parsing model data');
-    const modelsData = JSON.parse(data.choices[0].message.content);
+    let modelsData;
+    try {
+      modelsData = JSON.parse(data.choices[0].message.content);
+      console.log(`Successfully parsed model data, found ${modelsData.length} models`);
+    } catch (parseError) {
+      console.error('Error parsing JSON from OpenAI response:', parseError);
+      console.error('Raw content:', data.choices[0].message.content);
+      throw new Error('Failed to parse model data from OpenAI');
+    }
+
+    if (!Array.isArray(modelsData)) {
+      console.error('Parsed data is not an array:', modelsData);
+      throw new Error('Invalid model data format: not an array');
+    }
 
     // Clear existing models and insert new ones
     console.log('Clearing existing models from database');
-    await supabase
+    const { error: deleteError } = await supabase
       .from('ai_models')
       .delete()
       .neq('id', '00000000-0000-0000-0000-000000000000');
+    
+    if (deleteError) {
+      console.error('Error deleting existing models:', deleteError);
+      throw new Error(`Database error when clearing models: ${deleteError.message}`);
+    }
 
     console.log('Inserting new models into database');
+    let insertedCount = 0;
     for (const model of modelsData) {
       console.log(`Inserting model: ${model.name}`);
-      await supabase
+      const { error: insertError } = await supabase
         .from('ai_models')
         .insert({
           name: model.name,
@@ -71,15 +97,29 @@ serve(async (req) => {
           strengths: model.strengths,
           limitations: model.limitations,
         });
+      
+      if (insertError) {
+        console.error(`Error inserting model ${model.name}:`, insertError);
+        continue;
+      }
+      
+      insertedCount++;
     }
 
-    console.log('AI models update completed successfully');
-    return new Response(JSON.stringify({ success: true, count: modelsData.length }), {
+    console.log(`AI models update completed. Successfully inserted ${insertedCount} of ${modelsData.length} models.`);
+    return new Response(JSON.stringify({ 
+      success: true, 
+      totalModels: modelsData.length,
+      insertedModels: insertedCount 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error updating AI models:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      success: false 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

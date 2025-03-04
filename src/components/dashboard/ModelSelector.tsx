@@ -33,6 +33,7 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
   const fetchModels = async () => {
     try {
       setLoading(true);
+      console.log('Fetching AI models from Supabase...');
       const { data, error } = await supabase
         .from('ai_models')
         .select('*')
@@ -61,13 +62,19 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
   const updateAiModels = async () => {
     try {
       setLoadingUpdate(true);
-      const response = await fetch('/api/update-ai-models', {
+      console.log('Invoking update-ai-models Edge Function...');
+      
+      // Call the Supabase Edge Function directly
+      const { data, error } = await supabase.functions.invoke('update-ai-models', {
         method: 'POST',
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to update AI models');
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to update AI models');
       }
+      
+      console.log('Edge function response:', data);
       
       toast({
         title: "Success",
