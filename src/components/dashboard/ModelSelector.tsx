@@ -27,6 +27,7 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { toast } = useToast();
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   const fetchModels = async () => {
     try {
@@ -43,13 +44,19 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
       
       console.log('Fetched AI models:', data);
       
-      setModels(data || []);
-      setFilteredModels(data || []);
+      if (data && data.length > 0) {
+        setModels(data);
+        setFilteredModels(data);
+        setLastUpdate(new Date());
+      } else {
+        console.log('No models found, attempting to trigger update');
+        await triggerModelUpdate();
+      }
     } catch (error) {
       console.error('Error fetching AI models:', error);
       toast({
         title: "Error fetching models",
-        description: "Could not load AI models. Please try again.",
+        description: "Could not load AI models. Please try again later.",
         variant: "destructive"
       });
     } finally {
@@ -57,12 +64,45 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
     }
   };
 
+  const triggerModelUpdate = async () => {
+    try {
+      console.log('Invoking update-ai-models Edge Function...');
+      
+      const { data, error } = await supabase.functions.invoke('update-ai-models', {
+        method: 'POST',
+      });
+      
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Failed to update AI models');
+      }
+      
+      console.log('Edge function response:', data);
+      
+      toast({
+        title: "Models updated",
+        description: "AI models have been refreshed from OpenAI.",
+      });
+      
+      // Re-fetch the models after update
+      await fetchModels();
+      
+    } catch (error) {
+      console.error('Error updating models:', error);
+      toast({
+        title: "Update failed",
+        description: error instanceof Error ? error.message : "Failed to update AI models",
+        variant: "destructive"
+      });
+    }
+  };
+
   useEffect(() => {
     fetchModels();
     
     // Set up a polling interval to check for new models every hour
-    // This is just a fallback in case the cron job fails
     const intervalId = setInterval(() => {
+      console.log('Checking for model updates (hourly polling)');
       fetchModels();
     }, 3600000); // 1 hour in milliseconds
     
@@ -91,6 +131,16 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
     setSearchTerm(e.target.value);
   };
 
+  // Format date for display 
+  const formatUpdateTime = (date: Date) => {
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   if (loading) {
     return (
       <div className="w-full max-w-md space-y-2">
@@ -103,37 +153,41 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
   return (
     <div className="w-full space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium text-gray-700">AI Model Selection</h3>
-        <div className="text-xs text-gray-500">Updated daily</div>
+        <h3 className="text-lg font-medium text-[#545454]">AI Model Selection</h3>
+        <div className="text-xs text-[#545454]">
+          {lastUpdate ? 
+            `Last updated: ${formatUpdateTime(lastUpdate)}` : 
+            'Models update daily'}
+        </div>
       </div>
       
       <div className="space-y-2">
         <div className="relative">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-[#545454]" />
           <Input
             placeholder="Search AI models..."
             value={searchTerm}
             onChange={handleSearch}
-            className="pl-9 h-10"
+            className="pl-9 h-10 border-[#545454] text-[#545454]"
           />
         </div>
         
         <Select value={selectedId || ''} onValueChange={handleSelectModel}>
-          <SelectTrigger className="w-full h-10">
+          <SelectTrigger className="w-full h-10 border-[#545454] text-[#545454]">
             <SelectValue placeholder="Select an AI model" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-white">
             <SelectGroup>
-              <SelectLabel>AI Models</SelectLabel>
+              <SelectLabel className="text-[#545454]">AI Models</SelectLabel>
               {filteredModels.length === 0 ? (
-                <div className="p-2 text-center text-gray-500">No models found</div>
+                <div className="p-2 text-center text-[#545454]">No models found</div>
               ) : (
                 filteredModels.map((model) => (
                   <SelectItem key={model.id} value={model.id}>
                     <div className="flex items-center">
-                      <span>{model.name}</span>
+                      <span className="text-[#545454]">{model.name}</span>
                       {model.provider && (
-                        <span className="ml-2 text-xs text-gray-500">({model.provider})</span>
+                        <span className="ml-2 text-xs text-[#545454]">({model.provider})</span>
                       )}
                     </div>
                   </SelectItem>
@@ -145,17 +199,17 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
       </div>
       
       {selectedId && (
-        <div className="mt-4 p-4 bg-background border rounded-md">
+        <div className="mt-4 p-4 bg-background border border-[#084b49] rounded-md">
           {models.filter(m => m.id === selectedId).map(model => (
             <div key={model.id} className="space-y-3">
-              <h3 className="font-medium text-lg">{model.name}</h3>
-              {model.provider && <p className="text-sm text-gray-500">Provider: {model.provider}</p>}
-              {model.description && <p className="text-sm">{model.description}</p>}
+              <h3 className="font-medium text-lg text-[#545454]">{model.name}</h3>
+              {model.provider && <p className="text-sm text-[#545454]">Provider: {model.provider}</p>}
+              {model.description && <p className="text-sm text-[#545454]">{model.description}</p>}
               
               {model.strengths && model.strengths.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mt-3 mb-1">Strengths:</h4>
-                  <ul className="list-disc list-inside text-sm space-y-1">
+                  <h4 className="text-sm font-medium mt-3 mb-1 text-[#545454]">Strengths:</h4>
+                  <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
                     {model.strengths.map((strength, i) => (
                       <li key={i}>{strength}</li>
                     ))}
@@ -165,8 +219,8 @@ export const ModelSelector = ({ onSelect }: ModelSelectorProps) => {
               
               {model.limitations && model.limitations.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium mt-3 mb-1">Limitations:</h4>
-                  <ul className="list-disc list-inside text-sm space-y-1">
+                  <h4 className="text-sm font-medium mt-3 mb-1 text-[#545454]">Limitations:</h4>
+                  <ul className="list-disc list-inside text-sm space-y-1 text-[#545454]">
                     {model.limitations.map((limitation, i) => (
                       <li key={i}>{limitation}</li>
                     ))}

@@ -20,6 +20,32 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Check if we already have models in the database
+    const { data: existingModels, error: checkError } = await supabase
+      .from('ai_models')
+      .select('id')
+      .limit(1);
+    
+    if (checkError) {
+      console.error('Error checking existing models:', checkError);
+    }
+    
+    const hasExistingModels = existingModels && existingModels.length > 0;
+    console.log(`Database has existing models: ${hasExistingModels}`);
+    
+    // Skip update if we already have models and request doesn't force update
+    const forceUpdate = req.method === 'POST' && req.headers.get('X-Force-Update') === 'true';
+    if (hasExistingModels && !forceUpdate) {
+      console.log('Models already exist and no force update requested - skipping update');
+      return new Response(JSON.stringify({ 
+        success: true,
+        message: 'Models already exist, no update needed',
+        skipped: true
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     console.log('Fetching AI model data from OpenAI');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
