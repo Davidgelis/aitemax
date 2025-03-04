@@ -1,4 +1,3 @@
-
 import { ToggleSection } from "./ToggleSection";
 import { PromptEditor } from "./PromptEditor";
 import { Separator } from "@/components/ui/separator";
@@ -45,7 +44,6 @@ export const StepOneContent = ({
             selectedToggle={selectedPrimary} 
             onToggleChange={handlePrimaryToggle} 
             variant="primary"
-            cols={2}
           />
         </div>
         
@@ -57,7 +55,6 @@ export const StepOneContent = ({
             selectedToggle={selectedSecondary} 
             onToggleChange={handleSecondaryToggle} 
             variant="secondary"
-            cols={2}
           />
         </div>
         
