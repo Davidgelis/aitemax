@@ -11,6 +11,9 @@ interface ModelContextType {
   refreshModels: () => Promise<void>;
   selectedModel: AIModel | null;
   setSelectedModel: (model: AIModel | null) => void;
+  addModel: (model: Partial<AIModel>) => Promise<AIModel | null>;
+  updateModel: (id: string, model: Partial<AIModel>) => Promise<boolean>;
+  deleteModel: (id: string) => Promise<boolean>;
 }
 
 const ModelContext = createContext<ModelContextType>({
@@ -20,6 +23,9 @@ const ModelContext = createContext<ModelContextType>({
   refreshModels: async () => {},
   selectedModel: null,
   setSelectedModel: () => {},
+  addModel: async () => null,
+  updateModel: async () => false,
+  deleteModel: async () => false,
 });
 
 export const useModels = () => useContext(ModelContext);
@@ -69,6 +75,81 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
+  const addModel = async (model: Partial<AIModel>): Promise<AIModel | null> => {
+    try {
+      const newModel = await ModelService.addModel(model);
+      if (newModel) {
+        setModels(prev => [...prev, newModel]);
+        toast({
+          title: "Success",
+          description: "AI model added successfully",
+        });
+        return newModel;
+      }
+      return null;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error adding model';
+      console.error('Error adding model:', err);
+      
+      toast({
+        title: "Error Adding Model",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      return null;
+    }
+  };
+
+  const updateModel = async (id: string, model: Partial<AIModel>): Promise<boolean> => {
+    try {
+      const success = await ModelService.updateModel(id, model);
+      if (success) {
+        setModels(prev => prev.map(m => m.id === id ? { ...m, ...model } : m));
+        toast({
+          title: "Success",
+          description: "AI model updated successfully",
+        });
+        return true;
+      }
+      return false;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error updating model';
+      console.error('Error updating model:', err);
+      
+      toast({
+        title: "Error Updating Model",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
+  const deleteModel = async (id: string): Promise<boolean> => {
+    try {
+      const success = await ModelService.deleteModel(id);
+      if (success) {
+        setModels(prev => prev.filter(m => m.id !== id));
+        toast({
+          title: "Success",
+          description: "AI model deleted successfully",
+        });
+        return true;
+      }
+      return false;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error deleting model';
+      console.error('Error deleting model:', err);
+      
+      toast({
+        title: "Error Deleting Model",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchModels();
   }, []);
@@ -81,7 +162,10 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         error, 
         refreshModels,
         selectedModel,
-        setSelectedModel
+        setSelectedModel,
+        addModel,
+        updateModel,
+        deleteModel
       }}
     >
       {children}

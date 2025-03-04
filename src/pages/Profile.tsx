@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Lock } from "lucide-react";
+import { ArrowLeft, Lock, Workflow } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -9,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import MasterPanel from "@/components/dashboard/MasterPanel";
 
 const avatarOptions = [
   {
@@ -48,6 +50,8 @@ const Profile = () => {
   const [email, setEmail] = useState("");
   const [avatarType, setAvatarType] = useState("avatar1");
   const [loading, setLoading] = useState(false);
+  const [showMasterPanel, setShowMasterPanel] = useState(false);
+  const [isMasterUser, setIsMasterUser] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -59,6 +63,11 @@ const Profile = () => {
         if (!user) {
           navigate("/auth");
           return;
+        }
+
+        // Check if the user is the master user
+        if (user.id === '8b40d73f-fffb-411f-9044-480773968d58') {
+          setIsMasterUser(true);
         }
 
         setEmail(user.email || "");
@@ -263,6 +272,23 @@ const Profile = () => {
               </Button>
             </div>
 
+            {isMasterUser && (
+              <>
+                <Separator />
+                <div>
+                  <h2 className="text-lg font-medium mb-4 text-[#545454]">Administrator</h2>
+                  <Button 
+                    variant="outline" 
+                    className="flex items-center gap-2 border-gray-300 text-[#545454]"
+                    onClick={() => setShowMasterPanel(!showMasterPanel)}
+                  >
+                    <Workflow className="h-4 w-4" />
+                    {showMasterPanel ? "Hide Master Panel" : "Show Master Panel"}
+                  </Button>
+                </div>
+              </>
+            )}
+
             <div className="pt-4">
               <Button 
                 onClick={handleUpdateProfile}
@@ -274,6 +300,12 @@ const Profile = () => {
             </div>
           </div>
         </div>
+
+        {isMasterUser && showMasterPanel && (
+          <div className="mt-6">
+            <MasterPanel />
+          </div>
+        )}
       </div>
     </div>
   );

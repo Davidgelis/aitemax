@@ -126,5 +126,75 @@ export const ModelService = {
       console.error('Exception in getModelCountByProvider:', error);
       return {};
     }
+  },
+  
+  // New methods for the master panel
+  async addModel(model: Partial<AIModel>): Promise<AIModel | null> {
+    try {
+      const { data, error } = await supabase
+        .from('ai_models')
+        .insert({
+          name: model.name,
+          provider: model.provider,
+          description: model.description,
+          strengths: model.strengths,
+          limitations: model.limitations
+        })
+        .select();
+      
+      if (error) {
+        console.error('Error adding model:', error);
+        return null;
+      }
+      
+      return data[0] as AIModel;
+    } catch (error) {
+      console.error('Exception in addModel:', error);
+      return null;
+    }
+  },
+  
+  async updateModel(id: string, model: Partial<AIModel>): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('ai_models')
+        .update({
+          name: model.name,
+          provider: model.provider,
+          description: model.description,
+          strengths: model.strengths,
+          limitations: model.limitations
+        })
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error updating model:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Exception in updateModel:', error);
+      return false;
+    }
+  },
+  
+  async deleteModel(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('ai_models')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error deleting model:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Exception in deleteModel:', error);
+      return false;
+    }
   }
 };
