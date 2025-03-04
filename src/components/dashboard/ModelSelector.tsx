@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ModelService } from '@/services/ModelService';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { ChevronDown, Laptop } from 'lucide-react';
+import { Laptop } from 'lucide-react';
 import { AIModel } from './types';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
@@ -23,11 +23,18 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [providers, setProviders] = useState<string[]>([]);
+  const [scrollDirection, setScrollDirection] = useState<'up' | 'down' | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
     
+    if (isTransitioning) return;
+    
+    setIsTransitioning(true);
+    
     if (e.deltaY > 0) {
+      setScrollDirection('down');
       setActiveIndex(prev => {
         const next = prev >= sortedModels.length - 1 ? 0 : prev + 1;
         if (sortedModels[next]) {
@@ -36,6 +43,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
         return next;
       });
     } else {
+      setScrollDirection('up');
       setActiveIndex(prev => {
         const next = prev <= 0 ? sortedModels.length - 1 : prev - 1;
         if (sortedModels[next]) {
@@ -44,6 +52,11 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
         return next;
       });
     }
+    
+    setTimeout(() => {
+      setIsTransitioning(false);
+      setScrollDirection(null);
+    }, 700);
   };
 
   const setupWheelListener = () => {
@@ -59,10 +72,12 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
-    if (!open) return;
+    if (!open || isTransitioning) return;
     
     if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
       e.preventDefault();
+      setIsTransitioning(true);
+      setScrollDirection('down');
       setActiveIndex(prev => {
         const next = prev >= sortedModels.length - 1 ? 0 : prev + 1;
         if (sortedModels[next]) {
@@ -70,8 +85,14 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
         }
         return next;
       });
+      setTimeout(() => {
+        setIsTransitioning(false);
+        setScrollDirection(null);
+      }, 700);
     } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
       e.preventDefault();
+      setIsTransitioning(true);
+      setScrollDirection('up');
       setActiveIndex(prev => {
         const next = prev <= 0 ? sortedModels.length - 1 : prev - 1;
         if (sortedModels[next]) {
@@ -79,6 +100,10 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
         }
         return next;
       });
+      setTimeout(() => {
+        setIsTransitioning(false);
+        setScrollDirection(null);
+      }, 700);
     } else if (e.key === 'Enter' || e.key === 'Space') {
       e.preventDefault();
       handleSelectModel(activeIndex);
@@ -177,6 +202,9 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
 
   const handleDialogOpen = (isOpen: boolean) => {
     setOpen(isOpen);
+    setIsTransitioning(false);
+    setScrollDirection(null);
+    
     if (isOpen && selectedModel) {
       const index = sortedModels.findIndex(model => model.id === selectedModel.id);
       if (index !== -1) {
@@ -214,8 +242,24 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     return displayModels;
   };
 
+  const getTransitionClass = (position: number) => {
+    if (position === 0) return 'transition-all duration-700 ease-in-out';
+    
+    if (scrollDirection === 'up') {
+      return position < 0 
+        ? 'transition-all duration-700 ease-in-out delay-50'
+        : 'transition-all duration-700 ease-in-out';
+    } else if (scrollDirection === 'down') {
+      return position > 0 
+        ? 'transition-all duration-700 ease-in-out delay-50'
+        : 'transition-all duration-700 ease-in-out';
+    }
+    
+    return 'transition-all duration-700 ease-in-out';
+  };
+
   return (
-    <div className="w-[300px] mr-auto">
+    <div className="w-full mr-auto">
       {isLoading ? (
         <Skeleton className="h-10 w-full" />
       ) : (
@@ -256,7 +300,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
                 {getDisplayModels().map(({ model, position, index }) => (
                   <div
                     key={`${model.id}-${position}`}
-                    className={`absolute transition-all duration-700 ease-in-out select-none`}
+                    className={`absolute select-none ${getTransitionClass(position)}`}
                     style={{
                       transform: `translateY(${position * 60}px) scale(${1 - Math.abs(position) * 0.15})`,
                       opacity: 1 - Math.abs(position) * 0.25,
@@ -267,7 +311,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
                     aria-selected={position === 0}
                   >
                     <div
-                      className={`text-center px-6 py-2 whitespace-nowrap transition-all duration-700`}
+                      className={`text-center px-6 py-2 whitespace-nowrap transition-all duration-700 ease-in-out font-bold`}
                       style={{
                         color: position === 0 ? '#33fea6' : '#b2b2b2',
                         fontSize: position === 0 ? '1.875rem' : '1.25rem',
