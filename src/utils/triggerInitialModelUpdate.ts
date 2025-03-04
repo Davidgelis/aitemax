@@ -9,6 +9,7 @@ interface ModelUpdateResponse {
     success?: boolean;
     totalModels?: number;
     insertedModels?: number;
+    providerStats?: Record<string, number>;
     skipped?: boolean;
     errors?: Array<{model: string, error: string}>;
     [key: string]: any;
@@ -18,7 +19,7 @@ interface ModelUpdateResponse {
 // This function can be called to trigger the AI model update
 export const triggerInitialModelUpdate = async (): Promise<ModelUpdateResponse> => {
   try {
-    console.log('Triggering AI model update with expanded provider coverage...');
+    console.log('Triggering AI model update with top 5 models per provider...');
     
     // Add a timeout to avoid hanging the UI if the function doesn't respond
     const timeoutPromise = new Promise<ModelUpdateResponse>((_, reject) => {
@@ -40,16 +41,18 @@ export const triggerInitialModelUpdate = async (): Promise<ModelUpdateResponse> 
       return { success: false, error: result.error };
     }
     
-    console.log('Expanded model update response:', result.data);
+    console.log('Model update response:', result.data);
     
     // Check if any errors occurred during insertion
     if (result.data?.errors && result.data.errors.length > 0) {
       console.warn('Some models failed to insert:', result.data.errors);
     }
     
-    // Include provider information in response
-    if (result.data?.insertedModels) {
-      console.log(`Successfully inserted ${result.data.insertedModels} models from multiple providers`);
+    // Log provider statistics if available
+    if (result.data?.providerStats) {
+      console.log('Models inserted by provider:', result.data.providerStats);
+      const totalProviders = Object.keys(result.data.providerStats).length;
+      console.log(`Successfully inserted models from ${totalProviders} providers`);
     }
     
     return { success: true, data: result.data };

@@ -8,213 +8,231 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Enhanced AI model data with a wider variety of models from major providers
-// Each model has detailed strengths and limitations
+// Top 5 AI models per provider, focused on the most widely used and recognized models
 const aiModels = [
-  // OpenAI Models
+  // OpenAI Models - Top 5
   {
     name: "GPT-4o",
     provider: "OpenAI",
-    description: "OpenAI's most advanced multimodal model combining vision and language capabilities with superior performance across text, vision, and reasoning tasks.",
+    description: "OpenAI's most advanced multimodal model with superior performance across text, vision, and reasoning tasks.",
     strengths: [
       "Exceptional multimodal capabilities for processing images and text together",
-      "Significantly improved reasoning and problem-solving compared to previous models",
+      "Significantly improved reasoning and problem-solving",
       "Superior performance in academic benchmarks including math, coding, and reasoning",
       "Enhanced instruction following with better alignment to user intent",
-      "Improved factual accuracy and reduced hallucinations compared to GPT-4",
-      "Faster processing speed and lower latency than the original GPT-4"
+      "Improved factual accuracy and reduced hallucinations compared to GPT-4"
     ],
     limitations: [
-      "May still produce convincing but incorrect information despite improvements",
-      "Limited by knowledge cutoff date, limiting awareness of recent events",
-      "Cannot browse the internet or access external tools without explicit integration",
-      "Vision capabilities have limits in detailed image analysis or specialized domains",
-      "May struggle with extremely complex multi-step reasoning chains",
-      "Higher cost compared to smaller models, limiting some applications"
+      "May still produce convincing but incorrect information",
+      "Limited by knowledge cutoff date",
+      "Cannot browse the internet without explicit integration",
+      "Vision capabilities have limits in detailed image analysis",
+      "Higher cost compared to smaller models"
     ]
   },
   {
     name: "GPT-4o mini",
     provider: "OpenAI",
-    description: "A smaller, faster, and more cost-effective version of GPT-4o that maintains strong performance across general tasks with multimodal capabilities.",
+    description: "A smaller, faster, and more cost-effective version of GPT-4o that maintains strong performance across general tasks.",
     strengths: [
       "Significantly faster response times than full-sized GPT-4o",
       "Much lower cost per token making it viable for high-volume applications",
       "Good balance of performance and efficiency for most everyday tasks",
       "Maintains core multimodal capabilities for basic image understanding",
-      "Improved instruction following compared to previous generation smaller models",
       "Suitable for real-time applications requiring low latency"
     ],
     limitations: [
-      "Noticeably reduced reasoning capabilities on complex tasks compared to GPT-4o",
-      "Less robust knowledge in specialized academic and professional domains",
+      "Reduced reasoning capabilities on complex tasks compared to GPT-4o",
+      "Less robust knowledge in specialized academic domains",
       "More limited ability to handle multi-step instructions in a single prompt",
       "Reduced context window limiting analysis of longer documents",
-      "Higher tendency to hallucinate or produce inaccuracies under uncertainty",
-      "Less advanced image understanding for complex visual scenes or technical visuals"
+      "Higher tendency to hallucinate under uncertainty"
     ]
   },
   {
     name: "GPT-3.5 Turbo",
     provider: "OpenAI",
-    description: "OpenAI's efficient and cost-effective language model for most everyday tasks, offering a good balance between performance and resource requirements.",
+    description: "OpenAI's efficient and cost-effective language model balancing performance and resource usage.",
     strengths: [
       "Very fast response times with low latency even under high load",
-      "Significantly lower cost compared to GPT-4 models, enabling broader applications",
+      "Significantly lower cost compared to GPT-4 models",
       "Good general capabilities across a wide range of common tasks",
       "Widely supported with extensive documentation and community resources",
-      "Strong performance in conversational contexts and simple writing tasks",
-      "Well-tested in production environments with predictable behavior"
+      "Strong performance in conversational contexts and simple writing tasks"
     ],
     limitations: [
       "Substantially less capable on complex reasoning tasks than GPT-4 series",
       "Limited mathematical reasoning and problem-solving abilities",
       "Higher tendency to produce hallucinations or inaccuracies",
       "Less effective at following detailed multi-step instructions",
-      "More prone to misunderstanding nuanced or ambiguous requests",
-      "Knowledge cutoff limits awareness of recent events and developments"
+      "Knowledge cutoff limits awareness of recent events"
     ]
   },
   {
     name: "DALL-E 3",
     provider: "OpenAI",
-    description: "OpenAI's advanced text-to-image model that can generate detailed and creative images from natural language descriptions.",
+    description: "OpenAI's advanced text-to-image model generating detailed and creative images from descriptions.",
     strengths: [
       "Exceptional ability to generate photorealistic images from text descriptions",
       "Strong understanding of complex spatial relationships and object compositions",
       "Ability to follow detailed style instructions for consistent artistic renderings",
       "Good handling of abstract concepts and creative interpretations",
-      "Improved handling of text within images compared to previous generations",
-      "Better understanding of human figures and anatomical proportions"
+      "Improved handling of text within images compared to previous generations"
     ],
     limitations: [
       "Occasional misinterpretation of complex prompts with multiple constraints",
       "Limited ability to generate certain restricted content categories",
       "Inconsistent quality for highly technical or specialized domain imagery",
       "May struggle with very specific brand elements or copyrighted characters",
-      "Limited control over fine details compared to professional design tools",
-      "Higher cost per image compared to smaller image generation models"
+      "Limited control over fine details compared to professional design tools"
+    ]
+  },
+  {
+    name: "Whisper",
+    provider: "OpenAI",
+    description: "OpenAI's speech-to-text model capable of transcribing and translating audio with high accuracy.",
+    strengths: [
+      "Strong performance across various accents and difficult audio conditions",
+      "Multilingual capabilities supporting dozens of languages",
+      "Accurate transcription even with background noise or low-quality audio",
+      "Ability to translate directly from foreign language speech to English text",
+      "Adaptable to domain-specific terminology with fine-tuning"
+    ],
+    limitations: [
+      "May struggle with extremely specialized technical vocabulary",
+      "Occasional difficulties with heavy accents or extremely fast speech",
+      "Limited real-time capabilities due to processing requirements",
+      "Less accurate with very low-quality audio or significant background noise",
+      "Requires careful prompt engineering for optimal performance in specialized domains"
     ]
   },
   
-  // Anthropic Models
+  // Anthropic Models - Top 5
   {
     name: "Claude 3 Opus",
     provider: "Anthropic",
-    description: "Anthropic's flagship model with state-of-the-art reasoning capabilities and exceptional performance across academic and professional tasks.",
+    description: "Anthropic's flagship model with state-of-the-art reasoning capabilities for professional tasks.",
     strengths: [
       "Industry-leading performance on reasoning tasks requiring careful, multi-step analysis",
       "Exceptional code generation and debugging capabilities with attention to detail",
       "Significantly reduced tendency to hallucinate compared to many competitors",
       "Excellent at following detailed instructions with high precision",
-      "Strong performance in specialized professional domains like law and medicine",
-      "Consistent outputs across multiple attempts at the same query"
+      "Strong performance in specialized professional domains like law and medicine"
     ],
     limitations: [
-      "Higher latency and computational requirements than smaller models in the Claude family",
-      "Less widespread availability and integration with third-party platforms than some competitors",
+      "Higher latency and computational requirements than smaller models",
+      "Less widespread availability and integration with third-party platforms",
       "Limited context window compared to specialized long-context models",
       "May occasionally be overly cautious when addressing sensitive topics",
-      "Vision capabilities not as advanced as specialized vision-language models",
       "Higher cost per token compared to smaller models in the Claude family"
     ]
   },
   {
     name: "Claude 3 Sonnet",
     provider: "Anthropic",
-    description: "A balanced model from Anthropic offering strong performance with improved efficiency, positioned between Haiku and Opus for general applications.",
+    description: "A balanced model offering strong performance with improved efficiency for general applications.",
     strengths: [
       "Excellent instruction following with high precision and attention to detail",
       "Good balance of quality and speed for most business applications",
       "Significantly reduced hallucination rate compared to industry average",
       "Strong reasoning capabilities for business and analytical tasks",
-      "Consistent and predictable outputs across repeated queries",
-      "Better handling of nuance in complex conversations than smaller models"
+      "Consistent and predictable outputs across repeated queries"
     ],
     limitations: [
       "Not as powerful as Claude 3 Opus for specialized expert tasks",
       "Limited knowledge cutoff date, missing recent information",
       "May struggle with complex multi-step reasoning in specialized domains",
       "More limited mathematical reasoning compared to Opus",
-      "Less advanced coding capabilities than specialized coding models",
-      "More restricted context window than the larger Gemini or Claude models"
+      "Less advanced coding capabilities than specialized coding models"
     ]
   },
   {
     name: "Claude 3 Haiku",
     provider: "Anthropic",
-    description: "Anthropic's fastest and most compact model, designed for low-latency applications requiring quick responses while maintaining good accuracy.",
+    description: "Anthropic's fastest and most compact model designed for low-latency applications.",
     strengths: [
       "Extremely fast response times suitable for real-time applications",
       "Low cost making it viable for high-volume consumer applications",
       "Good for real-time chat interfaces requiring immediate feedback",
       "Maintains reasonable accuracy on many common tasks despite small size",
-      "Effective for straightforward content generation and moderation",
-      "Suitable for mobile and edge deployments with limited resources"
+      "Effective for straightforward content generation and moderation"
     ],
     limitations: [
       "Significantly reduced capabilities compared to larger Claude models",
       "Limited context window restricting analysis of longer documents",
       "Less effective for complex reasoning or specialized knowledge domains",
       "Higher error rate in mathematical calculations and logical reasoning",
-      "More prone to misunderstanding complex or nuanced instructions",
-      "Limited ability to maintain context across very long conversations"
+      "More prone to misunderstanding complex or nuanced instructions"
     ]
   },
   {
-    name: "Claude 2",
+    name: "Claude 2.1",
     provider: "Anthropic",
-    description: "Anthropic's previous generation large language model that balances performance, reliability and efficiency.",
+    description: "Updated version of Claude 2 with improved performance and instruction following capabilities.",
     strengths: [
-      "Strong instruction following capabilities for everyday tasks",
-      "Good balance of reasoning ability and response speed",
-      "Extensive testing and reliability in production environments",
-      "Well-documented behavior patterns for developers",
-      "Better at avoiding harmful content than many earlier models",
-      "Good multi-turn conversation maintaining context"
+      "Better reasoning abilities than Claude 2 across various tasks",
+      "Improved coding and mathematical capabilities",
+      "Enhanced consistency in following complex instructions",
+      "Reduced hallucination tendencies compared to Claude 2",
+      "Good balance of capabilities and computational efficiency"
     ],
     limitations: [
-      "Significantly less capable than Claude 3 series across most tasks",
-      "More limited knowledge base with earlier cutoff date",
-      "Higher hallucination rate than newer Claude models",
-      "Less effective at handling complex, multi-step instructions",
-      "More limited coding and mathematical abilities",
-      "Lacks multimodal capabilities of newer models"
+      "Not as capable as Claude 3 models across most tasks",
+      "Limited context window compared to newer models",
+      "More restricted knowledge cutoff compared to Claude 3 series",
+      "Less effective multimodal capabilities than latest generation",
+      "Higher computational requirements than smaller specialized models"
+    ]
+  },
+  {
+    name: "Claude Instant",
+    provider: "Anthropic",
+    description: "Anthropic's lightweight model designed for high-throughput, cost-effective deployments.",
+    strengths: [
+      "Very fast inference speed suitable for applications requiring quick responses",
+      "Highly cost-effective for large-scale deployments",
+      "Good general text understanding for common tasks",
+      "Effective for content moderation and classification tasks",
+      "Reliable output formatting for simple structured data"
+    ],
+    limitations: [
+      "Significantly less capable on complex reasoning than larger Claude models",
+      "Limited ability to handle nuanced or ambiguous instructions",
+      "More prone to factual errors and hallucinations",
+      "Struggles with multi-step reasoning tasks",
+      "Reduced context understanding for subtle conversational nuances"
     ]
   },
   
-  // Google Models
+  // Google Models - Top 5
   {
     name: "Gemini 1.5 Pro",
     provider: "Google",
-    description: "Google's advanced multimodal model featuring an exceptionally large context window and improved reasoning capabilities across diverse tasks.",
+    description: "Google's advanced multimodal model featuring a large context window and improved reasoning capabilities.",
     strengths: [
-      "Massive 1 million token context window, industry-leading for analyzing long documents",
+      "Massive 1 million token context window for analyzing long documents",
       "Sophisticated multimodal understanding across text, images, audio, and video",
       "Strong reasoning capabilities particularly for scientific and technical content",
       "Excellent at maintaining coherence across very long conversations",
-      "Efficient processing despite the large context window size",
-      "Well-optimized for Google's ecosystem and cloud infrastructure"
+      "Efficient processing despite the large context window size"
     ],
     limitations: [
       "May struggle with certain specialized domains outside its training focus",
       "Potential for generating plausible but incorrect information in areas of uncertainty",
       "Less widely tested in production settings than some competitor models",
       "Higher computational requirements when utilizing the full context window",
-      "More limited third-party integrations compared to OpenAI's ecosystem",
       "API access restrictions and availability limitations in certain regions"
     ]
   },
   {
     name: "Gemini 1.5 Flash",
     provider: "Google",
-    description: "A faster, more efficient version of Google's Gemini 1.5 model designed for high-throughput applications where speed is critical.",
+    description: "A faster, more efficient version of Google's Gemini 1.5 model designed for high-throughput applications.",
     strengths: [
       "Very fast inference speed suitable for real-time interactive applications",
       "Retains large context window capabilities with efficient processing",
       "Good balance of performance and cost for everyday applications",
       "Maintains core multimodal capabilities with good efficiency",
-      "Works well for content generation and analysis at scale",
       "Lower latency for time-sensitive applications"
     ],
     limitations: [
@@ -222,287 +240,355 @@ const aiModels = [
       "Less adept at solving complex problems requiring deep analysis",
       "May produce more superficial responses to complex queries",
       "Less effective for specialized academic or scientific tasks",
-      "Reduced performance on advanced coding and mathematics",
-      "More limited handling of ambiguity and nuance in responses"
+      "Reduced performance on advanced coding and mathematics"
     ]
   },
   {
     name: "Gemini 1.0 Ultra",
     provider: "Google",
-    description: "Google's previous generation flagship model with strong performance across language understanding, reasoning, and knowledge tasks.",
+    description: "Google's previous generation flagship model with strong general performance across various tasks.",
     strengths: [
       "Robust performance across a wide range of general knowledge tasks",
       "Good reasoning capabilities for analytical problems",
       "Strong performance on coding tasks with context understanding",
       "Effective at summarization and content generation",
-      "Well-tested in various production environments",
-      "Reliable behavior patterns for developers"
+      "Well-tested in various production environments"
     ],
     limitations: [
       "Significantly smaller context window than Gemini 1.5 series",
       "More limited multimodal capabilities than newer models",
       "Less effective at maintaining coherence in very long conversations",
       "More likely to produce hallucinations than newer models",
-      "Knowledge cutoff date restricts awareness of recent events",
-      "Less capable on complex multi-step reasoning tasks"
+      "Knowledge cutoff date restricts awareness of recent events"
     ]
   },
   {
-    name: "PaLM 2",
+    name: "Gemini Nano",
     provider: "Google",
-    description: "Google's large language model with strong multilingual capabilities and reasoning abilities across a variety of domains.",
+    description: "Google's on-device AI model optimized for mobile devices and edge computing applications.",
     strengths: [
-      "Excellent multilingual capabilities across hundreds of languages",
-      "Strong performance on translation and cross-lingual tasks",
-      "Good reasoning abilities for general knowledge domains",
-      "Well-optimized for Google Cloud and Vertex AI deployment",
-      "Reliable performance for enterprise applications",
-      "Extensive testing for bias and safety"
+      "Designed to run efficiently on device without cloud connectivity",
+      "Low latency suitable for real-time mobile applications",
+      "Reduced power consumption compared to cloud model inference",
+      "Privacy benefits from on-device processing of sensitive data",
+      "Optimized for Android ecosystem integration"
     ],
     limitations: [
-      "Superseded by Gemini models for most new applications",
-      "More limited context window compared to newer models",
-      "Less capable on complex reasoning tasks than Gemini series",
-      "No multimodal capabilities for processing images or audio",
-      "Earlier knowledge cutoff date with more outdated information",
-      "Higher latency and resource requirements than specialized models"
+      "Significantly reduced capabilities compared to cloud-based models",
+      "Limited context understanding and reasoning abilities",
+      "Restricted to simpler tasks and basic language understanding",
+      "Less effective for complex queries requiring deep knowledge",
+      "Hardware-dependent performance varies across devices"
+    ]
+  },
+  {
+    name: "Imagen",
+    provider: "Google",
+    description: "Google's text-to-image diffusion model for generating high-quality images from text descriptions.",
+    strengths: [
+      "Advanced photorealistic image generation from detailed descriptions",
+      "Strong spatial reasoning and composition capabilities",
+      "Good understanding of specific artistic styles and visual concepts",
+      "Ability to generate consistent characters across multiple images",
+      "Impressive detail rendering in complex scenes"
+    ],
+    limitations: [
+      "Access limited through specific Google Cloud APIs",
+      "Less widespread availability compared to competing image models",
+      "May struggle with certain complex abstract concepts",
+      "Varying quality for highly specific technical or domain-specialized imagery",
+      "More restricted content policy compared to some alternatives"
     ]
   },
   
-  // Meta Models
-  {
-    name: "Llama 3 8B",
-    provider: "Meta",
-    description: "The smallest variant of Meta's Llama 3 family, optimized for efficiency while maintaining good language understanding capabilities.",
-    strengths: [
-      "Extremely efficient with low hardware requirements",
-      "Fast inference speed suitable for real-time applications",
-      "Can run on consumer hardware including some mobile devices",
-      "Good performance-to-size ratio for general tasks",
-      "Open weights enabling extensive customization and fine-tuning",
-      "Low deployment cost for high-volume applications"
-    ],
-    limitations: [
-      "Limited reasoning capabilities compared to larger models",
-      "Struggles with complex multi-step instructions",
-      "Less effective for specialized knowledge domains",
-      "More prone to hallucinations and factual errors",
-      "Reduced context window limiting document analysis",
-      "Less capable at nuanced understanding of ambiguous queries"
-    ]
-  },
-  {
-    name: "Llama 3 70B",
-    provider: "Meta",
-    description: "The largest variant of Meta's Llama 3 family with strong overall performance approaching commercial closed-source models in many benchmarks.",
-    strengths: [
-      "Strong performance across a wide range of tasks approaching proprietary models",
-      "Open weights enabling research transparency and customization",
-      "Good instruction following with improved alignment over previous generations",
-      "Competitive with many closed models at a lower deployment cost",
-      "Can be fine-tuned for specific domains with relatively modest resources",
-      "Growing ecosystem of optimizations and deployment solutions"
-    ],
-    limitations: [
-      "High hardware requirements for efficient inference (minimum 40GB VRAM)",
-      "Less overall training data compared to leading proprietary alternatives",
-      "May lag behind top commercial alternatives in specialized domains",
-      "More challenging to deploy and maintain than API-based solutions",
-      "Limited built-in safety measures compared to heavily aligned models",
-      "Less integrated developer tooling and documentation than major platforms"
-    ]
-  },
+  // Meta Models - Top 5
   {
     name: "Llama 3 405B",
     provider: "Meta",
-    description: "Meta's largest language model with significantly improved reasoning and instruction following capabilities over previous generations.",
+    description: "Meta's largest language model with significantly improved reasoning and instruction following capabilities.",
     strengths: [
       "Superior reasoning capabilities approaching top commercial models",
       "Excellent performance on complex coding and mathematical tasks",
       "Strong ability to follow nuanced multi-step instructions",
       "Improved factual accuracy and reduced hallucinations",
-      "Better handling of ambiguity and context understanding",
-      "Open architecture enabling research and customization"
+      "Better handling of ambiguity and context understanding"
     ],
     limitations: [
       "Extreme hardware requirements limiting widespread deployment",
       "Significantly higher computational cost than smaller Llama variants",
       "Challenging to fine-tune without substantial compute resources",
       "More complex deployment and optimization requirements",
-      "Limited available deployment solutions due to size constraints",
-      "Less tested in production environments than smaller variants"
+      "Limited available deployment solutions due to size constraints"
     ]
   },
   {
-    name: "Llama 2 70B",
+    name: "Llama 3 70B",
     provider: "Meta",
-    description: "Meta's previous generation large language model that offers a good balance of performance and resource requirements.",
+    description: "The most widely used Llama 3 variant offering strong performance with reasonable resource requirements.",
     strengths: [
-      "Well-established model with extensive community support",
-      "Strong performance on general language tasks",
-      "Good instruction following capabilities",
-      "Open weights enabling customization and research",
-      "Extensive ecosystem of optimization tools and deployments",
-      "Well-documented behavior for developers"
+      "Strong performance across a wide range of tasks approaching proprietary models",
+      "Open weights enabling research transparency and customization",
+      "Good instruction following with improved alignment over previous generations",
+      "Competitive with many closed models at a lower deployment cost",
+      "Can be fine-tuned for specific domains with relatively modest resources"
     ],
     limitations: [
-      "Significantly less capable than Llama 3 on reasoning tasks",
-      "More limited context window than newer models",
-      "Higher tendency to hallucinate or produce inaccuracies",
-      "Less effective instruction following than Llama 3 series",
-      "Limited by earlier training data and knowledge cutoff",
-      "Requires careful prompting for complex tasks"
+      "High hardware requirements for efficient inference (minimum 40GB VRAM)",
+      "Less overall training data compared to leading proprietary alternatives",
+      "May lag behind top commercial alternatives in specialized domains",
+      "More challenging to deploy and maintain than API-based solutions",
+      "Limited built-in safety measures compared to heavily aligned models"
+    ]
+  },
+  {
+    name: "Llama 3 8B",
+    provider: "Meta",
+    description: "The smallest variant of Meta's Llama 3 family, optimized for efficiency and edge deployment.",
+    strengths: [
+      "Extremely efficient with low hardware requirements",
+      "Fast inference speed suitable for real-time applications",
+      "Can run on consumer hardware including some mobile devices",
+      "Good performance-to-size ratio for general tasks",
+      "Open weights enabling extensive customization and fine-tuning"
+    ],
+    limitations: [
+      "Limited reasoning capabilities compared to larger models",
+      "Struggles with complex multi-step instructions",
+      "Less effective for specialized knowledge domains",
+      "More prone to hallucinations and factual errors",
+      "Reduced context window limiting document analysis"
+    ]
+  },
+  {
+    name: "Segment Anything (SAM)",
+    provider: "Meta",
+    description: "Meta's computer vision foundation model for image segmentation tasks.",
+    strengths: [
+      "Exceptional image segmentation capabilities across diverse objects",
+      "Zero-shot performance on new object categories without specific training",
+      "Highly accurate boundary detection even for complex shapes",
+      "Ability to work with simple user prompts (points, boxes, or text)",
+      "Fast inference suitable for interactive applications"
+    ],
+    limitations: [
+      "Limited to segmentation tasks rather than general vision understanding",
+      "May struggle with very small objects or highly occluded scenes",
+      "Not designed for tasks beyond segmentation like classification or detection",
+      "Requires additional components for complete computer vision pipelines",
+      "High memory usage for highest quality model variants"
+    ]
+  },
+  {
+    name: "Llama Guard",
+    provider: "Meta",
+    description: "Meta's specialized model for content moderation and safety alignment.",
+    strengths: [
+      "Specifically optimized for identifying and filtering harmful content",
+      "Fine-grained classification of safety categories",
+      "Adaptable safety thresholds for different deployment contexts",
+      "Designed to work alongside general purpose LLMs for safety filtering",
+      "Open weights allowing customization for specific content policies"
+    ],
+    limitations: [
+      "Narrowly focused on safety evaluation rather than general AI capabilities",
+      "May produce false positives in ambiguous or nuanced discussions",
+      "Requires integration with other systems for complete safety solution",
+      "Cultural and contextual limitations in understanding nuance",
+      "Less effective for detecting subtle policy violations"
     ]
   },
   
-  // Mistral AI Models
+  // Mistral AI Models - Top 5
   {
     name: "Mistral Large",
     provider: "Mistral AI",
-    description: "Mistral AI's flagship model, optimized for performance and versatility with particular strengths in reasoning and structured outputs.",
+    description: "Mistral AI's flagship model, optimized for performance and versatility across diverse tasks.",
     strengths: [
       "Exceptional performance on reasoning tasks relative to model size",
       "Strong instruction following capabilities with high precision",
       "Competitive with much larger models on many benchmarks",
       "Efficient architecture enabling faster inference than comparable models",
-      "Good at generating structured outputs like JSON and XML",
-      "Strong multilingual capabilities across major European languages"
+      "Good at generating structured outputs like JSON and XML"
     ],
     limitations: [
       "Less established track record in production compared to models from larger companies",
       "Limited training data compared to the largest models from OpenAI and Anthropic",
       "Smaller developer ecosystem and fewer integration examples",
       "Less documented behavior in edge cases and specialized domains",
-      "Limited context window compared to some competitor models",
-      "Less extensive safety testing and alignment compared to more established providers"
+      "Limited context window compared to some competitor models"
     ]
   },
   {
     name: "Mistral Small",
     provider: "Mistral AI",
-    description: "A compact and efficient model from Mistral AI optimized for everyday tasks with a good balance of performance and cost.",
+    description: "A compact and efficient model optimized for everyday tasks with good performance to cost ratio.",
     strengths: [
       "Fast inference speed suitable for interactive applications",
       "Good performance-to-size ratio for general tasks",
       "Reliable instruction following for straightforward requests",
       "Efficient architecture requiring modest computational resources",
-      "Suitable for deployment in resource-constrained environments",
-      "Good multilingual capabilities for major European languages"
+      "Suitable for deployment in resource-constrained environments"
     ],
     limitations: [
       "Limited reasoning capabilities for complex problem-solving",
       "Less effective at multi-step instructions than larger models",
       "More prone to factual errors in specialized domains",
       "Reduced context understanding for nuanced or ambiguous queries",
-      "Smaller context window limiting document analysis",
-      "Less capable at generating highly structured or specific outputs"
+      "Smaller context window limiting document analysis"
     ]
   },
   {
     name: "Mistral Embed",
     provider: "Mistral AI",
-    description: "Mistral AI's specialized embedding model designed for text representation, semantic search, and similarity tasks.",
+    description: "Specialized embedding model designed for text representation, semantic search, and similarity tasks.",
     strengths: [
       "Optimized specifically for high-quality text embeddings",
       "Excellent performance on semantic search and retrieval tasks",
       "Strong language understanding for similarity comparisons",
       "Efficient processing suitable for high-volume embedding generation",
-      "Good cross-lingual capabilities for multilingual applications",
-      "Compact representations suitable for vector databases"
+      "Good cross-lingual capabilities for multilingual applications"
     ],
     limitations: [
       "Single-purpose model not designed for text generation or chat",
       "Limited to embedding functionality without reasoning capabilities",
       "Not suitable for tasks requiring contextual responses",
       "Requires additional components for complete RAG systems",
-      "Less effective for highly specialized domain-specific embeddings without fine-tuning",
-      "Not designed for multimodal embedding applications"
+      "Less effective for highly specialized domain-specific embeddings without fine-tuning"
     ]
   },
   {
     name: "Mixtral 8x7B",
     provider: "Mistral AI",
-    description: "Mistral AI's mixture of experts model combining multiple specialized networks for improved performance across diverse tasks.",
+    description: "Mixture of experts model combining multiple specialized networks for improved performance.",
     strengths: [
       "Efficient architecture providing strong performance at reasonable cost",
       "Mixture of experts approach specializing in different domains",
       "Good reasoning capabilities compared to similarly sized models",
       "Strong instruction following with good precision",
-      "Reliable performance across a wide range of general tasks",
-      "Open weights enabling customization and research"
+      "Reliable performance across a wide range of general tasks"
     ],
     limitations: [
       "More complex architecture requiring specialized optimization",
       "Higher memory requirements than standard architectures of similar size",
       "Less widespread deployment solutions than simpler architectures",
       "May exhibit inconsistent performance across different domains",
-      "More challenging to fine-tune than standard architectures",
-      "Limited context window compared to newer models"
+      "More challenging to fine-tune than standard architectures"
+    ]
+  },
+  {
+    name: "Codestral",
+    provider: "Mistral AI",
+    description: "Mistral AI's specialized model for code generation, understanding, and debugging.",
+    strengths: [
+      "Exceptional performance on coding tasks across multiple programming languages",
+      "Strong understanding of code context and software architecture concepts",
+      "Effective at debugging and identifying issues in existing code",
+      "Good at following precise technical specifications for implementation",
+      "Strong performance on code completion and suggestion tasks"
+    ],
+    limitations: [
+      "More specialized focus limiting general text generation capabilities",
+      "May suggest patterns that appear correct but contain subtle bugs",
+      "Less effective for extremely domain-specific libraries or frameworks",
+      "Limited understanding of highly optimized or hardware-specific code patterns",
+      "May not always follow best practices for specific language ecosystems"
     ]
   },
   
-  // Cohere Models
+  // Cohere Models - Top 5
   {
     name: "Command R+",
     provider: "Cohere",
-    description: "Cohere's advanced language model designed for enterprise applications with strong reasoning and specialized knowledge capabilities.",
+    description: "Cohere's advanced language model for enterprise applications with strong reasoning capabilities.",
     strengths: [
       "Excellent performance on business and enterprise use cases",
       "Strong reasoning capabilities for analytical tasks",
       "Good at following detailed instructions with precision",
       "Specialized knowledge in business, finance, and legal domains",
-      "Reliable output formatting for structured data requirements",
-      "Strong multilingual capabilities for global enterprise use"
+      "Reliable output formatting for structured data requirements"
     ],
     limitations: [
       "Less widely known and tested than models from larger providers",
       "More limited ecosystem of integration examples and documentation",
       "May exhibit uneven performance across different specialized domains",
       "More restricted availability through Cohere's platform only",
-      "Limited context window compared to some competitor models",
-      "Less transparent about training data and methodology"
+      "Limited context window compared to some competitor models"
     ]
   },
   {
     name: "Command R",
     provider: "Cohere",
-    description: "Cohere's general-purpose language model balancing performance and efficiency for a wide range of enterprise applications.",
+    description: "Cohere's general-purpose language model balancing performance and efficiency for enterprises.",
     strengths: [
       "Good balance of performance and efficiency for everyday tasks",
       "Strong enterprise focus with business-oriented capabilities",
       "Reliable instruction following for standard business queries",
       "Well-optimized for RAG applications with good integration",
-      "Consistent performance across common business domains",
-      "Good multilingual support for international applications"
+      "Consistent performance across common business domains"
     ],
     limitations: [
       "Less capable than Command R+ on complex reasoning tasks",
       "More limited performance on highly specialized domains",
       "Reduced context understanding for nuanced queries",
       "Not designed for multimodal inputs like images or audio",
-      "Less advanced code generation capabilities than specialized models",
-      "More limited creative capabilities than some competitor models"
+      "Less advanced code generation capabilities than specialized models"
     ]
   },
   {
     name: "Embed",
     provider: "Cohere",
-    description: "Cohere's specialized embedding model optimized for enterprise search, retrieval, and recommendation systems.",
+    description: "Specialized embedding model optimized for enterprise search, retrieval, and recommendation systems.",
     strengths: [
       "Industry-leading text embeddings optimized for enterprise search",
       "Excellent performance on similarity and relevance tasks",
       "Specialized versions for different languages and domains",
       "Strong multilingual capabilities with cross-lingual understanding",
-      "Optimized for efficient integration with vector databases",
-      "Well-documented API with enterprise-grade reliability"
+      "Optimized for efficient integration with vector databases"
     ],
     limitations: [
       "Single-purpose model focused only on embedding generation",
       "Not designed for text generation or conversational tasks",
       "Requires integration with other components for complete systems",
       "May require domain-specific variants for specialized industries",
-      "Less effective for highly technical or niche domains without customization",
-      "More limited availability than general-purpose models"
+      "Less effective for highly technical or niche domains without customization"
+    ]
+  },
+  {
+    name: "Coral",
+    provider: "Cohere",
+    description: "Cohere's latest generation model focusing on enhanced reasoning and specialized tasks.",
+    strengths: [
+      "Improved reasoning capabilities over previous Cohere models",
+      "Better handling of complex, multi-step instructions",
+      "Enhanced performance on specialized enterprise domains",
+      "Stronger capabilities for structured data extraction and organization",
+      "Improved multilingual performance across business contexts"
+    ],
+    limitations: [
+      "Recently released with less extensive production testing",
+      "Limited documentation and best practices compared to established models",
+      "More restricted availability through enterprise channels",
+      "May have inconsistent performance on newer or emerging use cases",
+      "Less widespread community knowledge and optimization techniques"
+    ]
+  },
+  {
+    name: "Multilingual",
+    provider: "Cohere",
+    description: "Cohere's specialized model for cross-lingual understanding and translation tasks.",
+    strengths: [
+      "Exceptional performance across dozens of languages",
+      "Strong cross-lingual transfer abilities for consistent understanding",
+      "Good at maintaining context and nuance during translation",
+      "Effective for multilingual content moderation and classification",
+      "Specialized capabilities for low-resource languages compared to competitors"
+    ],
+    limitations: [
+      "More specialized focus limiting performance on some general tasks",
+      "Varying quality across different language pairs",
+      "Less effective for highly technical or domain-specific content",
+      "More limited context window than some general models",
+      "Requires specialized prompting techniques for optimal results"
     ]
   }
 ];
@@ -514,7 +600,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Starting AI models update process with enhanced and expanded model data');
+    console.log('Starting AI models update process with top 5 models per provider');
 
     // Initialize Supabase client with service role key to bypass RLS
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -559,7 +645,7 @@ serve(async (req) => {
       });
     }
 
-    // Clear existing models before inserting new ones
+    // Clear existing models before inserting new ones to prevent duplicates
     if (hasExistingModels) {
       console.log('Clearing existing models from database');
       const { error: deleteError } = await supabase
@@ -573,62 +659,52 @@ serve(async (req) => {
       }
     }
 
-    // Insert models, preventing duplicates based on name and provider
-    console.log(`Inserting ${aiModels.length} unique AI models with enhanced details`);
+    // Insert models, tracking by provider for stats
+    console.log(`Inserting ${aiModels.length} models from 5 leading AI providers`);
     let insertedCount = 0;
     let errors = [];
+    let providerStats = {};
     
-    // Insert each model one by one to prevent duplicates
-    for (const model of aiModels) {
-      console.log(`Inserting enhanced model: ${model.name} (${model.provider})`);
-      
-      // Check if this exact model already exists in the database
-      const { data: existingModel, error: checkError } = await supabase
+    // Process models in batches for more efficient insertion
+    const batchSize = 5;
+    for (let i = 0; i < aiModels.length; i += batchSize) {
+      const batch = aiModels.slice(i, i + batchSize);
+      const { data, error } = await supabase
         .from('ai_models')
-        .select('id')
-        .eq('name', model.name)
-        .eq('provider', model.provider)
-        .limit(1);
-        
-      if (checkError) {
-        console.error(`Error checking if model ${model.name} exists:`, checkError);
-        errors.push({ model: model.name, error: checkError.message });
-        continue;
-      }
-      
-      // Skip if model already exists
-      if (existingModel && existingModel.length > 0) {
-        console.log(`Model ${model.name} (${model.provider}) already exists, skipping.`);
-        continue;
-      }
-      
-      // Insert the model
-      const { error: insertError } = await supabase
-        .from('ai_models')
-        .insert({
+        .insert(batch.map(model => ({
           name: model.name,
           provider: model.provider,
           description: model.description,
           strengths: model.strengths,
           limitations: model.limitations,
+        })))
+        .select();
+      
+      if (error) {
+        console.error(`Error inserting batch starting with model ${batch[0]?.name}:`, error);
+        batch.forEach(model => {
+          errors.push({ model: model.name, error: error.message });
         });
-      
-      if (insertError) {
-        console.error(`Error inserting model ${model.name}:`, insertError);
-        errors.push({ model: model.name, error: insertError.message });
-        continue;
+      } else {
+        insertedCount += data.length;
+        
+        // Track statistics by provider
+        data.forEach(model => {
+          const provider = model.provider;
+          providerStats[provider] = (providerStats[provider] || 0) + 1;
+        });
       }
-      
-      insertedCount++;
     }
 
-    console.log(`AI models update completed. Successfully inserted ${insertedCount} of ${aiModels.length} enhanced models.`);
+    console.log(`AI models update completed. Successfully inserted ${insertedCount} models.`);
+    console.log('Models inserted by provider:', providerStats);
     
     // Return detailed response
     return new Response(JSON.stringify({ 
       success: true, 
       totalModels: aiModels.length,
       insertedModels: insertedCount,
+      providerStats,
       errors: errors.length > 0 ? errors : undefined
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
