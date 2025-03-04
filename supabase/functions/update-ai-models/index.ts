@@ -14,11 +14,13 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting AI models update process');
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    console.log('Fetching AI model data from OpenAI');
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -41,15 +43,25 @@ serve(async (req) => {
     });
 
     const data = await response.json();
+    console.log('Received response from OpenAI');
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response from OpenAI');
+    }
+    
+    console.log('Parsing model data');
     const modelsData = JSON.parse(data.choices[0].message.content);
 
     // Clear existing models and insert new ones
+    console.log('Clearing existing models from database');
     await supabase
       .from('ai_models')
       .delete()
       .neq('id', '00000000-0000-0000-0000-000000000000');
 
+    console.log('Inserting new models into database');
     for (const model of modelsData) {
+      console.log(`Inserting model: ${model.name}`);
       await supabase
         .from('ai_models')
         .insert({
@@ -61,7 +73,8 @@ serve(async (req) => {
         });
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    console.log('AI models update completed successfully');
+    return new Response(JSON.stringify({ success: true, count: modelsData.length }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
