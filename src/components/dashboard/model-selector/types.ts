@@ -12,3 +12,4 @@ export interface DisplayModel {
   position: number;
   index: number;
 }
+
