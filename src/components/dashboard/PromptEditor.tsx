@@ -3,7 +3,6 @@ import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PromptEditorProps {
   promptText: string;
@@ -234,7 +233,7 @@ export const PromptEditor = ({
 
   return (
     <div className="border rounded-xl p-6 bg-card min-h-[400px] relative">
-      <div className="absolute top-6 right-6 flex space-x-2 z-10">
+      <div className="flex space-x-2 mb-2">
         <button
           onClick={insertBulletList}
           className="p-2 rounded-md hover:bg-accent/20 transition-colors"
