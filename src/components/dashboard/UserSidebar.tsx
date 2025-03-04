@@ -35,11 +35,9 @@ export const UserSidebar = ({
 
   return (
     <Sidebar side="right">
+      <SidebarTrigger className="fixed right-4 top-4 z-50 bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
+      
       <SidebarContent>
-        <div className="p-3 flex justify-end border-b">
-          <SidebarTrigger className="bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
-        </div>
-        
         <div className="p-4 flex items-center justify-between border-b">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
