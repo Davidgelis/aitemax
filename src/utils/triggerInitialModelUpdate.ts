@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface ModelUpdateResponse {
   success: boolean;
+  error?: any;
   data?: {
     message?: string;
     success?: boolean;
@@ -12,11 +13,10 @@ interface ModelUpdateResponse {
     errors?: Array<{model: string, error: string}>;
     [key: string]: any;
   };
-  error?: any;
 }
 
 // This function can be called to trigger the AI model update
-export const triggerInitialModelUpdate = async () => {
+export const triggerInitialModelUpdate = async (): Promise<ModelUpdateResponse> => {
   try {
     console.log('Triggering AI model update...');
     

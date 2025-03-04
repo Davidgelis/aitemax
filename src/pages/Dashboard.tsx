@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -151,6 +152,8 @@ const Dashboard = () => {
         
       if (!insertError) {
         insertedCount++;
+      } else {
+        console.error('Error inserting model:', model.name, insertError);
       }
     }
     
