@@ -25,23 +25,83 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
   const { toast } = useToast();
   const [providers, setProviders] = useState<string[]>([]);
 
-  // Handle wheel event for scrolling through models
+  // Handle wheel event for scrolling through models - improved implementation
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
     
-    // Determine direction (positive deltaY means scrolling down)
+    // Determine direction and make it more responsive
     if (e.deltaY > 0) {
       // Scrolling down - move to next model
       setActiveIndex(prev => {
         const next = prev >= sortedModels.length - 1 ? 0 : prev + 1;
+        
+        // Auto-select the new model
+        if (sortedModels[next]) {
+          onSelect(sortedModels[next]);
+        }
+        
         return next;
       });
     } else {
       // Scrolling up - move to previous model
       setActiveIndex(prev => {
         const next = prev <= 0 ? sortedModels.length - 1 : prev - 1;
+        
+        // Auto-select the new model
+        if (sortedModels[next]) {
+          onSelect(sortedModels[next]);
+        }
+        
         return next;
       });
+    }
+  };
+
+  // Mouse wheel event needs a more forceful approach
+  const setupWheelListener = () => {
+    const scrollContainer = scrollRef.current;
+    
+    if (scrollContainer) {
+      // Remove any existing listeners first to avoid duplicates
+      scrollContainer.removeEventListener('wheel', handleWheel);
+      
+      // Add the wheel event listener with passive: false to allow preventDefault
+      scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
+      
+      console.log('Wheel event listener set up on model selector');
+    } else {
+      console.warn('Could not set up wheel event, container ref is null');
+    }
+  };
+
+  // Handle keyboard navigation too
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (!open) return;
+    
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      setActiveIndex(prev => {
+        const next = prev >= sortedModels.length - 1 ? 0 : prev + 1;
+        if (sortedModels[next]) {
+          onSelect(sortedModels[next]);
+        }
+        return next;
+      });
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      setActiveIndex(prev => {
+        const next = prev <= 0 ? sortedModels.length - 1 : prev - 1;
+        if (sortedModels[next]) {
+          onSelect(sortedModels[next]);
+        }
+        return next;
+      });
+    } else if (e.key === 'Enter' || e.key === 'Space') {
+      e.preventDefault();
+      handleSelectModel(activeIndex);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setOpen(false);
     }
   };
 
@@ -109,17 +169,36 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
     }
   }, [isInitializingModels]);
 
-  // Effect for wheel event - Improved implementation
+  // Effect for wheel and keyboard events - Greatly improved implementation
   useEffect(() => {
-    const scrollContainer = scrollRef.current;
-    
-    if (scrollContainer && open) {
-      scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
+    if (open) {
+      // Set up the wheel event handler when dialog opens
+      setupWheelListener();
+      
+      // Add keyboard event listener for navigation
+      window.addEventListener('keydown', handleKeyDown);
+      
+      // Focus the container to ensure keyboard events work
+      if (scrollRef.current) {
+        scrollRef.current.focus();
+      }
+      
       return () => {
-        scrollContainer.removeEventListener('wheel', handleWheel);
+        // Clean up the event listeners when dialog closes
+        if (scrollRef.current) {
+          scrollRef.current.removeEventListener('wheel', handleWheel);
+        }
+        window.removeEventListener('keydown', handleKeyDown);
       };
     }
   }, [open, sortedModels.length]);
+
+  // Setup listeners again if models change
+  useEffect(() => {
+    if (open) {
+      setupWheelListener();
+    }
+  }, [models, open]);
 
   // Handle model selection
   const handleSelectModel = (selectedIndex: number) => {
@@ -137,6 +216,11 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
       if (index !== -1) {
         setActiveIndex(index);
       }
+      
+      // Set up wheel event handler after a short delay to ensure the DOM is ready
+      setTimeout(() => {
+        setupWheelListener();
+      }, 100);
     }
   };
 
@@ -204,6 +288,9 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
                     setOpen(false);
                   }
                 }}
+                tabIndex={0} // Make it focusable for keyboard navigation
+                role="listbox"
+                aria-label="AI Models"
               >
                 {getDisplayModels().map(({ model, position, index }) => (
                   <div
@@ -215,6 +302,8 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
                       zIndex: 10 - Math.abs(position),
                     }}
                     onClick={() => handleSelectModel(index)}
+                    role="option"
+                    aria-selected={position === 0}
                   >
                     <div
                       className={`text-center px-6 py-2 whitespace-nowrap transition-all ${
@@ -227,6 +316,13 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
                     </div>
                   </div>
                 ))}
+                
+                {/* Add visual indicator for scroll */}
+                <div className="absolute bottom-6 left-0 right-0 flex justify-center opacity-50 pointer-events-none">
+                  <div className="text-sm text-white">
+                    Scroll to navigate
+                  </div>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
