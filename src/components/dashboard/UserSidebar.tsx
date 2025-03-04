@@ -1,4 +1,3 @@
-
 import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
