@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -46,30 +46,30 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
       
       if (data && data.length > 0) {
         // Create a map to deduplicate models
-        const uniqueModels: AIModel[] = [];
+        const deduplicatedModels: AIModel[] = [];
         const modelMap = new Map();
         
         // Process models and deduplicate
         data.forEach((model: AIModel) => {
-          const key = `${model.name}-${model.provider}`;
+          const key = `${model.provider}-${model.name}`;
           if (!modelMap.has(key)) {
             modelMap.set(key, true);
-            uniqueModels.push(model);
+            deduplicatedModels.push(model);
           }
         });
         
-        console.log(`Filtered to ${uniqueModels.length} unique models`);
+        console.log(`Filtered to ${deduplicatedModels.length} unique models from ${data.length} total`);
         
         // Extract unique providers for grouping
-        const uniqueProviders = Array.from(new Set(uniqueModels.map(model => model.provider))).sort();
+        const uniqueProviders = Array.from(new Set(deduplicatedModels.map(model => model.provider))).sort();
         setProviders(uniqueProviders);
         
-        setModels(uniqueModels);
+        setModels(deduplicatedModels);
         setLastUpdate(new Date());
         
         toast({
           title: "AI Models Loaded",
-          description: `${uniqueModels.length} AI models from ${uniqueProviders.length} providers have been loaded.`,
+          description: `${deduplicatedModels.length} AI models from ${uniqueProviders.length} providers have been loaded.`,
         });
       } else {
         console.log('No models found in database');
@@ -94,6 +94,17 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
       setProviders([]);
     }
   };
+
+  // Memoize models grouped by provider to avoid recalculations
+  const modelsByProvider = useMemo(() => {
+    const grouped: Record<string, AIModel[]> = {};
+    
+    providers.forEach(provider => {
+      grouped[provider] = models.filter(model => model.provider === provider);
+    });
+    
+    return grouped;
+  }, [models, providers]);
 
   useEffect(() => {
     fetchModels();
@@ -172,13 +183,11 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
               providers.map(provider => (
                 <SelectGroup key={provider}>
                   <SelectLabel className="text-[#545454]">{provider}</SelectLabel>
-                  {models
-                    .filter(model => model.provider === provider)
-                    .map(model => (
-                      <SelectItem key={model.id} value={model.id}>
-                        <span className="text-[#545454]">{model.name}</span>
-                      </SelectItem>
-                    ))}
+                  {modelsByProvider[provider].map(model => (
+                    <SelectItem key={model.id} value={model.id}>
+                      <span className="text-[#545454]">{model.name}</span>
+                    </SelectItem>
+                  ))}
                 </SelectGroup>
               ))
             )}

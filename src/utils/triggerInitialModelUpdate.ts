@@ -10,6 +10,7 @@ interface ModelUpdateResponse {
     totalModels?: number;
     insertedModels?: number;
     providerStats?: Record<string, number>;
+    providers?: string[];
     skipped?: boolean;
     errors?: Array<{model: string, error: string}>;
     [key: string]: any;
@@ -19,11 +20,11 @@ interface ModelUpdateResponse {
 // This function can be called to trigger the AI model update
 export const triggerInitialModelUpdate = async (): Promise<ModelUpdateResponse> => {
   try {
-    console.log('Triggering AI model update with top 5 models per provider...');
+    console.log('Triggering AI model update with diverse models from multiple providers...');
     
     // Add a timeout to avoid hanging the UI if the function doesn't respond
     const timeoutPromise = new Promise<ModelUpdateResponse>((_, reject) => {
-      setTimeout(() => reject(new Error('Function timed out after 30 seconds')), 30000);
+      setTimeout(() => reject(new Error('Function timed out after 40 seconds')), 40000);
     });
     
     const functionPromise = supabase.functions.invoke('update-ai-models', {
@@ -51,8 +52,9 @@ export const triggerInitialModelUpdate = async (): Promise<ModelUpdateResponse> 
     // Log provider statistics if available
     if (result.data?.providerStats) {
       console.log('Models inserted by provider:', result.data.providerStats);
-      const totalProviders = Object.keys(result.data.providerStats).length;
-      console.log(`Successfully inserted models from ${totalProviders} providers`);
+      const providers = result.data.providers || Object.keys(result.data.providerStats);
+      const totalProviders = providers.length;
+      console.log(`Successfully inserted models from ${totalProviders} providers: ${providers.join(', ')}`);
     }
     
     return { success: true, data: result.data };
