@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -332,7 +331,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
           <div className="flex items-center">
             <Button 
               onClick={() => handleDialogOpen(true)}
-              className="w-[30%] h-10 bg-[#fafafa] border border-[#084b49] text-[#545454] hover:bg-[#f0f0f0] flex justify-between items-center"
+              className="w-[30%] h-10 bg-[#fafafa] border border-[#084b49] text-[#545454] hover:bg-[#f0f0f0] flex justify-between items-center shadow-sm"
               variant="outline"
             >
               <span className="truncate">
@@ -380,7 +379,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
                       transform: `translateY(${position * 60}px) scale(${1 - Math.abs(position) * 0.15})`,
                       opacity: 1 - Math.abs(position) * 0.25,
                       zIndex: 10 - Math.abs(position),
-                      transition: 'all 700ms cubic-bezier(0.4, 0, 0.2, 1)', // matching ease-in-out
+                      transition: 'all 700ms cubic-bezier(0.4, 0, 0.2, 1)',
                     }}
                     onClick={() => handleSelectModel(index)}
                     role="option"
@@ -394,8 +393,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
                         fontWeight: 700,
                         letterSpacing: position === 0 ? '0.5px' : 'normal',
                         transform: `scale(${position === 0 ? 1.05 : 1})`,
-                        filter: position === 0 ? 'drop-shadow(0 0 8px rgba(51, 254, 166, 0.5))' : 'none',
-                        transition: 'all 700ms cubic-bezier(0.4, 0, 0.2, 1)', // matching ease-in-out
+                        transition: 'all 700ms cubic-bezier(0.4, 0, 0.2, 1)',
                       }}
                     >
                       {model.name}
