@@ -8,8 +8,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Define fallback model data to use if OpenAI API fails
-const fallbackModels = [
+// Define our AI model data
+const aiModels = [
   {
     name: "GPT-4o",
     provider: "OpenAI",
@@ -90,16 +90,17 @@ serve(async (req) => {
 
   try {
     console.log('Starting AI models update process');
-    
+
     // Initialize Supabase client with service role key to bypass RLS
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!supabaseUrl || !supabaseKey) {
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing required environment variables: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
       throw new Error('Missing Supabase credentials');
     }
     
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     console.log('Supabase client initialized with service role key');
 
     // Check if we already have models in the database
@@ -147,11 +148,12 @@ serve(async (req) => {
       }
     }
 
-    // Use the service role key to bypass RLS and insert the models
-    console.log('Inserting models using service role key to bypass RLS');
+    // Insert models
+    console.log(`Inserting ${aiModels.length} AI models`);
     let insertedCount = 0;
+    let errors = [];
     
-    for (const model of fallbackModels) {
+    for (const model of aiModels) {
       console.log(`Inserting model: ${model.name}`);
       const { error: insertError } = await supabase
         .from('ai_models')
@@ -165,17 +167,21 @@ serve(async (req) => {
       
       if (insertError) {
         console.error(`Error inserting model ${model.name}:`, insertError);
+        errors.push({ model: model.name, error: insertError.message });
         continue;
       }
       
       insertedCount++;
     }
 
-    console.log(`AI models update completed. Successfully inserted ${insertedCount} of ${fallbackModels.length} models.`);
+    console.log(`AI models update completed. Successfully inserted ${insertedCount} of ${aiModels.length} models.`);
+    
+    // Return detailed response
     return new Response(JSON.stringify({ 
       success: true, 
-      totalModels: fallbackModels.length,
-      insertedModels: insertedCount 
+      totalModels: aiModels.length,
+      insertedModels: insertedCount,
+      errors: errors.length > 0 ? errors : undefined
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200

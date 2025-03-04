@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -9,7 +8,6 @@ import { usePromptState } from "@/hooks/usePromptState";
 import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
 import { useToast } from "@/hooks/use-toast";
 
-// Define fallback models that match our database schema
 const fallbackModels = [
   {
     name: "GPT-4o",
@@ -55,10 +53,8 @@ const Dashboard = () => {
   const [isUpdatingModels, setIsUpdatingModels] = useState(false);
   const { toast } = useToast();
   
-  // Use the prompt state hook to get the state and functions
   const promptState = usePromptState(user);
   
-  // Compute filtered prompts based on search term
   const filteredPrompts = promptState.savedPrompts.filter(
     (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm.toLowerCase())
   );
@@ -77,123 +73,97 @@ const Dashboard = () => {
     
     getUser();
 
+    const forceUpdateModels = async () => {
+      try {
+        setIsUpdatingModels(true);
+        toast({
+          title: "Updating AI Models",
+          description: "Loading the latest AI models data...",
+        });
+        
+        const result = await triggerInitialModelUpdate();
+        
+        if (result.success) {
+          toast({
+            title: "AI Models Updated",
+            description: result.data?.insertedModels 
+              ? `Successfully loaded ${result.data.insertedModels} AI models.`
+              : "AI models data is ready.",
+          });
+        } else {
+          toast({
+            title: "Update Failed",
+            description: "Failed to update AI models. Using fallback data.",
+            variant: "destructive"
+          });
+          
+          insertFallbackModelsDirectly();
+        }
+        
+        setModelsInitialized(true);
+        setIsUpdatingModels(false);
+      } catch (error) {
+        console.error("Error updating models:", error);
+        toast({
+          title: "Update Error",
+          description: "There was an error updating AI models. Using fallback data.",
+          variant: "destructive"
+        });
+        
+        insertFallbackModelsDirectly();
+        
+        setModelsInitialized(true);
+        setIsUpdatingModels(false);
+      }
+    };
+    
+    forceUpdateModels();
+
     return () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
 
-  // Check if we have models in the database and initialize them if needed
-  useEffect(() => {
-    const checkAndInitializeModels = async () => {
-      if (modelsInitialized || isUpdatingModels) return;
-      
-      try {
-        setIsUpdatingModels(true);
-        toast({
-          title: "Initializing AI Models",
-          description: "Please wait while we load the available AI models...",
-        });
-        
-        // First, check if we have any models
-        const { data, error } = await supabase
-          .from('ai_models')
-          .select('id')
-          .limit(1);
-          
-        if (error) {
-          console.error('Error checking for models:', error);
-          setIsUpdatingModels(false);
-          toast({
-            title: "Error Checking Models",
-            description: "Could not verify if AI models exist. Will attempt to load them.",
-            variant: "destructive"
-          });
-        }
-        
-        // If no models exist, try the edge function
-        if (!data || data.length === 0) {
-          console.log('No models found, triggering initial update via edge function');
-          const result = await triggerInitialModelUpdate();
-          console.log('Initial model update result:', result);
-          
-          // If the edge function failed, insert fallback models directly
-          if (!result.success) {
-            console.error('Failed to update models via edge function:', result.error);
-            toast({
-              title: "Edge Function Failed",
-              description: "Could not load AI models from server. Using local fallback data.",
-              variant: "destructive"
-            });
-            
-            // Let's insert the fallback models directly into the database
-            console.log('Inserting fallback models directly...');
-            let insertedCount = 0;
-            
-            for (const model of fallbackModels) {
-              const { error: insertError } = await supabase
-                .from('ai_models')
-                .insert({
-                  name: model.name,
-                  provider: model.provider,
-                  description: model.description,
-                  strengths: model.strengths,
-                  limitations: model.limitations,
-                });
-                
-              if (insertError) {
-                console.error(`Error inserting model ${model.name}:`, insertError);
-              } else {
-                insertedCount++;
-              }
-            }
-            
-            console.log(`Inserted ${insertedCount} fallback models directly`);
-            
-            if (insertedCount > 0) {
-              toast({
-                title: "Fallback AI Models Loaded",
-                description: `${insertedCount} AI models have been loaded successfully.`,
-              });
-            } else {
-              toast({
-                title: "Failed to Load Models",
-                description: "Could not load AI models. Please try refreshing the page.",
-                variant: "destructive"
-              });
-            }
-          } else {
-            toast({
-              title: "AI Models Loaded",
-              description: "AI models have been loaded successfully from the server.",
-            });
-          }
-        } else {
-          console.log('Models already exist, no need to initialize');
-          toast({
-            title: "AI Models Ready",
-            description: "AI models are already available.",
-          });
-        }
-        
-        setModelsInitialized(true);
-        setIsUpdatingModels(false);
-      } catch (e) {
-        console.error('Error in model initialization check:', e);
-        setIsUpdatingModels(false);
-        
-        toast({
-          title: "Model Initialization Error",
-          description: "There was an error initializing AI models. Please try refreshing the page.",
-          variant: "destructive"
-        });
-      }
-    };
+  const insertFallbackModelsDirectly = async () => {
+    console.log('Inserting fallback models directly...');
+    let insertedCount = 0;
     
-    // Run the check immediately when the component mounts
-    checkAndInitializeModels();
-  }, [modelsInitialized, isUpdatingModels, toast]);
+    const { data: existingModels } = await supabase
+      .from('ai_models')
+      .select('id')
+      .limit(1);
+      
+    if (existingModels && existingModels.length > 0) {
+      console.log('Models already exist, skipping direct insertion');
+      return;
+    }
+    
+    for (const model of fallbackModels) {
+      const { error: insertError } = await supabase
+        .from('ai_models')
+        .insert({
+          name: model.name,
+          provider: model.provider,
+          description: model.description,
+          strengths: model.strengths,
+          limitations: model.limitations,
+        });
+        
+      if (!insertError) {
+        insertedCount++;
+      }
+    }
+    
+    console.log(`Inserted ${insertedCount} fallback models directly`);
+    
+    if (insertedCount > 0) {
+      toast({
+        title: "Fallback AI Models Loaded",
+        description: `${insertedCount} AI models have been loaded.`,
+      });
+    }
+  };
 
-  // Fetch saved prompts when user changes
   useEffect(() => {
     if (user) {
       promptState.fetchSavedPrompts();

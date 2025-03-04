@@ -8,19 +8,20 @@ interface ModelUpdateResponse {
     totalModels?: number;
     insertedModels?: number;
     skipped?: boolean;
+    errors?: Array<{model: string, error: string}>;
     [key: string]: any;
   };
   error?: any;
 }
 
-// This function can be called once to trigger the initial model update
+// This function can be called to trigger the AI model update
 export const triggerInitialModelUpdate = async () => {
   try {
-    console.log('Triggering initial AI model update...');
+    console.log('Triggering AI model update...');
     
     // Add a timeout to avoid hanging the UI if the function doesn't respond
     const timeoutPromise = new Promise<ModelUpdateResponse>((_, reject) => {
-      setTimeout(() => reject(new Error('Function timed out after 15 seconds')), 15000);
+      setTimeout(() => reject(new Error('Function timed out after 20 seconds')), 20000);
     });
     
     const functionPromise = supabase.functions.invoke<ModelUpdateResponse>('update-ai-models', {
@@ -34,11 +35,17 @@ export const triggerInitialModelUpdate = async () => {
     const result = await Promise.race([functionPromise, timeoutPromise]);
     
     if (result.error) {
-      console.error('Error triggering model update:', result.error);
+      console.error('Error from edge function:', result.error);
       return { success: false, error: result.error };
     }
     
     console.log('Model update response:', result.data);
+    
+    // Check if any errors occurred during insertion
+    if (result.data?.errors && result.data.errors.length > 0) {
+      console.warn('Some models failed to insert:', result.data.errors);
+    }
+    
     return { success: true, data: result.data };
   } catch (e) {
     console.error('Exception triggering model update:', e);
@@ -53,6 +60,8 @@ export const triggerInitialModelUpdate = async () => {
       if (!error && data && data.length > 0) {
         console.log('Models already exist despite function error');
         return { success: true, data: { message: 'Models already exist, using existing data' } };
+      } else {
+        console.log('No models found in database after error');
       }
     } catch (checkError) {
       console.error('Error checking models after function error:', checkError);

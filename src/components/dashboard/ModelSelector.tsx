@@ -61,16 +61,23 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
         console.log('No models found in database');
         setModels([]);
         setFilteredModels([]);
+        
+        toast({
+          title: "No Models Found",
+          description: "No AI models found in the database. Try refreshing.",
+        });
       }
       setLoading(false);
     } catch (error) {
       console.error('Error fetching AI models:', error);
       toast({
         title: "Error fetching models",
-        description: "Could not load AI models. Please try again later.",
+        description: "Could not load AI models. Please try refreshing.",
         variant: "destructive"
       });
       setLoading(false);
+      setModels([]);
+      setFilteredModels([]);
     }
   };
   
@@ -95,7 +102,9 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false }: ModelS
       
       toast({
         title: "Models refreshed",
-        description: "AI models have been refreshed successfully.",
+        description: result.data?.insertedModels 
+          ? `Successfully loaded ${result.data.insertedModels} AI models.`
+          : "AI models have been refreshed successfully.",
       });
     } catch (error) {
       console.error('Error refreshing models:', error);
