@@ -18,7 +18,7 @@ interface ModelUpdateResponse {
 // This function can be called to trigger the AI model update
 export const triggerInitialModelUpdate = async (): Promise<ModelUpdateResponse> => {
   try {
-    console.log('Triggering AI model update...');
+    console.log('Triggering AI model update with enhanced data...');
     
     // Add a timeout to avoid hanging the UI if the function doesn't respond
     const timeoutPromise = new Promise<ModelUpdateResponse>((_, reject) => {
@@ -40,16 +40,16 @@ export const triggerInitialModelUpdate = async (): Promise<ModelUpdateResponse> 
       return { success: false, error: result.error };
     }
     
-    console.log('Model update response:', result.data);
+    console.log('Enhanced model update response:', result.data);
     
     // Check if any errors occurred during insertion
     if (result.data?.errors && result.data.errors.length > 0) {
-      console.warn('Some models failed to insert:', result.data.errors);
+      console.warn('Some enhanced models failed to insert:', result.data.errors);
     }
     
     return { success: true, data: result.data };
   } catch (e) {
-    console.error('Exception triggering model update:', e);
+    console.error('Exception triggering enhanced model update:', e);
     
     // Check if models exist despite the error, to avoid repeated failed attempts
     try {
