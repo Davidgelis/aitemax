@@ -1,18 +1,27 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ModelService } from '@/services/ModelService';
 import { toast } from '@/hooks/use-toast';
-import { Badge } from '@/components/ui/badge';
 import { RefreshCw } from 'lucide-react';
+import { 
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { AIModel } from './types';
 
 export const ModelFetchTester = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [providers, setProviders] = useState<string[]>([]);
-  const [modelCounts, setModelCounts] = useState<Record<string, number>>({});
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [models, setModels] = useState<AIModel[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchModelData = async () => {
@@ -22,15 +31,13 @@ export const ModelFetchTester = () => {
       const providerList = await ModelService.getProviders();
       setProviders(providerList);
       
-      // Get model counts by provider
-      const counts = await ModelService.getModelCountByProvider();
-      setModelCounts(counts);
-      
-      setLastUpdated(new Date());
+      // Get models
+      const modelList = await ModelService.fetchModels();
+      setModels(modelList);
       
       toast({
         title: "Model Data Fetched",
-        description: `Found ${providerList.length} providers with a total of ${Object.values(counts).reduce((a, b) => a + b, 0)} models`,
+        description: `Found ${providerList.length} providers with ${modelList.length} models`,
       });
     } catch (error) {
       console.error('Error fetching model data:', error);
@@ -76,79 +83,78 @@ export const ModelFetchTester = () => {
     }
   };
 
+  // Fetch models on component mount
+  useEffect(() => {
+    fetchModelData();
+  }, []);
+
+  // Group models by provider for the dropdown
+  const modelsByProvider = React.useMemo(() => {
+    const grouped: Record<string, AIModel[]> = {};
+    
+    providers.forEach(provider => {
+      grouped[provider] = models.filter(model => model.provider === provider);
+    });
+    
+    return grouped;
+  }, [models, providers]);
+
+  const handleModelSelect = (modelId: string) => {
+    setSelectedModel(modelId);
+    const selectedModelData = models.find(model => model.id === modelId);
+    if (selectedModelData) {
+      toast({
+        title: "Model Selected",
+        description: `Selected ${selectedModelData.name} from ${selectedModelData.provider}`,
+      });
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-[#545454]">AI Model Fetch Status</CardTitle>
-        <CardDescription>Test and verify model data is being properly fetched from the database</CardDescription>
+        <CardTitle className="text-[#545454]">AI Model Selection</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-4 w-5/6" />
-          </div>
+          <Skeleton className="h-10 w-full" />
         ) : (
           <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-medium mb-2 text-[#545454]">Providers ({providers.length})</h3>
-              <div className="flex flex-wrap gap-2">
-                {providers.map(provider => (
-                  <Badge key={provider} variant="outline" className="bg-[#fafafa] text-[#545454] border-[#084b49]">
-                    {provider} ({modelCounts[provider] || 0})
-                  </Badge>
-                ))}
-                
-                {providers.length === 0 && (
-                  <p className="text-sm text-[#545454] italic">No providers found. Try refreshing model data.</p>
+            <Select value={selectedModel || ''} onValueChange={handleModelSelect}>
+              <SelectTrigger className="w-full bg-[#fafafa] border-[#084b49] text-[#545454]">
+                <SelectValue placeholder="Select an AI model" />
+              </SelectTrigger>
+              <SelectContent className="bg-white z-50">
+                {providers.length === 0 ? (
+                  <div className="p-2 text-center text-[#545454]">No models found</div>
+                ) : (
+                  providers.map(provider => (
+                    <SelectGroup key={provider}>
+                      <SelectLabel className="text-[#545454]">{provider}</SelectLabel>
+                      {modelsByProvider[provider] && modelsByProvider[provider].map(model => (
+                        <SelectItem key={model.id} value={model.id}>
+                          <span className="text-[#545454]">{model.name}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))
                 )}
-              </div>
-            </div>
+              </SelectContent>
+            </Select>
             
-            <div>
-              <h3 className="text-sm font-medium mb-2 text-[#545454]">Model Distribution</h3>
-              {Object.keys(modelCounts).length > 0 ? (
-                <ul className="space-y-1">
-                  {Object.entries(modelCounts)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([provider, count]) => (
-                      <li key={provider} className="text-sm text-[#545454]">
-                        <span className="font-medium">{provider}</span>: {count} models
-                      </li>
-                    ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-[#545454] italic">No model data available</p>
-              )}
+            <div className="flex justify-end">
+              <Button 
+                onClick={triggerUpdate}
+                disabled={isRefreshing || isLoading} 
+                className="bg-[#084b49] hover:bg-[#033332] text-white"
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh Models
+              </Button>
             </div>
-            
-            {lastUpdated && (
-              <p className="text-xs text-[#545454] mt-4">
-                Last updated: {lastUpdated.toLocaleString()}
-              </p>
-            )}
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button 
-          onClick={fetchModelData} 
-          disabled={isLoading}
-          variant="outline"
-          className="border-[#084b49] text-[#545454]"
-        >
-          Check Model Data
-        </Button>
-        <Button 
-          onClick={triggerUpdate}
-          disabled={isRefreshing || isLoading} 
-          className="bg-[#084b49] hover:bg-[#033332] text-white"
-        >
-          <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh Models
-        </Button>
-      </CardFooter>
     </Card>
   );
 };

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -179,14 +180,16 @@ const Dashboard = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <main className="flex-1 p-6">
-          <div className="max-w-6xl mx-auto min-h-screen flex items-center justify-center">
+          <div className="max-w-6xl mx-auto min-h-screen flex flex-col items-center justify-center gap-8">
             <StepController 
               user={user} 
               selectedModel={selectedModel} 
               setSelectedModel={setSelectedModel}
               isInitializingModels={isUpdatingModels}
             />
-            <ModelFetchTester />
+            <div className="w-full max-w-md mt-8">
+              <ModelFetchTester />
+            </div>
           </div>
         </main>
 
