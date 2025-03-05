@@ -24,6 +24,7 @@ export const QuestionList = ({
   const [showPromptSheet, setShowPromptSheet] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [editResponseSheet, setEditResponseSheet] = useState(false);
+  const [previewResponse, setPreviewResponse] = useState<string>("");
 
   // Display placeholder test questions if no questions are provided
   const displayQuestions = questions.length > 0 ? questions : placeholderTestQuestions;
@@ -46,15 +47,16 @@ export const QuestionList = ({
     if (question.isRelevant === false) return;
     
     setEditingQuestion({...question});
+    setPreviewResponse(question.answer || '');
     setEditResponseSheet(true);
   };
 
   // Function to save the edited response
   const handleSaveResponse = () => {
     if (editingQuestion) {
-      onQuestionAnswer(editingQuestion.id, editingQuestion.answer || '');
+      onQuestionAnswer(editingQuestion.id, previewResponse);
       // If answer is provided, automatically set isRelevant to true
-      if (editingQuestion.answer && editingQuestion.answer.trim() !== '') {
+      if (previewResponse && previewResponse.trim() !== '') {
         onQuestionRelevance(editingQuestion.id, true);
       }
       setEditResponseSheet(false);
@@ -158,14 +160,7 @@ export const QuestionList = ({
       </Sheet>
 
       {/* Response Editing Sheet */}
-      <Sheet open={editResponseSheet} onOpenChange={(open) => {
-        if (!open) {
-          // Only call handleSaveResponse when the sheet is being closed
-          setEditResponseSheet(open);
-        } else {
-          setEditResponseSheet(open);
-        }
-      }}>
+      <Sheet open={editResponseSheet} onOpenChange={setEditResponseSheet}>
         <SheetContent className="w-[90%] sm:max-w-[500px] z-50 bg-white">
           <SheetHeader>
             <SheetTitle>Edit Response</SheetTitle>
@@ -178,11 +173,18 @@ export const QuestionList = ({
               {editingQuestion?.text}
             </div>
             <textarea 
-              value={editingQuestion?.answer || ''} 
-              onChange={(e) => setEditingQuestion(prev => prev ? {...prev, answer: e.target.value} : null)} 
+              value={previewResponse} 
+              onChange={(e) => setPreviewResponse(e.target.value)} 
               placeholder="Type your answer here..." 
               className="w-full p-4 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[200px] focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent" 
             />
+            {/* Live preview of the response */}
+            {previewResponse && (
+              <div className="p-3 bg-gray-50 rounded-md border">
+                <h4 className="text-sm font-medium mb-1">Preview:</h4>
+                <div className="text-sm text-gray-600 italic">{previewResponse}</div>
+              </div>
+            )}
             <div className="flex justify-end">
               <button 
                 onClick={handleSaveResponse}
