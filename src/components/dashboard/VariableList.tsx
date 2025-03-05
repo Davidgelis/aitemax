@@ -1,8 +1,8 @@
 
-import { Plus, Check, Trash } from "lucide-react";
+import { Plus, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Variable } from "./types";
-import { RefObject } from "react";
+import { RefObject, useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { filterCategoryVariables } from "./constants";
 
@@ -27,6 +27,9 @@ export const VariableList = ({
   setVariableToDelete,
   containerRef
 }: VariableListProps) => {
+  // Track which variables have values to highlight them
+  const [highlightedVariables, setHighlightedVariables] = useState<Record<string, boolean>>({});
+  
   // Filter out category names and empty names
   const filteredVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
   
@@ -45,6 +48,18 @@ export const VariableList = ({
   const categories = Object.keys(groupedVariables);
   const hasValidVariables = categories.length > 0 && 
     categories.some(category => groupedVariables[category].length > 0);
+
+  // Handle variable value change with highlighting
+  const handleValueChange = (variableId: string, value: string) => {
+    // Track the highlighted state based on whether the value has content
+    setHighlightedVariables(prev => ({
+      ...prev,
+      [variableId]: value.trim() !== ''
+    }));
+    
+    // Call the original change handler
+    onVariableChange(variableId, 'value', value);
+  };
 
   return (
     <>
@@ -81,11 +96,11 @@ export const VariableList = ({
                       <Input
                         placeholder="Value"
                         value={variable.value}
-                        onChange={(e) => onVariableChange(variable.id, 'value', e.target.value)}
-                        className="flex-1 h-9"
+                        onChange={(e) => handleValueChange(variable.id, e.target.value)}
+                        className={`flex-1 h-9 ${highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''}`}
                       />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex">
                       <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
                         <AlertDialogTrigger asChild>
                           <button
@@ -109,16 +124,6 @@ export const VariableList = ({
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
-                      
-                      <button
-                        onClick={() => onVariableRelevance(variable.id, true)}
-                        className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${
-                          variable.isRelevant === true ? 'bg-[#33fea6]/80' : ''
-                        }`}
-                        title="Keep variable"
-                      >
-                        <Check className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
                 ))}
