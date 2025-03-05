@@ -169,14 +169,14 @@ export const StepThreeContent = ({
 
       <div className="mb-4 p-3 border rounded-lg bg-background/50">
         <h4 className="text-sm font-medium mb-3">Variables</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           {variables.filter(v => v.isRelevant === true).map((variable) => (
-            <div key={variable.id} className="flex items-center gap-2">
-              <span className="text-xs font-medium min-w-[80px]">{variable.name}:</span>
+            <div key={variable.id} className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium min-w-[150px] break-words">{variable.name}:</span>
               <Input 
                 value={variable.value}
                 onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
-                className="h-7 text-xs py-1 px-2 bg-[#33fea6]/10 border-[#33fea6]/20 focus-visible:border-[#33fea6] focus-visible:ring-0"
+                className="flex-1 h-7 text-xs py-1 px-2 bg-[#33fea6]/10 border-[#33fea6]/20 focus-visible:border-[#33fea6] focus-visible:ring-0 min-w-[200px]"
               />
             </div>
           ))}
