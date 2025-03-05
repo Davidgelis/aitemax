@@ -39,6 +39,16 @@
   100% { box-shadow: 0 0 12px rgba(51, 254, 166, 0.175); }
 }
 
+/* Add glow effect for secondary toggles */
+[data-variant="secondary"].glow-effect {
+  animation: glow-secondary 4s ease-in-out infinite alternate;
+}
+
+@keyframes glow-secondary {
+  0%, 50% { box-shadow: 0 0 5px rgba(100, 191, 149, 0.075); }
+  100% { box-shadow: 0 0 12px rgba(100, 191, 149, 0.175); }
+}
+
 @keyframes glow-menu {
   from { box-shadow: 0 0 5px rgba(100, 191, 149, 0.075); }
   to { box-shadow: 0 0 12px rgba(100, 191, 149, 0.175); }

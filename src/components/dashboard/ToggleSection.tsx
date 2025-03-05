@@ -20,7 +20,7 @@ export const ToggleSection = ({
     if (!isSelected) return "border";
     
     if (itemVariant === "primary") return "border-2 border-primary/30 glow-effect";
-    if (itemVariant === "secondary") return "border-2 border-primary-dark/30 glow-effect";
+    if (itemVariant === "secondary") return "border-2 border-[#64bf95]/30 glow-effect";
     
     return "border";
   };
