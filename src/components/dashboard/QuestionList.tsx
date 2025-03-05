@@ -58,6 +58,14 @@ export const QuestionList = ({
     }
   };
   
+  // Function to toggle question relevance
+  const handleToggleRelevance = (questionId: string, currentIsRelevant: boolean | null) => {
+    // If currently irrelevant (false), make it relevant (true)
+    // If currently relevant (true) or undecided (null), make it irrelevant (false)
+    const newRelevance = currentIsRelevant === false ? true : false;
+    onQuestionRelevance(questionId, newRelevance);
+  };
+  
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-4">
@@ -107,9 +115,9 @@ export const QuestionList = ({
                     </div>
                     <div className="flex">
                       <button 
-                        onClick={() => onQuestionRelevance(question.id, false)} 
+                        onClick={() => handleToggleRelevance(question.id, question.isRelevant)} 
                         className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${question.isRelevant === false ? 'bg-[#33fea6]/20' : ''}`} 
-                        title="Mark as not relevant"
+                        title={question.isRelevant === false ? "Mark as relevant" : "Mark as not relevant"}
                       >
                         <X className="w-5 h-5" />
                       </button>
