@@ -57,6 +57,7 @@ const Dashboard = () => {
   
   const promptState = usePromptState(user);
   
+  // Create a filtered prompts variable within Dashboard component
   const filteredPrompts = promptState.savedPrompts.filter(
     (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm.toLowerCase())
   );
@@ -168,6 +169,8 @@ const Dashboard = () => {
               isInitializingModels={isUpdatingModels}
               selectedCognitive={selectedCognitive}
               handleCognitiveToggle={handleCognitiveToggle}
+              // Pass all promptState props needed for complete functionality
+              promptState={promptState}
             />
           </div>
         </main>

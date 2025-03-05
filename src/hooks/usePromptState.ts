@@ -80,13 +80,24 @@ export const usePromptState = (user: any) => {
   };
 
   const loadSavedPrompt = (prompt: SavedPrompt) => {
-    setPromptText(prompt.promptText);
-    setFinalPrompt(prompt.promptText);
-    setMasterCommand(prompt.masterCommand);
+    console.log("Loading saved prompt:", prompt);
+    // Ensure all necessary data is loaded
+    setPromptText(prompt.promptText || "");
+    setFinalPrompt(prompt.promptText || "");
+    setMasterCommand(prompt.masterCommand || "");
     setSelectedPrimary(prompt.primaryToggle);
     setSelectedSecondary(prompt.secondaryToggle);
-    setVariables(prompt.variables || defaultVariables);
-    setCurrentStep(3); // Go directly to step 3
+    
+    // Make sure we have variables - if they're missing, use default ones
+    if (prompt.variables && prompt.variables.length > 0) {
+      setVariables(prompt.variables);
+    } else {
+      // Set default variables but mark them all as relevant
+      setVariables(defaultVariables.map(v => ({ ...v, isRelevant: true })));
+    }
+    
+    // Go directly to step 3
+    setCurrentStep(3);
     
     toast({
       title: "Prompt Loaded",
@@ -139,7 +150,8 @@ export const usePromptState = (user: any) => {
           variables: jsonToVariables(data[0].variables),
         };
         
-        setSavedPrompts([newPrompt, ...savedPrompts]);
+        // Update savedPrompts state to include the new prompt at the beginning
+        setSavedPrompts(prevPrompts => [newPrompt, ...prevPrompts]);
       }
 
       toast({

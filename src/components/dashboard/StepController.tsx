@@ -6,7 +6,6 @@ import { LoadingState } from "@/components/dashboard/LoadingState";
 import { StepOneContent } from "@/components/dashboard/StepOneContent";
 import { StepTwoContent } from "@/components/dashboard/StepTwoContent";
 import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
-import { usePromptState } from "@/hooks/usePromptState";
 import { usePromptAnalysis } from "@/hooks/usePromptAnalysis";
 import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
@@ -20,6 +19,7 @@ interface StepControllerProps {
   isInitializingModels?: boolean;
   selectedCognitive: string | null;
   handleCognitiveToggle: (id: string) => void;
+  promptState: any; // Add promptState prop to receive all state and functions
 }
 
 export const StepController = ({ 
@@ -28,15 +28,15 @@ export const StepController = ({
   setSelectedModel,
   isInitializingModels = false,
   selectedCognitive,
-  handleCognitiveToggle
+  handleCognitiveToggle,
+  promptState
 }: StepControllerProps) => {
   const questionsContainerRef = useRef<HTMLDivElement>(null);
   const variablesContainerRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
   
-  const promptState = usePromptState(user);
-  
+  // Extract what we need from promptState
   const {
     promptText, setPromptText,
     questions, setQuestions,
@@ -222,15 +222,15 @@ export const StepController = ({
           <StepTwoContent
             questions={questions}
             variables={variables}
-            onQuestionRelevance={handleQuestionRelevance}
-            onQuestionAnswer={handleQuestionAnswer}
-            onVariableChange={handleVariableChange}
-            onVariableRelevance={handleVariableRelevance}
-            onAddVariable={addVariable}
-            onDeleteVariable={removeVariable}
+            onQuestionRelevance={questionVarOps.handleQuestionRelevance}
+            onQuestionAnswer={questionVarOps.handleQuestionAnswer}
+            onVariableChange={questionVarOps.handleVariableChange}
+            onVariableRelevance={questionVarOps.handleVariableRelevance}
+            onAddVariable={questionVarOps.addVariable}
+            onDeleteVariable={questionVarOps.removeVariable}
             variableToDelete={variableToDelete}
             setVariableToDelete={setVariableToDelete}
-            canProceedToStep3={canProceedToStep3}
+            canProceedToStep3={questionVarOps.canProceedToStep3}
             onContinue={() => handleStepChange(3)}
             questionsContainerRef={questionsContainerRef}
             variablesContainerRef={variablesContainerRef}
@@ -250,19 +250,19 @@ export const StepController = ({
             showJson={showJson}
             setShowJson={setShowJson}
             finalPrompt={finalPrompt}
-            getProcessedPrompt={getProcessedPrompt}
+            getProcessedPrompt={promptOperations.getProcessedPrompt}
             variables={variables}
-            handleVariableValueChange={handleVariableValueChange}
-            handleCopyPrompt={handleCopyPrompt}
+            handleVariableValueChange={promptOperations.handleVariableValueChange}
+            handleCopyPrompt={promptOperations.handleCopyPrompt}
             handleSavePrompt={handleSavePrompt}
-            handleRegenerate={handleRegenerate}
+            handleRegenerate={promptOperations.handleRegenerate}
             editingPrompt={editingPrompt}
             setEditingPrompt={setEditingPrompt}
             showEditPromptSheet={showEditPromptSheet}
             setShowEditPromptSheet={setShowEditPromptSheet}
-            handleOpenEditPrompt={handleOpenEditPrompt}
-            handleSaveEditedPrompt={handleSaveEditedPrompt}
-            handleAdaptPrompt={handleAdaptPrompt}
+            handleOpenEditPrompt={promptOperations.handleOpenEditPrompt}
+            handleSaveEditedPrompt={promptOperations.handleSaveEditedPrompt}
+            handleAdaptPrompt={promptOperations.handleAdaptPrompt}
           />
         );
 
