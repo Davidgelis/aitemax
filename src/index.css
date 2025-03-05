@@ -17,6 +17,15 @@
   .menu-item-glow:hover {
     box-shadow: 0 0 10px rgba(51, 254, 166, 0.7);
   }
+
+  .prompt-action-button {
+    @apply rounded-full p-1.5 transition-all duration-300;
+  }
+  
+  .prompt-action-button:hover {
+    @apply bg-white;
+    box-shadow: 0 0 12px rgba(51, 254, 166, 0.8);
+  }
 }
 
 @keyframes aurora {

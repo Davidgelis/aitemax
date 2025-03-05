@@ -176,7 +176,7 @@ export const UserSidebar = ({
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
-                    <div className="p-1 hover:bg-accent rounded-md">
+                    <div className="prompt-action-button">
                       <MoreVertical className="h-4 w-4" />
                     </div>
                   </DropdownMenuTrigger>
