@@ -45,7 +45,7 @@ export const QuestionList = ({
   const handleEditResponse = (question: Question) => {
     if (question.isRelevant === false) return;
     
-    setEditingQuestion(question);
+    setEditingQuestion({...question});
     setEditResponseSheet(true);
   };
 
@@ -164,7 +164,7 @@ export const QuestionList = ({
             </div>
             <textarea 
               value={editingQuestion?.answer || ''} 
-              onChange={(e) => editingQuestion && setEditingQuestion({...editingQuestion, answer: e.target.value})} 
+              onChange={(e) => setEditingQuestion(prev => prev ? {...prev, answer: e.target.value} : null)} 
               placeholder="Type your answer here..." 
               className="w-full p-4 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[200px] focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent" 
             />
