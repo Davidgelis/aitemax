@@ -23,7 +23,6 @@ export const PromptEditor = ({
 }: PromptEditorProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPromptDialog, setShowPromptDialog] = useState(false);
   const [submittedPrompt, setSubmittedPrompt] = useState("");
@@ -98,56 +97,10 @@ export const PromptEditor = ({
       return;
     }
     
-    setAiLoading(true);
     setError(null);
+    setSubmittedPrompt(promptText);
     
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-prompt', {
-        body: {
-          promptText,
-          primaryToggle: selectedPrimary,
-          secondaryToggle: selectedSecondary
-        }
-      });
-      
-      if (error) {
-        console.error("Supabase function error:", error);
-        throw new Error(`Function error: ${error.message}`);
-      }
-      
-      if (!data) {
-        throw new Error("No data returned from the analysis function");
-      }
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      
-      console.log("AI Analysis result:", data);
-      
-      setSubmittedPrompt(promptText);
-      
-      onAnalyze();
-      
-      toast({
-        title: "Analysis complete",
-        description: "Your prompt has been analyzed successfully",
-      });
-    } catch (error: any) {
-      console.error("Error analyzing prompt:", error);
-      
-      setError(error.message || "Unknown error occurred");
-      
-      toast({
-        title: "Analysis failed",
-        description: `An error occurred: ${error.message || "Unknown error"}`,
-        variant: "destructive",
-      });
-      
-      onAnalyze();
-    } finally {
-      setAiLoading(false);
-    }
+    onAnalyze();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -266,9 +219,9 @@ export const PromptEditor = ({
         <button 
           onClick={analyzeWithAI}
           className="aurora-button"
-          disabled={isLoading || aiLoading}
+          disabled={isLoading}
         >
-          {isLoading || aiLoading ? "Analyzing..." : "Analyze with AI"}
+          {isLoading ? "Processing..." : "Analyze with AI"}
         </button>
       </div>
 

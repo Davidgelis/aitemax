@@ -26,21 +26,22 @@ export const usePromptAnalysis = (
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState(0);
   const { toast } = useToast();
 
+  // Show loading messages while isLoading is true
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (isLoading) {
-      if (currentLoadingMessage < loadingMessages.length) {
-        timeout = setTimeout(() => {
+      // Set up an interval to rotate through loading messages
+      timeout = setTimeout(() => {
+        if (currentLoadingMessage < loadingMessages.length - 1) {
           setCurrentLoadingMessage(prev => prev + 1);
-        }, 3000);
-      } else {
-        setIsLoading(false);
-        setCurrentLoadingMessage(0);
-        setCurrentStep(2);
-      }
+        } else {
+          // Loop back to first message if we've reached the end
+          setCurrentLoadingMessage(0);
+        }
+      }, 3000);
     }
     return () => clearTimeout(timeout);
-  }, [isLoading, currentLoadingMessage, setCurrentStep]);
+  }, [isLoading, currentLoadingMessage]);
 
   const handleAnalyze = async () => {
     if (!promptText.trim()) {
@@ -51,7 +52,10 @@ export const usePromptAnalysis = (
       });
       return;
     }
+    
+    // Start loading immediately
     setIsLoading(true);
+    setCurrentLoadingMessage(0);
     
     try {
       const { data, error } = await supabase.functions.invoke('analyze-prompt', {
@@ -138,11 +142,10 @@ export const usePromptAnalysis = (
       });
       setQuestions(mockQuestions);
     } finally {
-      // Use a timer to show loading messages for a few seconds
-      // instead of immediately finishing the loading state
+      // Keep loading state active for at least a few seconds to show the loading screen
+      // This ensures a smoother transition even if the API is fast
       setTimeout(() => {
         setIsLoading(false);
-        setCurrentLoadingMessage(0);
         setCurrentStep(2);
       }, 3000);
     }
