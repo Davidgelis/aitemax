@@ -1,4 +1,3 @@
-
 import { Question, Variable } from "./types";
 import { RefObject } from "react";
 import { QuestionList } from "./QuestionList";
@@ -39,7 +38,7 @@ export const StepTwoContent = ({
 }: StepTwoContentProps) => {
   return <div className="border rounded-xl p-6 bg-card">
       <div className="mb-6">
-        <p className="text-card-foreground mb-4">Answer relevant questions and mark irrelevant ones with X. Complete variables with information to improve your final prompt. All items must be either filled or marked irrelevant to continue.</p>
+        <p className="text-card-foreground mb-4">Answer the following questions and complete the variables to improve your final prompt accuracy. Fill in only what applies and mark or remove the irrelevant ones.</p>
         
         <QuestionList questions={questions} onQuestionRelevance={onQuestionRelevance} onQuestionAnswer={onQuestionAnswer} containerRef={questionsContainerRef} originalPrompt={originalPrompt} />
       </div>
