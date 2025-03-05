@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SavedPrompt } from "./types";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 interface UserSidebarProps {
   user: any;
@@ -33,6 +34,28 @@ export const UserSidebar = ({
   handleRenamePrompt
 }: UserSidebarProps) => {
   const navigate = useNavigate();
+  const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState<string>('');
+
+  const startEditing = (prompt: SavedPrompt) => {
+    setEditingPromptId(prompt.id);
+    setEditingTitle(prompt.title);
+  };
+
+  const saveEdit = () => {
+    if (editingPromptId && editingTitle.trim()) {
+      handleRenamePrompt(editingPromptId, editingTitle);
+      setEditingPromptId(null);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      saveEdit();
+    } else if (e.key === 'Escape') {
+      setEditingPromptId(null);
+    }
+  };
 
   return (
     <Sidebar side="right">
@@ -124,10 +147,30 @@ export const UserSidebar = ({
                 key={item.id}
                 className="p-4 border-b flex items-center justify-between group/item"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full">
                   <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{item.title}</span>
+                  <div className="flex flex-col flex-1 min-w-0">
+                    {editingPromptId === item.id ? (
+                      <input
+                        type="text"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onBlur={saveEdit}
+                        onKeyDown={handleKeyDown}
+                        className="text-sm font-medium border border-transparent focus:border-[#33fea6] focus:outline-none rounded px-1 w-full"
+                        autoFocus
+                      />
+                    ) : (
+                      <div className="flex items-center">
+                        <span className="text-sm font-medium truncate">{item.title}</span>
+                        <button 
+                          onClick={() => startEditing(item)} 
+                          className="ml-1 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                        >
+                          <Pencil className="h-3 w-3 text-muted-foreground hover:text-[#33fea6]" />
+                        </button>
+                      </div>
+                    )}
                     <span className="text-xs text-muted-foreground">{item.date}</span>
                   </div>
                 </div>
@@ -142,10 +185,7 @@ export const UserSidebar = ({
                       <CopyIcon className="mr-2 h-4 w-4" />
                       <span>Duplicate</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => {
-                      const newTitle = window.prompt("Enter new name:", item.title);
-                      if (newTitle) handleRenamePrompt(item.id, newTitle);
-                    }}>
+                    <DropdownMenuItem onClick={() => startEditing(item)}>
                       <Pencil className="mr-2 h-4 w-4" />
                       <span>Rename</span>
                     </DropdownMenuItem>

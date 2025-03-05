@@ -52,3 +52,9 @@
 .animate-aurora {
   animation: aurora 15s ease infinite;
 }
+
+/* Inline editing styles */
+input:focus.border-transparent:focus {
+  border-color: #33fea6;
+  box-shadow: 0 0 5px rgba(51, 254, 166, 0.5);
+}
