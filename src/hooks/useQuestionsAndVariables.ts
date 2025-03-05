@@ -27,7 +27,7 @@ export const useQuestionsAndVariables = (
 
   const handleVariableChange = (variableId: string, field: 'name' | 'value', content: string) => {
     setVariables(variables.map(v =>
-      v.id === variableId ? { ...v, [field]: content } : v
+      v.id === variableId ? { ...v, [field]: content, isRelevant: true } : v
     ));
   };
 
@@ -76,11 +76,18 @@ export const useQuestionsAndVariables = (
     }
   };
 
-  const allQuestionsAnswered = questions.every(q => q.isRelevant !== null);
+  // Check if all questions have been answered or marked as not relevant
+  const allQuestionsAnswered = questions.every(q => 
+    q.isRelevant === false || (q.isRelevant === true && q.answer && q.answer.trim() !== '')
+  );
   
-  // Only check relevant variables (filtered)
-  const validVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
-  const allVariablesAnswered = validVariables.every(v => v.isRelevant !== null);
+  // Get valid variables (filtered)
+  const filteredVariables = filterCategoryVariables(variables);
+  
+  // Check if all variables have been filled in or marked as not relevant
+  const allVariablesAnswered = filteredVariables.every(v => 
+    v.isRelevant === false || (v.isRelevant === true && v.name.trim() !== '')
+  );
   
   const canProceedToStep3 = allQuestionsAnswered && allVariablesAnswered;
 
