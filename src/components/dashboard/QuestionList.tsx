@@ -92,7 +92,9 @@ export const QuestionList = ({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between group">
                     <div 
-                      className={`flex-grow flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors hover:bg-[#33fea6]/10 ${question.isRelevant === false ? 'opacity-60' : ''}`}
+                      className={`flex-grow flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors 
+                                ${question.isRelevant === false ? 'opacity-60' : ''}
+                                ${question.answer && question.isRelevant !== false ? 'bg-[#F2FCE2]' : 'hover:bg-[#33fea6]/10'}`}
                       onClick={() => handleEditResponse(question)}
                     >
                       <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
@@ -180,4 +182,3 @@ export const QuestionList = ({
     </div>
   );
 };
-
