@@ -258,10 +258,13 @@ function extractVariables(analysis, promptText) {
     try {
       const parsedJson = JSON.parse(jsonMatch[1]);
       if (parsedJson.variables && Array.isArray(parsedJson.variables)) {
-        // Filter out any variables that match category names
+        // Filter out any variables that match category names or have invalid names
         return parsedJson.variables
           .filter(v => 
             v.name && 
+            v.name.trim().length > 1 &&  // Must be more than a single character
+            !/^\*+$/.test(v.name) &&     // Must not be just asterisks
+            !/^[sS]$/.test(v.name) &&    // Must not be just 's' 
             v.name !== 'Task' && 
             v.name !== 'Persona' && 
             v.name !== 'Conditions' && 
@@ -287,8 +290,12 @@ function extractVariables(analysis, promptText) {
   
   while ((match = variableRegex.exec(enhancedPrompt)) !== null) {
     const name = match[1];
-    // Check if variable already exists and isn't a category name
-    if (name !== 'Task' && 
+    // Check if variable already exists, isn't a category name, and has a valid format
+    if (name && 
+        name.trim().length > 1 &&  // Must be more than a single character
+        !/^\*+$/.test(name) &&     // Must not be just asterisks
+        !/^[sS]$/.test(name) &&    // Must not be just 's'
+        name !== 'Task' && 
         name !== 'Persona' && 
         name !== 'Conditions' && 
         name !== 'Instructions' && 
@@ -317,8 +324,9 @@ function extractVariables(analysis, promptText) {
     const name = match[2].trim();
     const value = match[3] ? match[3].trim() : "";
     
-    // Skip category names
-    if (name === 'Task' || name === 'Persona' || name === 'Conditions' || name === 'Instructions') {
+    // Skip category names and invalid variable names
+    if (name === 'Task' || name === 'Persona' || name === 'Conditions' || name === 'Instructions' ||
+        name.trim().length <= 1 || /^\*+$/.test(name) || /^[sS]$/.test(name)) {
       continue;
     }
     

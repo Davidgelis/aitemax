@@ -1,9 +1,16 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions } from "@/components/dashboard/constants";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
+// Helper function to validate variable names
+const isValidVariableName = (name: string): boolean => {
+  // Check if name is longer than 1 character and not just asterisks or "s"
+  return name.trim().length > 1 && 
+         !/^\*+$/.test(name) && 
+         !/^[sS]$/.test(name);
+};
 
 export const usePromptAnalysis = (
   promptText: string,
@@ -80,12 +87,30 @@ export const usePromptAnalysis = (
         }
         
         if (data.variables && data.variables.length > 0) {
-          const aiVariables = data.variables.map((v: any, index: number) => ({
-            ...v,
-            id: v.id || `v${index + 1}`,
-            value: v.value || ""
-          }));
-          setVariables(aiVariables);
+          // Additional filtering to ensure no invalid variables get through
+          const validVariables = data.variables
+            .filter((v: any) => 
+              v.name && 
+              isValidVariableName(v.name) && 
+              v.name !== 'Task' && 
+              v.name !== 'Persona' && 
+              v.name !== 'Conditions' && 
+              v.name !== 'Instructions'
+            )
+            .map((v: any, index: number) => ({
+              ...v,
+              id: v.id || `v${index + 1}`,
+              value: v.value || ""
+            }));
+            
+          // If we have valid variables after filtering, use them
+          if (validVariables.length > 0) {
+            setVariables(validVariables);
+          } else {
+            // Otherwise use default variables from constants
+            const { defaultVariables } = await import("@/components/dashboard/constants");
+            setVariables(defaultVariables);
+          }
         }
         
         if (data.masterCommand) {
