@@ -1,5 +1,5 @@
 
-import { Check, X, FileText, HelpCircle } from "lucide-react";
+import { X, FileText, Edit } from "lucide-react";
 import { Question } from "./types";
 import { RefObject, useState } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -11,7 +11,7 @@ interface QuestionListProps {
   onQuestionRelevance: (questionId: string, isRelevant: boolean) => void;
   onQuestionAnswer: (questionId: string, answer: string) => void;
   containerRef: RefObject<HTMLDivElement>;
-  originalPrompt?: string; // Add new prop for the original prompt
+  originalPrompt?: string;
 }
 
 export const QuestionList = ({
@@ -22,6 +22,8 @@ export const QuestionList = ({
   originalPrompt
 }: QuestionListProps) => {
   const [showPromptSheet, setShowPromptSheet] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editResponseSheet, setEditResponseSheet] = useState(false);
 
   // Display placeholder test questions if no questions are provided
   const displayQuestions = questions.length > 0 ? questions : placeholderTestQuestions;
@@ -38,6 +40,23 @@ export const QuestionList = ({
 
   // Get all categories
   const categories = Object.keys(groupedQuestions);
+
+  // Function to open the response editing sheet
+  const handleEditResponse = (question: Question) => {
+    if (question.isRelevant === false) return;
+    
+    setEditingQuestion(question);
+    setEditResponseSheet(true);
+  };
+
+  // Function to save the edited response
+  const handleSaveResponse = () => {
+    if (editingQuestion) {
+      onQuestionAnswer(editingQuestion.id, editingQuestion.answer || '');
+      setEditResponseSheet(false);
+      setEditingQuestion(null);
+    }
+  };
   
   return (
     <div className="mb-6">
@@ -71,37 +90,33 @@ export const QuestionList = ({
             {groupedQuestions[category].map((question, index) => (
               <div key={question.id} className="p-4 border rounded-lg bg-background">
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between group">
+                    <div 
+                      className={`flex-grow flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors hover:bg-[#33fea6]/10 ${question.isRelevant === false ? 'opacity-60' : ''}`}
+                      onClick={() => handleEditResponse(question)}
+                    >
                       <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
                         {index + 1}
                       </div>
                       <span className="text-card-foreground">{question.text}</span>
+                      {question.isRelevant !== false && (
+                        <Edit className="w-4 h-4 ml-2 opacity-0 group-hover:opacity-80 text-[#33fea6]" />
+                      )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex">
                       <button 
                         onClick={() => onQuestionRelevance(question.id, false)} 
-                        className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${question.isRelevant === false ? 'bg-[#33fea6]/80' : ''}`} 
+                        className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${question.isRelevant === false ? 'bg-[#33fea6]/20' : ''}`} 
                         title="Mark as not relevant"
                       >
                         <X className="w-5 h-5" />
                       </button>
-                      <button 
-                        onClick={() => onQuestionRelevance(question.id, true)} 
-                        className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${question.isRelevant === true ? 'bg-[#33fea6]/80' : ''}`} 
-                        title="Mark as relevant"
-                      >
-                        <Check className="w-5 h-5" />
-                      </button>
                     </div>
                   </div>
-                  {question.isRelevant && (
-                    <textarea 
-                      value={question.answer} 
-                      onChange={e => onQuestionAnswer(question.id, e.target.value)} 
-                      placeholder="Type your answer here..." 
-                      className="w-full p-3 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[80px] focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent" 
-                    />
+                  {question.isRelevant && question.answer && (
+                    <div className="pl-8 pr-2 text-sm text-gray-600 line-clamp-2 italic bg-gray-50 p-2 rounded">
+                      {question.answer}
+                    </div>
                   )}
                 </div>
               </div>
@@ -110,7 +125,7 @@ export const QuestionList = ({
         ))}
       </div>
 
-      {/* Prompt Sheet */}
+      {/* Original Prompt Sheet */}
       <Sheet open={showPromptSheet} onOpenChange={setShowPromptSheet}>
         <SheetContent className="w-[90%] sm:max-w-[600px] md:max-w-[800px] z-50 bg-white">
           <SheetHeader>
@@ -126,6 +141,43 @@ export const QuestionList = ({
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Response Editing Sheet */}
+      <Sheet open={editResponseSheet} onOpenChange={(open) => {
+        if (!open) {
+          handleSaveResponse();
+        }
+        setEditResponseSheet(open);
+      }}>
+        <SheetContent className="w-[90%] sm:max-w-[500px] z-50 bg-white">
+          <SheetHeader>
+            <SheetTitle>Edit Response</SheetTitle>
+            <SheetDescription>
+              Provide your answer to this question
+            </SheetDescription>
+          </SheetHeader>
+          <div className="py-6 space-y-4">
+            <div className="text-base font-medium">
+              {editingQuestion?.text}
+            </div>
+            <textarea 
+              value={editingQuestion?.answer || ''} 
+              onChange={(e) => editingQuestion && setEditingQuestion({...editingQuestion, answer: e.target.value})} 
+              placeholder="Type your answer here..." 
+              className="w-full p-4 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[200px] focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent" 
+            />
+            <div className="flex justify-end">
+              <button 
+                onClick={handleSaveResponse}
+                className="aurora-button"
+              >
+                Save Response
+              </button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
+
