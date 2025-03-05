@@ -2,6 +2,8 @@
 import { Question, Variable } from "@/components/dashboard/types";
 import { filterCategoryVariables } from "@/components/dashboard/constants";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 
 export const useQuestionsAndVariables = (
   questions: Question[],
@@ -12,6 +14,7 @@ export const useQuestionsAndVariables = (
   setVariableToDelete: (id: string | null) => void
 ) => {
   const { toast } = useToast();
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   const handleQuestionAnswer = (questionId: string, answer: string) => {
     setQuestions(questions.map(q => 
@@ -91,6 +94,60 @@ export const useQuestionsAndVariables = (
   
   const canProceedToStep3 = allQuestionsAnswered && allVariablesAnswered;
 
+  // New function to enhance the prompt using GPT-4o
+  const enhancePromptWithGPT = async (
+    originalPrompt: string,
+    primaryToggle: string | null,
+    secondaryToggle: string | null,
+    setFinalPrompt: (prompt: string) => void
+  ) => {
+    setIsEnhancing(true);
+    
+    try {
+      // Get only relevant and answered questions
+      const relevantQuestions = questions.filter(q => q.isRelevant === true && q.answer.trim() !== '');
+      
+      // Get only relevant variables 
+      const relevantVariables = variables.filter(v => v.isRelevant === true);
+      
+      // Call the edge function to enhance the prompt
+      const { data, error } = await supabase.functions.invoke('enhance-prompt', {
+        body: {
+          originalPrompt,
+          answeredQuestions: relevantQuestions,
+          relevantVariables,
+          primaryToggle,
+          secondaryToggle
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data?.enhancedPrompt) {
+        // Set the enhanced prompt
+        setFinalPrompt(data.enhancedPrompt);
+        
+        toast({
+          title: "Prompt Enhanced",
+          description: "Your prompt has been improved using GPT-4o analysis",
+        });
+      } else {
+        throw new Error("No enhanced prompt returned");
+      }
+    } catch (error: any) {
+      console.error("Error enhancing prompt:", error);
+      toast({
+        title: "Error Enhancing Prompt",
+        description: error.message || "There was an error enhancing your prompt",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
   return {
     handleQuestionAnswer,
     handleQuestionRelevance,
@@ -100,6 +157,8 @@ export const useQuestionsAndVariables = (
     removeVariable,
     canProceedToStep3,
     allQuestionsAnswered,
-    allVariablesAnswered
+    allVariablesAnswered,
+    enhancePromptWithGPT,
+    isEnhancing
   };
 };

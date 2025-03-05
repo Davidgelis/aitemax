@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -45,6 +46,9 @@ export const StepController = ({ user, selectedModel, setSelectedModel, isInitia
     handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt
   } = promptState;
   
+  // Tracks if prompt enhancement is in progress
+  const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
+  
   const promptAnalysis = usePromptAnalysis(
     promptText,
     setQuestions,
@@ -56,7 +60,7 @@ export const StepController = ({ user, selectedModel, setSelectedModel, isInitia
     selectedSecondary
   );
   
-  const { isLoading, currentLoadingMessage, handleAnalyze } = promptAnalysis;
+  const { isLoading: isAnalyzing, currentLoadingMessage, handleAnalyze } = promptAnalysis;
   
   const questionVarOps = useQuestionsAndVariables(
     questions,
@@ -74,7 +78,8 @@ export const StepController = ({ user, selectedModel, setSelectedModel, isInitia
     handleVariableRelevance,
     addVariable,
     removeVariable,
-    canProceedToStep3
+    canProceedToStep3,
+    enhancePromptWithGPT
   } = questionVarOps;
   
   const promptOperations = usePromptOperations(
@@ -111,7 +116,7 @@ export const StepController = ({ user, selectedModel, setSelectedModel, isInitia
     setSelectedSecondary(currentSelected => currentSelected === id ? null : id);
   };
 
-  const handleStepChange = (step: number, bypass: boolean = false) => {
+  const handleStepChange = async (step: number, bypass: boolean = false) => {
     if (bypass) {
       setCurrentStep(step);
       return;
@@ -144,6 +149,34 @@ export const StepController = ({ user, selectedModel, setSelectedModel, isInitia
       return;
     }
 
+    // Special handling for transitioning to step 3 - using GPT-4o to enhance the prompt
+    if (step === 3 && canProceedToStep3) {
+      setIsEnhancingPrompt(true);
+      
+      // Show loading state
+      const loadingToastId = toast({
+        title: "Enhancing prompt",
+        description: "Using AI to generate your final prompt...",
+        duration: 10000,
+      });
+      
+      try {
+        // Use GPT-4o to enhance the prompt
+        await enhancePromptWithGPT(promptText, selectedPrimary, selectedSecondary, setFinalPrompt);
+        
+        // Move to step 3 after enhancement
+        setCurrentStep(step);
+      } catch (error) {
+        console.error("Error enhancing prompt:", error);
+        // Still proceed to step 3 even if enhancement fails
+        setCurrentStep(step);
+      } finally {
+        setIsEnhancingPrompt(false);
+      }
+      
+      return;
+    }
+
     setCurrentStep(step);
   };
 
@@ -158,8 +191,14 @@ export const StepController = ({ user, selectedModel, setSelectedModel, isInitia
   );
 
   const renderContent = () => {
-    if (isLoading || isInitializingModels) {
-      return <LoadingState currentLoadingMessage={isInitializingModels ? "Initializing AI models..." : currentLoadingMessage} />;
+    if (isAnalyzing || isInitializingModels || isEnhancingPrompt) {
+      let message = isInitializingModels 
+        ? "Initializing AI models..." 
+        : isEnhancingPrompt
+          ? "Enhancing your prompt with GPT-4o..."
+          : currentLoadingMessage;
+          
+      return <LoadingState currentLoadingMessage={message} />;
     }
 
     switch (currentStep) {
@@ -173,7 +212,7 @@ export const StepController = ({ user, selectedModel, setSelectedModel, isInitia
             handlePrimaryToggle={handlePrimaryToggle}
             handleSecondaryToggle={handleSecondaryToggle}
             onAnalyze={handleAnalyze}
-            isLoading={isLoading}
+            isLoading={isAnalyzing}
             selectedModel={selectedModel}
             setSelectedModel={setSelectedModel}
           />
