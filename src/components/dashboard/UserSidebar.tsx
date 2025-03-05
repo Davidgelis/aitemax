@@ -36,10 +36,12 @@ export const UserSidebar = ({
 
   return (
     <Sidebar side="right">
+      {/* Isolated sidebar trigger at the top */}
       <SidebarTrigger className="fixed right-4 top-2 z-50 bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
       
       <SidebarContent>
-        <div className="p-4 flex items-center justify-between border-b">
+        {/* User profile section moved below the trigger */}
+        <div className="p-4 flex items-center justify-between border-b mt-8">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
               <User className="w-6 h-6 text-muted-foreground" />
