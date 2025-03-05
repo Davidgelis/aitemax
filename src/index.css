@@ -9,12 +9,21 @@
     background-size: 200% 200%;
     animation: aurora 5s ease infinite;
   }
+
+  .glow-effect {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
 }
 
 @keyframes aurora {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 5px rgba(51, 254, 166, 0.3); }
+  to { box-shadow: 0 0 12px rgba(51, 254, 166, 0.7); }
 }
 
 @keyframes fade-in {
