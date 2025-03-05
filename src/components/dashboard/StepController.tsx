@@ -111,7 +111,12 @@ export const StepController = ({ user, selectedModel, setSelectedModel, isInitia
     setSelectedSecondary(currentSelected => currentSelected === id ? null : id);
   };
 
-  const handleStepChange = (step: number) => {
+  const handleStepChange = (step: number, bypass: boolean = false) => {
+    if (bypass) {
+      setCurrentStep(step);
+      return;
+    }
+
     if (step === 2 && !promptText.trim()) {
       toast({
         title: "Cannot proceed",
@@ -140,6 +145,10 @@ export const StepController = ({ user, selectedModel, setSelectedModel, isInitia
     }
 
     setCurrentStep(step);
+  };
+
+  const handleDirectJump = (step: number) => {
+    handleStepChange(step, true);
   };
 
   const filteredPrompts = savedPrompts.filter(prompt => 
@@ -228,7 +237,7 @@ export const StepController = ({ user, selectedModel, setSelectedModel, isInitia
     <div className="w-full">
       {renderContent()}
       
-      <StepIndicator currentStep={currentStep} onStepChange={handleStepChange} />
+      <StepIndicator currentStep={currentStep} onStepChange={handleDirectJump} />
     </div>
   );
 };
