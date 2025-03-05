@@ -79,14 +79,8 @@ const Dashboard = () => {
         
         const result = await triggerInitialModelUpdate();
         
-        if (result.success) {
-        } else {
-          toast({
-            title: "Update Failed",
-            description: "Failed to update AI models. Using fallback data.",
-            variant: "destructive"
-          });
-          
+        if (!result.success) {
+          console.log("Failed to update AI models. Using fallback data.");
           insertFallbackModelsDirectly();
         }
         
@@ -94,12 +88,6 @@ const Dashboard = () => {
         setIsUpdatingModels(false);
       } catch (error) {
         console.error("Error updating models:", error);
-        toast({
-          title: "Update Error",
-          description: "There was an error updating AI models. Using fallback data.",
-          variant: "destructive"
-        });
-        
         insertFallbackModelsDirectly();
         
         setModelsInitialized(true);
@@ -147,13 +135,6 @@ const Dashboard = () => {
     }
     
     console.log(`Inserted ${insertedCount} fallback models directly`);
-    
-    if (insertedCount > 0) {
-      toast({
-        title: "Fallback AI Models Loaded",
-        description: `${insertedCount} AI models have been loaded.`,
-      });
-    }
   };
 
   useEffect(() => {

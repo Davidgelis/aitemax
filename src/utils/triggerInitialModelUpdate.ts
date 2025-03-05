@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -25,12 +24,6 @@ export const triggerInitialModelUpdate = async (forceUpdate = true): Promise<Mod
   try {
     console.log('Triggering AI model update with diverse models from multiple providers...');
     
-    // Show a loading toast
-    toast({
-      title: "Updating AI Models",
-      description: "Fetching the latest AI models from all providers. This may take a moment...",
-    });
-    
     // Add a timeout to avoid hanging the UI if the function doesn't respond
     const timeoutPromise = new Promise<ModelUpdateResponse>((_, reject) => {
       setTimeout(() => reject(new Error('Function timed out after 40 seconds')), 40000);
@@ -51,13 +44,6 @@ export const triggerInitialModelUpdate = async (forceUpdate = true): Promise<Mod
     
     if (result.error) {
       console.error('Error from edge function:', result.error);
-      
-      toast({
-        title: "Error Updating Models",
-        description: `Failed to update AI models: ${result.error.message || 'Unknown error'}`,
-        variant: "destructive"
-      });
-      
       return { success: false, error: result.error };
     }
     
@@ -65,31 +51,19 @@ export const triggerInitialModelUpdate = async (forceUpdate = true): Promise<Mod
     
     // Show success toast with details
     if (result.data?.skipped) {
-      toast({
-        title: "Models Already Updated",
-        description: "AI models are already up to date. No changes were made.",
-      });
+      console.log("Models already up to date. No changes were made.");
     } else {
       const totalModels = result.data?.totalModels || 0;
       const updatedModels = result.data?.significantChanges || 0;
       const unchangedModels = result.data?.unchangedModels || 0;
       const providers = result.data?.providers || [];
       
-      toast({
-        title: "AI Models Updated Successfully",
-        description: `Updated ${updatedModels} models with significant changes (${unchangedModels} unchanged) from ${providers.length} providers.`,
-      });
+      console.log(`Updated ${updatedModels} models with significant changes (${unchangedModels} unchanged) from ${providers.length} providers.`);
     }
     
     // Check if any errors occurred during insertion
     if (result.data?.errors && result.data.errors.length > 0) {
       console.warn('Some models failed to update:', result.data.errors);
-      
-      toast({
-        title: "Some Models Failed",
-        description: `${result.data.errors.length} models couldn't be updated due to errors.`,
-        variant: "destructive"
-      });
     }
     
     // Log provider statistics if available
@@ -103,12 +77,6 @@ export const triggerInitialModelUpdate = async (forceUpdate = true): Promise<Mod
     return { success: true, data: result.data };
   } catch (e: any) {
     console.error('Exception triggering model update:', e);
-    
-    toast({
-      title: "Error Updating Models",
-      description: `Failed to update models: ${e.message || 'Unknown error'}`,
-      variant: "destructive"
-    });
     
     // Check if models exist despite the error, to avoid repeated failed attempts
     try {
