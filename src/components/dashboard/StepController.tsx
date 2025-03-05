@@ -17,9 +17,18 @@ interface StepControllerProps {
   selectedModel: AIModel | null;
   setSelectedModel: (model: AIModel | null) => void;
   isInitializingModels?: boolean;
+  selectedCognitive: string | null;
+  handleCognitiveToggle: (id: string) => void;
 }
 
-export const StepController = ({ user, selectedModel, setSelectedModel, isInitializingModels = false }: StepControllerProps) => {
+export const StepController = ({ 
+  user,
+  selectedModel,
+  setSelectedModel,
+  isInitializingModels = false,
+  selectedCognitive,
+  handleCognitiveToggle
+}: StepControllerProps) => {
   const questionsContainerRef = useRef<HTMLDivElement>(null);
   const variablesContainerRef = useRef<HTMLDivElement>(null);
   
@@ -201,6 +210,8 @@ export const StepController = ({ user, selectedModel, setSelectedModel, isInitia
             isLoading={isAnalyzing}
             selectedModel={selectedModel}
             setSelectedModel={setSelectedModel}
+            selectedCognitive={selectedCognitive}
+            handleCognitiveToggle={handleCognitiveToggle}
           />
         );
 

@@ -7,13 +7,14 @@ import { cn } from "@/lib/utils"
 const Switch = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> & {
-    variant?: "default" | "primary" | "secondary"
+    variant?: "default" | "primary" | "secondary" | "aurora"
   }
 >(({ className, variant = "default", ...props }, ref) => {
   const variantStyles = {
     default: "bg-primary data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
     primary: "bg-[#33fea6] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
-    secondary: "bg-[#084b49] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15"
+    secondary: "bg-[#084b49] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
+    aurora: "bg-gradient-to-r from-[#041524] via-[#084b49] to-[#33fea6] data-[state=checked]:opacity-100 data-[state=unchecked]:opacity-50"
   }
 
   // Ensure the variant is valid, defaulting to "default" if not

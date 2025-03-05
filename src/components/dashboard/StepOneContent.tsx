@@ -17,6 +17,8 @@ interface StepOneContentProps {
   isLoading: boolean;
   selectedModel: AIModel | null;
   setSelectedModel: (model: AIModel | null) => void;
+  selectedCognitive: string | null;
+  handleCognitiveToggle: (id: string) => void;
 }
 
 export const StepOneContent = ({
@@ -29,15 +31,33 @@ export const StepOneContent = ({
   onAnalyze,
   isLoading,
   selectedModel,
-  setSelectedModel
+  setSelectedModel,
+  selectedCognitive,
+  handleCognitiveToggle
 }: StepOneContentProps) => {
+  const cognitiveTooltip = 
+    "This button will conduct a final precision-driven refinement of the generated prompt as a second layer of refinment, ensuring you receive the best possible prompt by eliminating ambiguities, reinforcing clarity, and ensuring domain-specific accuracy for optimal task execution.";
+  
+  const cognitiveToggle = [{ label: "Cognitive Prompt Perfection Model", id: "cognitive" }];
+  
   return (
     <div className="space-y-4 w-full">
       <div className="w-full">
-        <ModelSelector 
-          onSelect={setSelectedModel} 
-          selectedModel={selectedModel}
-        />
+        <div className="flex justify-between items-center">
+          <ModelSelector 
+            onSelect={setSelectedModel} 
+            selectedModel={selectedModel}
+          />
+          
+          <ToggleSection 
+            toggles={cognitiveToggle} 
+            selectedToggle={selectedCognitive} 
+            onToggleChange={handleCognitiveToggle}
+            variant="aurora"
+            tooltipText={cognitiveTooltip}
+            className="ml-auto"
+          />
+        </div>
         
         <div className="mt-4">
           <ToggleSection 

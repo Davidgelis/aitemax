@@ -49,6 +49,7 @@ const fallbackModels = [
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
+  const [selectedCognitive, setSelectedCognitive] = useState<string | null>(null);
   const [modelsInitialized, setModelsInitialized] = useState(false);
   const [isUpdatingModels, setIsUpdatingModels] = useState(false);
   const { toast } = useToast();
@@ -102,6 +103,17 @@ const Dashboard = () => {
     };
   }, []);
 
+  const handleCognitiveToggle = (id: string) => {
+    setSelectedCognitive(currentSelected => currentSelected === id ? null : id);
+    
+    if (selectedCognitive === null) {
+      toast({
+        title: "Cognitive Model Activated",
+        description: "Your prompts will now undergo an additional precision-driven refinement",
+      });
+    }
+  };
+
   const insertFallbackModelsDirectly = async () => {
     console.log('Inserting fallback models directly...');
     let insertedCount = 0;
@@ -153,6 +165,8 @@ const Dashboard = () => {
               selectedModel={selectedModel} 
               setSelectedModel={setSelectedModel}
               isInitializingModels={isUpdatingModels}
+              selectedCognitive={selectedCognitive}
+              handleCognitiveToggle={handleCognitiveToggle}
             />
           </div>
         </main>
