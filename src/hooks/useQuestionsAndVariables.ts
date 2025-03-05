@@ -14,9 +14,14 @@ export const useQuestionsAndVariables = (
   const { toast } = useToast();
 
   const handleQuestionAnswer = (questionId: string, answer: string) => {
-    setQuestions(questions.map(q => 
-      q.id === questionId ? { ...q, answer } : q
-    ));
+    setQuestions(questions.map(q => {
+      if (q.id === questionId) {
+        // If user adds an answer, automatically set isRelevant to true
+        const isRelevant = answer.trim() !== '' ? true : q.isRelevant;
+        return { ...q, answer, isRelevant };
+      }
+      return q;
+    }));
   };
 
   const handleQuestionRelevance = (questionId: string, isRelevant: boolean) => {
@@ -26,9 +31,14 @@ export const useQuestionsAndVariables = (
   };
 
   const handleVariableChange = (variableId: string, field: 'name' | 'value', content: string) => {
-    setVariables(variables.map(v =>
-      v.id === variableId ? { ...v, [field]: content } : v
-    ));
+    setVariables(variables.map(v => {
+      if (v.id === variableId) {
+        // If user adds content to name or value, automatically set isRelevant to true
+        const isRelevant = content.trim() !== '' ? true : v.isRelevant;
+        return { ...v, [field]: content, isRelevant };
+      }
+      return v;
+    }));
   };
 
   const handleVariableRelevance = (variableId: string, isRelevant: boolean) => {
@@ -76,11 +86,24 @@ export const useQuestionsAndVariables = (
     }
   };
 
-  const allQuestionsAnswered = questions.every(q => q.isRelevant !== null);
+  // Modified logic to check if questions and variables are properly handled
+  // Consider a question handled if it has been marked relevant (true) or not relevant (false)
+  // or if it has an answer (which implies relevance)
+  const allQuestionsAnswered = questions.every(q => 
+    q.isRelevant === true || 
+    q.isRelevant === false || 
+    (q.answer && q.answer.trim() !== '')
+  );
   
-  // Only check relevant variables (filtered)
-  const validVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
-  const allVariablesAnswered = validVariables.every(v => v.isRelevant !== null);
+  // Consider variables handled if:
+  // 1. They have a name and are marked relevant (true)
+  // 2. They are explicitly marked not relevant (false)
+  // 3. They have a name and value (which implies relevance)
+  const validVariables = filterCategoryVariables(variables);
+  const allVariablesAnswered = validVariables.every(v => 
+    v.isRelevant === false || 
+    (v.name.trim() !== '' && (v.isRelevant === true || v.value.trim() !== ''))
+  );
   
   const canProceedToStep3 = allQuestionsAnswered && allVariablesAnswered;
 

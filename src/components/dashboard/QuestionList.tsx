@@ -123,7 +123,8 @@ export const QuestionList = ({
                       </button>
                     </div>
                   </div>
-                  {question.isRelevant && question.answer && (
+                  {/* Always show the answer preview if it exists, regardless of relevance */}
+                  {question.answer && (
                     <div className="pl-8 pr-2 text-sm text-gray-600 line-clamp-2 italic bg-gray-50 p-2 rounded">
                       {question.answer}
                     </div>
