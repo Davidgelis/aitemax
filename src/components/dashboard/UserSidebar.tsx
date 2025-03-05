@@ -56,16 +56,19 @@ export const UserSidebar = ({
                 <path d="M9 15C9.41421 15 9.75 14.6642 9.75 14.25C9.75 13.8358 9.41421 13.5 9 13.5C8.58579 13.5 8.25 13.8358 8.25 14.25C8.25 14.6642 8.58579 15 9 15Z" fill="#545454" stroke="#545454" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate("/profile")}>
+            <DropdownMenuContent align="end" className="bg-white">
+              <DropdownMenuItem onClick={() => navigate("/profile")} className="menu-item-glow">
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
               {user ? (
-                <DropdownMenuItem onClick={async () => {
-                  const { supabase } = await import('@/integrations/supabase/client');
-                  await supabase.auth.signOut();
-                }}>
+                <DropdownMenuItem 
+                  onClick={async () => {
+                    const { supabase } = await import('@/integrations/supabase/client');
+                    await supabase.auth.signOut();
+                  }}
+                  className="menu-item-glow"
+                >
                   <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                     <polyline points="16 17 21 12 16 7"></polyline>
@@ -74,7 +77,7 @@ export const UserSidebar = ({
                   <span>Sign out</span>
                 </DropdownMenuItem>
               ) : (
-                <DropdownMenuItem onClick={() => navigate("/auth")}>
+                <DropdownMenuItem onClick={() => navigate("/auth")} className="menu-item-glow">
                   <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
                     <polyline points="10 17 15 12 10 7"></polyline>

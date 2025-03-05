@@ -13,6 +13,10 @@
   .glow-effect {
     animation: glow 2s ease-in-out infinite alternate;
   }
+  
+  .menu-item-glow:hover {
+    box-shadow: 0 0 10px rgba(100, 191, 149, 0.7);
+  }
 }
 
 @keyframes aurora {
@@ -24,6 +28,11 @@
 @keyframes glow {
   from { box-shadow: 0 0 5px rgba(51, 254, 166, 0.3); }
   to { box-shadow: 0 0 12px rgba(51, 254, 166, 0.7); }
+}
+
+@keyframes glow-menu {
+  from { box-shadow: 0 0 5px rgba(100, 191, 149, 0.3); }
+  to { box-shadow: 0 0 12px rgba(100, 191, 149, 0.7); }
 }
 
 @keyframes fade-in {
