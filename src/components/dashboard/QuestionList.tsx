@@ -53,6 +53,10 @@ export const QuestionList = ({
   const handleSaveResponse = () => {
     if (editingQuestion) {
       onQuestionAnswer(editingQuestion.id, editingQuestion.answer || '');
+      // If answer is provided, automatically set isRelevant to true
+      if (editingQuestion.answer && editingQuestion.answer.trim() !== '') {
+        onQuestionRelevance(editingQuestion.id, true);
+      }
       setEditResponseSheet(false);
       setEditingQuestion(null);
     }
