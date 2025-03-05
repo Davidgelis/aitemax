@@ -24,7 +24,7 @@ export const QuestionList = ({
   const [showPromptSheet, setShowPromptSheet] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [editResponseSheet, setEditResponseSheet] = useState(false);
-  const [previewResponse, setPreviewResponse] = useState<string>("");
+  const [currentAnswer, setCurrentAnswer] = useState<string>("");
 
   // Display placeholder test questions if no questions are provided
   const displayQuestions = questions.length > 0 ? questions : placeholderTestQuestions;
@@ -47,16 +47,16 @@ export const QuestionList = ({
     if (question.isRelevant === false) return;
     
     setEditingQuestion({...question});
-    setPreviewResponse(question.answer || '');
+    setCurrentAnswer(question.answer || '');
     setEditResponseSheet(true);
   };
 
   // Function to save the edited response
   const handleSaveResponse = () => {
     if (editingQuestion) {
-      onQuestionAnswer(editingQuestion.id, previewResponse);
+      onQuestionAnswer(editingQuestion.id, currentAnswer);
       // If answer is provided, automatically set isRelevant to true
-      if (previewResponse && previewResponse.trim() !== '') {
+      if (currentAnswer && currentAnswer.trim() !== '') {
         onQuestionRelevance(editingQuestion.id, true);
       }
       setEditResponseSheet(false);
@@ -173,16 +173,16 @@ export const QuestionList = ({
               {editingQuestion?.text}
             </div>
             <textarea 
-              value={previewResponse} 
-              onChange={(e) => setPreviewResponse(e.target.value)} 
+              value={currentAnswer} 
+              onChange={(e) => setCurrentAnswer(e.target.value)} 
               placeholder="Type your answer here..." 
               className="w-full p-4 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[200px] focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent" 
             />
             {/* Live preview of the response */}
-            {previewResponse && (
+            {currentAnswer && (
               <div className="p-3 bg-gray-50 rounded-md border">
                 <h4 className="text-sm font-medium mb-1">Preview:</h4>
-                <div className="text-sm text-gray-600 italic">{previewResponse}</div>
+                <div className="text-sm text-gray-600 italic">{currentAnswer}</div>
               </div>
             )}
             <div className="flex justify-end">
