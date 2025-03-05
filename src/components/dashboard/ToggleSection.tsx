@@ -49,9 +49,9 @@ export const ToggleSection = ({
         return (
           <div 
             key={item.id} 
-            className={`flex items-center justify-between py-1.5 px-3 ${getBorderClass(isSelected, variant)} rounded-lg ${isAurora ? 'bg-aurora animate-aurora bg-aurora-gradient bg-aurora' : 'bg-card'} flex-1 transition-all duration-300`}
+            className={`flex items-center justify-between py-1.5 px-3 ${getBorderClass(isSelected, variant)} rounded-lg ${isAurora ? 'bg-aurora animate-aurora bg-aurora-gradient bg-aurora w-[130%]' : 'bg-card'} flex-1 transition-all duration-300`}
           >
-            <span className="text-sm text-card-foreground flex flex-col items-start">
+            <span className="text-sm text-white flex flex-col items-start">
               {item.label.split(" ").map((word, index) => (
                 <span key={index} className="leading-tight">{word}</span>
               ))}
