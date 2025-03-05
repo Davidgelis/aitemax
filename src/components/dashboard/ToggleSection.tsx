@@ -51,7 +51,7 @@ export const ToggleSection = ({
             key={item.id} 
             className={`flex items-center justify-between py-1.5 px-3 ${getBorderClass(isSelected, variant)} rounded-lg ${isAurora ? 'bg-aurora animate-aurora w-[200%]' : 'bg-card'} flex-1 transition-all duration-300`}
           >
-            <span className={`text-sm text-[#041524] ${isAurora ? 'flex-nowrap whitespace-nowrap pr-6' : 'flex flex-col items-start'}`}>
+            <span className={`text-sm ${isAurora ? 'text-white flex-nowrap whitespace-nowrap pr-6' : 'text-[#041524] flex flex-col items-start'}`}>
               {isAurora 
                 ? item.label 
                 : item.label.split(" ").map((word, index) => (
