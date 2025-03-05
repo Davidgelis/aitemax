@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -182,6 +183,7 @@ const Dashboard = () => {
           handleDeletePrompt={promptState.handleDeletePrompt}
           handleDuplicatePrompt={promptState.handleDuplicatePrompt}
           handleRenamePrompt={promptState.handleRenamePrompt}
+          loadSavedPrompt={promptState.loadSavedPrompt}
         />
       </div>
     </SidebarProvider>

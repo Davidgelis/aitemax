@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -51,7 +52,8 @@ export const StepController = ({
     savedPrompts, isLoadingPrompts, searchTerm, setSearchTerm,
     variableToDelete, setVariableToDelete,
     fetchSavedPrompts, handleNewPrompt, handleSavePrompt,
-    handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt
+    handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt,
+    loadSavedPrompt
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);

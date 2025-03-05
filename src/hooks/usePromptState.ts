@@ -79,6 +79,21 @@ export const usePromptState = (user: any) => {
     });
   };
 
+  const loadSavedPrompt = (prompt: SavedPrompt) => {
+    setPromptText(prompt.promptText);
+    setFinalPrompt(prompt.promptText);
+    setMasterCommand(prompt.masterCommand);
+    setSelectedPrimary(prompt.primaryToggle);
+    setSelectedSecondary(prompt.secondaryToggle);
+    setVariables(prompt.variables || defaultVariables);
+    setCurrentStep(3); // Go directly to step 3
+    
+    toast({
+      title: "Prompt Loaded",
+      description: `Loaded prompt: ${prompt.title}`,
+    });
+  };
+
   const handleSavePrompt = async () => {
     if (!user) {
       toast({
@@ -298,6 +313,7 @@ export const usePromptState = (user: any) => {
     handleSavePrompt,
     handleDeletePrompt,
     handleDuplicatePrompt,
-    handleRenamePrompt
+    handleRenamePrompt,
+    loadSavedPrompt
   };
 };

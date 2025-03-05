@@ -1,3 +1,4 @@
+
 import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -18,6 +19,7 @@ interface UserSidebarProps {
   handleDeletePrompt: (id: string) => void;
   handleDuplicatePrompt: (prompt: SavedPrompt) => void;
   handleRenamePrompt: (id: string, newTitle: string) => void;
+  loadSavedPrompt?: (prompt: SavedPrompt) => void;
 }
 
 export const UserSidebar = ({
@@ -30,7 +32,8 @@ export const UserSidebar = ({
   handleNewPrompt,
   handleDeletePrompt,
   handleDuplicatePrompt,
-  handleRenamePrompt
+  handleRenamePrompt,
+  loadSavedPrompt
 }: UserSidebarProps) => {
   const navigate = useNavigate();
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
@@ -142,7 +145,8 @@ export const UserSidebar = ({
             filteredPrompts.map((item) => (
               <div
                 key={item.id}
-                className="p-4 border-b flex items-center justify-between group/item"
+                className="p-4 border-b flex items-center justify-between group/item cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => loadSavedPrompt && editingPromptId !== item.id && loadSavedPrompt(item)}
               >
                 <div className="flex items-center gap-2 w-full">
                   <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
@@ -156,12 +160,16 @@ export const UserSidebar = ({
                         onKeyDown={handleKeyDown}
                         className="text-sm font-medium border border-transparent focus:border-[#33fea6] focus:outline-none rounded px-1 w-full"
                         autoFocus
+                        onClick={(e) => e.stopPropagation()}
                       />
                     ) : (
                       <div className="flex items-center">
                         <span className="text-sm font-medium truncate">{item.title}</span>
                         <button 
-                          onClick={() => startEditing(item)} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditing(item);
+                          }} 
                           className="ml-1 opacity-0 group-hover/item:opacity-100 transition-opacity"
                         >
                           <Pencil className="h-3 w-3 text-muted-foreground hover:text-[#33fea6]" />
@@ -173,19 +181,28 @@ export const UserSidebar = ({
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
-                    <div className="prompt-action-button">
+                    <div 
+                      className="prompt-action-button"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <MoreVertical className="h-4 w-4" />
                     </div>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => handleDuplicatePrompt(item)}>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      handleDuplicatePrompt(item);
+                    }}>
                       <CopyIcon className="mr-2 h-4 w-4" />
                       <span>Duplicate</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
-                      onClick={() => handleDeletePrompt(item.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeletePrompt(item.id);
+                      }}
                     >
                       <Trash className="mr-2 h-4 w-4" />
                       <span>Delete</span>
