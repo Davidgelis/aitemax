@@ -94,7 +94,7 @@ export const useQuestionsAndVariables = (
   
   const canProceedToStep3 = allQuestionsAnswered && allVariablesAnswered;
 
-  // New function to enhance the prompt using GPT-4o
+  // Function to enhance the prompt using GPT-4o
   const enhancePromptWithGPT = async (
     originalPrompt: string,
     primaryToggle: string | null,

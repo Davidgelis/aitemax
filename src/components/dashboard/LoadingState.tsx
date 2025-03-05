@@ -1,3 +1,4 @@
+
 import { loadingMessages } from "./constants";
 
 interface LoadingStateProps {
@@ -5,8 +6,19 @@ interface LoadingStateProps {
 }
 
 export const LoadingState = ({ currentLoadingMessage }: LoadingStateProps) => {
-  // If currentLoadingMessage is a string, display it directly
-  // Otherwise, use it as an index to the loadingMessages array
+  // If prompts are being enhanced, show the Aitema X message
+  if (typeof currentLoadingMessage === 'string' && currentLoadingMessage.includes("Enhancing your prompt")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="text-xl font-medium animate-fade-in">
+          Aitema X is building your prompt please wait...
+        </div>
+      </div>
+    );
+  }
+  
+  // For other loading states, use the existing logic
   const message = typeof currentLoadingMessage === 'string' 
     ? currentLoadingMessage 
     : loadingMessages[Math.min(Math.max(0, currentLoadingMessage), loadingMessages.length - 1)];

@@ -13,15 +13,36 @@ export const usePromptOperations = (
 ) => {
   const { toast } = useToast();
 
+  // Process the prompt to replace variables and highlight them
   const getProcessedPrompt = () => {
     let processedPrompt = finalPrompt;
+    
+    // First look for variable names in the prompt
     variables.forEach(variable => {
-      if (variable.isRelevant && variable.name && variable.value) {
-        const placeholder = `{{${variable.name}}}`;
-        const highlightedValue = `<span class="bg-[#33fea6]/20 px-1 rounded border border-[#33fea6]/30">${variable.value}</span>`;
-        processedPrompt = processedPrompt.replace(new RegExp(placeholder, 'g'), showJson ? variable.value : highlightedValue);
+      if (variable.isRelevant && variable.name) {
+        // Use both versions of the variable format
+        const placeholder1 = `{{${variable.name}}}`;
+        const placeholder2 = variable.name;
+        
+        const highlightedValue = `<span class="bg-[#33fea6]/20 px-1 rounded border border-[#33fea6]/30">${variable.value || placeholder2}</span>`;
+        
+        // Replace {{variableName}} format first
+        processedPrompt = processedPrompt.replace(
+          new RegExp(placeholder1, 'g'), 
+          showJson ? variable.value || placeholder2 : highlightedValue
+        );
+        
+        // Look for exact variable name matches, but be careful not to replace partial matches
+        const safeVariableName = placeholder2.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const exactMatchRegex = new RegExp(`\\b${safeVariableName}\\b`, 'g');
+        
+        processedPrompt = processedPrompt.replace(
+          exactMatchRegex, 
+          showJson ? variable.value || placeholder2 : highlightedValue
+        );
       }
     });
+    
     return processedPrompt;
   };
 

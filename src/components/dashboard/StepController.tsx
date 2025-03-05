@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -46,7 +45,6 @@ export const StepController = ({ user, selectedModel, setSelectedModel, isInitia
     handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt
   } = promptState;
   
-  // Tracks if prompt enhancement is in progress
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
   
   const promptAnalysis = usePromptAnalysis(
@@ -149,26 +147,14 @@ export const StepController = ({ user, selectedModel, setSelectedModel, isInitia
       return;
     }
 
-    // Special handling for transitioning to step 3 - using GPT-4o to enhance the prompt
     if (step === 3 && canProceedToStep3) {
       setIsEnhancingPrompt(true);
       
-      // Show loading state
-      const loadingToastId = toast({
-        title: "Enhancing prompt",
-        description: "Using AI to generate your final prompt...",
-        duration: 10000,
-      });
-      
       try {
-        // Use GPT-4o to enhance the prompt
         await enhancePromptWithGPT(promptText, selectedPrimary, selectedSecondary, setFinalPrompt);
-        
-        // Move to step 3 after enhancement
         setCurrentStep(step);
       } catch (error) {
         console.error("Error enhancing prompt:", error);
-        // Still proceed to step 3 even if enhancement fails
         setCurrentStep(step);
       } finally {
         setIsEnhancingPrompt(false);
