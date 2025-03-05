@@ -49,48 +49,51 @@ export const usePromptOperations = (
     return processed;
   };
 
-  // This effect syncs the variables with the finalPrompt
-  useEffect(() => {
-    const relevantVariables = variables.filter(v => v.isRelevant);
-    if (relevantVariables.length > 0 && finalPrompt) {
-      // Only update the finalPrompt when not in JSON view mode
-      if (!showJson) {
-        let updatedPrompt = finalPrompt;
-        
-        relevantVariables.forEach(variable => {
-          if (variable.name && variable.value !== undefined) {
-            // Replace {{variableName}} format
-            const placeholder1 = `{{${variable.name}}}`;
-            updatedPrompt = updatedPrompt.replace(
-              new RegExp(placeholder1, 'g'), 
-              variable.value || variable.name
-            );
-            
-            // Replace exact variable name matches
-            const safeVariableName = variable.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const exactMatchRegex = new RegExp(`\\b${safeVariableName}\\b`, 'g');
-            updatedPrompt = updatedPrompt.replace(
-              exactMatchRegex, 
-              variable.value || variable.name
-            );
-          }
-        });
-        
-        // Only update if the prompt has actually changed
-        if (updatedPrompt !== finalPrompt) {
-          setFinalPrompt(updatedPrompt);
-        }
-      }
-    }
-  }, [variables, showJson]);
-
   const handleVariableValueChange = (variableId: string, newValue: string) => {
     // Update the variable
     setVariables(variables.map(v =>
       v.id === variableId ? { ...v, value: newValue } : v
     ));
+    
+    // Immediately update the final prompt with the new variable value
+    updateFinalPromptWithVariables(variableId, newValue);
+  };
+  
+  // Function to update final prompt when a variable value changes
+  const updateFinalPromptWithVariables = (changedVariableId: string, newValue: string) => {
+    const changedVariable = variables.find(v => v.id === changedVariableId);
+    
+    if (!changedVariable || !changedVariable.name) return;
+    
+    // Create a copy of the current finalPrompt to work with
+    let updatedPrompt = finalPrompt;
+    
+    // Replace both formats of variable placeholders in the prompt
+    const placeholder1 = `{{${changedVariable.name}}}`;
+    const safeVariableName = changedVariable.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const exactMatchRegex = new RegExp(`\\b${safeVariableName}\\b`, 'g');
+    
+    // Replace {{variableName}} format
+    updatedPrompt = updatedPrompt.replace(
+      new RegExp(placeholder1, 'g'),
+      newValue || changedVariable.name
+    );
+    
+    // Replace plain variableName format (only exact matches)
+    updatedPrompt = updatedPrompt.replace(
+      exactMatchRegex,
+      newValue || changedVariable.name
+    );
+    
+    // Update the finalPrompt if changes were made
+    if (updatedPrompt !== finalPrompt) {
+      setFinalPrompt(updatedPrompt);
+    }
   };
 
+  // This effect is no longer needed as we're updating the prompt directly
+  // when variable values change in handleVariableValueChange
+  
   const handleOpenEditPrompt = () => {
     setEditingPrompt(finalPrompt);
     setShowEditPromptSheet(true);
