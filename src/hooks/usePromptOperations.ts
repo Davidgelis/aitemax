@@ -1,21 +1,24 @@
 
 import { Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
 
 export const usePromptOperations = (
   variables: Variable[],
   setVariables: (variables: Variable[]) => void,
   finalPrompt: string,
+  setFinalPrompt: (prompt: string) => void,
   showJson: boolean,
   setEditingPrompt: (prompt: string) => void,
   setShowEditPromptSheet: (show: boolean) => void,
   masterCommand: string
 ) => {
   const { toast } = useToast();
+  const [processedPrompt, setProcessedPrompt] = useState(finalPrompt);
 
   // Process the prompt to replace variables and highlight them
   const getProcessedPrompt = () => {
-    let processedPrompt = finalPrompt;
+    let processed = finalPrompt;
     
     // First look for variable names in the prompt
     variables.forEach(variable => {
@@ -27,7 +30,7 @@ export const usePromptOperations = (
         const highlightedValue = `<span class="bg-[#33fea6]/20 px-1 rounded border border-[#33fea6]/30">${variable.value || placeholder2}</span>`;
         
         // Replace {{variableName}} format first
-        processedPrompt = processedPrompt.replace(
+        processed = processed.replace(
           new RegExp(placeholder1, 'g'), 
           showJson ? variable.value || placeholder2 : highlightedValue
         );
@@ -36,15 +39,49 @@ export const usePromptOperations = (
         const safeVariableName = placeholder2.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const exactMatchRegex = new RegExp(`\\b${safeVariableName}\\b`, 'g');
         
-        processedPrompt = processedPrompt.replace(
+        processed = processed.replace(
           exactMatchRegex, 
           showJson ? variable.value || placeholder2 : highlightedValue
         );
       }
     });
     
-    return processedPrompt;
+    return processed;
   };
+
+  // Synchronize final prompt when variables change
+  useEffect(() => {
+    // Update the prompt text directly when variables change
+    let updatedPrompt = finalPrompt;
+    
+    variables.filter(v => v.isRelevant).forEach(variable => {
+      if (variable.name && variable.value) {
+        // Replace both formats
+        const placeholder1 = `{{${variable.name}}}`;
+        const placeholder2 = variable.name;
+        
+        // Replace {{variableName}} format first
+        updatedPrompt = updatedPrompt.replace(
+          new RegExp(placeholder1, 'g'), 
+          variable.value
+        );
+        
+        // Look for exact variable name matches
+        const safeVariableName = placeholder2.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const exactMatchRegex = new RegExp(`\\b${safeVariableName}\\b`, 'g');
+        
+        updatedPrompt = updatedPrompt.replace(
+          exactMatchRegex, 
+          variable.value
+        );
+      }
+    });
+    
+    // Skip setting if nothing has changed to prevent infinite loops
+    if (showJson === false && updatedPrompt !== finalPrompt) {
+      setFinalPrompt(updatedPrompt);
+    }
+  }, [variables, showJson, finalPrompt, setFinalPrompt]);
 
   const handleVariableValueChange = (variableId: string, newValue: string) => {
     setVariables(variables.map(v =>

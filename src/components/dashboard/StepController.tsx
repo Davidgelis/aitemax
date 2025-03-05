@@ -53,7 +53,7 @@ export const StepController = ({
     variableToDelete, setVariableToDelete,
     fetchSavedPrompts, handleNewPrompt, handleSavePrompt,
     handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt,
-    loadSavedPrompt
+    loadSavedPrompt, isViewingSavedPrompt, setIsViewingSavedPrompt
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
@@ -95,6 +95,7 @@ export const StepController = ({
     variables,
     setVariables,
     finalPrompt,
+    setFinalPrompt, // Pass setFinalPrompt to allow updating
     showJson,
     setEditingPrompt,
     setShowEditPromptSheet,
@@ -126,6 +127,11 @@ export const StepController = ({
   };
 
   const handleStepChange = async (step: number, bypass: boolean = false) => {
+    // If viewing a saved prompt, only allow going to step 3
+    if (isViewingSavedPrompt && step !== 3) {
+      return;
+    }
+    
     if (bypass) {
       setCurrentStep(step);
       return;
@@ -178,6 +184,11 @@ export const StepController = ({
   };
 
   const handleDirectJump = (step: number) => {
+    // If viewing a saved prompt, only allow going to step 3
+    if (isViewingSavedPrompt && step !== 3) {
+      return;
+    }
+    
     handleStepChange(step, true);
   };
 
@@ -275,7 +286,11 @@ export const StepController = ({
     <div className="w-full">
       {renderContent()}
       
-      <StepIndicator currentStep={currentStep} onStepChange={handleDirectJump} />
+      <StepIndicator 
+        currentStep={currentStep} 
+        onStepChange={handleDirectJump} 
+        isViewingSavedPrompt={isViewingSavedPrompt}
+      />
     </div>
   );
 };

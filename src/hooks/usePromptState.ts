@@ -23,6 +23,7 @@ export const usePromptState = (user: any) => {
   const [sliderPosition, setSliderPosition] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
+  const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState(false);
   const { toast } = useToast();
 
   const fetchSavedPrompts = async () => {
@@ -72,6 +73,7 @@ export const usePromptState = (user: any) => {
     setSelectedPrimary(null);
     setSelectedSecondary(null);
     setCurrentStep(1);
+    setIsViewingSavedPrompt(false);
     
     toast({
       title: "New Prompt",
@@ -96,8 +98,9 @@ export const usePromptState = (user: any) => {
       setVariables(defaultVariables.map(v => ({ ...v, isRelevant: true })));
     }
     
-    // Go directly to step 3
+    // Go directly to step 3 and mark as viewing saved prompt
     setCurrentStep(3);
+    setIsViewingSavedPrompt(true);
     
     toast({
       title: "Prompt Loaded",
@@ -320,6 +323,8 @@ export const usePromptState = (user: any) => {
     searchTerm,
     setSearchTerm,
     isLoadingPrompts,
+    isViewingSavedPrompt,
+    setIsViewingSavedPrompt,
     fetchSavedPrompts,
     handleNewPrompt,
     handleSavePrompt,
