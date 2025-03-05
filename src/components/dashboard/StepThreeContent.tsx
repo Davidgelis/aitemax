@@ -168,8 +168,8 @@ export const StepThreeContent = ({
       </div>
 
       <div className="mb-4 p-3 border rounded-lg bg-background/50">
-        <h4 className="text-sm font-medium mb-3">Variables</h4>
-        <div className="grid grid-cols-1 gap-3">
+        <h4 className="text-sm font-medium mb-2">Variables</h4>
+        <div className="grid grid-cols-1 gap-3 max-h-[200px] overflow-y-auto pr-2">
           {variables.filter(v => v.isRelevant === true).map((variable) => (
             <div key={variable.id} className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-medium min-w-[150px] break-words">{variable.name}:</span>
