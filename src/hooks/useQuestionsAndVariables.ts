@@ -87,21 +87,22 @@ export const useQuestionsAndVariables = (
   };
 
   // Modified logic to check if questions and variables are properly handled
-  // For questions, consider it handled if:
-  // 1. It is explicitly marked as not relevant (false)
-  // 2. It has an answer AND is marked as relevant (true)
+  // Consider a question handled if it has been marked relevant (true) or not relevant (false)
+  // or if it has an answer (which implies relevance)
   const allQuestionsAnswered = questions.every(q => 
+    q.isRelevant === true || 
     q.isRelevant === false || 
-    (q.isRelevant === true && q.answer && q.answer.trim() !== '')
+    (q.answer && q.answer.trim() !== '')
   );
   
-  // For variables, consider it handled if:
-  // 1. It is explicitly marked as not relevant (false)
-  // 2. It has both a name AND value, and is marked as relevant (true)
+  // Consider variables handled if:
+  // 1. They have a name and are marked relevant (true)
+  // 2. They are explicitly marked not relevant (false)
+  // 3. They have a name and value (which implies relevance)
   const validVariables = filterCategoryVariables(variables);
   const allVariablesAnswered = validVariables.every(v => 
     v.isRelevant === false || 
-    (v.isRelevant === true && v.name.trim() !== '' && v.value.trim() !== '')
+    (v.name.trim() !== '' && (v.isRelevant === true || v.value.trim() !== ''))
   );
   
   const canProceedToStep3 = allQuestionsAnswered && allVariablesAnswered;

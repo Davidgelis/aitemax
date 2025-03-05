@@ -11,7 +11,7 @@ interface VariableListProps {
   onVariableChange: (variableId: string, field: 'name' | 'value', content: string) => void;
   onVariableRelevance: (variableId: string, isRelevant: boolean) => void;
   onAddVariable: () => void;
-  onDeleteVariable: () => void;
+  onDeleteVariable: (id: string) => void;
   variableToDelete: string | null;
   setVariableToDelete: (id: string | null) => void;
   containerRef: RefObject<HTMLDivElement>;
@@ -111,7 +111,7 @@ export const VariableList = ({
                             <Trash className="w-4 h-4" />
                           </button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-white">
+                        <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete variable?</AlertDialogTitle>
                             <AlertDialogDescription>
@@ -120,7 +120,7 @@ export const VariableList = ({
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDeleteVariable()}>Delete</AlertDialogAction>
+                            <AlertDialogAction onClick={() => onDeleteVariable(variable.id)}>Delete</AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
