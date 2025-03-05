@@ -1,3 +1,4 @@
+
 import { Question, Variable } from "./types";
 import { RefObject } from "react";
 import { QuestionList } from "./QuestionList";
@@ -40,15 +41,34 @@ export const StepTwoContent = ({
       <div className="mb-6">
         <p className="text-card-foreground mb-4">Answer the following questions and complete the variables to improve your final prompt accuracy. Fill in only what applies and mark or remove the irrelevant ones.</p>
         
-        <QuestionList questions={questions} onQuestionRelevance={onQuestionRelevance} onQuestionAnswer={onQuestionAnswer} containerRef={questionsContainerRef} originalPrompt={originalPrompt} />
+        <QuestionList 
+          questions={questions} 
+          onQuestionRelevance={onQuestionRelevance} 
+          onQuestionAnswer={onQuestionAnswer} 
+          containerRef={questionsContainerRef} 
+          originalPrompt={originalPrompt} 
+        />
       </div>
 
       <div className="mb-6">
-        <VariableList variables={variables} onVariableChange={onVariableChange} onVariableRelevance={onVariableRelevance} onAddVariable={onAddVariable} onDeleteVariable={onDeleteVariable} variableToDelete={variableToDelete} setVariableToDelete={setVariableToDelete} containerRef={variablesContainerRef} />
+        <VariableList 
+          variables={variables} 
+          onVariableChange={onVariableChange} 
+          onVariableRelevance={onVariableRelevance} 
+          onAddVariable={onAddVariable} 
+          onDeleteVariable={onDeleteVariable} 
+          variableToDelete={variableToDelete} 
+          setVariableToDelete={setVariableToDelete} 
+          containerRef={variablesContainerRef} 
+        />
       </div>
 
       <div className="flex justify-end">
-        <button onClick={onContinue} className={`aurora-button ${!canProceedToStep3 ? 'opacity-70 cursor-not-allowed' : ''}`} disabled={!canProceedToStep3}>
+        <button 
+          onClick={onContinue} 
+          className={`aurora-button ${!canProceedToStep3 ? 'opacity-70 cursor-not-allowed' : ''}`} 
+          disabled={!canProceedToStep3}
+        >
           Continue
         </button>
       </div>

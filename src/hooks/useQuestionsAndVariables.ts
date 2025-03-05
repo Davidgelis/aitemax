@@ -15,7 +15,7 @@ export const useQuestionsAndVariables = (
 
   const handleQuestionAnswer = (questionId: string, answer: string) => {
     setQuestions(questions.map(q => 
-      q.id === questionId ? { ...q, answer } : q
+      q.id === questionId ? { ...q, answer, isRelevant: true } : q
     ));
   };
 

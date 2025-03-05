@@ -24,6 +24,7 @@ export const QuestionList = ({
   const [showPromptSheet, setShowPromptSheet] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [editResponseSheet, setEditResponseSheet] = useState(false);
+  const [currentAnswer, setCurrentAnswer] = useState("");
 
   // Display placeholder test questions if no questions are provided
   const displayQuestions = questions.length > 0 ? questions : placeholderTestQuestions;
@@ -46,13 +47,14 @@ export const QuestionList = ({
     if (question.isRelevant === false) return;
     
     setEditingQuestion({...question});
+    setCurrentAnswer(question.answer || '');
     setEditResponseSheet(true);
   };
 
   // Function to save the edited response
   const handleSaveResponse = () => {
     if (editingQuestion) {
-      onQuestionAnswer(editingQuestion.id, editingQuestion.answer || '');
+      onQuestionAnswer(editingQuestion.id, currentAnswer);
       setEditResponseSheet(false);
       setEditingQuestion(null);
     }
@@ -64,6 +66,13 @@ export const QuestionList = ({
     // If currently relevant (true) or undecided (null), make it irrelevant (false)
     const newRelevance = currentIsRelevant === false ? true : false;
     onQuestionRelevance(questionId, newRelevance);
+  };
+
+  // Function to get the first 10 words of the answer
+  const getAnswerPreview = (answer: string) => {
+    if (!answer) return "";
+    const words = answer.split(' ');
+    return words.slice(0, 10).join(' ') + (words.length > 10 ? '...' : '');
   };
   
   return (
@@ -100,7 +109,7 @@ export const QuestionList = ({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between group">
                     <div 
-                      className={`flex-grow flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors 
+                      className={`flex-grow flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors
                                 ${question.isRelevant === false ? 'opacity-60' : ''}
                                 ${question.answer && question.isRelevant !== false ? 'bg-[#33fea6]/20' : 'hover:bg-[#33fea6]/20'}`}
                       onClick={() => handleEditResponse(question)}
@@ -113,19 +122,17 @@ export const QuestionList = ({
                         <Edit className="w-4 h-4 ml-2 opacity-0 group-hover:opacity-80 text-[#33fea6]" />
                       )}
                     </div>
-                    <div className="flex">
-                      <button 
-                        onClick={() => handleToggleRelevance(question.id, question.isRelevant)} 
-                        className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${question.isRelevant === false ? 'bg-[#33fea6]/20' : ''}`} 
-                        title={question.isRelevant === false ? "Mark as relevant" : "Mark as not relevant"}
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
+                    <button 
+                      onClick={() => handleToggleRelevance(question.id, question.isRelevant)} 
+                      className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${question.isRelevant === false ? 'bg-[#33fea6]/20' : ''}`}
+                      title={question.isRelevant === false ? "Mark as relevant" : "Mark as not relevant"}
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
                   </div>
-                  {question.isRelevant && question.answer && (
+                  {question.isRelevant !== false && question.answer && (
                     <div className="pl-8 pr-2 text-sm text-gray-600 line-clamp-2 italic bg-gray-50 p-2 rounded">
-                      {question.answer}
+                      {getAnswerPreview(question.answer)}
                     </div>
                   )}
                 </div>
@@ -171,8 +178,8 @@ export const QuestionList = ({
               {editingQuestion?.text}
             </div>
             <textarea 
-              value={editingQuestion?.answer || ''} 
-              onChange={(e) => setEditingQuestion(prev => prev ? {...prev, answer: e.target.value} : null)} 
+              value={currentAnswer} 
+              onChange={(e) => setCurrentAnswer(e.target.value)} 
               placeholder="Type your answer here..." 
               className="w-full p-4 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[200px] focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent" 
             />
