@@ -4,6 +4,7 @@ import { Question } from "./types";
 import { RefObject, useState } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { placeholderTestQuestions } from "./constants";
 
 interface QuestionListProps {
   questions: Question[];
@@ -22,9 +23,12 @@ export const QuestionList = ({
 }: QuestionListProps) => {
   const [showPromptSheet, setShowPromptSheet] = useState(false);
 
+  // Display placeholder test questions if no questions are provided
+  const displayQuestions = questions.length > 0 ? questions : placeholderTestQuestions;
+
   // Group questions by category
   const groupedQuestions: Record<string, Question[]> = {};
-  questions.forEach(question => {
+  displayQuestions.forEach(question => {
     const category = question.category || 'Other';
     if (!groupedQuestions[category]) {
       groupedQuestions[category] = [];

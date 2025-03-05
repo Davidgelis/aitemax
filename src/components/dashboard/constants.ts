@@ -1,4 +1,3 @@
-
 import { Question, Toggle, Variable } from "./types";
 
 export const primaryToggles: Toggle[] = [
@@ -39,6 +38,11 @@ export const mockQuestions: Question[] = [
   // Instructions-focused questions about implementation details
   { id: "q7", text: "Should the solution prioritize readability or efficiency?", isRelevant: null, answer: "", category: "Instructions" },
   { id: "q8", text: "Are there any specific coding patterns or styles to follow?", isRelevant: null, answer: "", category: "Instructions" },
+];
+
+export const placeholderTestQuestions: Question[] = [
+  { id: "test-q1", text: "What is the primary goal you want to achieve with this prompt?", isRelevant: null, answer: "", category: "Task" },
+  { id: "test-q2", text: "How would you like the AI to approach complex or ambiguous aspects of your request?", isRelevant: null, answer: "", category: "Instructions" },
 ];
 
 export const defaultVariables: Variable[] = [
@@ -118,6 +122,6 @@ export const generateContextQuestions = (promptText: string): Question[] => {
     ];
   }
   
-  // Default to general context questions
-  return mockQuestions;
+  // Default to general context questions plus the placeholder test questions
+  return [...mockQuestions, ...placeholderTestQuestions];
 };
