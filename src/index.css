@@ -11,7 +11,7 @@
   }
 
   .glow-effect {
-    animation: glow 12s ease-in-out infinite alternate;
+    animation: glow 4s ease-in-out infinite alternate;
   }
   
   .menu-item-glow:hover {
@@ -35,8 +35,8 @@
 }
 
 @keyframes glow {
-  from { box-shadow: 0 0 5px rgba(51, 254, 166, 0.075); }
-  to { box-shadow: 0 0 12px rgba(51, 254, 166, 0.175); }
+  0%, 50% { box-shadow: 0 0 5px rgba(51, 254, 166, 0.075); }
+  100% { box-shadow: 0 0 12px rgba(51, 254, 166, 0.175); }
 }
 
 @keyframes glow-menu {
