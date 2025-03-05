@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { ModelService } from '@/services/model';
 import { useToast } from '@/hooks/use-toast';
@@ -49,11 +48,6 @@ export const useModelSelector = (selectedModel: AIModel | null, onSelect: (model
           setActiveIndex(index);
         }
       }
-      
-      toast({
-        title: "AI Models Loaded",
-        description: `${modelList.length} AI models from ${providerList.length} providers have been loaded.`,
-      });
       
       setLoading(false);
     } catch (error) {

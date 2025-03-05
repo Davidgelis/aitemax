@@ -76,20 +76,10 @@ const Dashboard = () => {
     const forceUpdateModels = async () => {
       try {
         setIsUpdatingModels(true);
-        toast({
-          title: "Updating AI Models",
-          description: "Loading the latest AI models data...",
-        });
         
         const result = await triggerInitialModelUpdate();
         
         if (result.success) {
-          toast({
-            title: "AI Models Updated",
-            description: result.data?.insertedModels 
-              ? `Successfully loaded ${result.data.insertedModels} AI models.`
-              : "AI models data is ready.",
-          });
         } else {
           toast({
             title: "Update Failed",
@@ -128,7 +118,6 @@ const Dashboard = () => {
     console.log('Inserting fallback models directly...');
     let insertedCount = 0;
     
-    // First check if models already exist
     const { data: existingModels } = await supabase
       .from('ai_models')
       .select('id')
@@ -139,7 +128,6 @@ const Dashboard = () => {
       return;
     }
     
-    // If no models exist, insert the fallback models
     for (const model of fallbackModels) {
       const { error: insertError } = await supabase
         .from('ai_models')

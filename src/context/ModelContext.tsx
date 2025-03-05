@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AIModel } from "@/components/dashboard/types";
 import { ModelService } from "@/services/model";
@@ -64,10 +63,6 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const refreshModels = async () => {
     console.log('Refreshing models...');
-    toast({
-      title: "Refreshing Models",
-      description: "Loading the latest AI models data...",
-    });
     
     try {
       // Try to force refresh models from the edge function first
@@ -79,11 +74,6 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       // Fetch models from database
       await fetchModels();
-      
-      toast({
-        title: "Models Refreshed",
-        description: `${models.length} AI models loaded.`,
-      });
     } catch (err) {
       console.error('Error during model refresh:', err);
       toast({
