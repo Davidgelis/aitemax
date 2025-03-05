@@ -62,6 +62,11 @@
   animation: aurora 15s ease infinite;
 }
 
+/* Toggle specific styles */
+[data-state=checked] ~ div {
+  transition: border-color 0.3s ease;
+}
+
 /* Inline editing styles */
 input:focus.border-transparent:focus {
   border-color: #33fea6;
