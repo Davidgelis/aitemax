@@ -14,7 +14,7 @@ const Switch = React.forwardRef<
     default: "bg-primary data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
     primary: "bg-[#33fea6] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
     secondary: "bg-[#084b49] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
-    aurora: "bg-gradient-to-r from-[#041524] via-[#084b49] to-[#33fea6] data-[state=checked]:opacity-100 data-[state=unchecked]:opacity-50"
+    aurora: "bg-white data-[state=checked]:bg-white data-[state=unchecked]:bg-white" // White background for aurora variant
   }
 
   // Ensure the variant is valid, defaulting to "default" if not
@@ -32,7 +32,10 @@ const Switch = React.forwardRef<
     >
       <SwitchPrimitives.Thumb
         className={cn(
-          "pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg shadow-[rgba(0,0,0,0.3)] ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+          "pointer-events-none block h-4 w-4 rounded-full shadow-lg shadow-[rgba(0,0,0,0.3)] ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
+          variant === "aurora" ? 
+            "data-[state=checked]:bg-aurora data-[state=checked]:animate-aurora data-[state=unchecked]:bg-white" : 
+            "bg-white"
         )}
       />
     </SwitchPrimitives.Root>
