@@ -1,4 +1,3 @@
-
 import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -59,11 +58,9 @@ export const UserSidebar = ({
 
   return (
     <Sidebar side="right">
-      {/* Isolated sidebar trigger at the top */}
       <SidebarTrigger className="fixed right-4 top-2 z-50 bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
       
       <SidebarContent>
-        {/* User profile section moved below the trigger */}
         <div className="p-4 flex items-center justify-between border-b mt-8">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
@@ -184,10 +181,6 @@ export const UserSidebar = ({
                     <DropdownMenuItem onClick={() => handleDuplicatePrompt(item)}>
                       <CopyIcon className="mr-2 h-4 w-4" />
                       <span>Duplicate</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => startEditing(item)}>
-                      <Pencil className="mr-2 h-4 w-4" />
-                      <span>Rename</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
