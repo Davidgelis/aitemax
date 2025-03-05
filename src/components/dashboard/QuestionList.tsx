@@ -160,9 +160,11 @@ export const QuestionList = ({
       {/* Response Editing Sheet */}
       <Sheet open={editResponseSheet} onOpenChange={(open) => {
         if (!open) {
-          handleSaveResponse();
+          // Only call handleSaveResponse when the sheet is being closed
+          setEditResponseSheet(open);
+        } else {
+          setEditResponseSheet(open);
         }
-        setEditResponseSheet(open);
       }}>
         <SheetContent className="w-[90%] sm:max-w-[500px] z-50 bg-white">
           <SheetHeader>
