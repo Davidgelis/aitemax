@@ -1,5 +1,6 @@
+
 import { Edit, Copy, Save, RotateCw } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -59,6 +60,61 @@ export const StepThreeContent = ({
 }: StepThreeContentProps) => {
   const editPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
   const relevantVariables = variables.filter(v => v.isRelevant === true);
+  const [highlightedVariables, setHighlightedVariables] = useState<Record<string, boolean>>({});
+
+  // Initialize highlighted state based on current values
+  useEffect(() => {
+    const initialHighlightState: Record<string, boolean> = {};
+    relevantVariables.forEach(variable => {
+      initialHighlightState[variable.id] = variable.value && variable.value.trim() !== '';
+    });
+    setHighlightedVariables(initialHighlightState);
+  }, [relevantVariables]);
+
+  // Render the processed prompt with highlighted variables
+  const renderProcessedPrompt = () => {
+    if (showJson) {
+      return (
+        <pre className="text-xs font-mono">
+          {JSON.stringify({ 
+            prompt: finalPrompt, 
+            masterCommand,
+            variables: variables.filter(v => v.isRelevant === true)
+          }, null, 2)}
+        </pre>
+      );
+    }
+
+    // Format the prompt with variable highlighting
+    const processedPrompt = getProcessedPrompt();
+    const paragraphs = processedPrompt.split('\n\n');
+    
+    // Highlight variables in the prompt
+    return (
+      <div className="prose prose-sm max-w-none">
+        {paragraphs.map((paragraph, index) => {
+          let content = paragraph;
+          
+          // Look for variable values in the content
+          relevantVariables.forEach(variable => {
+            if (variable.value && variable.value.trim() !== '') {
+              const regex = new RegExp(`(${escapeRegExp(variable.value)})`, 'g');
+              content = content.replace(regex, '<span class="variable-highlight">$1</span>');
+            }
+          });
+          
+          return (
+            <p key={index} dangerouslySetInnerHTML={{ __html: content }} />
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Helper function to escape special characters in regex
+  const escapeRegExp = (string: string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
@@ -148,33 +204,24 @@ export const StepThreeContent = ({
         <div className="relative h-full p-6 overflow-y-auto">
           <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
           <div className="whitespace-pre-wrap text-card-foreground">
-            {showJson ? (
-              <pre className="text-xs font-mono">
-                {JSON.stringify({ 
-                  prompt: finalPrompt, 
-                  masterCommand,
-                  variables: variables.filter(v => v.isRelevant === true)
-                }, null, 2)}
-              </pre>
-            ) : (
-              <div className="prose prose-sm max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: getProcessedPrompt().split('\n\n').map(p => `<p>${p}</p>`).join('') }} />
-              </div>
-            )}
+            {renderProcessedPrompt()}
           </div>
         </div>
       </div>
 
       <div className="mb-4 p-3 border rounded-lg bg-background/50">
-        <h4 className="text-sm font-medium mb-2">Variables (display only)</h4>
+        <h4 className="text-sm font-medium mb-2">Variables</h4>
         <div className="grid grid-cols-1 gap-3 max-h-[200px] overflow-y-auto pr-2">
           {relevantVariables.length > 0 ? (
             relevantVariables.map((variable) => (
               <div key={variable.id} className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-medium min-w-[150px] break-words">{variable.name}:</span>
-                <div className="flex-1 h-7 px-2 py-1 bg-[#33fea6]/10 border border-[#33fea6]/20 rounded-md overflow-x-auto text-xs">
-                  {variable.value || ""}
-                </div>
+                <input 
+                  type="text"
+                  value={variable.value || ""}
+                  onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
+                  className="flex-1 h-7 px-2 py-1 bg-white border border-[#33fea6] rounded-md overflow-x-auto text-xs"
+                />
               </div>
             ))
           ) : (
@@ -243,7 +290,7 @@ export const StepThreeContent = ({
             </AlertDialog>
             <Button 
               onClick={() => handleSaveEditedPrompt(editingPrompt)}
-              className="bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-2"
+              className="aurora-button inline-flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
               Save
@@ -251,6 +298,43 @@ export const StepThreeContent = ({
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      <style jsx global>{`
+        .variable-highlight {
+          background: white;
+          border: 1px solid #33fea6;
+          border-radius: 2px;
+          padding: 1px 2px;
+          margin: 0 1px;
+        }
+        .aurora-button {
+          position: relative;
+          overflow: hidden;
+          background: linear-gradient(90deg, #041524, #084b49, #33fea6, #64bf95, white);
+          background-size: 300% 100%;
+          color: white;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+          font-weight: 500;
+          animation: aurora 8s ease infinite;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+        }
+        
+        @keyframes aurora {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        
+        .aurora-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+      `}</style>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,21 +15,31 @@ export const usePromptOperations = (
 ) => {
   const { toast } = useToast();
   const [editingPromptLocal, setEditingPromptLocal] = useState("");
+  const [processedPrompt, setProcessedPrompt] = useState(finalPrompt);
   
-  // Display-only functions for step 3
-  // This doesn't modify the original variables state shared with step 2
+  // Handle variable value change with live updating
   const handleVariableValueChange = (variableId: string, newValue: string) => {
-    // For step 3, we show variable values but don't modify them
-    // This function is kept for compatibility but should explicitly tell users to go back
+    console.log(`Updating variable ${variableId} to value: ${newValue}`);
+    
+    // Update the variables array
+    const updatedVariables = variables.map(v => 
+      v.id === variableId ? { ...v, value: newValue } : v
+    );
+    
+    // Update variables state
+    setVariables(updatedVariables);
+    
+    // Toast confirmation of update
     toast({
-      title: "Variables are display-only in Step 3",
-      description: "Variable values can only be edited in Step 2. Please go back to edit variables.",
+      title: "Variable updated",
+      description: "The prompt has been updated with your changes",
       variant: "default"
     });
   };
 
+  // Process the prompt with variable replacements
   const getProcessedPrompt = () => {
-    let processedPrompt = finalPrompt;
+    let processed = finalPrompt;
     
     // Only replace variables if they have both a name and value
     const validVariables = variables.filter(v => 
@@ -42,11 +52,16 @@ export const usePromptOperations = (
       // Create a regex that matches the variable name enclosed in {{...}}
       // with optional whitespace inside the braces
       const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
-      processedPrompt = processedPrompt.replace(regex, variable.value || '');
+      processed = processed.replace(regex, variable.value || '');
     });
     
-    return processedPrompt;
+    return processed;
   };
+  
+  // Update the processed prompt whenever variables change
+  useEffect(() => {
+    setProcessedPrompt(getProcessedPrompt());
+  }, [variables, finalPrompt]);
   
   const handleOpenEditPrompt = () => {
     setEditingPrompt(finalPrompt);
