@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export const usePromptOperations = (
   variables: Variable[],
-  setVariables: (vars: Variable[]) => void,
+  setVariables: (vars: Variable[] | ((current: Variable[]) => Variable[])) => void,
   finalPrompt: string,
   setFinalPrompt: (prompt: string) => void,
   showJson: boolean,
@@ -79,14 +79,15 @@ export const usePromptOperations = (
   // Update a variable's value
   const handleVariableValueChange = useCallback((variableId: string, newValue: string) => {
     try {
-      setVariables(current => {
+      // Use the function form of setVariables to properly update the state
+      setVariables((currentVars: Variable[]) => {
         // Ensure current is a valid array
-        if (!Array.isArray(current)) {
-          console.error("Invalid variables array in handleVariableValueChange:", current);
+        if (!Array.isArray(currentVars)) {
+          console.error("Invalid variables array in handleVariableValueChange:", currentVars);
           return [];
         }
         
-        return current.map(v => {
+        return currentVars.map(v => {
           if (v.id === variableId) {
             return { ...v, value: newValue };
           }
@@ -113,21 +114,21 @@ export const usePromptOperations = (
     const promptVariableNames = extractVariablesFromPrompt(editedPrompt);
     
     // Update the variables array
-    setVariables(current => {
+    setVariables((currentVars: Variable[]) => {
       // Ensure current is a valid array
-      if (!Array.isArray(current)) {
-        console.error("Invalid variables array in handleSaveEditedPrompt:", current);
+      if (!Array.isArray(currentVars)) {
+        console.error("Invalid variables array in handleSaveEditedPrompt:", currentVars);
         return [];
       }
       
       // Keep existing variables that are still in the prompt
-      const existingVars = current.filter(v => 
+      const existingVars = currentVars.filter(v => 
         promptVariableNames.includes(v.name)
       );
       
       // Create new variables for any new variable names found
       const newVars = promptVariableNames
-        .filter(name => !current.some(v => v.name === name))
+        .filter(name => !currentVars.some(v => v.name === name))
         .map((name, index) => ({
           id: `v-new-${Date.now()}-${index}`,
           name,
@@ -159,13 +160,13 @@ export const usePromptOperations = (
   const handleAdaptPrompt = useCallback(() => {
     // This is where we would call an API to adapt the prompt
     // For now, we're just handling the simple case
-    handleSaveEditedPrompt(setEditingPrompt);
+    handleSaveEditedPrompt(editingPrompt);
     
     toast({
       title: "Prompt adapted",
       description: "Your prompt has been adapted and saved.",
     });
-  }, [handleSaveEditedPrompt, setEditingPrompt, toast]);
+  }, [handleSaveEditedPrompt, editingPrompt, toast]);
 
   // Copy the processed prompt to clipboard
   const handleCopyPrompt = useCallback(() => {
