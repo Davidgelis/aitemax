@@ -49,21 +49,19 @@ export const useQuestionsAndVariables = (
     // Create a new variables array with the updated variable
     const updatedVariables = variables.map((v) => {
       if (v.id === variableId) {
-        // When a value is provided for name or value, automatically mark as relevant
-        let isRelevant = v.isRelevant;
+        // Create a copy of the variable with the updated field
+        const updatedVar = { ...v, [field]: value };
         
-        // Only update relevance if it's null or we're setting a value
-        if (isRelevant === null || value.trim() !== "") {
-          isRelevant = value.trim() !== "" || 
-            (field === 'name' ? v.value?.trim() !== "" : v.name.trim() !== "");
+        // Update relevance if needed (when a name or value is provided)
+        if (v.isRelevant === null || value.trim() !== "") {
+          if (field === 'name') {
+            // For name changes, mark as relevant if name has content or value has content
+            updatedVar.isRelevant = value.trim() !== "" || (v.value && v.value.trim() !== "");
+          } else if (field === 'value') {
+            // For value changes, mark as relevant if value has content or name has content
+            updatedVar.isRelevant = value.trim() !== "" || v.name.trim() !== "";
+          }
         }
-        
-        // Debug the variable before and after update
-        const updatedVar = { 
-          ...v, 
-          [field]: value, 
-          isRelevant 
-        };
         
         console.log("Variable before update:", v);
         console.log("Variable after update:", updatedVar);
