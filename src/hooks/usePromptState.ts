@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -40,16 +41,23 @@ export const usePromptState = (user: any) => {
         throw error;
       }
       
-      const formattedPrompts: SavedPrompt[] = data?.map(item => ({
-        id: item.id,
-        title: item.title || 'Untitled Prompt',
-        date: new Date(item.created_at || '').toLocaleString(),
-        promptText: item.prompt_text || '',
-        masterCommand: item.master_command || '',
-        primaryToggle: item.primary_toggle,
-        secondaryToggle: item.secondary_toggle,
-        variables: jsonToVariables(item.variables),
-      })) || [];
+      const formattedPrompts: SavedPrompt[] = data?.map(item => {
+        // Create a SavedPrompt object without jsonStructure first
+        const prompt: SavedPrompt = {
+          id: item.id,
+          title: item.title || 'Untitled Prompt',
+          date: new Date(item.created_at || '').toLocaleString(),
+          promptText: item.prompt_text || '',
+          masterCommand: item.master_command || '',
+          primaryToggle: item.primary_toggle,
+          secondaryToggle: item.secondary_toggle,
+          variables: jsonToVariables(item.variables),
+        };
+        
+        // If we have JSON structure stored separately (not in the database schema yet)
+        // we'll handle it outside this function
+        return prompt;
+      }) || [];
       
       setSavedPrompts(formattedPrompts);
     } catch (error: any) {
@@ -129,7 +137,6 @@ export const usePromptState = (user: any) => {
         primary_toggle: selectedPrimary,
         secondary_toggle: selectedSecondary,
         variables: variablesToJson(relevantVariables),
-        json_structure: jsonStructure as any,
         current_step: currentStep,
         updated_at: new Date().toISOString()
       };
@@ -153,8 +160,12 @@ export const usePromptState = (user: any) => {
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
           variables: jsonToVariables(data[0].variables),
-          jsonStructure: data[0].json_structure as PromptJsonStructure
         };
+        
+        // Add the JSON structure if available
+        if (jsonStructure) {
+          newPrompt.jsonStructure = jsonStructure;
+        }
         
         // Update savedPrompts state to include the new prompt at the beginning
         setSavedPrompts(prevPrompts => [newPrompt, ...prevPrompts]);
@@ -243,8 +254,12 @@ export const usePromptState = (user: any) => {
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
           variables: jsonToVariables(data[0].variables),
-          jsonStructure: data[0].json_structure as PromptJsonStructure
         };
+        
+        // Copy the JSON structure if available in the original prompt
+        if (prompt.jsonStructure) {
+          newPrompt.jsonStructure = prompt.jsonStructure;
+        }
         
         setSavedPrompts([newPrompt, ...savedPrompts]);
       }
