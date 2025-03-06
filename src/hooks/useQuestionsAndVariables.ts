@@ -7,7 +7,7 @@ export const useQuestionsAndVariables = (
   questions: Question[],
   setQuestions: (questions: Question[]) => void,
   variables: Variable[],
-  setVariables: (variables: Variable[]) => void,
+  setVariables: (variablesOrUpdateFn: Variable[] | ((current: Variable[]) => Variable[])) => void,
   variableToDelete: string | null,
   setVariableToDelete: (id: string | null) => void,
   user: any = null,
@@ -82,7 +82,7 @@ export const useQuestionsAndVariables = (
 
   const addVariable = useCallback(() => {
     const newVariableId = `v-${Date.now()}`;
-    setVariables(current => [
+    setVariables((current: Variable[]) => [
       ...current,
       {
         id: newVariableId,
