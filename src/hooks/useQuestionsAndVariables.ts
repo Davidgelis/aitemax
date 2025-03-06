@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -101,6 +102,7 @@ export const useQuestionsAndVariables = (
     setVariableToDelete(null);
   };
 
+  // Always allow proceeding to step 3 without any conditions
   const canProceedToStep3 = (): boolean => {
     return true;
   };
