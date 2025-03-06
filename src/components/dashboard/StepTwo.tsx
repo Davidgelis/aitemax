@@ -65,6 +65,7 @@ export const StepTwo = ({
           variableToDelete={variableToDelete}
           setVariableToDelete={setVariableToDelete}
           containerRef={variablesContainerRef}
+          originalPrompt={originalPrompt}
         />
       </div>
 

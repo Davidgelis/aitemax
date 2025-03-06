@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +19,13 @@ export const useQuestionsAndVariables = (
 
   const handleQuestionAnswer = (questionId: string, answer: string) => {
     setQuestions(
-      questions.map((q) => (q.id === questionId ? { ...q, answer } : q))
+      questions.map((q) => {
+        if (q.id === questionId) {
+          // When an answer is provided, automatically mark as relevant
+          return { ...q, answer, isRelevant: answer.trim() !== "" };
+        }
+        return q;
+      })
     );
   };
 
@@ -34,7 +41,17 @@ export const useQuestionsAndVariables = (
     value: string
   ) => {
     setVariables(
-      variables.map((v) => (v.id === variableId ? { ...v, [field]: value } : v))
+      variables.map((v) => {
+        if (v.id === variableId) {
+          // When a value is provided for name or value, automatically mark as relevant
+          const isRelevant = field === 'name' || field === 'value' 
+            ? value.trim() !== "" 
+            : v.isRelevant;
+          
+          return { ...v, [field]: value, isRelevant };
+        }
+        return v;
+      })
     );
   };
 
@@ -64,15 +81,20 @@ export const useQuestionsAndVariables = (
   const canProceedToStep3 = (): boolean => {
     console.log("Checking if can proceed to step 3...");
     
+    // 1. Check if all questions have been evaluated (marked as relevant or not)
     const allQuestionsEvaluated = questions.every(q => 
       q.isRelevant === true || q.isRelevant === false
     );
     
+    // 2. Check if all relevant questions have answers
     const allRelevantQuestionsAnswered = questions.every(q => 
       !q.isRelevant || (q.isRelevant && q.answer && q.answer.trim() !== "")
     );
     
+    // 3. Only check variables that have names (ignore empty variables)
     const namedVariables = variables.filter(v => v.name.trim() !== '');
+    
+    // 4. Check if all named variables have been evaluated
     const allNamedVariablesEvaluated = namedVariables.every(v => 
       v.isRelevant === true || v.isRelevant === false
     );
@@ -82,7 +104,6 @@ export const useQuestionsAndVariables = (
       allRelevantQuestionsAnswered,
       allNamedVariablesEvaluated,
       questionsCount: questions.length,
-      variablesCount: variables.length,
       namedVariablesCount: namedVariables.length,
       questionsData: questions.map(q => ({
         id: q.id,
@@ -96,6 +117,7 @@ export const useQuestionsAndVariables = (
       }))
     });
     
+    // All conditions must be true to proceed
     return (
       allQuestionsEvaluated && 
       allRelevantQuestionsAnswered && 
