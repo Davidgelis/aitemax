@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,11 +73,19 @@ export default function Analytics() {
 
         if (userError) throw userError;
 
-        // Fix for the error: Remove type parameters completely for the RPC call
-        const { data: promptCountData, error: promptError } = await supabase
-          .rpc('get_prompt_counts_per_user');
+        // Different approach: Using a fetch directly with the Supabase API
+        const promptCountResponse = await supabase.functions.invoke('get-prompt-counts-per-user', {
+          method: 'GET',
+        }).catch(() => {
+          // Fallback: If the edge function doesn't exist, make a direct query
+          return supabase.from('token_usage')
+            .select('user_id, count(*)')
+            .group('user_id');
+        });
 
-        if (promptError) throw promptError;
+        if (promptCountResponse.error) throw promptCountResponse.error;
+        
+        const promptCountData = promptCountResponse.data || [];
 
         // Get usernames from profiles
         const { data: profilesData, error: profilesError } = await supabase
@@ -94,12 +103,12 @@ export default function Analytics() {
         // Create a map of user_id to prompt count
         const promptCountMap: Record<string, number> = {};
         
-        // Handle the type properly with a type assertion
-        if (promptCountData) {
-          (promptCountData as PromptCountResult[]).forEach(item => {
-            promptCountMap[item.user_id] = parseInt(item.count);
-          });
-        }
+        // Process the prompt count data
+        promptCountData.forEach((item: any) => {
+          const userId = item.user_id;
+          const count = typeof item.count === 'string' ? parseInt(item.count) : item.count;
+          promptCountMap[userId] = count || 0;
+        });
 
         // Combine the data
         const combinedStats = userData.map(user => ({
