@@ -77,17 +77,22 @@ export const usePromptOperations = (
         const oldValue = variableToUpdate.value;
         const varName = variableToUpdate.name;
         
-        // Update the final prompt text - fix the typing issue here
-        if (oldValue) {
-          // If there was an old value, replace it with the new one
+        // Update the final prompt text - handle empty value case
+        if (oldValue && newValue) {
+          // If there was an old value and new value, replace old with new
           const updatedPrompt = finalPrompt.replace(new RegExp(oldValue, 'g'), newValue);
           setFinalPrompt(updatedPrompt);
-        } else {
-          // If there was no old value, look for {{varName}} pattern and replace it
+        } else if (oldValue && !newValue) {
+          // If value is being cleared, restore the placeholder
+          const updatedPrompt = finalPrompt.replace(new RegExp(oldValue, 'g'), `{{${varName}}}`);
+          setFinalPrompt(updatedPrompt);
+        } else if (!oldValue && newValue) {
+          // If there was no old value but new value exists, replace placeholder with new value
           const pattern = new RegExp(`{{\\s*${varName}\\s*}}`, 'g');
           const updatedPrompt = finalPrompt.replace(pattern, newValue);
           setFinalPrompt(updatedPrompt);
         }
+        // If both old and new values are empty, no need to update the prompt
         
         // Update the variable in state
         return currentVars.map(v => {
