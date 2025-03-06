@@ -1,7 +1,7 @@
 
 import { Edit } from "lucide-react";
 import { Variable } from "../types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 interface FinalPromptDisplayProps {
   finalPrompt: string;
@@ -21,23 +21,41 @@ export const FinalPromptDisplay = ({
   handleOpenEditPrompt
 }: FinalPromptDisplayProps) => {
   const [processedPrompt, setProcessedPrompt] = useState("");
+  const [highlightedVariables, setHighlightedVariables] = useState<Record<string, boolean>>({});
   
   // Ensure variables is a valid array before filtering
   const relevantVariables = Array.isArray(variables) 
     ? variables.filter(v => v && typeof v === 'object' && v?.isRelevant === true) 
     : [];
   
+  // Helper function to escape special characters in regex
+  const escapeRegExp = useCallback((string: string = "") => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }, []);
+  
+  // Update processed prompt when inputs change
   useEffect(() => {
     try {
       if (typeof getProcessedPrompt === 'function') {
         const result = getProcessedPrompt();
         setProcessedPrompt(result || "");
+        
+        // Create highlighted variables mapping
+        const highlighted: Record<string, boolean> = {};
+        if (Array.isArray(relevantVariables)) {
+          relevantVariables.forEach(variable => {
+            if (variable && variable.value && variable.value.trim() !== '') {
+              highlighted[variable.value] = true;
+            }
+          });
+        }
+        setHighlightedVariables(highlighted);
       }
     } catch (error) {
       console.error("Error processing prompt:", error);
       setProcessedPrompt(finalPrompt || "");
     }
-  }, [getProcessedPrompt, finalPrompt, variables]);
+  }, [getProcessedPrompt, finalPrompt, variables, relevantVariables]);
   
   // Render the processed prompt with highlighted variables
   const renderProcessedPrompt = () => {
@@ -64,19 +82,20 @@ export const FinalPromptDisplay = ({
         return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
       }
       
+      // Split into paragraphs for better display
       const paragraphs = processedPrompt.split('\n\n');
       
       return (
         <div className="prose prose-sm max-w-none">
           {paragraphs.map((paragraph, index) => {
-            if (!paragraph) return null;
+            if (!paragraph) return <p key={index}></p>;
             
             let content = paragraph;
             
             // Highlight all variable values in the content
             if (Array.isArray(relevantVariables)) {
               relevantVariables.forEach(variable => {
-                if (variable && variable?.value && variable.value.trim() !== '') {
+                if (variable && variable.value && variable.value.trim() !== '') {
                   try {
                     const regex = new RegExp(`(${escapeRegExp(variable.value)})`, 'gi');
                     content = content.replace(regex, '<span class="variable-highlight">$1</span>');
@@ -97,11 +116,6 @@ export const FinalPromptDisplay = ({
       console.error("Error rendering processed prompt:", error);
       return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
     }
-  };
-
-  // Helper function to escape special characters in regex
-  const escapeRegExp = (string: string = "") => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   };
 
   return (

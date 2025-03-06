@@ -19,7 +19,13 @@ export async function analyzePromptWithAI(
     throw new Error("OpenAI API key is required");
   }
   
-  const userMessage = `Analyze this prompt: "${promptText}"`;
+  // Sanitize and trim the prompt text to avoid empty spaces causing issues
+  const sanitizedPromptText = promptText.trim();
+  if (!sanitizedPromptText) {
+    throw new Error("Prompt text cannot be empty");
+  }
+  
+  const userMessage = `Analyze this prompt: "${sanitizedPromptText}"`;
   
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

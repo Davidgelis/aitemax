@@ -1,6 +1,7 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Variable } from "../types";
+import { useToast } from "@/hooks/use-toast";
 
 interface VariablesSectionProps {
   variables: Variable[];
@@ -12,6 +13,7 @@ export const VariablesSection = ({
   handleVariableValueChange
 }: VariablesSectionProps) => {
   const [localVariableValues, setLocalVariableValues] = useState<Record<string, string>>({});
+  const { toast } = useToast();
   
   // Initialize the local state from the variables
   useEffect(() => {
@@ -31,7 +33,10 @@ export const VariablesSection = ({
     ? variables.filter(v => v && typeof v === 'object' && v.isRelevant === true)
     : [];
   
-  const handleInputChange = (variableId: string, value: string) => {
+  // Debounced variable update handler
+  const handleInputChange = useCallback((variableId: string, value: string) => {
+    if (!variableId) return;
+    
     // Update local state immediately for smooth typing
     setLocalVariableValues(prev => ({
       ...prev,
@@ -44,11 +49,16 @@ export const VariablesSection = ({
         handleVariableValueChange(variableId, value);
       } catch (error) {
         console.error("Error updating variable value:", error);
+        toast({
+          title: "Error updating variable",
+          description: "An error occurred while updating the variable. Please try again.",
+          variant: "destructive"
+        });
       }
     }, 300);
     
     return () => clearTimeout(timeoutId);
-  };
+  }, [handleVariableValueChange, toast]);
   
   if (!relevantVariables.length) {
     return null;
