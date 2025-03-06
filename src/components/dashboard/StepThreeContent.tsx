@@ -1,5 +1,6 @@
+
 import { Edit, Copy, Save, RotateCw } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -59,6 +60,33 @@ export const StepThreeContent = ({
 }: StepThreeContentProps) => {
   const editPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
   const relevantVariables = variables.filter(v => v.isRelevant === true);
+  const [processedPromptHtml, setProcessedPromptHtml] = useState("");
+
+  // Process the prompt and highlight variables
+  useEffect(() => {
+    if (!showJson) {
+      let processedPrompt = finalPrompt;
+      
+      // Create a copy to add highlighted HTML
+      relevantVariables.forEach(variable => {
+        if (variable.name && variable.name.trim() !== '') {
+          const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
+          processedPrompt = processedPrompt.replace(
+            regex, 
+            `<span class="variable-highlight" data-variable-id="${variable.id}">{{${variable.name}}}</span>`
+          );
+        }
+      });
+      
+      // Convert newlines to paragraphs for HTML display
+      setProcessedPromptHtml(processedPrompt.split('\n\n').map(p => `<p>${p}</p>`).join(''));
+    }
+  }, [finalPrompt, relevantVariables, showJson]);
+
+  // Helper function to escape regex special characters
+  const escapeRegExp = (string: string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
@@ -158,7 +186,10 @@ export const StepThreeContent = ({
               </pre>
             ) : (
               <div className="prose prose-sm max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: getProcessedPrompt().split('\n\n').map(p => `<p>${p}</p>`).join('') }} />
+                <div 
+                  dangerouslySetInnerHTML={{ __html: processedPromptHtml }}
+                  className="prompt-with-variables"
+                />
               </div>
             )}
           </div>
@@ -166,15 +197,17 @@ export const StepThreeContent = ({
       </div>
 
       <div className="mb-4 p-3 border rounded-lg bg-background/50">
-        <h4 className="text-sm font-medium mb-2">Variables (display only)</h4>
+        <h4 className="text-sm font-medium mb-2">Variables</h4>
         <div className="grid grid-cols-1 gap-3 max-h-[200px] overflow-y-auto pr-2">
           {relevantVariables.length > 0 ? (
             relevantVariables.map((variable) => (
               <div key={variable.id} className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-medium min-w-[150px] break-words">{variable.name}:</span>
-                <div className="flex-1 h-7 px-2 py-1 bg-[#33fea6]/10 border border-[#33fea6]/20 rounded-md overflow-x-auto text-xs">
-                  {variable.value || ""}
-                </div>
+                <Input
+                  value={variable.value || ""}
+                  onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
+                  className="flex-1 h-7 px-2 py-1 text-xs bg-white border border-[#33fea6] rounded-md"
+                />
               </div>
             ))
           ) : (
