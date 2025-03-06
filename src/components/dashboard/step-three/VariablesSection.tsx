@@ -1,6 +1,7 @@
 
 import { Variable } from "../types";
 import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
 
 interface VariablesSectionProps {
   variables: Variable[];
@@ -77,27 +78,40 @@ export const VariablesSection = ({
       </div>
       
       {isVisible && (
-        <div className="space-y-4">
-          {Object.entries(groupedVariables).map(([category, categoryVariables]) => (
+        <div className="space-y-3">
+          {Object.entries(groupedVariables).map(([category, categoryVariables], categoryIndex) => (
             <div key={category} className="bg-background/50 p-3 rounded-lg">
               <h3 className="text-sm font-medium mb-2">{category}</h3>
-              <div className="grid gap-2">
-                {categoryVariables.map(variable => (
-                  <div key={variable.id} className="grid grid-cols-[1fr,2fr] gap-2">
-                    <div className="flex items-center">
-                      <div className="text-xs py-1 px-2 bg-background rounded-md truncate">
-                        <span className="font-mono">{`{{${variable.name}}}`}</span>
+              <div className="space-y-3">
+                {categoryVariables.map((variable, variableIndex) => {
+                  const globalIndex = categoryIndex + variableIndex + 1;
+                  return (
+                    <div key={variable.id} className="flex gap-3 items-center">
+                      <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
+                        {globalIndex}
+                      </div>
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Input
+                          type="text"
+                          value={variable.name}
+                          readOnly
+                          className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] bg-background focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
+                        />
+                        <Input
+                          type="text"
+                          placeholder="Value"
+                          value={variable.value || ""}
+                          onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
+                          className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
+                            variable.value ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''
+                          }`}
+                          autoComplete="off"
+                          aria-label={`Value for ${variable.name || 'variable'} ${globalIndex}`}
+                        />
                       </div>
                     </div>
-                    <input
-                      type="text"
-                      value={variable.value || ''}
-                      onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
-                      className="text-xs py-1 px-2 w-full bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
-                      placeholder="Enter value"
-                    />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
