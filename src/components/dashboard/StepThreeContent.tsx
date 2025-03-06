@@ -1,4 +1,3 @@
-
 import { Edit, Copy, Save, RotateCw } from "lucide-react";
 import { useRef, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -31,7 +30,7 @@ interface StepThreeContentProps {
   showEditPromptSheet: boolean;
   setShowEditPromptSheet: (show: boolean) => void;
   handleOpenEditPrompt: () => void;
-  handleSaveEditedPrompt: () => void;
+  handleSaveEditedPrompt: (editingPrompt: string) => void;
   handleAdaptPrompt: () => void;
 }
 
@@ -245,7 +244,7 @@ export const StepThreeContent = ({
               </AlertDialogContent>
             </AlertDialog>
             <Button 
-              onClick={handleSaveEditedPrompt}
+              onClick={() => handleSaveEditedPrompt(editingPrompt)}
               className="bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-2"
             >
               <Save className="w-4 h-4" />

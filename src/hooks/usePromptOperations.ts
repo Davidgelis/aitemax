@@ -14,6 +14,7 @@ export const usePromptOperations = (
   masterCommand: string
 ) => {
   const { toast } = useToast();
+  const [editingPromptLocal, setEditingPromptLocal] = useState("");
   
   // Display-only functions for step 3
   // This doesn't modify the original variables state shared with step 2
@@ -52,7 +53,7 @@ export const usePromptOperations = (
     setShowEditPromptSheet(true);
   };
   
-  const handleSaveEditedPrompt = () => {
+  const handleSaveEditedPrompt = (editingPrompt: string) => {
     setFinalPrompt(editingPrompt);
     setShowEditPromptSheet(false);
     
