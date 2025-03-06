@@ -51,7 +51,6 @@ export const useQuestionsAndVariables = (
       id: newId,
       name: "",
       value: "",
-      description: "",
       category: "Custom",
       isRelevant: true,
     };

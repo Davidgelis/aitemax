@@ -8,7 +8,7 @@ import { filterCategoryVariables } from "./constants";
 
 interface VariableListProps {
   variables: Variable[];
-  onVariableChange: (variableId: string, field: 'name' | 'value', content: string) => void;
+  onVariableChange: (variableId: string, field: keyof Variable, content: string) => void;
   onVariableRelevance: (variableId: string, isRelevant: boolean) => void;
   onAddVariable: () => void;
   onDeleteVariable: () => void;

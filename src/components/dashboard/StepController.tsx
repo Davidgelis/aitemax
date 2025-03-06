@@ -165,7 +165,7 @@ export const StepController = ({
       return;
     }
 
-    if (step === 3 && !canProceedToStep3) {
+    if (step === 3 && !canProceedToStep3()) {
       toast({
         title: "Cannot proceed",
         description: "Please mark all questions and variables as relevant or not relevant",
@@ -174,7 +174,7 @@ export const StepController = ({
       return;
     }
 
-    if (step === 3 && canProceedToStep3) {
+    if (step === 3 && canProceedToStep3()) {
       setIsEnhancingPrompt(true);
       
       try {
@@ -243,15 +243,15 @@ export const StepController = ({
           <StepTwoContent
             questions={questions}
             variables={variables}
-            onQuestionRelevance={questionVarOps.handleQuestionRelevance}
-            onQuestionAnswer={questionVarOps.handleQuestionAnswer}
-            onVariableChange={questionVarOps.handleVariableChange}
-            onVariableRelevance={questionVarOps.handleVariableRelevance}
-            onAddVariable={questionVarOps.addVariable}
-            onDeleteVariable={questionVarOps.removeVariable}
+            onQuestionRelevance={handleQuestionRelevance}
+            onQuestionAnswer={handleQuestionAnswer}
+            onVariableChange={handleVariableChange}
+            onVariableRelevance={handleVariableRelevance}
+            onAddVariable={addVariable}
+            onDeleteVariable={() => removeVariable(variableToDelete || "")}
             variableToDelete={variableToDelete}
             setVariableToDelete={setVariableToDelete}
-            canProceedToStep3={questionVarOps.canProceedToStep3}
+            canProceedToStep3={canProceedToStep3()}
             onContinue={() => handleStepChange(3)}
             questionsContainerRef={questionsContainerRef}
             variablesContainerRef={variablesContainerRef}
@@ -271,19 +271,19 @@ export const StepController = ({
             showJson={showJson}
             setShowJson={setShowJson}
             finalPrompt={finalPrompt}
-            getProcessedPrompt={promptOperations.getProcessedPrompt}
+            getProcessedPrompt={getProcessedPrompt}
             variables={variables}
-            handleVariableValueChange={promptOperations.handleVariableValueChange}
-            handleCopyPrompt={promptOperations.handleCopyPrompt}
+            handleVariableValueChange={handleVariableValueChange}
+            handleCopyPrompt={handleCopyPrompt}
             handleSavePrompt={handleSavePrompt}
-            handleRegenerate={promptOperations.handleRegenerate}
+            handleRegenerate={handleRegenerate}
             editingPrompt={editingPrompt}
             setEditingPrompt={setEditingPrompt}
             showEditPromptSheet={showEditPromptSheet}
             setShowEditPromptSheet={setShowEditPromptSheet}
-            handleOpenEditPrompt={promptOperations.handleOpenEditPrompt}
-            handleSaveEditedPrompt={promptOperations.handleSaveEditedPrompt}
-            handleAdaptPrompt={promptOperations.handleAdaptPrompt}
+            handleOpenEditPrompt={handleOpenEditPrompt}
+            handleSaveEditedPrompt={handleSaveEditedPrompt}
+            handleAdaptPrompt={handleAdaptPrompt}
           />
         );
 
