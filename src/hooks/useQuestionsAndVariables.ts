@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -103,13 +102,9 @@ export const useQuestionsAndVariables = (
   };
 
   const canProceedToStep3 = (): boolean => {
-    console.log("Checking if can proceed to step 3...");
-    // Always return true since we're freeing the Continue button from restrictions
     return true;
   };
 
-  // Function to prepare data before enhancing prompt
-  // Automatically marks empty questions and variables as not relevant
   const prepareDataForEnhancement = () => {
     // Mark all unanswered or unreviewed questions as not relevant
     const updatedQuestions = questions.map(q => {
@@ -219,6 +214,7 @@ export const useQuestionsAndVariables = (
     removeVariable,
     canProceedToStep3,
     enhancePromptWithGPT,
-    isEnhancing
+    isEnhancing,
+    prepareDataForEnhancement
   };
 };

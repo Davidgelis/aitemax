@@ -1,4 +1,3 @@
-
 import { X, FileText, Edit } from "lucide-react";
 import { Question } from "./types";
 import { RefObject, useState } from "react";
@@ -41,6 +40,14 @@ export const QuestionList = ({
 
   // Get all categories
   const categories = Object.keys(groupedQuestions);
+
+  // Function to clean question text - removing prefixes and asterisks
+  const cleanQuestionText = (text: string): string => {
+    // Remove category prefixes with asterisks like "**Task**:" or "Task:"
+    return text.replace(/^\s*(\*\*)?(?:Task|Persona|Conditions|Instructions)(\*\*)?\s*:\s*/i, '')
+      // Also remove any remaining asterisks
+      .replace(/\*\*/g, '');
+  };
 
   // Function to open the response editing sheet
   const handleEditResponse = (question: Question) => {
@@ -122,7 +129,7 @@ export const QuestionList = ({
                       <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
                         {index + 1}
                       </div>
-                      <span className="text-card-foreground">{question.text}</span>
+                      <span className="text-card-foreground">{cleanQuestionText(question.text)}</span>
                       {question.isRelevant !== false && (
                         <Edit className="w-4 h-4 ml-2 opacity-0 group-hover:opacity-80 text-[#33fea6]" />
                       )}
