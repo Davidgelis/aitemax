@@ -35,6 +35,7 @@ export const StepController = ({
   
   const { toast } = useToast();
   
+  // Extract what we need from promptState
   const {
     promptText, setPromptText,
     questions, setQuestions,
@@ -56,6 +57,7 @@ export const StepController = ({
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
   
+  // Get the current prompt ID if viewing a saved prompt
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.prompt_text === promptText)?.id || null
     : null;
@@ -69,8 +71,8 @@ export const StepController = ({
     setCurrentStep,
     selectedPrimary,
     selectedSecondary,
-    user,
-    currentPromptId
+    user, // Pass user for token tracking
+    currentPromptId // Pass prompt ID for token tracking
   );
   
   const { isLoading: isAnalyzing, currentLoadingMessage, handleAnalyze } = promptAnalysis;
@@ -82,8 +84,8 @@ export const StepController = ({
     setVariables,
     variableToDelete,
     setVariableToDelete,
-    user,
-    currentPromptId
+    user, // Pass user for token tracking
+    currentPromptId // Pass prompt ID for token tracking
   );
   
   const {
@@ -95,15 +97,14 @@ export const StepController = ({
     removeVariable,
     canProceedToStep3,
     enhancePromptWithGPT,
-    isEnhancing,
-    prepareDataForEnhancement
+    isEnhancing
   } = questionVarOps;
   
   const promptOperations = usePromptOperations(
     variables,
     setVariables,
     finalPrompt,
-    setFinalPrompt,
+    setFinalPrompt, // Pass setFinalPrompt to allow updating
     showJson,
     setEditingPrompt,
     setShowEditPromptSheet,
@@ -135,6 +136,7 @@ export const StepController = ({
   };
 
   const handleStepChange = async (step: number, bypass: boolean = false) => {
+    // If viewing a saved prompt, only allow going to step 3
     if (isViewingSavedPrompt && step !== 3) {
       return;
     }
@@ -162,6 +164,7 @@ export const StepController = ({
       return;
     }
 
+    // For step 3, we now always proceed, as we've removed the restrictions
     if (step === 3) {
       setIsEnhancingPrompt(true);
       
@@ -182,6 +185,7 @@ export const StepController = ({
   };
 
   const handleDirectJump = (step: number) => {
+    // If viewing a saved prompt, only allow going to step 3
     if (isViewingSavedPrompt && step !== 3) {
       return;
     }
