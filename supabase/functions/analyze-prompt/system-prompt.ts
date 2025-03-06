@@ -36,6 +36,8 @@ export function createSystemPrompt(primaryToggle: string | null, secondaryToggle
     - Primary toggle: ${primaryToggle || 'None'}
     - Secondary toggle: ${secondaryToggle || 'None'}
     
+    IMPORTANT: The enhanced prompt MUST be structured in clear sections labeled "**Task:**", "**Persona:**", "**Conditions:**", and "**Instructions:**". Each section should be on its own line and clearly formatted.
+    
     IMPORTANT: Questions and variables must be clearly distinct:
     - Questions seek CONTEXT to help understand requirements and usage scenarios
     - Variables are SPECIFIC PLACEHOLDERS in the prompt that the user will want to modify

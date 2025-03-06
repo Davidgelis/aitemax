@@ -88,7 +88,7 @@ export const useQuestionsAndVariables = (
       name: "",
       value: "",
       category: "Custom",
-      isRelevant: null,
+      isRelevant: true,
     };
     console.log("Adding new variable:", newVariable);
     setVariables([...variables, newVariable]);
