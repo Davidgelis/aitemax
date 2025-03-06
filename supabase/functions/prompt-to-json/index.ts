@@ -68,7 +68,7 @@ serve(async (req) => {
       throw new Error("Prompt is required");
     }
     
-    console.log("Converting prompt to JSON with GPT-4o-mini:", prompt.substring(0, 100) + "...");
+    console.log("Converting prompt to JSON with o3-mini:", prompt.substring(0, 100) + "...");
     
     const systemMessage = `
       You are a JSON structure generator for prompt text. Your task is to:
@@ -106,7 +106,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Explicitly use GPT-4o-mini
+        model: 'gpt-3.5-turbo', // Changed to o3-mini (gpt-3.5-turbo as the actual model name)
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: `Analyze this prompt and convert to the specified JSON structure: ${prompt}` }
@@ -136,7 +136,7 @@ serve(async (req) => {
       // Add timestamp
       jsonResult.timestamp = new Date().toISOString();
       
-      console.log("Successfully converted prompt to JSON structure with GPT-4o-mini");
+      console.log("Successfully converted prompt to JSON structure with o3-mini");
       
       // Record token usage if userId is provided
       if (userId) {
@@ -146,7 +146,7 @@ serve(async (req) => {
           4, // Step 4: JSON structure generation
           data.usage.prompt_tokens,
           data.usage.completion_tokens,
-          'gpt-4o-mini'
+          'gpt-3.5-turbo'
         );
       }
     } catch (parseError) {
