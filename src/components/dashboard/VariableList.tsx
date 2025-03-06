@@ -70,7 +70,7 @@ export const VariableList = ({
 
   // Handle marking a variable as not relevant (through delete)
   const handleDelete = (id: string) => {
-    // IMPORTANT: Always mark as not relevant before removing
+    // Always mark as not relevant before removing
     onVariableRelevance(id, false);
     
     // Add a small delay to ensure state updates before removing
@@ -103,7 +103,7 @@ export const VariableList = ({
       </div>
       
       <div ref={containerRef} className="max-h-[280px] overflow-y-auto pr-2 space-y-4">
-        {!hasValidVariables && (
+        {!hasValidVariables && variables.length === 0 && (
           <div className="text-center text-muted-foreground py-4">
             No variables available
           </div>

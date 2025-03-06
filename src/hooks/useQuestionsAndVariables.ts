@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +39,8 @@ export const useQuestionsAndVariables = (
     field: keyof Variable,
     value: string
   ) => {
+    console.log(`Updating variable ${variableId}, field: ${field}, value: ${value}`);
+    
     setVariables(
       variables.map((v) => {
         if (v.id === variableId) {
@@ -62,7 +63,7 @@ export const useQuestionsAndVariables = (
   };
 
   const addVariable = () => {
-    const newId = `v${variables.length + 1}`;
+    const newId = `v${Date.now()}`;
     const newVariable: Variable = {
       id: newId,
       name: "",
@@ -115,11 +116,6 @@ export const useQuestionsAndVariables = (
       questionsCount: questions.length,
       namedVariablesCount: variablesWithNameOrValue.length,
       emptyVariablesCount: emptyVariables.length,
-      questionsData: questions.map(q => ({
-        id: q.id,
-        isRelevant: q.isRelevant,
-        hasAnswer: q.answer && q.answer.trim() !== ""
-      })),
       variablesData: variables.map(v => ({
         id: v.id,
         name: v.name,
