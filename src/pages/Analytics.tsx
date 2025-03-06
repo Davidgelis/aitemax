@@ -73,9 +73,10 @@ export default function Analytics() {
 
         if (userError) throw userError;
 
-        // Get prompt counts per user - using count aggregation function
+        // Get prompt counts per user - using the RPC function
+        // Fixed: Added proper type parameters for the RPC function
         const { data: promptCountData, error: promptError } = await supabase
-          .rpc<PromptCountResult>('get_prompt_counts_per_user');
+          .rpc('get_prompt_counts_per_user');
 
         if (promptError) throw promptError;
 
@@ -93,10 +94,11 @@ export default function Analytics() {
         }, {} as Record<string, string | null>);
 
         // Create a map of user_id to prompt count
-        const promptCountMap = (promptCountData || []).reduce((acc, item) => {
+        // Fixed: Check if promptCountData exists and ensure it's treated as an array
+        const promptCountMap = promptCountData ? promptCountData.reduce((acc: Record<string, number>, item: PromptCountResult) => {
           acc[item.user_id] = parseInt(item.count);
           return acc;
-        }, {} as Record<string, number>);
+        }, {}) : {};
 
         // Combine the data
         const combinedStats = userData.map(user => ({
