@@ -49,6 +49,11 @@ export const QuestionList = ({
     setEditingQuestion({...question});
     setCurrentAnswer(question.answer || '');
     setEditResponseSheet(true);
+    
+    // Automatically mark as relevant when editing
+    if (question.isRelevant === null) {
+      onQuestionRelevance(question.id, true);
+    }
   };
 
   // Function to save the edited response

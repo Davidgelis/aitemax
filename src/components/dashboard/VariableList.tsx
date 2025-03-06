@@ -65,7 +65,11 @@ export const VariableList = ({
   const handleDelete = (id: string) => {
     // First mark as not relevant, then remove it
     onVariableRelevance(id, false);
-    onDeleteVariable();
+    
+    // Add a small delay to ensure state updates before removing
+    setTimeout(() => {
+      onDeleteVariable();
+    }, 10);
   };
 
   return (
@@ -97,7 +101,13 @@ export const VariableList = ({
                       <Input
                         placeholder="Variable name"
                         value={variable.name}
-                        onChange={(e) => onVariableChange(variable.id, 'name', e.target.value)}
+                        onChange={(e) => {
+                          // When a name is added, mark as relevant automatically
+                          if (e.target.value.trim() !== '' && variable.isRelevant === null) {
+                            onVariableRelevance(variable.id, true);
+                          }
+                          onVariableChange(variable.id, 'name', e.target.value);
+                        }}
                         className="flex-1 h-9"
                       />
                       <Input
@@ -111,7 +121,13 @@ export const VariableList = ({
                       <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
                         <AlertDialogTrigger asChild>
                           <button
-                            onClick={() => setVariableToDelete(variable.id)}
+                            onClick={() => {
+                              // Mark as edited/evaluated when delete button is clicked
+                              if (variable.isRelevant === null) {
+                                onVariableRelevance(variable.id, false);
+                              }
+                              setVariableToDelete(variable.id);
+                            }}
                             className="p-2 rounded-full hover:bg-[#33fea6]/20"
                             title="Delete variable"
                           >

@@ -63,35 +63,54 @@ export const useQuestionsAndVariables = (
   };
 
   const canProceedToStep3 = (): boolean => {
-    // Make sure all questions have been marked as relevant or not
+    console.log("Checking if can proceed to step 3...");
+    
+    // 1. Make sure all questions have been evaluated (answered or dismissed)
     const allQuestionsEvaluated = questions.every(
       (q) => q.isRelevant === true || q.isRelevant === false
     );
-
-    // For variables, only check those that haven't been deleted
-    // A variable is either explicitly marked as relevant/not relevant or has been deleted
-    const remainingVariables = variables.filter(v => v.name.trim() !== '');
-    const allVariablesEvaluated = remainingVariables.every(
-      (v) => v.isRelevant === true || v.isRelevant === false
-    );
-
-    // Make sure all relevant questions have answers
+    
+    // 2. For questions marked as relevant, make sure they have answers
     const allRelevantQuestionsAnswered = questions.every(
       (q) => !q.isRelevant || (q.isRelevant && q.answer && q.answer.trim() !== "")
     );
-
-    // Add logging to help diagnose the issue
+    
+    // 3. For variables, we only care about the ones with names (not deleted)
+    // Empty named variables are considered deleted/irrelevant
+    const variablesWithNames = variables.filter(v => v.name.trim() !== '');
+    
+    // 4. Make sure all named variables have been explicitly marked as relevant or not relevant
+    const allNamedVariablesEvaluated = variablesWithNames.length === 0 || 
+      variablesWithNames.every(v => v.isRelevant === true || v.isRelevant === false);
+    
+    // Add comprehensive logging to help diagnose the issue
     console.log({
       allQuestionsEvaluated,
-      allVariablesEvaluated,
       allRelevantQuestionsAnswered,
-      questionCount: questions.length,
-      variableCount: variables.length,
-      remainingVariablesCount: remainingVariables.length
+      allNamedVariablesEvaluated,
+      questionsCount: questions.length,
+      variablesCount: variables.length,
+      namedVariablesCount: variablesWithNames.length,
+      questionsData: questions.map(q => ({
+        id: q.id,
+        isRelevant: q.isRelevant,
+        hasAnswer: q.answer && q.answer.trim() !== ""
+      })),
+      variablesData: variablesWithNames.map(v => ({
+        id: v.id,
+        name: v.name,
+        isRelevant: v.isRelevant
+      }))
     });
-
+    
+    // We can proceed if:
+    // 1. All questions are evaluated (relevant or not)
+    // 2. All relevant questions have answers
+    // 3. All named variables have been evaluated (relevant or not)
     return (
-      allQuestionsEvaluated && allVariablesEvaluated && allRelevantQuestionsAnswered
+      allQuestionsEvaluated && 
+      allRelevantQuestionsAnswered && 
+      allNamedVariablesEvaluated
     );
   };
 
