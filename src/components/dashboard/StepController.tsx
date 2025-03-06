@@ -164,16 +164,8 @@ export const StepController = ({
       return;
     }
 
-    if (step === 3 && !canProceedToStep3()) {
-      toast({
-        title: "Cannot proceed",
-        description: "Please mark all questions and variables as relevant or not relevant",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (step === 3 && canProceedToStep3()) {
+    // For step 3, we now always proceed, as we've removed the restrictions
+    if (step === 3) {
       setIsEnhancingPrompt(true);
       
       try {

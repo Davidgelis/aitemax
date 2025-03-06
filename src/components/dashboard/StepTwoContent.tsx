@@ -3,6 +3,7 @@ import { Question, Variable } from "./types";
 import { RefObject } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
+import { Info } from "lucide-react";
 
 interface StepTwoContentProps {
   questions: Question[];
@@ -67,11 +68,14 @@ export const StepTwoContent = ({
         />
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex flex-col items-end gap-2">
+        <div className="flex items-center text-sm text-[#545454] gap-1 italic">
+          <Info size={14} />
+          <span>Please make sure to fill out everything before continuing.</span>
+        </div>
         <button 
           onClick={onContinue} 
-          className={`aurora-button ${!canProceedToStep3 ? 'opacity-70 cursor-not-allowed' : ''}`} 
-          disabled={!canProceedToStep3}
+          className="aurora-button"
         >
           Continue
         </button>

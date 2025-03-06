@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -103,55 +104,36 @@ export const useQuestionsAndVariables = (
 
   const canProceedToStep3 = (): boolean => {
     console.log("Checking if can proceed to step 3...");
-    
-    // 1. Check if all questions have been evaluated (marked as relevant or not)
-    const allQuestionsEvaluated = questions.every(q => 
-      q.isRelevant === true || q.isRelevant === false
-    );
-    
-    // 2. Check if all relevant questions have answers
-    const allRelevantQuestionsAnswered = questions.every(q => 
-      !q.isRelevant || (q.isRelevant && q.answer && q.answer.trim() !== "")
-    );
-    
-    // 3. For variables, only worry about those with names - these are the ones that need evaluation
-    // We're being less strict - if a variable has a name OR value, we require it to be evaluated
-    const variablesWithNameOrValue = variables.filter(v => 
-      v.name.trim() !== '' || (v.value && v.value.trim() !== '')
-    );
-    
-    // 4. Check if all named variables have been evaluated (marked as relevant or not)
-    const allNamedVariablesEvaluated = variablesWithNameOrValue.every(v => 
-      v.isRelevant === true || v.isRelevant === false
-    );
-    
-    // 5. For empty variables (no name and no value), we'll automatically consider them as evaluated
-    const emptyVariables = variables.filter(v => 
-      v.name.trim() === '' && (!v.value || v.value.trim() === '')
-    );
-    
-    // For debugging purposes
-    console.log({
-      allQuestionsEvaluated,
-      allRelevantQuestionsAnswered,
-      allNamedVariablesEvaluated,
-      questionsCount: questions.length,
-      namedVariablesCount: variablesWithNameOrValue.length,
-      emptyVariablesCount: emptyVariables.length,
-      variablesData: variables.map(v => ({
-        id: v.id,
-        name: v.name,
-        value: v.value,
-        isRelevant: v.isRelevant
-      }))
+    // Always return true since we're freeing the Continue button from restrictions
+    return true;
+  };
+
+  // Function to prepare data before enhancing prompt
+  // Automatically marks empty questions and variables as not relevant
+  const prepareDataForEnhancement = () => {
+    // Mark all unanswered or unreviewed questions as not relevant
+    const updatedQuestions = questions.map(q => {
+      if (q.isRelevant === null || (q.isRelevant === true && (!q.answer || q.answer.trim() === ""))) {
+        return { ...q, isRelevant: false };
+      }
+      return q;
     });
-    
-    // All conditions must be true to proceed
-    return (
-      allQuestionsEvaluated && 
-      allRelevantQuestionsAnswered && 
-      allNamedVariablesEvaluated
-    );
+    setQuestions(updatedQuestions);
+
+    // Mark all empty or unreviewed variables as not relevant
+    const updatedVariables = variables.map(v => {
+      if (v.isRelevant === null || v.name.trim() === "" || v.value.trim() === "") {
+        return { ...v, isRelevant: false };
+      }
+      return v;
+    });
+    setVariables(updatedVariables);
+
+    // Return the cleaned data
+    return {
+      updatedQuestions,
+      updatedVariables
+    };
   };
 
   const enhancePromptWithGPT = async (
@@ -163,11 +145,18 @@ export const useQuestionsAndVariables = (
     setIsEnhancing(true);
     
     try {
-      const answeredQuestions = questions.filter(
+      // Prepare data first - mark empty items as not relevant
+      const { updatedQuestions, updatedVariables } = prepareDataForEnhancement();
+      
+      // Filter to only answered questions that are marked as relevant
+      const answeredQuestions = updatedQuestions.filter(
         (q) => q.isRelevant && q.answer && q.answer.trim() !== ""
       );
       
-      const relevantVariables = variables.filter((v) => v.isRelevant);
+      // Filter to only variables with both name and value that are marked as relevant
+      const relevantVariables = updatedVariables.filter(
+        (v) => v.isRelevant && v.name.trim() !== "" && v.value.trim() !== ""
+      );
       
       const payload: any = {
         originalPrompt,
