@@ -1,3 +1,4 @@
+
 import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText, Clock, BarChart } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -26,6 +27,7 @@ interface UserSidebarProps {
   isLoadingDrafts?: boolean;
   loadDraft?: (draft: any) => void;
   handleDeleteDraft?: (id: string) => void;
+  currentDraftId?: string | null;
 }
 
 export const UserSidebar = ({
