@@ -113,7 +113,7 @@ export const FinalPromptDisplay = ({
       if (!variable || !variable.name) return;
       
       try {
-        const displayName = variable.code || variable.name;
+        const displayName = variable.code || `VAR_${variable.id}`;
         const regex = new RegExp(`{{\\s*(${escapeRegExp(variable.name)})\\s*}}`, 'g');
         processedText = processedText.replace(regex, 
           `<span class="unresolved-variable">{{${displayName}}}</span>`);

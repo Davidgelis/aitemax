@@ -82,17 +82,20 @@ export const useQuestionsAndVariables = (
 
   const addVariable = useCallback(() => {
     const newVariableId = `v-${Date.now()}`;
-    setVariables((current: Variable[]) => [
-      ...current,
-      {
-        id: newVariableId,
-        name: '',
-        value: '',
-        isRelevant: null,
-        category: 'Custom',
-        code: `VAR_${current.length + 1}`
-      }
-    ]);
+    setVariables((current: Variable[]) => {
+      const newCode = `VAR_${current.length + 1}`;
+      return [
+        ...current,
+        {
+          id: newVariableId,
+          name: '',
+          value: '',
+          isRelevant: null,
+          category: 'Custom',
+          code: newCode // This will be used internally for matching in step 3
+        }
+      ];
+    });
   }, [setVariables]);
 
   const removeVariable = () => {

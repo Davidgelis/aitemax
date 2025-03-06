@@ -1,4 +1,3 @@
-
 import { Plus, Trash } from "lucide-react";
 import { Variable } from "./types";
 import { RefObject, useState, useEffect } from "react";
@@ -175,7 +174,7 @@ export const VariableList = ({
                 <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
                   {index + 1}
                 </div>
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Input
                     type="text"
                     placeholder="Variable name"
@@ -184,15 +183,6 @@ export const VariableList = ({
                     className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
                     autoComplete="off"
                     aria-label={`Name for variable ${index + 1}`}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="Variable code"
-                    value={variableCodes[variable.id] || `VAR_${index + 1}`}
-                    onChange={(e) => handleCodeChange(variable.id, e.target.value)}
-                    className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] bg-[#F0F0F0] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
-                    autoComplete="off"
-                    aria-label={`Code for variable ${index + 1}`}
                   />
                   <Input
                     type="text"
