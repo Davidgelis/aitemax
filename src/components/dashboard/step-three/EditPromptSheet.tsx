@@ -37,28 +37,6 @@ export const EditPromptSheet = ({
       }, 100);
     }
   }, [showEditPromptSheet]);
-  
-  // Helper to insert variable template at cursor position
-  const insertVariableTemplate = () => {
-    if (!editPromptTextareaRef.current) return;
-    
-    const textarea = editPromptTextareaRef.current;
-    const cursorPos = textarea.selectionStart;
-    const textBefore = textarea.value.substring(0, cursorPos);
-    const textAfter = textarea.value.substring(textarea.selectionEnd);
-    
-    const newText = `${textBefore}{{variableName}}${textAfter}`;
-    setEditingPrompt(newText);
-    
-    // Set cursor position inside the variable braces
-    setTimeout(() => {
-      if (editPromptTextareaRef.current) {
-        const newCursorPos = cursorPos + 2; // After the opening {{
-        editPromptTextareaRef.current.focus();
-        editPromptTextareaRef.current.setSelectionRange(newCursorPos, newCursorPos + 12); // Select "variableName"
-      }
-    }, 0);
-  };
 
   return (
     <Sheet open={showEditPromptSheet} onOpenChange={setShowEditPromptSheet}>
@@ -70,16 +48,6 @@ export const EditPromptSheet = ({
           </SheetDescription>
         </SheetHeader>
         <div className="py-4">
-          <div className="mb-2 flex justify-end">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={insertVariableTemplate} 
-              className="text-xs"
-            >
-              Insert Variable
-            </Button>
-          </div>
           <textarea
             ref={editPromptTextareaRef}
             value={editingPrompt}
