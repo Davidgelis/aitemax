@@ -105,24 +105,6 @@ serve(async (req) => {
       "Instructions": "Follow these step-by-step guidelines to correct and enhance the input prompt:\n\n1. Outline the Approach:\n   - Briefly describe your methodology for analyzing and enhancing the prompt, taking into account its original intent and length.\n\n2. Analyze the Input:\n   - Identify key components, intentions, and areas for improvement. Determine whether the input is minimal or detailed, and adjust your enhancement process accordingly.\n\n3. Synthesize and Organize:\n   - Combine your analysis into a coherent, revised version of the prompt. Important: Ensure that the final output of the corrected prompt is strictly structured into the four pillars: Task, Persona, Conditions, and Instructions.\n\n4. Finalize the Corrected Prompt:\n   - Ensure the final version is a complete, standalone prompt capable of generating high-quality, contextually rich responses. If any parts lack sufficient context, leave clearly labeled placeholders (e.g., \"[Context Needed]\") for the user to supply additional details.\n\n5. Include a Notes Section:\n   - Append a \"Notes\" section at the end for any extra clarifications, examples, or commentaries. This section may include specific instructions for various scenarios (e.g., project planning, creative writing, educational content)."
       
       ADDITIONALLY, come up with a short, concise title (5 words or less) that captures the essence of the prompt. The title should be innovative and suitable for the prompt's purpose. Place this title at the very beginning of your response, before the Task section, formatted as "**[TITLE]**".
-      
-      IMPORTANT: Format your response with the following EXACT section headers:
-      **[TITLE]**
-      
-      **Task:**
-      (content)
-      
-      **Persona:**
-      (content)
-      
-      **Conditions:**
-      (content)
-      
-      **Instructions:**
-      (content)
-      
-      **Notes:**
-      (content if needed)
       `
     };
 

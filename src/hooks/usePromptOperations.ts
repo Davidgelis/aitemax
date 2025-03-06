@@ -34,10 +34,11 @@ export const usePromptOperations = (
       let processed = finalPrompt;
       const highlightPositions: Record<string, string[]> = {};
       
-      // First, replace template variables like {{VariableName}} with their values
+      // Only replace variables if they have both a name and value
       const validVariables = safeVariables.filter(v => 
         v && v.isRelevant === true && 
-        v.name && v.name.trim() !== ''
+        v.name && v.name.trim() !== '' && 
+        v.value && v.value.trim() !== ''
       );
       
       validVariables.forEach(variable => {
@@ -52,20 +53,19 @@ export const usePromptOperations = (
           if (variable.value) {
             highlightPositions[variable.id] = [];
             
-            // Replace the variable placeholders with their values
-            processed = processed.replace(regex, variable.value || '');
+            // Find all occurrences of this variable value in the text
+            const tempProcessed = processed.replace(regex, variable.value);
             
             // Create a new regex for each search to reset lastIndex
             const valueRegex = new RegExp(escapeRegExp(variable.value), 'g');
             let match;
             
-            while ((match = valueRegex.exec(processed)) !== null) {
+            while ((match = valueRegex.exec(tempProcessed)) !== null) {
               highlightPositions[variable.id].push(variable.value);
             }
-          } else {
-            // If there's no value, replace with an empty string
-            processed = processed.replace(regex, '');
           }
+          
+          processed = processed.replace(regex, variable.value || '');
         } catch (error) {
           console.error(`Error processing variable ${variable.name}:`, error);
         }
@@ -115,6 +115,15 @@ export const usePromptOperations = (
       
       // Update variables state
       setVariables(updatedVariables);
+      
+      // Get the old value to track replacements
+      const oldValue = safeVariables.find(v => v.id === variableId)?.value || '';
+      
+      // If we're doing an empty value update and there was no previous value, just return
+      if (newValue.trim() === '' && oldValue.trim() === '') {
+        setIsProcessing(false);
+        return;
+      }
       
       // Process the prompt again with updated variables on next tick
       setTimeout(() => {

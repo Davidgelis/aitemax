@@ -1,9 +1,7 @@
 
 import { Edit } from "lucide-react";
 import { Variable } from "../types";
-import { useEffect, useState, useCallback, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from "react";
 
 interface FinalPromptDisplayProps {
   finalPrompt: string;
@@ -12,17 +10,6 @@ interface FinalPromptDisplayProps {
   showJson: boolean;
   masterCommand: string;
   handleOpenEditPrompt: () => void;
-}
-
-interface PromptSection {
-  type: string;
-  content: string;
-  variables: {name: string, value: string}[];
-}
-
-interface PromptJsonStructure {
-  title: string;
-  sections: PromptSection[];
 }
 
 export const FinalPromptDisplay = ({
@@ -34,110 +21,30 @@ export const FinalPromptDisplay = ({
   handleOpenEditPrompt
 }: FinalPromptDisplayProps) => {
   const [processedPrompt, setProcessedPrompt] = useState("");
-  const [highlightedVariables, setHighlightedVariables] = useState<Record<string, boolean>>({});
-  const [jsonStructure, setJsonStructure] = useState<PromptJsonStructure | null>(null);
-  const [isLoadingJson, setIsLoadingJson] = useState(false);
-  const [jsonError, setJsonError] = useState<string | null>(null);
-  const previousPromptRef = useRef<string>("");
-  const { toast } = useToast();
   
   // Ensure variables is a valid array before filtering
   const relevantVariables = Array.isArray(variables) 
     ? variables.filter(v => v && typeof v === 'object' && v?.isRelevant === true) 
     : [];
   
-  // Helper function to escape special characters in regex
-  const escapeRegExp = useCallback((string: string = "") => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }, []);
-  
-  // Convert the prompt to JSON structure when it changes
-  useEffect(() => {
-    const convertPromptToJson = async () => {
-      // Skip if final prompt is empty or hasn't changed
-      if (!finalPrompt || finalPrompt === previousPromptRef.current) {
-        return;
-      }
-      
-      previousPromptRef.current = finalPrompt;
-      setIsLoadingJson(true);
-      setJsonError(null);
-      
-      try {
-        const { data, error } = await supabase.functions.invoke('prompt-to-json', {
-          body: { promptText: finalPrompt }
-        });
-        
-        if (error) {
-          console.error("Error converting prompt to JSON:", error);
-          setJsonError("Failed to parse prompt structure");
-          setJsonStructure(null);
-        } else if (data?.jsonStructure) {
-          console.log("Received JSON structure:", data.jsonStructure);
-          setJsonStructure(data.jsonStructure);
-        } else if (data?.error) {
-          console.error("Edge function error:", data.error);
-          setJsonError(data.error);
-          setJsonStructure(null);
-        }
-      } catch (error) {
-        console.error("Exception during prompt-to-json call:", error);
-        setJsonError("Failed to process prompt structure");
-        setJsonStructure(null);
-      } finally {
-        setIsLoadingJson(false);
-      }
-    };
-    
-    convertPromptToJson();
-  }, [finalPrompt]);
-  
-  // Update processed prompt when inputs change
   useEffect(() => {
     try {
       if (typeof getProcessedPrompt === 'function') {
         const result = getProcessedPrompt();
         setProcessedPrompt(result || "");
-        
-        // Create highlighted variables mapping
-        const highlighted: Record<string, boolean> = {};
-        if (Array.isArray(relevantVariables)) {
-          relevantVariables.forEach(variable => {
-            if (variable && variable.value && variable.value.trim() !== '') {
-              highlighted[variable.value] = true;
-            }
-          });
-        }
-        setHighlightedVariables(highlighted);
       }
     } catch (error) {
       console.error("Error processing prompt:", error);
       setProcessedPrompt(finalPrompt || "");
     }
-  }, [getProcessedPrompt, finalPrompt, variables, relevantVariables]);
+  }, [getProcessedPrompt, finalPrompt, variables]);
   
-  // Render JSON view of the prompt structure
-  const renderJsonView = () => {
-    if (isLoadingJson) {
-      return <div className="text-center py-4">Parsing prompt structure...</div>;
-    }
-    
-    if (jsonError) {
-      return <div className="text-center py-4 text-red-500">Error: {jsonError}</div>;
-    }
-    
-    if (jsonStructure) {
-      return (
-        <pre className="text-xs font-mono overflow-auto max-h-[400px]">
-          {JSON.stringify(jsonStructure, null, 2)}
-        </pre>
-      );
-    }
-    
+  // Render the processed prompt with highlighted variables
+  const renderProcessedPrompt = () => {
     if (showJson) {
       try {
         return (
-          <pre className="text-xs font-mono overflow-auto max-h-[400px]">
+          <pre className="text-xs font-mono">
             {JSON.stringify({ 
               prompt: finalPrompt || "", 
               masterCommand: masterCommand || "",
@@ -150,15 +57,6 @@ export const FinalPromptDisplay = ({
         return <pre className="text-xs font-mono">Error rendering JSON</pre>;
       }
     }
-    
-    return null;
-  };
-  
-  // Render the processed prompt with highlighted variables
-  const renderProcessedPrompt = () => {
-    if (showJson) {
-      return renderJsonView();
-    }
 
     // Create a processed version that shows variable values highlighted
     try {
@@ -166,20 +64,19 @@ export const FinalPromptDisplay = ({
         return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
       }
       
-      // Split into paragraphs for better display
       const paragraphs = processedPrompt.split('\n\n');
       
       return (
         <div className="prose prose-sm max-w-none">
           {paragraphs.map((paragraph, index) => {
-            if (!paragraph) return <p key={index}></p>;
+            if (!paragraph) return null;
             
             let content = paragraph;
             
             // Highlight all variable values in the content
             if (Array.isArray(relevantVariables)) {
               relevantVariables.forEach(variable => {
-                if (variable && variable.value && variable.value.trim() !== '') {
+                if (variable && variable?.value && variable.value.trim() !== '') {
                   try {
                     const regex = new RegExp(`(${escapeRegExp(variable.value)})`, 'gi');
                     content = content.replace(regex, '<span class="variable-highlight">$1</span>');
@@ -200,6 +97,11 @@ export const FinalPromptDisplay = ({
       console.error("Error rendering processed prompt:", error);
       return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
     }
+  };
+
+  // Helper function to escape special characters in regex
+  const escapeRegExp = (string: string = "") => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   };
 
   return (

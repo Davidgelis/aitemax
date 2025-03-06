@@ -61,6 +61,7 @@ export const StepThreeContent = ({
 }: StepThreeContentProps) => {
   const { toast } = useToast();
   const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
+  const [safeProcessedPrompt, setSafeProcessedPrompt] = useState("");
   
   // Safely get the processed prompt
   const safeGetProcessedPrompt = useCallback(() => {
@@ -74,6 +75,16 @@ export const StepThreeContent = ({
       return finalPrompt || "";
     }
   }, [getProcessedPrompt, finalPrompt]);
+
+  // Update the safe processed prompt when dependencies change
+  useEffect(() => {
+    try {
+      const processed = safeGetProcessedPrompt();
+      setSafeProcessedPrompt(processed);
+    } catch (error) {
+      console.error("Error updating processed prompt:", error);
+    }
+  }, [safeGetProcessedPrompt, variables, finalPrompt]);
   
   // Ensure we have valid variables
   useEffect(() => {
@@ -89,7 +100,7 @@ export const StepThreeContent = ({
   }, [variables]);
   
   // Safe wrapper for variable value changes
-  const safeHandleVariableValueChange = useCallback((variableId: string, newValue: string) => {
+  const safeHandleVariableValueChange = (variableId: string, newValue: string) => {
     try {
       if (typeof handleVariableValueChange === 'function') {
         handleVariableValueChange(variableId, newValue);
@@ -104,7 +115,7 @@ export const StepThreeContent = ({
         variant: "destructive"
       });
     }
-  }, [handleVariableValueChange, toast]);
+  };
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">

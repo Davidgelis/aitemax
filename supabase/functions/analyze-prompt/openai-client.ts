@@ -19,13 +19,7 @@ export async function analyzePromptWithAI(
     throw new Error("OpenAI API key is required");
   }
   
-  // Sanitize and trim the prompt text to avoid empty spaces causing issues
-  const sanitizedPromptText = promptText.trim();
-  if (!sanitizedPromptText) {
-    throw new Error("Prompt text cannot be empty");
-  }
-  
-  const userMessage = `Analyze this prompt: "${sanitizedPromptText}"`;
+  const userMessage = `Analyze this prompt: "${promptText}"`;
   
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -35,7 +29,7 @@ export async function analyzePromptWithAI(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: userMessage }

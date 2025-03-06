@@ -28,17 +28,6 @@ export interface Variable {
   category?: string;
 }
 
-export interface PromptSection {
-  type: string;
-  content: string;
-  variables: {name: string, value: string}[];
-}
-
-export interface PromptJsonStructure {
-  title: string;
-  sections: PromptSection[];
-}
-
 export interface SavedPrompt {
   id: string;
   title: string;
@@ -48,7 +37,6 @@ export interface SavedPrompt {
   primaryToggle: string | null;
   secondaryToggle: string | null;
   variables: Variable[];
-  jsonStructure?: PromptJsonStructure | null;
 }
 
 export interface Toggle {
