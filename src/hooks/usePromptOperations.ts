@@ -34,13 +34,22 @@ export const usePromptOperations = (
       let processed = finalPrompt;
       const highlightPositions: Record<string, string[]> = {};
       
-      // Only replace variables if they have both a name and value
+      // Filter valid variables - those marked relevant with values
       const validVariables = safeVariables.filter(v => 
         v && v.isRelevant === true && 
         v.name && v.name.trim() !== '' && 
         v.value && v.value.trim() !== ''
       );
       
+      // First pass - create a map of variable names to values
+      const variableMap = new Map<string, string>();
+      validVariables.forEach(variable => {
+        if (variable.name && variable.value) {
+          variableMap.set(variable.name, variable.value);
+        }
+      });
+      
+      // Second pass - replace {{variable}} patterns with their values
       validVariables.forEach(variable => {
         if (!variable || !variable.name) return;
         
@@ -53,21 +62,41 @@ export const usePromptOperations = (
           if (variable.value) {
             highlightPositions[variable.id] = [];
             
-            // Find all occurrences of this variable value in the text
-            const tempProcessed = processed.replace(regex, variable.value);
-            
-            // Create a new regex for each search to reset lastIndex
-            const valueRegex = new RegExp(escapeRegExp(variable.value), 'g');
-            let match;
-            
-            while ((match = valueRegex.exec(tempProcessed)) !== null) {
-              highlightPositions[variable.id].push(variable.value);
-            }
+            // Replace and track
+            processed = processed.replace(regex, (match) => {
+              if (variable.value) {
+                highlightPositions[variable.id].push(variable.value);
+                return variable.value;
+              }
+              return match;
+            });
           }
-          
-          processed = processed.replace(regex, variable.value || '');
         } catch (error) {
           console.error(`Error processing variable ${variable.name}:`, error);
+        }
+      });
+      
+      // Third pass - highlight exact variable values in the text (direct matches)
+      validVariables.forEach(variable => {
+        if (!variable.value || variable.value.trim() === '') return;
+        
+        try {
+          // Only track direct occurrences that aren't from replacements
+          // This is for values that were directly typed in the text, not replaced
+          const valueRegex = new RegExp(`\\b${escapeRegExp(variable.value)}\\b`, 'g');
+          let match;
+          let tempText = processed;
+          
+          // We don't actually replace anything here, just look for matches
+          while ((match = valueRegex.exec(tempText)) !== null) {
+            // Skip if this was already part of a replacement (avoid double counting)
+            if (!highlightPositions[variable.id]) {
+              highlightPositions[variable.id] = [];
+            }
+            highlightPositions[variable.id].push(variable.value);
+          }
+        } catch (error) {
+          console.error(`Error finding occurrences for ${variable.value}:`, error);
         }
       });
       
@@ -116,13 +145,22 @@ export const usePromptOperations = (
       // Update variables state
       setVariables(updatedVariables);
       
-      // Get the old value to track replacements
-      const oldValue = safeVariables.find(v => v.id === variableId)?.value || '';
+      // Get the variable that changed
+      const changedVariable = safeVariables.find(v => v.id === variableId);
       
-      // If we're doing an empty value update and there was no previous value, just return
-      if (newValue.trim() === '' && oldValue.trim() === '') {
-        setIsProcessing(false);
-        return;
+      if (changedVariable && changedVariable.name) {
+        // Update all occurrences of {{varName}} in the final prompt with the new value
+        const regex = new RegExp(`{{\\s*${escapeRegExp(changedVariable.name)}\\s*}}`, 'g');
+        
+        // Only replace if we have a non-empty value
+        if (newValue.trim() !== '') {
+          const updatedPrompt = finalPrompt.replace(regex, newValue);
+          
+          // Only update if there's an actual change
+          if (updatedPrompt !== finalPrompt) {
+            setFinalPrompt(updatedPrompt);
+          }
+        }
       }
       
       // Process the prompt again with updated variables on next tick
@@ -145,7 +183,7 @@ export const usePromptOperations = (
         variant: "destructive"
       });
     }
-  }, [safeVariables, setVariables, getProcessedPrompt, toast, isProcessing]);
+  }, [safeVariables, setVariables, getProcessedPrompt, toast, isProcessing, finalPrompt, setFinalPrompt, escapeRegExp]);
   
   const handleOpenEditPrompt = useCallback(() => {
     try {
@@ -170,6 +208,62 @@ export const usePromptOperations = (
         title: "Prompt updated",
         description: "Your changes have been saved",
       });
+      
+      // After saving the edited prompt, reprocess to extract any new variables
+      setTimeout(() => {
+        try {
+          // Look for {{varName}} patterns in the edited prompt
+          const varRegex = /{{([^{}]+)}}/g;
+          let match;
+          const foundVariables: Set<string> = new Set();
+          
+          // Extract all variable names from the prompt
+          while ((match = varRegex.exec(editedPrompt)) !== null) {
+            const varName = match[1].trim();
+            if (varName) {
+              foundVariables.add(varName);
+            }
+          }
+          
+          // Update existing variables or create new ones
+          if (foundVariables.size > 0) {
+            const updatedVariables = [...safeVariables];
+            let variableChanged = false;
+            
+            // For each found variable name, check if it exists
+            foundVariables.forEach(varName => {
+              const existingVar = updatedVariables.find(v => v.name === varName);
+              
+              if (!existingVar) {
+                // Create a new variable if it doesn't exist
+                const newVar: Variable = {
+                  id: `v${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  name: varName,
+                  value: "",
+                  isRelevant: true,
+                  category: "Extracted"
+                };
+                updatedVariables.push(newVar);
+                variableChanged = true;
+              } else if (existingVar.isRelevant !== true) {
+                // Mark as relevant if it wasn't before
+                existingVar.isRelevant = true;
+                variableChanged = true;
+              }
+            });
+            
+            if (variableChanged) {
+              setVariables(updatedVariables);
+              toast({
+                title: "Variables updated",
+                description: `${foundVariables.size} variables found in prompt`,
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error extracting variables from edited prompt:", error);
+        }
+      }, 100);
     } catch (error) {
       console.error("Error in handleSaveEditedPrompt:", error);
       toast({
@@ -178,11 +272,12 @@ export const usePromptOperations = (
         variant: "destructive"
       });
     }
-  }, [setFinalPrompt, setShowEditPromptSheet, toast]);
+  }, [setFinalPrompt, setShowEditPromptSheet, toast, safeVariables, setVariables]);
   
   const handleAdaptPrompt = useCallback(() => {
     try {
-      // Implementation for adapting prompt
+      // Implementation for adapting prompt would go here
+      // For now, just close the sheet
       setShowEditPromptSheet(false);
       
       toast({
@@ -205,7 +300,6 @@ export const usePromptOperations = (
         ? JSON.stringify({
             prompt: finalPrompt || "",
             masterCommand: masterCommand || "",
-            variables: safeVariables.filter(v => v && v.isRelevant === true) || [],
           }, null, 2)
         : getProcessedPrompt();
       
@@ -232,7 +326,7 @@ export const usePromptOperations = (
         variant: "destructive"
       });
     }
-  }, [showJson, finalPrompt, masterCommand, safeVariables, getProcessedPrompt, toast]);
+  }, [showJson, finalPrompt, masterCommand, getProcessedPrompt, toast]);
   
   const handleRegenerate = useCallback(() => {
     try {

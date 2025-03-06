@@ -92,7 +92,7 @@ export const FinalPromptDisplay = ({
     }
   }, [showJson, finalPrompt, convertPromptToJson, jsonGenerated, isLoadingJson]);
   
-  // Update processed prompt when variables change
+  // Update processed prompt when finalPrompt or variables change
   useEffect(() => {
     try {
       if (typeof getProcessedPrompt === 'function') {
@@ -104,6 +104,49 @@ export const FinalPromptDisplay = ({
       setProcessedPrompt(finalPrompt || "");
     }
   }, [getProcessedPrompt, finalPrompt, variables]);
+  
+  // Helper function to escape special characters in regex
+  const escapeRegExp = (string: string = "") => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
+  
+  // Helper function to highlight variables in text
+  const highlightVariablesInText = (text: string) => {
+    if (!text || !Array.isArray(relevantVariables) || relevantVariables.length === 0) {
+      return text;
+    }
+    
+    let processedText = text;
+    
+    // First pass: look for {{variableName}} patterns and highlight them
+    relevantVariables.forEach(variable => {
+      if (!variable || !variable.name) return;
+      
+      try {
+        const regex = new RegExp(`{{\\s*(${escapeRegExp(variable.name)})\\s*}}`, 'g');
+        processedText = processedText.replace(regex, 
+          `<span class="unresolved-variable">{{$1}}</span>`);
+      } catch (error) {
+        console.error(`Error highlighting variable placeholder ${variable.name}:`, error);
+      }
+    });
+    
+    // Second pass: look for values that match variable values
+    relevantVariables.forEach(variable => {
+      if (!variable || !variable.value || variable.value.trim() === '') return;
+      
+      try {
+        // Use word boundary regex to match only full words/terms
+        const valueRegex = new RegExp(`\\b(${escapeRegExp(variable.value)})\\b`, 'g');
+        processedText = processedText.replace(valueRegex, 
+          `<span class="variable-highlight">$1</span>`);
+      } catch (error) {
+        console.error(`Error highlighting variable value ${variable.value}:`, error);
+      }
+    });
+    
+    return processedText;
+  };
   
   // Render the processed prompt with highlighted variables
   const renderProcessedPrompt = () => {
@@ -136,12 +179,14 @@ export const FinalPromptDisplay = ({
       }
     }
 
-    // Create a processed version that shows variable values highlighted
+    // Handle regular display with highlighted variables
     try {
+      // Ensure we have a processed prompt
       if (!processedPrompt) {
         return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
       }
       
+      // Split by double line breaks to preserve paragraphs
       const paragraphs = processedPrompt.split('\n\n');
       
       return (
@@ -149,24 +194,11 @@ export const FinalPromptDisplay = ({
           {paragraphs.map((paragraph, index) => {
             if (!paragraph) return null;
             
-            let content = paragraph;
-            
-            // Highlight all variable values in the content
-            if (Array.isArray(relevantVariables)) {
-              relevantVariables.forEach(variable => {
-                if (variable && variable?.value && variable.value.trim() !== '') {
-                  try {
-                    const regex = new RegExp(`(${escapeRegExp(variable.value)})`, 'gi');
-                    content = content.replace(regex, '<span class="variable-highlight">$1</span>');
-                  } catch (error) {
-                    console.error("Error highlighting variable:", variable.name, error);
-                  }
-                }
-              });
-            }
+            // Process paragraph to highlight variables
+            const highlightedContent = highlightVariablesInText(paragraph);
             
             return (
-              <p key={index} dangerouslySetInnerHTML={{ __html: content }} />
+              <p key={index} dangerouslySetInnerHTML={{ __html: highlightedContent }} />
             );
           })}
         </div>
@@ -175,11 +207,6 @@ export const FinalPromptDisplay = ({
       console.error("Error rendering processed prompt:", error);
       return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
     }
-  };
-
-  // Helper function to escape special characters in regex
-  const escapeRegExp = (string: string = "") => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   };
 
   return (
@@ -212,6 +239,21 @@ export const FinalPromptDisplay = ({
           {renderProcessedPrompt()}
         </div>
       </div>
+      
+      <style jsx>{`
+        :global(.variable-highlight) {
+          background-color: rgba(51, 254, 166, 0.2);
+          border-radius: 2px;
+          padding: 0 2px;
+          border-bottom: 1px solid rgba(51, 254, 166, 0.5);
+        }
+        :global(.unresolved-variable) {
+          background-color: rgba(254, 51, 51, 0.1);
+          border-radius: 2px;
+          padding: 0 2px;
+          border-bottom: 1px dashed rgba(254, 51, 51, 0.5);
+        }
+      `}</style>
     </div>
   );
 };

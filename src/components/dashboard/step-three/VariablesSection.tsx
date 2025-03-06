@@ -1,6 +1,6 @@
 
 import { Variable } from "../types";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface VariablesSectionProps {
   variables: Variable[];
@@ -13,6 +13,33 @@ export const VariablesSection = ({
 }: VariablesSectionProps) => {
   const [groupedVariables, setGroupedVariables] = useState<Record<string, Variable[]>>({});
   const [isVisible, setIsVisible] = useState(true);
+  const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  
+  // Process input changes with debounce
+  const handleInputChange = useCallback((variableId: string, value: string) => {
+    setInputValues(prev => ({ ...prev, [variableId]: value }));
+    
+    // Update the actual variable after a short delay (debounce)
+    const timeoutId = setTimeout(() => {
+      handleVariableValueChange(variableId, value);
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, [handleVariableValueChange]);
+  
+  // Initialize input values from variables
+  useEffect(() => {
+    if (!Array.isArray(variables)) return;
+    
+    const values: Record<string, string> = {};
+    variables.forEach(v => {
+      if (v && v.id) {
+        values[v.id] = v.value || '';
+      }
+    });
+    
+    setInputValues(values);
+  }, [variables]);
   
   // Group variables by category
   useEffect(() => {
@@ -50,6 +77,21 @@ export const VariablesSection = ({
   // Get count of relevant variables
   const relevantVariablesCount = variables.filter(v => v && v.isRelevant === true).length;
   
+  if (relevantVariablesCount === 0) {
+    return (
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm text-accent font-medium">Variables (0)</h3>
+        </div>
+        <div className="bg-background/50 p-4 rounded-lg text-center">
+          <p className="text-sm text-muted-foreground">
+            No variables detected in your prompt. Edit your prompt to add variables using {{variableName}} syntax.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div className="mb-4">
       <div className="flex items-center justify-between mb-2">
@@ -69,13 +111,15 @@ export const VariablesSection = ({
               <div className="grid gap-2">
                 {categoryVariables.map(variable => (
                   <div key={variable.id} className="grid grid-cols-[1fr,2fr] gap-2">
-                    <div className="text-xs text-muted-foreground py-1 px-2 bg-background rounded-md truncate">
-                      {variable.name}
+                    <div className="flex items-center">
+                      <div className="text-xs py-1 px-2 bg-background rounded-md truncate">
+                        <span className="font-mono">{`{{${variable.name}}}`}</span>
+                      </div>
                     </div>
                     <input
                       type="text"
-                      value={variable.value || ''}
-                      onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
+                      value={inputValues[variable.id] || ''}
+                      onChange={(e) => handleInputChange(variable.id, e.target.value)}
                       className="text-xs py-1 px-2 w-full bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
                       placeholder="Enter value"
                     />
@@ -86,6 +130,12 @@ export const VariablesSection = ({
           ))}
         </div>
       )}
+      
+      <style jsx>{`
+        .font-mono {
+          font-family: monospace;
+        }
+      `}</style>
     </div>
   );
 };

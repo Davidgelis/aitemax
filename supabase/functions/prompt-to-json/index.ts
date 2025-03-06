@@ -100,7 +100,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo', // Changed to o3-mini (gpt-3.5-turbo as the actual model name)
+        model: 'gpt-3.5-turbo', // Using o3-mini (gpt-3.5-turbo as the actual model name)
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: `Analyze this prompt and convert to the specified JSON structure: ${prompt}` }
@@ -129,6 +129,12 @@ serve(async (req) => {
       
       // Add timestamp
       jsonResult.timestamp = new Date().toISOString();
+      
+      // Extract variable placeholders from the prompt
+      const variablePlaceholders = extractVariablePlaceholders(prompt);
+      if (variablePlaceholders.length > 0) {
+        jsonResult.variablePlaceholders = variablePlaceholders;
+      }
       
       console.log("Successfully converted prompt to JSON structure with o3-mini");
       
@@ -182,3 +188,19 @@ serve(async (req) => {
     });
   }
 });
+
+// Helper function to extract variable placeholders from the prompt
+function extractVariablePlaceholders(text: string): string[] {
+  const regex = /{{([^{}]+)}}/g;
+  const placeholders: string[] = [];
+  let match;
+  
+  while ((match = regex.exec(text)) !== null) {
+    const varName = match[1].trim();
+    if (varName && !placeholders.includes(varName)) {
+      placeholders.push(varName);
+    }
+  }
+  
+  return placeholders;
+}

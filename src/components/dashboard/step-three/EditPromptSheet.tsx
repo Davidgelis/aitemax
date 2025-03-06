@@ -1,5 +1,5 @@
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { RotateCw, Save } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,42 @@ export const EditPromptSheet = ({
   handleAdaptPrompt
 }: EditPromptSheetProps) => {
   const editPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Auto-focus the textarea when the sheet opens
+  useEffect(() => {
+    if (showEditPromptSheet && editPromptTextareaRef.current) {
+      setTimeout(() => {
+        if (editPromptTextareaRef.current) {
+          editPromptTextareaRef.current.focus();
+          // Place cursor at the end
+          const length = editPromptTextareaRef.current.value.length;
+          editPromptTextareaRef.current.setSelectionRange(length, length);
+        }
+      }, 100);
+    }
+  }, [showEditPromptSheet]);
+  
+  // Helper to insert variable template at cursor position
+  const insertVariableTemplate = () => {
+    if (!editPromptTextareaRef.current) return;
+    
+    const textarea = editPromptTextareaRef.current;
+    const cursorPos = textarea.selectionStart;
+    const textBefore = textarea.value.substring(0, cursorPos);
+    const textAfter = textarea.value.substring(textarea.selectionEnd);
+    
+    const newText = `${textBefore}{{variableName}}${textAfter}`;
+    setEditingPrompt(newText);
+    
+    // Set cursor position inside the variable braces
+    setTimeout(() => {
+      if (editPromptTextareaRef.current) {
+        const newCursorPos = cursorPos + 2; // After the opening {{
+        editPromptTextareaRef.current.focus();
+        editPromptTextareaRef.current.setSelectionRange(newCursorPos, newCursorPos + 12); // Select "variableName"
+      }
+    }, 0);
+  };
 
   return (
     <Sheet open={showEditPromptSheet} onOpenChange={setShowEditPromptSheet}>
@@ -30,15 +66,26 @@ export const EditPromptSheet = ({
         <SheetHeader>
           <SheetTitle>Edit Prompt</SheetTitle>
           <SheetDescription>
-            Make changes to your prompt. Click save when you're done or adapt to regenerate the prompt.
+            Make changes to your prompt. Use <code>{'{{variableName}}'}</code> syntax to create dynamic variables.
           </SheetDescription>
         </SheetHeader>
-        <div className="py-6">
+        <div className="py-4">
+          <div className="mb-2 flex justify-end">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={insertVariableTemplate} 
+              className="text-xs"
+            >
+              Insert Variable
+            </Button>
+          </div>
           <textarea
             ref={editPromptTextareaRef}
             value={editingPrompt}
             onChange={(e) => setEditingPrompt(e.target.value)}
             className="w-full min-h-[60vh] p-4 text-sm rounded-md border bg-gray-50/80 text-card-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+            spellCheck={false}
           />
         </div>
         <SheetFooter className="flex flex-row justify-end space-x-4">
