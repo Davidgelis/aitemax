@@ -53,8 +53,8 @@ export const usePromptOperations = (
     setShowEditPromptSheet(true);
   };
   
-  const handleSaveEditedPrompt = (editingPrompt: string) => {
-    setFinalPrompt(editingPrompt);
+  const handleSaveEditedPrompt = (editedPrompt: string) => {
+    setFinalPrompt(editedPrompt);
     setShowEditPromptSheet(false);
     
     toast({

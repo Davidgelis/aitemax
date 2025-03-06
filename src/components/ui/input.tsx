@@ -12,6 +12,7 @@ const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLI
           className
         )}
         ref={ref}
+        readOnly={props.readOnly}
         {...props}
       />
     )

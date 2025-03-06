@@ -53,13 +53,13 @@ export const useQuestionsAndVariables = (
         // When a value is provided for name or value, automatically mark as relevant
         const isRelevant = field === 'name' || field === 'value' 
           ? value.trim() !== "" || (field === 'name' ? (v.value?.trim() !== "" || false) : (v.name.trim() !== ""))
-          : v.isRelevant;
+          : v.isRelevant ?? true; // Use null coalescing to default to true if isRelevant is null
         
         // Debug the variable before and after update
         const updatedVar = { 
           ...v, 
           [field]: value, 
-          isRelevant: isRelevant === null ? true : isRelevant // Ensure isRelevant isn't null
+          isRelevant 
         };
         console.log("Variable before update:", v);
         console.log("Variable after update:", updatedVar);

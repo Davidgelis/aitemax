@@ -1,7 +1,7 @@
 
 import { Plus, Trash } from "lucide-react";
 import { Variable } from "./types";
-import { RefObject, useState, useEffect, useRef } from "react";
+import { RefObject, useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { filterCategoryVariables } from "./constants";
 import { useToast } from "@/hooks/use-toast";
@@ -54,6 +54,8 @@ export const VariableList = ({
 
   // Handle variable value change with highlighting
   const handleValueChange = (variableId: string, value: string) => {
+    console.log(`Variable value change - ID: ${variableId}, Value: ${value}`);
+    
     // Track the highlighted state based on whether the value has content
     setHighlightedVariables(prev => ({
       ...prev,
@@ -69,8 +71,20 @@ export const VariableList = ({
     }
   };
 
-  // Handle marking a variable as not relevant (through delete)
+  // Handle name change
+  const handleNameChange = (variableId: string, name: string) => {
+    console.log(`Variable name change - ID: ${variableId}, Name: ${name}`);
+    onVariableChange(variableId, 'name', name);
+    
+    // Automatically mark as relevant when a name is added
+    if (name.trim() !== '') {
+      onVariableRelevance(variableId, true);
+    }
+  };
+
+  // Handle delete (marking as not relevant)
   const handleDelete = (id: string) => {
+    console.log(`Marking variable ${id} as not relevant`);
     // Always mark as not relevant before removing
     onVariableRelevance(id, false);
     
@@ -79,16 +93,15 @@ export const VariableList = ({
       onDeleteVariable();
     }, 50);
   };
-  
-  // Handle name change and mark relevant if name is entered
-  const handleNameChange = (variableId: string, name: string) => {
-    onVariableChange(variableId, 'name', name);
-    
-    // Automatically mark as relevant when a name is added
-    if (name.trim() !== '') {
-      onVariableRelevance(variableId, true);
-    }
-  };
+
+  useEffect(() => {
+    // Initialize highlighted state based on current values
+    const initialHighlightState: Record<string, boolean> = {};
+    variables.forEach(variable => {
+      initialHighlightState[variable.id] = variable.value && variable.value.trim() !== '';
+    });
+    setHighlightedVariables(initialHighlightState);
+  }, [variables]);
 
   return (
     <>
@@ -127,7 +140,6 @@ export const VariableList = ({
                     autoComplete="off"
                     aria-label={`Name for variable ${index + 1}`}
                     id={`var-name-${variable.id}`}
-                    readOnly={false}
                   />
                   <input
                     type="text"
@@ -140,7 +152,6 @@ export const VariableList = ({
                     autoComplete="off"
                     aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
                     id={`var-value-${variable.id}`}
-                    readOnly={false}
                   />
                 </div>
                 <div className="flex">

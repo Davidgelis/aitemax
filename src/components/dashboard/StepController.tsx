@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -248,7 +247,7 @@ export const StepController = ({
             onVariableChange={handleVariableChange}
             onVariableRelevance={handleVariableRelevance}
             onAddVariable={addVariable}
-            onDeleteVariable={() => removeVariable(variableToDelete || "")}
+            onDeleteVariable={removeVariable}
             variableToDelete={variableToDelete}
             setVariableToDelete={setVariableToDelete}
             canProceedToStep3={canProceedToStep3()}
