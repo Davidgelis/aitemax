@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,19 +16,14 @@ export const usePromptOperations = (
   const { toast } = useToast();
   const [editingPromptLocal, setEditingPromptLocal] = useState("");
   
-  // Handle variable value changes in Step 3
+  // Display-only functions for step 3
+  // This doesn't modify the original variables state shared with step 2
   const handleVariableValueChange = (variableId: string, newValue: string) => {
-    // Update the variable in the current state
-    const updatedVariables = variables.map(v => 
-      v.id === variableId ? { ...v, value: newValue } : v
-    );
-    
-    // Apply the changes to the variables state
-    setVariables(updatedVariables);
-    
+    // For step 3, we show variable values but don't modify them
+    // This function is kept for compatibility but should explicitly tell users to go back
     toast({
-      title: "Variable updated",
-      description: "Your prompt has been updated with the new variable value",
+      title: "Variables are display-only in Step 3",
+      description: "Variable values can only be edited in Step 2. Please go back to edit variables.",
       variant: "default"
     });
   };
