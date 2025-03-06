@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { defaultVariables, mockQuestions, sampleFinalPrompt } from "@/components/dashboard/constants";
 import { supabase } from "@/integrations/supabase/client";
-import { usePromptDrafts } from "@/hooks/use-prompt-drafts";
+import { usePromptDrafts } from "@/hooks/usePromptDrafts";
 
 export const usePromptState = (user: any) => {
   const [promptText, setPromptText] = useState("");
@@ -410,7 +411,6 @@ export const usePromptState = (user: any) => {
     handleDeletePrompt,
     handleDuplicatePrompt,
     handleRenamePrompt,
-    loadSavedPrompt,
-    handleSavePrompt
+    loadSavedPrompt
   };
 };

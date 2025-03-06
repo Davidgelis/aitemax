@@ -1,6 +1,6 @@
 
 import { useCallback, useEffect } from "react";
-import { Variable } from "@/components/dashboard/types";
+import { Variable, variablesToJson } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -36,7 +36,7 @@ export const usePromptDrafts = (
         master_command: masterCommand,
         primary_toggle: selectedPrimary,
         secondary_toggle: selectedSecondary,
-        variables: variables,
+        variables: variablesToJson(variables),
         current_step: currentStep,
       };
 
@@ -47,7 +47,15 @@ export const usePromptDrafts = (
       if (error) throw error;
 
       // Also save to localStorage as backup
-      localStorage.setItem('promptDraft', JSON.stringify(draft));
+      localStorage.setItem('promptDraft', JSON.stringify({
+        promptText,
+        masterCommand,
+        variables,
+        selectedPrimary,
+        selectedSecondary,
+        currentStep,
+        timestamp: new Date().toISOString()
+      }));
 
     } catch (error) {
       console.error('Error saving draft:', error);
