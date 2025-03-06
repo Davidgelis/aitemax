@@ -75,16 +75,13 @@ serve(async (req) => {
       
       1. Analyze the prompt text to identify key parts within the structure.
       2. Extract sections based on headings like "Task", "Persona", "Conditions", "Instructions".
-      3. Identify variables in the text (items that would likely be customized).
-      4. Return a clean JSON structure with these identified elements.
+      3. Return a clean JSON structure with these identified elements.
       
       Follow these rules:
       - Return ONLY valid JSON, no explanation or additional text
       - Create a "sections" array with objects containing "title" and "content"
-      - Create a "variables" array for customizable items with "id", "name", "value", and "occurrences" (array of sections the variable appears in)
       - Include a "title" field with a short title for the prompt
       - Include a "summary" field with a very brief description
-      - For variables, extract terms from the prompt that seem like they could be customized
       
       The JSON schema should look like:
       {
@@ -92,9 +89,6 @@ serve(async (req) => {
         "summary": "One-sentence summary",
         "sections": [
           {"title": "Section Name", "content": "Section content"}
-        ],
-        "variables": [
-          {"id": "v1", "name": "Variable Name", "value": "Current Value", "occurrences": ["Section Name"], "isRelevant": true, "category": "Task"}
         ]
       }
     `;
@@ -160,7 +154,6 @@ serve(async (req) => {
         sections: [
           { title: "Content", content: prompt }
         ],
-        variables: [],
         error: "Failed to parse into structured JSON"
       };
     }
@@ -182,7 +175,6 @@ serve(async (req) => {
         title: "Error",
         summary: "Failed to process prompt",
         sections: [],
-        variables: []
       }
     }), {
       status: 200, // Always return 200 to avoid the edge function error
