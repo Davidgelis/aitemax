@@ -1,5 +1,5 @@
 import { Edit, Copy, Save, RotateCw } from "lucide-react";
-import { useRef, useEffect } from "react";
+import { useRef } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { Variable } from "./types";
-import { useToast } from "@/hooks/use-toast";
 
 interface StepThreeContentProps {
   masterCommand: string;
@@ -59,7 +58,6 @@ export const StepThreeContent = ({
   handleAdaptPrompt
 }: StepThreeContentProps) => {
   const editPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const { toast } = useToast();
   const relevantVariables = variables.filter(v => v.isRelevant === true);
 
   return (
@@ -174,7 +172,7 @@ export const StepThreeContent = ({
             relevantVariables.map((variable) => (
               <div key={variable.id} className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-medium min-w-[150px] break-words">{variable.name}:</span>
-                <div className="flex-1 h-7 text-xs py-1 px-2 bg-[#33fea6]/10 border border-[#33fea6]/20 rounded-md min-w-[200px] overflow-x-auto">
+                <div className="flex-1 h-7 px-2 py-1 bg-[#33fea6]/10 border border-[#33fea6]/20 rounded-md overflow-x-auto text-xs">
                   {variable.value || ""}
                 </div>
               </div>

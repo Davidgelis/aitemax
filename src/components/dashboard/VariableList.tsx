@@ -1,6 +1,5 @@
 
 import { Plus, Trash } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Variable } from "./types";
 import { RefObject, useState, useEffect, useRef } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -33,7 +32,6 @@ export const VariableList = ({
   // Track which variables have values to highlight them
   const [highlightedVariables, setHighlightedVariables] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
-  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   
   // Filter out category names and empty names for display
   const filteredVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
@@ -129,6 +127,7 @@ export const VariableList = ({
                     autoComplete="off"
                     aria-label={`Name for variable ${index + 1}`}
                     id={`var-name-${variable.id}`}
+                    readOnly={false}
                   />
                   <input
                     type="text"
@@ -141,6 +140,7 @@ export const VariableList = ({
                     autoComplete="off"
                     aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
                     id={`var-value-${variable.id}`}
+                    readOnly={false}
                   />
                 </div>
                 <div className="flex">

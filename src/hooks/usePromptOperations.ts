@@ -20,10 +20,10 @@ export const usePromptOperations = (
   // This doesn't modify the original variables state shared with step 2
   const handleVariableValueChange = (variableId: string, newValue: string) => {
     // For step 3, we show variable values but don't modify them
-    // This function is kept for compatibility but should not modify the variables
+    // This function is kept for compatibility but should explicitly tell users to go back
     toast({
-      title: "Variables are display-only",
-      description: "Variable values can only be edited in Step 2. Go back to edit variables.",
+      title: "Variables are display-only in Step 3",
+      description: "Variable values can only be edited in Step 2. Please go back to edit variables.",
       variant: "default"
     });
   };

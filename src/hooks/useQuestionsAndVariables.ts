@@ -52,11 +52,15 @@ export const useQuestionsAndVariables = (
       if (v.id === variableId) {
         // When a value is provided for name or value, automatically mark as relevant
         const isRelevant = field === 'name' || field === 'value' 
-          ? value.trim() !== "" || (field === 'name' ? v.value.trim() !== "" : v.name.trim() !== "")
+          ? value.trim() !== "" || (field === 'name' ? (v.value?.trim() !== "" || false) : (v.name.trim() !== ""))
           : v.isRelevant;
         
         // Debug the variable before and after update
-        const updatedVar = { ...v, [field]: value, isRelevant };
+        const updatedVar = { 
+          ...v, 
+          [field]: value, 
+          isRelevant: isRelevant === null ? true : isRelevant // Ensure isRelevant isn't null
+        };
         console.log("Variable before update:", v);
         console.log("Variable after update:", updatedVar);
         
@@ -98,9 +102,11 @@ export const useQuestionsAndVariables = (
     setVariables([...variables, newVariable]);
   };
 
-  const removeVariable = (id: string) => {
-    console.log(`Removing variable ${id}`);
-    setVariables(variables.filter((v) => v.id !== id));
+  const removeVariable = () => {
+    if (!variableToDelete) return;
+    
+    console.log(`Removing variable ${variableToDelete}`);
+    setVariables(variables.filter((v) => v.id !== variableToDelete));
     setVariableToDelete(null);
   };
 
@@ -120,7 +126,7 @@ export const useQuestionsAndVariables = (
     // 3. For variables, only worry about those with names - these are the ones that need evaluation
     // We're being less strict - if a variable has a name OR value, we require it to be evaluated
     const variablesWithNameOrValue = variables.filter(v => 
-      v.name.trim() !== '' || v.value.trim() !== ''
+      v.name.trim() !== '' || (v.value && v.value.trim() !== '')
     );
     
     // 4. Check if all named variables have been evaluated (marked as relevant or not)
@@ -130,7 +136,7 @@ export const useQuestionsAndVariables = (
     
     // 5. For empty variables (no name and no value), we'll automatically consider them as evaluated
     const emptyVariables = variables.filter(v => 
-      v.name.trim() === '' && v.value.trim() === ''
+      v.name.trim() === '' && (!v.value || v.value.trim() === '')
     );
     
     // For debugging purposes
