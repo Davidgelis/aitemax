@@ -64,22 +64,12 @@ export const VariableList = ({
     
     // Call the original change handler
     onVariableChange(variableId, 'value', value);
-    
-    // Automatically mark as relevant when a value is entered
-    if (value.trim() !== '') {
-      onVariableRelevance(variableId, true);
-    }
   };
 
   // Handle name change
   const handleNameChange = (variableId: string, name: string) => {
     console.log(`Variable name change - ID: ${variableId}, Name: ${name}`);
     onVariableChange(variableId, 'name', name);
-    
-    // Automatically mark as relevant when a name is added
-    if (name.trim() !== '') {
-      onVariableRelevance(variableId, true);
-    }
   };
 
   // Handle delete (marking as not relevant)
@@ -139,7 +129,6 @@ export const VariableList = ({
                     className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
                     autoComplete="off"
                     aria-label={`Name for variable ${index + 1}`}
-                    id={`var-name-${variable.id}`}
                   />
                   <input
                     type="text"
@@ -151,7 +140,6 @@ export const VariableList = ({
                     }`}
                     autoComplete="off"
                     aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
-                    id={`var-value-${variable.id}`}
                   />
                 </div>
                 <div className="flex">

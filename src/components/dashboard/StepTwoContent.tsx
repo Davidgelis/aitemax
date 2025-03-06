@@ -9,7 +9,7 @@ interface StepTwoContentProps {
   variables: Variable[];
   onQuestionRelevance: (questionId: string, isRelevant: boolean) => void;
   onQuestionAnswer: (questionId: string, answer: string) => void;
-  onVariableChange: (variableId: string, field: 'name' | 'value', content: string) => void;
+  onVariableChange: (variableId: string, field: keyof Variable, content: string) => void;
   onVariableRelevance: (variableId: string, isRelevant: boolean) => void;
   onAddVariable: () => void;
   onDeleteVariable: () => void;

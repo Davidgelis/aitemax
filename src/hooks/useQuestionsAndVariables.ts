@@ -46,22 +46,11 @@ export const useQuestionsAndVariables = (
   ) => {
     console.log(`Updating variable ${variableId}, field: ${field}, value: ${value}`);
     
-    // Create a new variables array with the updated variable
+    // Create a new array with the updated variable
     const updatedVariables = variables.map((v) => {
       if (v.id === variableId) {
-        // Create a copy of the variable with the updated field
+        // Create a new object with the updated field
         const updatedVar = { ...v, [field]: value };
-        
-        // Update relevance if needed (when a name or value is provided)
-        if (v.isRelevant === null || value.trim() !== "") {
-          if (field === 'name') {
-            // For name changes, mark as relevant if name has content or value has content
-            updatedVar.isRelevant = value.trim() !== "" || (v.value && v.value.trim() !== "");
-          } else if (field === 'value') {
-            // For value changes, mark as relevant if value has content or name has content
-            updatedVar.isRelevant = value.trim() !== "" || v.name.trim() !== "";
-          }
-        }
         
         console.log("Variable before update:", v);
         console.log("Variable after update:", updatedVar);
@@ -73,7 +62,7 @@ export const useQuestionsAndVariables = (
     
     console.log("Updated variables array:", updatedVariables);
     
-    // Update the state with the new array
+    // Update the state
     setVariables(updatedVariables);
   };
 
