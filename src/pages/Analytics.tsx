@@ -35,6 +35,12 @@ interface TotalStats {
   avg_tokens_per_prompt: number;
 }
 
+// Define the type for the RPC response
+interface PromptCountResult {
+  user_id: string;
+  count: string;
+}
+
 export default function Analytics() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -69,7 +75,7 @@ export default function Analytics() {
 
         // Get prompt counts per user - using count aggregation function
         const { data: promptCountData, error: promptError } = await supabase
-          .rpc('get_prompt_counts_per_user');
+          .rpc<PromptCountResult>('get_prompt_counts_per_user');
 
         if (promptError) throw promptError;
 
@@ -87,7 +93,7 @@ export default function Analytics() {
         }, {} as Record<string, string | null>);
 
         // Create a map of user_id to prompt count
-        const promptCountMap = promptCountData.reduce((acc, item) => {
+        const promptCountMap = (promptCountData || []).reduce((acc, item) => {
           acc[item.user_id] = parseInt(item.count);
           return acc;
         }, {} as Record<string, number>);
