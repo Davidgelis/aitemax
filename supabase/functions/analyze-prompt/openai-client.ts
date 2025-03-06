@@ -18,7 +18,7 @@ export async function analyzePromptWithAI(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'o3-mini',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemMessage },
         { role: 'user', content: userMessage }
