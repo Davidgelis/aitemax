@@ -36,13 +36,22 @@ export const usePromptOperations = (
       
       let processedPrompt = finalPrompt;
       
+      // First, replace variable names with their codes in the placeholder format
       relevantVariables.forEach(variable => {
-        if (!variable.name || !variable.value) return;
+        if (!variable.name) return;
         
-        // Use variable code if available, otherwise use the name
-        const displayText = variable.code || variable.name;
         const variablePattern = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
-        processedPrompt = processedPrompt.replace(variablePattern, variable.value);
+        const displayCode = variable.code || `VAR_${variable.id}`;
+        processedPrompt = processedPrompt.replace(variablePattern, `{{${displayCode}}}`);
+      });
+      
+      // Then, replace the code placeholders with actual values
+      relevantVariables.forEach(variable => {
+        if (!variable.value) return;
+        
+        const displayCode = variable.code || `VAR_${variable.id}`;
+        const codePattern = new RegExp(`{{\\s*${displayCode}\\s*}}`, 'g');
+        processedPrompt = processedPrompt.replace(codePattern, variable.value);
       });
       
       return processedPrompt;

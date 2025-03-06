@@ -113,10 +113,14 @@ export const FinalPromptDisplay = ({
       if (!variable || !variable.name) return;
       
       try {
-        const displayName = variable.code || `VAR_${variable.id}`;
-        const regex = new RegExp(`{{\\s*(${escapeRegExp(variable.name)})\\s*}}`, 'g');
-        processedText = processedText.replace(regex, 
-          `<span class="unresolved-variable">{{${displayName}}}</span>`);
+        const displayCode = variable.code || `VAR_${variable.id}`;
+        
+        const nameRegex = new RegExp(`{{\\s*(${escapeRegExp(variable.name)})\\s*}}`, 'g');
+        const codeRegex = new RegExp(`{{\\s*(${escapeRegExp(displayCode)})\\s*}}`, 'g');
+        
+        processedText = processedText
+          .replace(nameRegex, `<span class="unresolved-variable">{{${displayCode}}}</span>`)
+          .replace(codeRegex, `<span class="unresolved-variable">{{${displayCode}}}</span>`);
       } catch (error) {
         console.error(`Error highlighting variable placeholder ${variable.name}:`, error);
       }

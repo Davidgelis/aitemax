@@ -19,12 +19,8 @@ export const VariablesSection = ({
   const handleInputChange = useCallback((variableId: string, value: string) => {
     setInputValues(prev => ({ ...prev, [variableId]: value }));
     
-    // Update the actual variable after a short delay (debounce)
-    const timeoutId = setTimeout(() => {
-      handleVariableValueChange(variableId, value);
-    }, 300);
-    
-    return () => clearTimeout(timeoutId);
+    // Update the actual variable immediately to reflect changes in the prompt
+    handleVariableValueChange(variableId, value);
   }, [handleVariableValueChange]);
   
   // Initialize input values from variables

@@ -63,6 +63,14 @@ export const StepThreeContent = ({
   const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
   const [safeProcessedPrompt, setSafeProcessedPrompt] = useState("");
   
+  // Force re-render when variables change
+  const [renderTrigger, setRenderTrigger] = useState(0);
+  
+  // Update render trigger when variables change
+  useEffect(() => {
+    setRenderTrigger(prev => prev + 1);
+  }, [variables]);
+  
   // Safely get the processed prompt
   const safeGetProcessedPrompt = useCallback(() => {
     try {
@@ -74,7 +82,7 @@ export const StepThreeContent = ({
       console.error("Error getting processed prompt:", error);
       return finalPrompt || "";
     }
-  }, [getProcessedPrompt, finalPrompt]);
+  }, [getProcessedPrompt, finalPrompt, renderTrigger]);
 
   // Update the safe processed prompt when dependencies change
   useEffect(() => {
@@ -84,7 +92,7 @@ export const StepThreeContent = ({
     } catch (error) {
       console.error("Error updating processed prompt:", error);
     }
-  }, [safeGetProcessedPrompt, variables, finalPrompt]);
+  }, [safeGetProcessedPrompt, variables, finalPrompt, renderTrigger]);
   
   // Ensure we have valid variables
   useEffect(() => {
@@ -104,6 +112,8 @@ export const StepThreeContent = ({
     try {
       if (typeof handleVariableValueChange === 'function') {
         handleVariableValueChange(variableId, newValue);
+        // Force an immediate re-render after variable change
+        setRenderTrigger(prev => prev + 1);
       } else {
         throw new Error("handleVariableValueChange is not a function");
       }
