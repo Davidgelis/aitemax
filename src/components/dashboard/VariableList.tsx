@@ -150,6 +150,9 @@ export const VariableList = ({
                     autoComplete="off"
                     aria-label={`Name for variable ${index + 1}`}
                     name={`var-name-${variable.id}`}
+                    readOnly={false}
+                    type="text"
+                    id={`var-name-${variable.id}`}
                   />
                   <Input
                     ref={el => inputRefs.current[`value-${variable.id}`] = el}
@@ -161,6 +164,9 @@ export const VariableList = ({
                     autoComplete="off"
                     aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
                     name={`var-value-${variable.id}`}
+                    readOnly={false}
+                    type="text"
+                    id={`var-value-${variable.id}`}
                   />
                 </div>
                 <div className="flex">
