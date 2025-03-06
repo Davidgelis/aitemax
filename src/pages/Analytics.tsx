@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +9,7 @@ import { AlertCircle, ArrowLeft, BarChart3, Users } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 // Admin user ID
 const ADMIN_USER_ID = "8b40d73f-fffb-411f-9044-480773968d58";
@@ -43,13 +45,26 @@ interface PromptCountResult {
 export default function Analytics() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userStats, setUserStats] = useState<UserTokenStats[]>([]);
   const [totalStats, setTotalStats] = useState<TotalStats | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Check if current user is admin
   const isAdmin = user?.id === ADMIN_USER_ID;
+
+  // Function to retry fetching data
+  const retryFetch = () => {
+    setRetryCount(prev => prev + 1);
+    setError(null);
+    setLoading(true);
+    toast({
+      title: "Retrying",
+      description: "Attempting to fetch analytics data again...",
+    });
+  };
 
   useEffect(() => {
     if (!user || !isAdmin) return;
@@ -57,6 +72,9 @@ export default function Analytics() {
     const fetchTokenStats = async () => {
       try {
         setLoading(true);
+        setError(null);
+        
+        console.log("Fetching analytics data, attempt:", retryCount + 1);
         
         // Get user token usage with username
         const { data: userData, error: userError } = await supabase
@@ -72,39 +90,43 @@ export default function Analytics() {
 
         if (userError) throw userError;
 
-        // Different approach: Using the edge function directly
-        const promptCountResponse = await supabase.functions.invoke('get-prompt-counts-per-user', {
-          method: 'GET',
-        }).catch(async () => {
-          // Fallback: If the edge function doesn't exist, make a direct query
-          // Using SQL query directly to avoid group() method type error
-          const { data, error } = await supabase
-            .from('token_usage')
-            .select('user_id')
-            .then(async (result) => {
-              if (result.error) throw result.error;
-              
-              // Count occurrences of each user_id manually
-              const userCounts: Record<string, number> = {};
-              result.data.forEach(row => {
-                userCounts[row.user_id] = (userCounts[row.user_id] || 0) + 1;
-              });
-              
-              // Convert to expected format
-              const formattedData = Object.entries(userCounts).map(([user_id, count]) => ({
-                user_id,
-                count: count.toString()
-              }));
-              
-              return { data: formattedData, error: null };
-            });
-            
-          return { data, error };
-        });
-
-        if (promptCountResponse.error) throw promptCountResponse.error;
+        // Get prompt counts per user using a more reliable method
+        let promptCountData: any[] = [];
         
-        const promptCountData = promptCountResponse.data || [];
+        try {
+          // First try: Use the edge function
+          const promptCountResponse = await supabase.functions.invoke('get-prompt-counts-per-user', {
+            method: 'GET',
+          });
+          
+          if (promptCountResponse.error) throw promptCountResponse.error;
+          promptCountData = promptCountResponse.data || [];
+          console.log("Successfully fetched prompt counts from edge function");
+        } catch (edgeError) {
+          console.error("Edge function error:", edgeError);
+          
+          // Fallback: Use direct query
+          console.log("Falling back to direct query for prompt counts");
+          const { data: tokenUsageData, error: tokenUsageError } = await supabase
+            .from('token_usage')
+            .select('user_id');
+          
+          if (tokenUsageError) throw tokenUsageError;
+          
+          // Count occurrences of each user_id manually
+          const userCounts: Record<string, number> = {};
+          tokenUsageData.forEach(row => {
+            userCounts[row.user_id] = (userCounts[row.user_id] || 0) + 1;
+          });
+          
+          // Convert to expected format
+          promptCountData = Object.entries(userCounts).map(([user_id, count]) => ({
+            user_id,
+            count: count.toString()
+          }));
+          
+          console.log("Generated prompt counts from token_usage table");
+        }
 
         // Get usernames from profiles
         const { data: profilesData, error: profilesError } = await supabase
@@ -162,16 +184,85 @@ export default function Analytics() {
         }
 
         setTotalStats(totals);
+        setError(null);
+        
+        // Toast success message on retry success
+        if (retryCount > 0) {
+          toast({
+            title: "Success",
+            description: "Analytics data loaded successfully!",
+          });
+        }
+        
       } catch (err) {
         console.error("Error fetching token stats:", err);
         setError("Failed to load analytics data. Please try again.");
+        
+        // Create dummy data for display
+        if (retryCount > 2) {
+          console.log("Creating fallback data after multiple retries");
+          createFallbackData();
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchTokenStats();
-  }, [user, isAdmin]);
+  }, [user, isAdmin, retryCount, toast]);
+
+  // Create fallback data if multiple retries fail
+  const createFallbackData = () => {
+    // Sample user stats
+    const sampleUserStats: UserTokenStats[] = [
+      {
+        user_id: "sample-user-1",
+        username: "Sample User 1",
+        total_prompt_tokens: 5000,
+        total_completion_tokens: 2500,
+        total_prompt_cost: 0.01,
+        total_completion_cost: 0.02,
+        total_cost: 0.03,
+        prompts_count: 25
+      },
+      {
+        user_id: "sample-user-2",
+        username: "Sample User 2",
+        total_prompt_tokens: 3000,
+        total_completion_tokens: 1500,
+        total_prompt_cost: 0.006,
+        total_completion_cost: 0.012,
+        total_cost: 0.018,
+        prompts_count: 15
+      }
+    ];
+    
+    setUserStats(sampleUserStats);
+    
+    // Calculate totals
+    const totals: TotalStats = {
+      total_users: sampleUserStats.length,
+      total_prompts: sampleUserStats.reduce((sum, user) => sum + user.prompts_count, 0),
+      total_prompt_tokens: sampleUserStats.reduce((sum, user) => sum + user.total_prompt_tokens, 0),
+      total_completion_tokens: sampleUserStats.reduce((sum, user) => sum + user.total_completion_tokens, 0),
+      total_tokens: sampleUserStats.reduce((sum, user) => sum + user.total_prompt_tokens + user.total_completion_tokens, 0),
+      total_cost: sampleUserStats.reduce((sum, user) => sum + user.total_cost, 0),
+      avg_cost_per_prompt: 0,
+      avg_tokens_per_prompt: 0
+    };
+    
+    // Calculate averages
+    if (totals.total_prompts > 0) {
+      totals.avg_cost_per_prompt = totals.total_cost / totals.total_prompts;
+      totals.avg_tokens_per_prompt = totals.total_tokens / totals.total_prompts;
+    }
+    
+    setTotalStats(totals);
+    toast({
+      title: "Using Sample Data",
+      description: "Displaying sample analytics data for preview purposes.",
+    });
+  };
 
   // Redirect non-admin users
   if (user && !isAdmin) {
@@ -204,7 +295,17 @@ export default function Analytics() {
         <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription className="flex items-center justify-between">
+            <span>{error}</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={retryFetch}
+              className="ml-4 bg-white hover:bg-gray-100"
+            >
+              Retry
+            </Button>
+          </AlertDescription>
         </Alert>
       )}
 
