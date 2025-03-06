@@ -114,9 +114,69 @@ export type Database = {
         }
         Relationships: []
       }
+      token_usage: {
+        Row: {
+          completion_cost: number
+          completion_tokens: number
+          created_at: string
+          id: string
+          model: string
+          prompt_cost: number
+          prompt_id: string | null
+          prompt_tokens: number
+          step: number
+          total_cost: number
+          user_id: string
+        }
+        Insert: {
+          completion_cost?: number
+          completion_tokens?: number
+          created_at?: string
+          id?: string
+          model: string
+          prompt_cost?: number
+          prompt_id?: string | null
+          prompt_tokens?: number
+          step: number
+          total_cost?: number
+          user_id: string
+        }
+        Update: {
+          completion_cost?: number
+          completion_tokens?: number
+          created_at?: string
+          id?: string
+          model?: string
+          prompt_cost?: number
+          prompt_id?: string | null
+          prompt_tokens?: number
+          step?: number
+          total_cost?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "token_usage_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      user_token_summary: {
+        Row: {
+          total_completion_cost: number | null
+          total_completion_tokens: number | null
+          total_cost: number | null
+          total_prompt_cost: number | null
+          total_prompt_tokens: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

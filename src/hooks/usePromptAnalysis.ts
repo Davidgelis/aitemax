@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions } from "@/components/dashboard/constants";
@@ -21,6 +22,8 @@ export const usePromptAnalysis = (
   setCurrentStep: (step: number) => void,
   selectedPrimary: string | null,
   selectedSecondary: string | null,
+  user: any,
+  promptId: string | null
 ) => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState(0);
@@ -58,12 +61,24 @@ export const usePromptAnalysis = (
     setCurrentLoadingMessage(0);
     
     try {
+      // Include userId and promptId in the payload if available
+      const payload: any = {
+        promptText,
+        primaryToggle: selectedPrimary,
+        secondaryToggle: selectedSecondary
+      };
+      
+      // Add user and prompt ID if available
+      if (user) {
+        payload.userId = user.id;
+      }
+      
+      if (promptId) {
+        payload.promptId = promptId;
+      }
+      
       const { data, error } = await supabase.functions.invoke('analyze-prompt', {
-        body: {
-          promptText,
-          primaryToggle: selectedPrimary,
-          secondaryToggle: selectedSecondary
-        }
+        body: payload
       });
       
       if (error) throw error;
@@ -128,6 +143,12 @@ export const usePromptAnalysis = (
         // If we received raw analysis, log it for debugging
         if (data.rawAnalysis) {
           console.log("Raw AI analysis:", data.rawAnalysis);
+        }
+        
+        // Log token usage if available
+        if (data.usage) {
+          console.log("Token usage:", data.usage);
+          console.log(`Prompt tokens: ${data.usage.prompt_tokens}, Completion tokens: ${data.usage.completion_tokens}`);
         }
       } else {
         console.warn("No data received from analysis function, using fallbacks");

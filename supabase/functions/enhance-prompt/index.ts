@@ -3,11 +3,74 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Helper function to calculate token costs
+function calculateTokenCosts(promptTokens: number, completionTokens: number) {
+  // GPT-4o pricing: $0.00250 per 1K prompt tokens, $0.00750 per 1K completion tokens
+  const promptCost = (promptTokens / 1000) * 0.00250;
+  const completionCost = (completionTokens / 1000) * 0.00750;
+  return {
+    promptCost,
+    completionCost,
+    totalCost: promptCost + completionCost
+  };
+}
+
+// Helper function to record token usage in Supabase
+async function recordTokenUsage(
+  userId: string, 
+  promptId: string | null,
+  step: number,
+  promptTokens: number, 
+  completionTokens: number, 
+  model: string
+) {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn("Supabase credentials missing, token usage will not be recorded");
+    return;
+  }
+
+  const costs = calculateTokenCosts(promptTokens, completionTokens);
+  
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/token_usage`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        prompt_id: promptId,
+        step,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        prompt_cost: costs.promptCost,
+        completion_cost: costs.completionCost,
+        total_cost: costs.totalCost,
+        model
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Error recording token usage:", errorData);
+    } else {
+      console.log(`Token usage recorded successfully for user ${userId} at step ${step}`);
+    }
+  } catch (error) {
+    console.error("Error recording token usage:", error);
+  }
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -22,7 +85,9 @@ serve(async (req) => {
       answeredQuestions, 
       relevantVariables,
       primaryToggle,
-      secondaryToggle
+      secondaryToggle,
+      userId,
+      promptId
     } = await req.json();
     
     console.log(`Enhancing prompt with GPT-4o analysis...`);
@@ -99,7 +164,22 @@ Based on this information, generate an enhanced final prompt that follows the st
     
     console.log("Prompt enhancement completed successfully");
     
-    return new Response(JSON.stringify({ enhancedPrompt }), {
+    // Record the token usage for this step if userId is provided
+    if (userId) {
+      await recordTokenUsage(
+        userId,
+        promptId,
+        3, // Step 3: Final prompt generation
+        data.usage.prompt_tokens,
+        data.usage.completion_tokens,
+        'gpt-4o'
+      );
+    }
+    
+    return new Response(JSON.stringify({ 
+      enhancedPrompt,
+      usage: data.usage
+    }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
