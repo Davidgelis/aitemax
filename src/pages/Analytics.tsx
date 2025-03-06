@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,14 +72,34 @@ export default function Analytics() {
 
         if (userError) throw userError;
 
-        // Different approach: Using a fetch directly with the Supabase API
+        // Different approach: Using the edge function directly
         const promptCountResponse = await supabase.functions.invoke('get-prompt-counts-per-user', {
           method: 'GET',
-        }).catch(() => {
+        }).catch(async () => {
           // Fallback: If the edge function doesn't exist, make a direct query
-          return supabase.from('token_usage')
-            .select('user_id, count(*)')
-            .group('user_id');
+          // Using SQL query directly to avoid group() method type error
+          const { data, error } = await supabase
+            .from('token_usage')
+            .select('user_id')
+            .then(async (result) => {
+              if (result.error) throw result.error;
+              
+              // Count occurrences of each user_id manually
+              const userCounts: Record<string, number> = {};
+              result.data.forEach(row => {
+                userCounts[row.user_id] = (userCounts[row.user_id] || 0) + 1;
+              });
+              
+              // Convert to expected format
+              const formattedData = Object.entries(userCounts).map(([user_id, count]) => ({
+                user_id,
+                count: count.toString()
+              }));
+              
+              return { data: formattedData, error: null };
+            });
+            
+          return { data, error };
         });
 
         if (promptCountResponse.error) throw promptCountResponse.error;
