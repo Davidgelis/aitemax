@@ -187,6 +187,7 @@ const Dashboard = () => {
           drafts={promptState.drafts}
           isLoadingDrafts={promptState.isLoadingDrafts}
           loadDraft={promptState.loadSelectedDraft}
+          handleDeleteDraft={promptState.deleteDraft}
         />
       </div>
     </SidebarProvider>

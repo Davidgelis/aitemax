@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from "react";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -141,6 +140,33 @@ export const usePromptDrafts = (
     }
   }, [user]);
 
+  const deleteDraft = useCallback(async (draftId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('prompt_drafts')
+        .delete()
+        .eq('id', draftId);
+
+      if (error) throw error;
+
+      setDrafts(prevDrafts => prevDrafts.filter(draft => draft.id !== draftId));
+      
+      toast({
+        title: "Success",
+        description: "Draft deleted successfully",
+      });
+    } catch (error: any) {
+      console.error('Error deleting draft:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete draft",
+        variant: "destructive",
+      });
+    }
+  }, [user, toast]);
+
   const fetchDrafts = useCallback(async () => {
     if (!user) return;
     
@@ -197,6 +223,7 @@ export const usePromptDrafts = (
     saveDraft,
     loadDraft,
     clearDraft,
-    fetchDrafts
+    fetchDrafts,
+    deleteDraft
   };
 };

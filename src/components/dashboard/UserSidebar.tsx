@@ -1,4 +1,4 @@
-import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText, BarChart3, Clock } from "lucide-react";
+import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText, Clock } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { format } from "date-fns";
 
-// Admin user ID
 const ADMIN_USER_ID = "8b40d73f-fffb-411f-9044-480773968d58";
 
 interface UserSidebarProps {
@@ -26,6 +25,7 @@ interface UserSidebarProps {
   drafts?: any[];
   isLoadingDrafts?: boolean;
   loadDraft?: (draft: any) => void;
+  handleDeleteDraft?: (id: string) => void;
 }
 
 export const UserSidebar = ({
@@ -42,13 +42,13 @@ export const UserSidebar = ({
   loadSavedPrompt,
   drafts = [],
   isLoadingDrafts = false,
-  loadDraft
+  loadDraft,
+  handleDeleteDraft
 }: UserSidebarProps) => {
   const navigate = useNavigate();
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>('');
 
-  // Check if current user is admin
   const isAdmin = user?.id === ADMIN_USER_ID;
   
   const startEditing = (prompt: SavedPrompt) => {
@@ -71,7 +71,6 @@ export const UserSidebar = ({
     }
   };
 
-  // Helper to format date
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
     try {
@@ -111,7 +110,6 @@ export const UserSidebar = ({
                 <span>Profile</span>
               </DropdownMenuItem>
               
-              {/* Analytics link for admin user only */}
               {isAdmin && (
                 <DropdownMenuItem onClick={() => navigate("/analytics")} className="menu-item-glow">
                   <BarChart3 className="mr-2 h-4 w-4" />
@@ -178,7 +176,6 @@ export const UserSidebar = ({
             </div>
           ) : filteredContent.length > 0 ? (
             <>
-              {/* Drafts Section */}
               {!searchTerm && drafts.length > 0 && (
                 <div className="px-4 py-2 border-b bg-muted/20">
                   <div className="flex items-center gap-2">
@@ -207,10 +204,20 @@ export const UserSidebar = ({
                       </span>
                     </div>
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (handleDeleteDraft && draft.id) {
+                        handleDeleteDraft(draft.id);
+                      }
+                    }}
+                    className="opacity-0 group-hover/item:opacity-100 transition-opacity p-2 hover:text-destructive"
+                  >
+                    <Trash className="h-4 w-4" />
+                  </button>
                 </div>
               ))}
-              
-              {/* Saved Prompts Section */}
+
               {!searchTerm && savedPrompts.length > 0 && (
                 <div className="px-4 py-2 border-b bg-muted/20">
                   <div className="flex items-center gap-2">
@@ -220,7 +227,6 @@ export const UserSidebar = ({
                 </div>
               )}
               
-              {/* Only show filtered prompts when searching */}
               {searchTerm ? filteredPrompts.map((item) => (
                 <div
                   key={item.id}
@@ -290,7 +296,6 @@ export const UserSidebar = ({
                   </DropdownMenu>
                 </div>
               )) : (
-                // Show saved prompts when not searching
                 savedPrompts.map((item) => (
                   <div
                     key={item.id}
