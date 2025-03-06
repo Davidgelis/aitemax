@@ -22,9 +22,9 @@ export const usePromptOperations = (
   const handleVariableValueChange = (variableId: string, newValue: string) => {
     console.log(`Updating variable ${variableId} to value: ${newValue}`);
     
-    // Update the variables array
+    // Update the variables array with the new value
     const updatedVariables = variables.map(v => 
-      v.id === variableId ? { ...v, value: newValue } : v
+      v.id === variableId ? { ...v, value: newValue, isRelevant: true } : v
     );
     
     // Update variables state
@@ -37,6 +37,11 @@ export const usePromptOperations = (
     if (newValue.trim() === '' && oldValue.trim() === '') {
       return;
     }
+    
+    // Process the prompt again with updated variables
+    setTimeout(() => {
+      setProcessedPrompt(getProcessedPrompt());
+    }, 0);
     
     // Toast confirmation of update
     toast({
@@ -88,7 +93,8 @@ export const usePromptOperations = (
   
   // Update the processed prompt whenever variables change
   useEffect(() => {
-    setProcessedPrompt(getProcessedPrompt());
+    const newProcessedPrompt = getProcessedPrompt();
+    setProcessedPrompt(newProcessedPrompt);
   }, [variables, finalPrompt]);
   
   const handleOpenEditPrompt = () => {
@@ -161,6 +167,7 @@ export const usePromptOperations = (
   };
 
   return {
+    processedPrompt,
     getProcessedPrompt,
     handleVariableValueChange,
     handleOpenEditPrompt,

@@ -2,6 +2,7 @@
 import { Variable as LucideVariable, Edit } from "lucide-react";
 import { Variable } from "../types";
 import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
 
 interface VariablesSectionProps {
   variables: Variable[];
@@ -14,15 +15,44 @@ export const VariablesSection = ({
 }: VariablesSectionProps) => {
   const relevantVariables = variables.filter(v => v.isRelevant === true);
   const [highlightedVariables, setHighlightedVariables] = useState<Record<string, boolean>>({});
+  const [editingValues, setEditingValues] = useState<Record<string, string>>({});
 
-  // Initialize highlighted state based on current values
+  // Initialize highlighted state and editing values based on current variables
   useEffect(() => {
     const initialHighlightState: Record<string, boolean> = {};
+    const initialEditingValues: Record<string, string> = {};
+    
     relevantVariables.forEach(variable => {
       initialHighlightState[variable.id] = variable.value && variable.value.trim() !== '';
+      initialEditingValues[variable.id] = variable.value || '';
     });
+    
     setHighlightedVariables(initialHighlightState);
+    setEditingValues(initialEditingValues);
   }, [relevantVariables]);
+
+  // Handle input change with controlled components
+  const handleInputChange = (variableId: string, value: string) => {
+    // Update local state first
+    setEditingValues(prev => ({
+      ...prev,
+      [variableId]: value
+    }));
+    
+    // Update parent state
+    handleVariableValueChange(variableId, value);
+    
+    // Update highlight state
+    setHighlightedVariables(prev => ({
+      ...prev,
+      [variableId]: value.trim() !== ''
+    }));
+  };
+
+  // Reset a variable value
+  const handleReset = (variableId: string) => {
+    handleInputChange(variableId, "");
+  };
 
   return (
     <div className="mb-4 p-4 border rounded-lg bg-background/50">
@@ -44,18 +74,19 @@ export const VariablesSection = ({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <input 
+                <Input 
                   type="text"
-                  value={variable.value || ""}
-                  onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
+                  value={editingValues[variable.id] || ""}
+                  onChange={(e) => handleInputChange(variable.id, e.target.value)}
                   className={`flex-1 h-9 px-3 py-2 bg-white border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#33fea6] transition-all ${
-                    variable.value && variable.value.trim() !== '' ? 'border-[#33fea6]' : 'border-gray-300'
+                    highlightedVariables[variable.id] ? 'border-[#33fea6]' : 'border-gray-300'
                   }`}
                   placeholder="Enter value..."
                 />
                 <button 
-                  onClick={() => handleVariableValueChange(variable.id, "")}
+                  onClick={() => handleReset(variable.id)}
                   className="p-1.5 rounded-md bg-white border border-[#33fea6] hover:bg-gray-50 transition-colors"
+                  title="Reset value"
                 >
                   <Edit className="w-4 h-4 text-[#545454]" />
                 </button>

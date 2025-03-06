@@ -5,6 +5,7 @@ import { RefObject, useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { filterCategoryVariables } from "./constants";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 interface VariableListProps {
   variables: Variable[];
@@ -31,6 +32,8 @@ export const VariableList = ({
 }: VariableListProps) => {
   // Track which variables have values to highlight them
   const [highlightedVariables, setHighlightedVariables] = useState<Record<string, boolean>>({});
+  const [variableNames, setVariableNames] = useState<Record<string, string>>({});
+  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const { toast } = useToast();
   
   // Filter out category names and empty names for display
@@ -52,11 +55,36 @@ export const VariableList = ({
   const hasValidVariables = categories.length > 0 && 
     categories.some(category => groupedVariables[category].length > 0);
 
+  // Initialize state from props
+  useEffect(() => {
+    const names: Record<string, string> = {};
+    const values: Record<string, string> = {};
+    const highlighted: Record<string, boolean> = {};
+    
+    variables.forEach(variable => {
+      names[variable.id] = variable.name || '';
+      values[variable.id] = variable.value || '';
+      highlighted[variable.id] = variable.value && variable.value.trim() !== '';
+      
+      // Auto-set relevance based on value
+      if (variable.value && variable.value.trim() !== '' && variable.isRelevant === null) {
+        onVariableRelevance(variable.id, true);
+      }
+    });
+    
+    setVariableNames(names);
+    setVariableValues(values);
+    setHighlightedVariables(highlighted);
+  }, [variables]);
+
   // Handle variable value change with highlighting
   const handleValueChange = (variableId: string, value: string) => {
-    console.log(`Variable value change - ID: ${variableId}, Value: ${value}`);
+    // Update local state
+    setVariableValues(prev => ({
+      ...prev,
+      [variableId]: value
+    }));
     
-    // Track the highlighted state based on whether the value has content
     setHighlightedVariables(prev => ({
       ...prev,
       [variableId]: value.trim() !== ''
@@ -73,7 +101,11 @@ export const VariableList = ({
 
   // Handle name change
   const handleNameChange = (variableId: string, name: string) => {
-    console.log(`Variable name change - ID: ${variableId}, Name: ${name}`);
+    // Update local state
+    setVariableNames(prev => ({
+      ...prev,
+      [variableId]: name
+    }));
     
     // Mark as relevant when name is added
     if (name.trim() !== '') {
@@ -94,20 +126,6 @@ export const VariableList = ({
       onDeleteVariable();
     }, 50);
   };
-
-  useEffect(() => {
-    // Initialize highlighted state based on current values
-    const initialHighlightState: Record<string, boolean> = {};
-    variables.forEach(variable => {
-      initialHighlightState[variable.id] = variable.value && variable.value.trim() !== '';
-      
-      // Auto-set relevance based on value
-      if (variable.value && variable.value.trim() !== '' && variable.isRelevant === null) {
-        onVariableRelevance(variable.id, true);
-      }
-    });
-    setHighlightedVariables(initialHighlightState);
-  }, [variables]);
 
   return (
     <>
@@ -137,19 +155,19 @@ export const VariableList = ({
                   {index + 1}
                 </div>
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <input
+                  <Input
                     type="text"
                     placeholder="Variable name"
-                    value={variable.name || ""}
+                    value={variableNames[variable.id] || ""}
                     onChange={(e) => handleNameChange(variable.id, e.target.value)}
                     className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
                     autoComplete="off"
                     aria-label={`Name for variable ${index + 1}`}
                   />
-                  <input
+                  <Input
                     type="text"
                     placeholder="Value"
-                    value={variable.value || ""}
+                    value={variableValues[variable.id] || ""}
                     onChange={(e) => handleValueChange(variable.id, e.target.value)}
                     className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
                       highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''
