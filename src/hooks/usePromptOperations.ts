@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +26,7 @@ export const usePromptOperations = (
       }
       
       const relevantVariables = variables.filter(
-        v => v && v.isRelevant === true && v.name && v.value
+        v => v && v.isRelevant === true && v.name
       );
       
       if (relevantVariables.length === 0) {
@@ -36,22 +35,13 @@ export const usePromptOperations = (
       
       let processedPrompt = finalPrompt;
       
-      // First, replace variable names with their codes in the placeholder format
+      // Replace variables with their values
       relevantVariables.forEach(variable => {
         if (!variable.name) return;
         
-        const variablePattern = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
-        const displayCode = variable.code || `VAR_${variable.id}`;
-        processedPrompt = processedPrompt.replace(variablePattern, `{{${displayCode}}}`);
-      });
-      
-      // Then, replace the code placeholders with actual values
-      relevantVariables.forEach(variable => {
-        if (!variable.value) return;
-        
-        const displayCode = variable.code || `VAR_${variable.id}`;
-        const codePattern = new RegExp(`{{\\s*${displayCode}\\s*}}`, 'g');
-        processedPrompt = processedPrompt.replace(codePattern, variable.value);
+        const pattern = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
+        const replacement = variable.value || `{{${variable.name}}}`;
+        processedPrompt = processedPrompt.replace(pattern, replacement);
       });
       
       return processedPrompt;
@@ -61,32 +51,9 @@ export const usePromptOperations = (
     }
   }, [finalPrompt, variables]);
 
-  const extractVariablesFromPrompt = useCallback((promptText: string) => {
-    if (!promptText) return [];
-    
-    try {
-      const regex = /{{([^{}]+)}}/g;
-      const matches = [...promptText.matchAll(regex)];
-      
-      const extractedVars: Record<string, string> = {};
-      
-      matches.forEach(match => {
-        const name = match[1].trim();
-        if (name) {
-          extractedVars[name] = name;
-        }
-      });
-      
-      return Object.keys(extractedVars);
-    } catch (error) {
-      console.error("Error extracting variables:", error);
-      return [];
-    }
-  }, []);
-
   const handleVariableValueChange = useCallback((variableId: string, newValue: string) => {
     try {
-      setVariables((currentVars: Variable[]) => {
+      setVariables(currentVars => {
         if (!Array.isArray(currentVars)) {
           console.error("Invalid variables array in handleVariableValueChange:", currentVars);
           return [];
@@ -194,7 +161,6 @@ export const usePromptOperations = (
 
   return {
     getProcessedPrompt,
-    extractVariablesFromPrompt,
     handleVariableValueChange,
     handleOpenEditPrompt,
     handleSaveEditedPrompt,

@@ -1,6 +1,6 @@
 
 import { Variable } from "../types";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 
 interface VariablesSectionProps {
   variables: Variable[];
@@ -13,29 +13,6 @@ export const VariablesSection = ({
 }: VariablesSectionProps) => {
   const [groupedVariables, setGroupedVariables] = useState<Record<string, Variable[]>>({});
   const [isVisible, setIsVisible] = useState(true);
-  const [inputValues, setInputValues] = useState<Record<string, string>>({});
-  
-  // Process input changes with debounce
-  const handleInputChange = useCallback((variableId: string, value: string) => {
-    setInputValues(prev => ({ ...prev, [variableId]: value }));
-    
-    // Update the actual variable immediately to reflect changes in the prompt
-    handleVariableValueChange(variableId, value);
-  }, [handleVariableValueChange]);
-  
-  // Initialize input values from variables
-  useEffect(() => {
-    if (!Array.isArray(variables)) return;
-    
-    const values: Record<string, string> = {};
-    variables.forEach(v => {
-      if (v && v.id) {
-        values[v.id] = v.value || '';
-      }
-    });
-    
-    setInputValues(values);
-  }, [variables]);
   
   // Group variables by category
   useEffect(() => {
@@ -109,14 +86,13 @@ export const VariablesSection = ({
                   <div key={variable.id} className="grid grid-cols-[1fr,2fr] gap-2">
                     <div className="flex items-center">
                       <div className="text-xs py-1 px-2 bg-background rounded-md truncate">
-                        <span className="font-mono">{`{{${variable.code || variable.name}}}`}</span>
-                        <span className="text-muted-foreground ml-1">({variable.name})</span>
+                        <span className="font-mono">{`{{${variable.name}}}`}</span>
                       </div>
                     </div>
                     <input
                       type="text"
-                      value={inputValues[variable.id] || ''}
-                      onChange={(e) => handleInputChange(variable.id, e.target.value)}
+                      value={variable.value || ''}
+                      onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
                       className="text-xs py-1 px-2 w-full bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
                       placeholder="Enter value"
                     />
@@ -127,14 +103,6 @@ export const VariablesSection = ({
           ))}
         </div>
       )}
-      
-      <style>
-        {`
-        .font-mono {
-          font-family: monospace;
-        }
-        `}
-      </style>
     </div>
   );
 };

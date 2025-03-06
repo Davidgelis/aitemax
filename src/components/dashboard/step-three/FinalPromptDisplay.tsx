@@ -113,28 +113,21 @@ export const FinalPromptDisplay = ({
       if (!variable || !variable.name) return;
       
       try {
-        const displayCode = variable.code || `VAR_${variable.id}`;
-        
-        const nameRegex = new RegExp(`{{\\s*(${escapeRegExp(variable.name)})\\s*}}`, 'g');
-        const codeRegex = new RegExp(`{{\\s*(${escapeRegExp(displayCode)})\\s*}}`, 'g');
-        
-        processedText = processedText
-          .replace(nameRegex, `<span class="unresolved-variable">{{${displayCode}}}</span>`)
-          .replace(codeRegex, `<span class="unresolved-variable">{{${displayCode}}}</span>`);
+        // Highlight unresolved variables (those without values)
+        if (!variable.value) {
+          const pattern = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
+          processedText = processedText.replace(pattern, 
+            `<span class="unresolved-variable">{{${variable.name}}}</span>`);
+        } 
+        // Highlight resolved variables (those with values)
+        else {
+          const escapedValue = escapeRegExp(variable.value);
+          const valuePattern = new RegExp(`\\b${escapedValue}\\b`, 'g');
+          processedText = processedText.replace(valuePattern, 
+            `<span class="variable-highlight">${variable.value}</span>`);
+        }
       } catch (error) {
-        console.error(`Error highlighting variable placeholder ${variable.name}:`, error);
-      }
-    });
-    
-    relevantVariables.forEach(variable => {
-      if (!variable || !variable.value || variable.value.trim() === '') return;
-      
-      try {
-        const valueRegex = new RegExp(`\\b(${escapeRegExp(variable.value)})\\b`, 'g');
-        processedText = processedText.replace(valueRegex, 
-          `<span class="variable-highlight">$1</span>`);
-      } catch (error) {
-        console.error(`Error highlighting variable value ${variable.value}:`, error);
+        console.error(`Error highlighting variable ${variable.name}:`, error);
       }
     });
     
