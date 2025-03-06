@@ -27,145 +27,13 @@ export const usePromptDrafts = (
   const { toast } = useToast();
   const [drafts, setDrafts] = useState<PromptDraft[]>([]);
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
 
-  const saveDraft = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const draft = {
-        user_id: user.id,
-        title: promptText.split('\n')[0] || 'Untitled Draft',
-        prompt_text: promptText,
-        master_command: masterCommand,
-        primary_toggle: selectedPrimary,
-        secondary_toggle: selectedSecondary,
-        variables: variablesToJson(variables),
-        current_step: currentStep,
-      };
-
-      const { error } = await supabase
-        .from('prompt_drafts')
-        .upsert(draft);
-
-      if (error) throw error;
-
-      // Also save to localStorage as backup
-      localStorage.setItem('promptDraft', JSON.stringify({
-        promptText,
-        masterCommand,
-        variables,
-        selectedPrimary,
-        selectedSecondary,
-        currentStep,
-        timestamp: new Date().toISOString()
-      }));
-
-    } catch (error) {
-      console.error('Error saving draft:', error);
-      // If database save fails, save to localStorage as fallback
-      localStorage.setItem('promptDraft', JSON.stringify({
-        promptText,
-        masterCommand,
-        variables,
-        selectedPrimary,
-        selectedSecondary,
-        currentStep,
-        timestamp: new Date().toISOString()
-      }));
-    }
-  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, user]);
-
-  const loadDraft = useCallback(async () => {
-    if (!user) return null;
-
-    try {
-      // First try to load from Supabase
-      const { data: drafts, error } = await supabase
-        .from('prompt_drafts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
-        .limit(1);
-
-      if (error) throw error;
-
-      if (drafts && drafts.length > 0) {
-        return {
-          promptText: drafts[0].prompt_text,
-          masterCommand: drafts[0].master_command,
-          variables: drafts[0].variables,
-          selectedPrimary: drafts[0].primary_toggle,
-          selectedSecondary: drafts[0].secondary_toggle,
-          currentStep: drafts[0].current_step,
-        };
-      }
-
-      // If no Supabase draft, try localStorage
-      const localDraft = localStorage.getItem('promptDraft');
-      if (localDraft) {
-        return JSON.parse(localDraft);
-      }
-
-    } catch (error) {
-      console.error('Error loading draft:', error);
-      // If database load fails, try localStorage
-      const localDraft = localStorage.getItem('promptDraft');
-      if (localDraft) {
-        return JSON.parse(localDraft);
-      }
-    }
-
-    return null;
-  }, [user]);
-
-  const clearDraft = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      // Clear from Supabase
-      const { error } = await supabase
-        .from('prompt_drafts')
-        .delete()
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      // Clear from localStorage
-      localStorage.removeItem('promptDraft');
-
-    } catch (error) {
-      console.error('Error clearing draft:', error);
-      // Still clear localStorage even if database clear fails
-      localStorage.removeItem('promptDraft');
+  useEffect(() => {
+    if (user) {
+      fetchDrafts();
     }
   }, [user]);
-
-  const deleteDraft = useCallback(async (draftId: string) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('prompt_drafts')
-        .delete()
-        .eq('id', draftId);
-
-      if (error) throw error;
-
-      setDrafts(prevDrafts => prevDrafts.filter(draft => draft.id !== draftId));
-      
-      toast({
-        title: "Success",
-        description: "Draft deleted successfully",
-      });
-    } catch (error: any) {
-      console.error('Error deleting draft:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete draft",
-        variant: "destructive",
-      });
-    }
-  }, [user, toast]);
 
   const fetchDrafts = useCallback(async () => {
     if (!user) return;
@@ -202,20 +70,212 @@ export const usePromptDrafts = (
     }
   }, [user]);
 
-  // Auto-save draft every 30 seconds if there are changes
+  const saveDraft = useCallback(async () => {
+    if (!user || !promptText.trim()) return;
+
+    try {
+      const title = promptText.split('\n')[0] || 'Untitled Draft';
+      
+      let draftId = currentDraftId;
+      
+      if (!draftId) {
+        const { data: existingDrafts, error: searchError } = await supabase
+          .from('prompt_drafts')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('title', title)
+          .limit(1);
+          
+        if (searchError) throw searchError;
+        
+        if (existingDrafts && existingDrafts.length > 0) {
+          draftId = existingDrafts[0].id;
+          setCurrentDraftId(draftId);
+        }
+      }
+      
+      const draft = {
+        user_id: user.id,
+        title: title,
+        prompt_text: promptText,
+        master_command: masterCommand,
+        primary_toggle: selectedPrimary,
+        secondary_toggle: selectedSecondary,
+        variables: variablesToJson(variables),
+        current_step: currentStep,
+      };
+
+      if (draftId) {
+        const { error } = await supabase
+          .from('prompt_drafts')
+          .update(draft)
+          .eq('id', draftId);
+          
+        if (error) throw error;
+        console.log("Draft updated successfully");
+      } else {
+        const { data, error } = await supabase
+          .from('prompt_drafts')
+          .insert(draft)
+          .select();
+          
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          setCurrentDraftId(data[0].id);
+          console.log("New draft created successfully");
+        }
+      }
+
+      localStorage.setItem('promptDraft', JSON.stringify({
+        id: draftId,
+        promptText,
+        masterCommand,
+        variables,
+        selectedPrimary,
+        selectedSecondary,
+        currentStep,
+        timestamp: new Date().toISOString()
+      }));
+
+      fetchDrafts();
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      localStorage.setItem('promptDraft', JSON.stringify({
+        promptText,
+        masterCommand,
+        variables,
+        selectedPrimary,
+        selectedSecondary,
+        currentStep,
+        timestamp: new Date().toISOString()
+      }));
+    }
+  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, user, currentDraftId, fetchDrafts]);
+
+  const loadDraft = useCallback(async () => {
+    if (!user) return null;
+
+    try {
+      const { data: drafts, error } = await supabase
+        .from('prompt_drafts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      if (error) throw error;
+
+      if (drafts && drafts.length > 0) {
+        setCurrentDraftId(drafts[0].id);
+        return {
+          promptText: drafts[0].prompt_text,
+          masterCommand: drafts[0].master_command,
+          variables: drafts[0].variables,
+          selectedPrimary: drafts[0].primary_toggle,
+          selectedSecondary: drafts[0].secondary_toggle,
+          currentStep: drafts[0].current_step,
+        };
+      }
+
+      const localDraft = localStorage.getItem('promptDraft');
+      if (localDraft) {
+        const parsed = JSON.parse(localDraft);
+        if (parsed.id) {
+          setCurrentDraftId(parsed.id);
+        }
+        return parsed;
+      }
+
+    } catch (error) {
+      console.error('Error loading draft:', error);
+      const localDraft = localStorage.getItem('promptDraft');
+      if (localDraft) {
+        const parsed = JSON.parse(localDraft);
+        if (parsed.id) {
+          setCurrentDraftId(parsed.id);
+        }
+        return parsed;
+      }
+    }
+
+    return null;
+  }, [user]);
+
+  const clearDraft = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      if (currentDraftId) {
+        const { error } = await supabase
+          .from('prompt_drafts')
+          .delete()
+          .eq('id', currentDraftId);
+
+        if (error) throw error;
+      }
+
+      localStorage.removeItem('promptDraft');
+      setCurrentDraftId(null);
+
+    } catch (error) {
+      console.error('Error clearing draft:', error);
+      localStorage.removeItem('promptDraft');
+      setCurrentDraftId(null);
+    }
+  }, [user, currentDraftId]);
+
+  const deleteDraft = useCallback(async (draftId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('prompt_drafts')
+        .delete()
+        .eq('id', draftId);
+
+      if (error) throw error;
+
+      if (draftId === currentDraftId) {
+        setCurrentDraftId(null);
+      }
+
+      setDrafts(prevDrafts => prevDrafts.filter(draft => draft.id !== draftId));
+      
+      toast({
+        title: "Success",
+        description: "Draft deleted successfully",
+      });
+    } catch (error: any) {
+      console.error('Error deleting draft:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete draft",
+        variant: "destructive",
+      });
+    }
+  }, [user, toast, currentDraftId]);
+
+  const loadSelectedDraft = useCallback((draft: PromptDraft) => {
+    if (draft.id) {
+      setCurrentDraftId(draft.id);
+    }
+    return {
+      promptText: draft.promptText,
+      masterCommand: draft.masterCommand,
+      variables: draft.variables,
+      selectedPrimary: draft.primaryToggle,
+      secondaryToggle: draft.secondaryToggle,
+      currentStep: draft.currentStep
+    };
+  }, []);
+
   useEffect(() => {
     if (!promptText) return;
 
     const intervalId = setInterval(saveDraft, 30000);
     return () => clearInterval(intervalId);
   }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, saveDraft]);
-
-  // Fetch drafts on mount
-  useEffect(() => {
-    if (user) {
-      fetchDrafts();
-    }
-  }, [user, fetchDrafts]);
 
   return {
     drafts,
@@ -224,6 +284,8 @@ export const usePromptDrafts = (
     loadDraft,
     clearDraft,
     fetchDrafts,
-    deleteDraft
+    deleteDraft,
+    loadSelectedDraft,
+    currentDraftId
   };
 };

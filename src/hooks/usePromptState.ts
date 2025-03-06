@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -35,7 +34,9 @@ export const usePromptState = (user: any) => {
     drafts,
     isLoadingDrafts,
     fetchDrafts,
-    deleteDraft
+    deleteDraft,
+    loadSelectedDraft,
+    currentDraftId
   } = usePromptDrafts(
     promptText,
     masterCommand,
@@ -80,15 +81,17 @@ export const usePromptState = (user: any) => {
     };
   }, [promptText, isViewingSavedPrompt, saveDraft]);
 
-  const loadSelectedDraft = (draft: any) => {
-    if (draft.promptText) setPromptText(draft.promptText);
-    if (draft.masterCommand) setMasterCommand(draft.masterCommand);
-    if (draft.variables) setVariables(draft.variables);
-    if (draft.primaryToggle) setSelectedPrimary(draft.primaryToggle);
-    if (draft.secondaryToggle) setSelectedSecondary(draft.secondaryToggle);
-    if (draft.currentStep) setCurrentStep(draft.currentStep);
+  const loadSelectedDraftState = (draft: any) => {
+    const draftData = loadSelectedDraft(draft);
     
-    setFinalPrompt(draft.promptText || "");
+    if (draftData.promptText) setPromptText(draftData.promptText);
+    if (draftData.masterCommand) setMasterCommand(draftData.masterCommand);
+    if (draftData.variables) setVariables(draftData.variables);
+    if (draftData.selectedPrimary) setSelectedPrimary(draftData.selectedPrimary);
+    if (draftData.secondaryToggle) setSelectedSecondary(draftData.secondaryToggle);
+    if (draftData.currentStep) setCurrentStep(draftData.currentStep);
+    
+    setFinalPrompt(draftData.promptText || "");
     
     toast({
       title: "Draft Loaded",
@@ -467,7 +470,8 @@ export const usePromptState = (user: any) => {
     loadSavedPrompt,
     drafts,
     isLoadingDrafts,
-    loadSelectedDraft,
-    deleteDraft
+    loadSelectedDraft: loadSelectedDraftState,
+    deleteDraft,
+    currentDraftId
   };
 };
