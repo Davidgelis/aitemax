@@ -73,9 +73,9 @@ export default function Analytics() {
 
         if (userError) throw userError;
 
-        // Fix for the first error: Use proper type annotation for the RPC function
+        // Properly type the RPC function with both type arguments
         const { data: promptCountData, error: promptError } = await supabase
-          .rpc<PromptCountResult[]>('get_prompt_counts_per_user');
+          .rpc<string, PromptCountResult[]>('get_prompt_counts_per_user');
 
         if (promptError) throw promptError;
 
@@ -93,10 +93,12 @@ export default function Analytics() {
         }, {} as Record<string, string | null>);
 
         // Create a map of user_id to prompt count
-        // Fix for the second error: Handle the case when promptCountData might be null
         const promptCountMap: Record<string, number> = {};
-        if (promptCountData) {
-          promptCountData.forEach((item: PromptCountResult) => {
+        
+        // Handle the type properly by using a definite type guard
+        const countData = promptCountData as PromptCountResult[] | null;
+        if (countData) {
+          countData.forEach(item => {
             promptCountMap[item.user_id] = parseInt(item.count);
           });
         }
