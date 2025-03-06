@@ -1,5 +1,5 @@
 
-import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText } from "lucide-react";
+import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText, BarChart3 } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { SavedPrompt } from "./types";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+
+// Admin user ID
+const ADMIN_USER_ID = "8b40d73f-fffb-411f-9044-480773968d58";
 
 interface UserSidebarProps {
   user: any;
@@ -39,6 +42,9 @@ export const UserSidebar = ({
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>('');
 
+  // Check if current user is admin
+  const isAdmin = user?.id === ADMIN_USER_ID;
+  
   const startEditing = (prompt: SavedPrompt) => {
     setEditingPromptId(prompt.id);
     setEditingTitle(prompt.title);
@@ -84,6 +90,15 @@ export const UserSidebar = ({
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
+              
+              {/* Analytics link for admin user only */}
+              {isAdmin && (
+                <DropdownMenuItem onClick={() => navigate("/analytics")} className="menu-item-glow">
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  <span>Analytics</span>
+                </DropdownMenuItem>
+              )}
+              
               {user ? (
                 <DropdownMenuItem 
                   onClick={async () => {
