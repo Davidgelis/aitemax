@@ -103,67 +103,63 @@ export const VariableList = ({
       </div>
       
       <div ref={containerRef} className="max-h-[280px] overflow-y-auto pr-2 space-y-4">
-        {hasValidVariables ? (
-          categories.map((category) => (
-            groupedVariables[category].length > 0 && (
-              <div key={category} className="space-y-3">
-                <h4 className="font-medium text-sm text-accent">{category}</h4>
-                
-                {groupedVariables[category].map((variable, index) => (
-                  <div key={variable.id} className="flex gap-3 items-center">
-                    <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <Input
-                        placeholder="Variable name"
-                        value={variable.name}
-                        onChange={(e) => handleNameChange(variable.id, e.target.value)}
-                        className="flex-1 h-9"
-                      />
-                      <Input
-                        placeholder="Value"
-                        value={variable.value}
-                        onChange={(e) => handleValueChange(variable.id, e.target.value)}
-                        className={`flex-1 h-9 ${highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''}`}
-                      />
-                    </div>
-                    <div className="flex">
-                      <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
-                        <AlertDialogTrigger asChild>
-                          <button
-                            onClick={() => {
-                              // Mark as evaluated when delete button is clicked
-                              setVariableToDelete(variable.id);
-                            }}
-                            className="p-2 rounded-full hover:bg-[#33fea6]/20"
-                            title="Delete variable"
-                          >
-                            <Trash className="w-4 h-4" />
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete variable?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this variable? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(variable.id)}>Delete</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
-          ))
-        ) : (
+        {!hasValidVariables && (
           <div className="text-center text-muted-foreground py-4">
             No variables available
+          </div>
+        )}
+        
+        {variables.length > 0 && (
+          <div className="space-y-3">
+            {variables.map((variable, index) => (
+              <div key={variable.id} className="flex gap-3 items-center">
+                <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
+                  {index + 1}
+                </div>
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Input
+                    placeholder="Variable name"
+                    value={variable.name}
+                    onChange={(e) => handleNameChange(variable.id, e.target.value)}
+                    className="flex-1 h-9"
+                  />
+                  <Input
+                    placeholder="Value"
+                    value={variable.value}
+                    onChange={(e) => handleValueChange(variable.id, e.target.value)}
+                    className={`flex-1 h-9 ${highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''}`}
+                  />
+                </div>
+                <div className="flex">
+                  <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        onClick={() => {
+                          // Mark as evaluated when delete button is clicked
+                          setVariableToDelete(variable.id);
+                        }}
+                        className="p-2 rounded-full hover:bg-[#33fea6]/20"
+                        title="Delete variable"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete variable?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this variable? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(variable.id)}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

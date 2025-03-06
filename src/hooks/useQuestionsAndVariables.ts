@@ -91,28 +91,39 @@ export const useQuestionsAndVariables = (
       !q.isRelevant || (q.isRelevant && q.answer && q.answer.trim() !== "")
     );
     
-    // 3. Only check variables that have names (ignore empty variables)
-    const namedVariables = variables.filter(v => v.name.trim() !== '');
+    // 3. For variables, only worry about those with names - these are the ones that need evaluation
+    // We're being less strict - if a variable has a name OR value, we require it to be evaluated
+    const variablesWithNameOrValue = variables.filter(v => 
+      v.name.trim() !== '' || v.value.trim() !== ''
+    );
     
-    // 4. Check if all named variables have been evaluated
-    const allNamedVariablesEvaluated = namedVariables.every(v => 
+    // 4. Check if all named variables have been evaluated (marked as relevant or not)
+    const allNamedVariablesEvaluated = variablesWithNameOrValue.every(v => 
       v.isRelevant === true || v.isRelevant === false
     );
     
+    // 5. For empty variables (no name and no value), we'll automatically consider them as evaluated
+    const emptyVariables = variables.filter(v => 
+      v.name.trim() === '' && v.value.trim() === ''
+    );
+    
+    // For debugging purposes
     console.log({
       allQuestionsEvaluated,
       allRelevantQuestionsAnswered,
       allNamedVariablesEvaluated,
       questionsCount: questions.length,
-      namedVariablesCount: namedVariables.length,
+      namedVariablesCount: variablesWithNameOrValue.length,
+      emptyVariablesCount: emptyVariables.length,
       questionsData: questions.map(q => ({
         id: q.id,
         isRelevant: q.isRelevant,
         hasAnswer: q.answer && q.answer.trim() !== ""
       })),
-      variablesData: namedVariables.map(v => ({
+      variablesData: variables.map(v => ({
         id: v.id,
         name: v.name,
+        value: v.value,
         isRelevant: v.isRelevant
       }))
     });
