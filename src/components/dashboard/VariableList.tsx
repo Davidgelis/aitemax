@@ -15,6 +15,7 @@ interface VariableListProps {
   variableToDelete: string | null;
   setVariableToDelete: (id: string | null) => void;
   containerRef: RefObject<HTMLDivElement>;
+  originalPrompt: string;
 }
 
 export const VariableList = ({
@@ -25,7 +26,8 @@ export const VariableList = ({
   onDeleteVariable,
   variableToDelete,
   setVariableToDelete,
-  containerRef
+  containerRef,
+  originalPrompt
 }: VariableListProps) => {
   // Track which variables have values to highlight them
   const [highlightedVariables, setHighlightedVariables] = useState<Record<string, boolean>>({});
@@ -59,17 +61,32 @@ export const VariableList = ({
     
     // Call the original change handler
     onVariableChange(variableId, 'value', value);
+    
+    // Automatically mark as relevant when a value is entered
+    if (value.trim() !== '') {
+      onVariableRelevance(variableId, true);
+    }
   };
 
   // Handle marking a variable as not relevant (through delete)
   const handleDelete = (id: string) => {
-    // First mark as not relevant, then remove it
+    // IMPORTANT: Always mark as not relevant before removing
     onVariableRelevance(id, false);
     
     // Add a small delay to ensure state updates before removing
     setTimeout(() => {
       onDeleteVariable();
-    }, 10);
+    }, 50);
+  };
+  
+  // Handle name change and mark relevant if name is entered
+  const handleNameChange = (variableId: string, name: string) => {
+    onVariableChange(variableId, 'name', name);
+    
+    // Automatically mark as relevant when a name is added
+    if (name.trim() !== '') {
+      onVariableRelevance(variableId, true);
+    }
   };
 
   return (
@@ -101,13 +118,7 @@ export const VariableList = ({
                       <Input
                         placeholder="Variable name"
                         value={variable.name}
-                        onChange={(e) => {
-                          // When a name is added, mark as relevant automatically
-                          if (e.target.value.trim() !== '' && variable.isRelevant === null) {
-                            onVariableRelevance(variable.id, true);
-                          }
-                          onVariableChange(variable.id, 'name', e.target.value);
-                        }}
+                        onChange={(e) => handleNameChange(variable.id, e.target.value)}
                         className="flex-1 h-9"
                       />
                       <Input
@@ -122,10 +133,7 @@ export const VariableList = ({
                         <AlertDialogTrigger asChild>
                           <button
                             onClick={() => {
-                              // Mark as edited/evaluated when delete button is clicked
-                              if (variable.isRelevant === null) {
-                                onVariableRelevance(variable.id, false);
-                              }
+                              // Mark as evaluated when delete button is clicked
                               setVariableToDelete(variable.id);
                             }}
                             className="p-2 rounded-full hover:bg-[#33fea6]/20"

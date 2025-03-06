@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -65,48 +64,38 @@ export const useQuestionsAndVariables = (
   const canProceedToStep3 = (): boolean => {
     console.log("Checking if can proceed to step 3...");
     
-    // 1. Make sure all questions have been evaluated (answered or dismissed)
-    const allQuestionsEvaluated = questions.every(
-      (q) => q.isRelevant === true || q.isRelevant === false
+    const allQuestionsEvaluated = questions.every(q => 
+      q.isRelevant === true || q.isRelevant === false
     );
     
-    // 2. For questions marked as relevant, make sure they have answers
-    const allRelevantQuestionsAnswered = questions.every(
-      (q) => !q.isRelevant || (q.isRelevant && q.answer && q.answer.trim() !== "")
+    const allRelevantQuestionsAnswered = questions.every(q => 
+      !q.isRelevant || (q.isRelevant && q.answer && q.answer.trim() !== "")
     );
     
-    // 3. For variables, we only care about the ones with names (not deleted)
-    // Empty named variables are considered deleted/irrelevant
-    const variablesWithNames = variables.filter(v => v.name.trim() !== '');
+    const namedVariables = variables.filter(v => v.name.trim() !== '');
+    const allNamedVariablesEvaluated = namedVariables.every(v => 
+      v.isRelevant === true || v.isRelevant === false
+    );
     
-    // 4. Make sure all named variables have been explicitly marked as relevant or not relevant
-    const allNamedVariablesEvaluated = variablesWithNames.length === 0 || 
-      variablesWithNames.every(v => v.isRelevant === true || v.isRelevant === false);
-    
-    // Add comprehensive logging to help diagnose the issue
     console.log({
       allQuestionsEvaluated,
       allRelevantQuestionsAnswered,
       allNamedVariablesEvaluated,
       questionsCount: questions.length,
       variablesCount: variables.length,
-      namedVariablesCount: variablesWithNames.length,
+      namedVariablesCount: namedVariables.length,
       questionsData: questions.map(q => ({
         id: q.id,
         isRelevant: q.isRelevant,
         hasAnswer: q.answer && q.answer.trim() !== ""
       })),
-      variablesData: variablesWithNames.map(v => ({
+      variablesData: namedVariables.map(v => ({
         id: v.id,
         name: v.name,
         isRelevant: v.isRelevant
       }))
     });
     
-    // We can proceed if:
-    // 1. All questions are evaluated (relevant or not)
-    // 2. All relevant questions have answers
-    // 3. All named variables have been evaluated (relevant or not)
     return (
       allQuestionsEvaluated && 
       allRelevantQuestionsAnswered && 
@@ -123,15 +112,12 @@ export const useQuestionsAndVariables = (
     setIsEnhancing(true);
     
     try {
-      // Get all answered and relevant questions
       const answeredQuestions = questions.filter(
         (q) => q.isRelevant && q.answer && q.answer.trim() !== ""
       );
       
-      // Get all relevant variables
       const relevantVariables = variables.filter((v) => v.isRelevant);
       
-      // Create payload for enhance-prompt function
       const payload: any = {
         originalPrompt,
         answeredQuestions,
@@ -140,7 +126,6 @@ export const useQuestionsAndVariables = (
         secondaryToggle
       };
       
-      // Add user and prompt ID if available
       if (user) {
         payload.userId = user.id;
       }
@@ -158,10 +143,8 @@ export const useQuestionsAndVariables = (
       }
       
       if (data) {
-        // Set the enhanced prompt text
         setFinalPrompt(data.enhancedPrompt);
         
-        // Log token usage if available
         if (data.usage) {
           console.log("Generate prompt token usage:", data.usage);
           console.log(`Prompt tokens: ${data.usage.prompt_tokens}, Completion tokens: ${data.usage.completion_tokens}`);
@@ -179,7 +162,6 @@ export const useQuestionsAndVariables = (
         variant: "destructive",
       });
       
-      // Generate a simple default prompt using the original text
       const defaultPrompt = `# Enhanced Prompt\n\n${originalPrompt}`;
       setFinalPrompt(defaultPrompt);
       return defaultPrompt;
