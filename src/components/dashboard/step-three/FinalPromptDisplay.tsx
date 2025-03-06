@@ -20,56 +20,91 @@ export const FinalPromptDisplay = ({
   masterCommand,
   handleOpenEditPrompt
 }: FinalPromptDisplayProps) => {
-  const relevantVariables = variables.filter(v => v.isRelevant === true);
+  const [processedPrompt, setProcessedPrompt] = useState("");
+  const relevantVariables = variables?.filter(v => v?.isRelevant === true) || [];
+  
+  useEffect(() => {
+    try {
+      if (typeof getProcessedPrompt === 'function') {
+        setProcessedPrompt(getProcessedPrompt());
+      }
+    } catch (error) {
+      console.error("Error processing prompt:", error);
+      setProcessedPrompt(finalPrompt || "");
+    }
+  }, [getProcessedPrompt, finalPrompt, variables]);
   
   // Render the processed prompt with highlighted variables
   const renderProcessedPrompt = () => {
     if (showJson) {
-      return (
-        <pre className="text-xs font-mono">
-          {JSON.stringify({ 
-            prompt: finalPrompt, 
-            masterCommand,
-            variables: variables.filter(v => v.isRelevant === true)
-          }, null, 2)}
-        </pre>
-      );
+      try {
+        return (
+          <pre className="text-xs font-mono">
+            {JSON.stringify({ 
+              prompt: finalPrompt || "", 
+              masterCommand: masterCommand || "",
+              variables: relevantVariables || []
+            }, null, 2)}
+          </pre>
+        );
+      } catch (error) {
+        console.error("Error rendering JSON:", error);
+        return <pre className="text-xs font-mono">Error rendering JSON</pre>;
+      }
     }
 
     // Create a processed version that shows variable values highlighted
-    const processedPrompt = getProcessedPrompt();
-    const paragraphs = processedPrompt.split('\n\n');
-    
-    return (
-      <div className="prose prose-sm max-w-none">
-        {paragraphs.map((paragraph, index) => {
-          let content = paragraph;
-          
-          // Highlight all variable values in the content
-          relevantVariables.forEach(variable => {
-            if (variable.value && variable.value.trim() !== '') {
-              const regex = new RegExp(`(${escapeRegExp(variable.value)})`, 'gi');
-              content = content.replace(regex, '<span class="variable-highlight">$1</span>');
-            }
-          });
-          
-          return (
-            <p key={index} dangerouslySetInnerHTML={{ __html: content }} />
-          );
-        })}
-      </div>
-    );
+    try {
+      const paragraphs = (processedPrompt || "").split('\n\n');
+      
+      return (
+        <div className="prose prose-sm max-w-none">
+          {paragraphs.map((paragraph, index) => {
+            if (!paragraph) return null;
+            
+            let content = paragraph;
+            
+            // Highlight all variable values in the content
+            relevantVariables.forEach(variable => {
+              if (variable?.value && variable.value.trim() !== '') {
+                try {
+                  const regex = new RegExp(`(${escapeRegExp(variable.value)})`, 'gi');
+                  content = content.replace(regex, '<span class="variable-highlight">$1</span>');
+                } catch (error) {
+                  console.error("Error highlighting variable:", variable.name, error);
+                }
+              }
+            });
+            
+            return (
+              <p key={index} dangerouslySetInnerHTML={{ __html: content }} />
+            );
+          })}
+        </div>
+      );
+    } catch (error) {
+      console.error("Error rendering processed prompt:", error);
+      return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
+    }
   };
 
   // Helper function to escape special characters in regex
-  const escapeRegExp = (string: string) => {
+  const escapeRegExp = (string: string = "") => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   };
 
   return (
     <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
       <button 
-        onClick={handleOpenEditPrompt}
+        onClick={() => {
+          try {
+            if (typeof handleOpenEditPrompt === 'function') {
+              handleOpenEditPrompt();
+            }
+          } catch (error) {
+            console.error("Error opening edit prompt:", error);
+          }
+        }}
         className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
       >
         <Edit className="w-4 h-4 text-accent" />

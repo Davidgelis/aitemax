@@ -8,6 +8,7 @@ import { VariablesSection } from "./step-three/VariablesSection";
 import { ActionButtons } from "./step-three/ActionButtons";
 import { EditPromptSheet } from "./step-three/EditPromptSheet";
 import { StepThreeStyles } from "./step-three/StepThreeStyles";
+import { useToast } from "@/hooks/use-toast";
 
 interface StepThreeContentProps {
   masterCommand: string;
@@ -58,6 +59,40 @@ export const StepThreeContent = ({
   handleSaveEditedPrompt,
   handleAdaptPrompt
 }: StepThreeContentProps) => {
+  const { toast } = useToast();
+  const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
+  
+  // Ensure we have valid variables
+  useEffect(() => {
+    if (!variables || !Array.isArray(variables)) {
+      console.error("Invalid variables provided to StepThreeContent:", variables);
+      setSafeVariables([]);
+      return;
+    }
+    
+    // Filter out any invalid variables
+    const validVariables = variables.filter(v => v && typeof v === 'object');
+    setSafeVariables(validVariables);
+  }, [variables]);
+  
+  // Safe wrapper for variable value changes
+  const safeHandleVariableValueChange = (variableId: string, newValue: string) => {
+    try {
+      if (typeof handleVariableValueChange === 'function') {
+        handleVariableValueChange(variableId, newValue);
+      } else {
+        throw new Error("handleVariableValueChange is not a function");
+      }
+    } catch (error) {
+      console.error("Error changing variable value:", error);
+      toast({
+        title: "Error updating variable",
+        description: "An error occurred while trying to update the variable",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
       <MasterCommandSection 
@@ -78,15 +113,15 @@ export const StepThreeContent = ({
       <FinalPromptDisplay 
         finalPrompt={finalPrompt}
         getProcessedPrompt={getProcessedPrompt}
-        variables={variables}
+        variables={safeVariables}
         showJson={showJson}
         masterCommand={masterCommand}
         handleOpenEditPrompt={handleOpenEditPrompt}
       />
 
       <VariablesSection 
-        variables={variables}
-        handleVariableValueChange={handleVariableValueChange}
+        variables={safeVariables}
+        handleVariableValueChange={safeHandleVariableValueChange}
       />
 
       <ActionButtons 

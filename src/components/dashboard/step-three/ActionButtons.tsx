@@ -15,7 +15,11 @@ export const ActionButtons = ({
   
   const safeHandleCopyPrompt = () => {
     try {
-      handleCopyPrompt();
+      if (typeof handleCopyPrompt === 'function') {
+        handleCopyPrompt();
+      } else {
+        throw new Error("Copy function is not defined");
+      }
     } catch (error) {
       console.error("Error copying prompt:", error);
       toast({
@@ -28,7 +32,11 @@ export const ActionButtons = ({
   
   const safeHandleSavePrompt = () => {
     try {
-      handleSavePrompt();
+      if (typeof handleSavePrompt === 'function') {
+        handleSavePrompt();
+      } else {
+        throw new Error("Save function is not defined");
+      }
     } catch (error) {
       console.error("Error saving prompt:", error);
       toast({
