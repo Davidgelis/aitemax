@@ -29,6 +29,14 @@ export const usePromptOperations = (
     // Update variables state
     setVariables(updatedVariables);
     
+    // Get the old value to track replacements
+    const oldValue = variables.find(v => v.id === variableId)?.value || '';
+    
+    // If we're doing an empty value update and there was no previous value, just return
+    if (newValue.trim() === '' && oldValue.trim() === '') {
+      return;
+    }
+    
     // Toast confirmation of update
     toast({
       title: "Variable updated",

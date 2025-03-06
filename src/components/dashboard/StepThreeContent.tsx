@@ -1,5 +1,5 @@
 
-import { Edit, Copy, Save, RotateCw } from "lucide-react";
+import { Edit, Copy, Save, RotateCw, Variable } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { primaryToggles, secondaryToggles } from "./constants";
-import { Variable } from "./types";
+import { Variable as VariableType } from "./types";
 
 interface StepThreeContentProps {
   masterCommand: string;
@@ -20,7 +20,7 @@ interface StepThreeContentProps {
   setShowJson: (show: boolean) => void;
   finalPrompt: string;
   getProcessedPrompt: () => string;
-  variables: Variable[];
+  variables: VariableType[];
   handleVariableValueChange: (variableId: string, newValue: string) => void;
   handleCopyPrompt: () => void;
   handleSavePrompt: () => void;
@@ -209,27 +209,52 @@ export const StepThreeContent = ({
         </div>
       </div>
 
-      <div className="mb-4 p-3 border rounded-lg bg-background/50">
-        <h4 className="text-sm font-medium mb-2">Variables</h4>
-        <div className="grid grid-cols-1 gap-3 max-h-[200px] overflow-y-auto pr-2">
-          {relevantVariables.length > 0 ? (
-            relevantVariables.map((variable) => (
-              <div key={variable.id} className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium min-w-[150px] break-words">{variable.name}:</span>
-                <input 
-                  type="text"
-                  value={variable.value || ""}
-                  onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
-                  className="flex-1 h-7 px-2 py-1 bg-white border border-[#33fea6] rounded-md overflow-x-auto text-xs"
-                />
-              </div>
-            ))
-          ) : (
-            <div className="text-center text-sm text-muted-foreground py-2">
-              No variables available
-            </div>
-          )}
+      {/* Enhanced Variable Display Section */}
+      <div className="mb-4 p-4 border rounded-lg bg-background/50">
+        <div className="flex items-center gap-2 mb-3">
+          <Variable className="w-5 h-5 text-accent" />
+          <h4 className="text-md font-medium">Dynamic Variables</h4>
         </div>
+        
+        {relevantVariables.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 max-h-[250px] overflow-y-auto pr-2">
+            {relevantVariables.map((variable) => (
+              <div key={variable.id} className="variable-card">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs font-medium text-[#545454]">{variable.name}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-[#545454] italic">
+                      {variable.category || "Custom"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="text"
+                    value={variable.value || ""}
+                    onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
+                    className="flex-1 h-9 px-3 py-2 bg-white border border-[#33fea6] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#33fea6] transition-all"
+                    placeholder="Enter value..."
+                  />
+                  <button 
+                    onClick={() => handleVariableValueChange(variable.id, "")}
+                    className="p-1.5 rounded-md bg-white border border-[#33fea6] hover:bg-gray-50 transition-colors"
+                  >
+                    <Edit className="w-4 h-4 text-[#545454]" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <Variable className="w-10 h-10 text-[#33fea6] opacity-30 mb-2" />
+            <p className="text-sm text-[#545454]">No variables available</p>
+            <p className="text-xs text-[#545454] mt-1 max-w-md">
+              Variables will appear here after analyzing your prompt in step 2
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-between items-center">
@@ -299,7 +324,6 @@ export const StepThreeContent = ({
         </SheetContent>
       </Sheet>
 
-      {/* Fixed the style tag by removing invalid jsx and global properties */}
       <style>
         {`
         .variable-highlight {
@@ -309,6 +333,19 @@ export const StepThreeContent = ({
           padding: 1px 2px;
           margin: 0 1px;
         }
+        
+        .variable-card {
+          background: white;
+          border-radius: 8px;
+          padding: 10px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+          transition: all 0.2s ease;
+        }
+        
+        .variable-card:hover {
+          box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+        
         .aurora-button {
           position: relative;
           overflow: hidden;
