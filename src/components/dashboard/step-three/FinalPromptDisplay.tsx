@@ -21,12 +21,17 @@ export const FinalPromptDisplay = ({
   handleOpenEditPrompt
 }: FinalPromptDisplayProps) => {
   const [processedPrompt, setProcessedPrompt] = useState("");
-  const relevantVariables = variables?.filter(v => v?.isRelevant === true) || [];
+  
+  // Ensure variables is a valid array before filtering
+  const relevantVariables = Array.isArray(variables) 
+    ? variables.filter(v => v && typeof v === 'object' && v?.isRelevant === true) 
+    : [];
   
   useEffect(() => {
     try {
       if (typeof getProcessedPrompt === 'function') {
-        setProcessedPrompt(getProcessedPrompt());
+        const result = getProcessedPrompt();
+        setProcessedPrompt(result || "");
       }
     } catch (error) {
       console.error("Error processing prompt:", error);
@@ -55,7 +60,11 @@ export const FinalPromptDisplay = ({
 
     // Create a processed version that shows variable values highlighted
     try {
-      const paragraphs = (processedPrompt || "").split('\n\n');
+      if (!processedPrompt) {
+        return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
+      }
+      
+      const paragraphs = processedPrompt.split('\n\n');
       
       return (
         <div className="prose prose-sm max-w-none">
@@ -65,16 +74,18 @@ export const FinalPromptDisplay = ({
             let content = paragraph;
             
             // Highlight all variable values in the content
-            relevantVariables.forEach(variable => {
-              if (variable?.value && variable.value.trim() !== '') {
-                try {
-                  const regex = new RegExp(`(${escapeRegExp(variable.value)})`, 'gi');
-                  content = content.replace(regex, '<span class="variable-highlight">$1</span>');
-                } catch (error) {
-                  console.error("Error highlighting variable:", variable.name, error);
+            if (Array.isArray(relevantVariables)) {
+              relevantVariables.forEach(variable => {
+                if (variable && variable?.value && variable.value.trim() !== '') {
+                  try {
+                    const regex = new RegExp(`(${escapeRegExp(variable.value)})`, 'gi');
+                    content = content.replace(regex, '<span class="variable-highlight">$1</span>');
+                  } catch (error) {
+                    console.error("Error highlighting variable:", variable.name, error);
+                  }
                 }
-              }
-            });
+              });
+            }
             
             return (
               <p key={index} dangerouslySetInnerHTML={{ __html: content }} />
@@ -96,7 +107,8 @@ export const FinalPromptDisplay = ({
   return (
     <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
       <button 
-        onClick={() => {
+        onClick={(e) => {
+          e.preventDefault();
           try {
             if (typeof handleOpenEditPrompt === 'function') {
               handleOpenEditPrompt();
@@ -106,6 +118,7 @@ export const FinalPromptDisplay = ({
           }
         }}
         className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
+        aria-label="Edit prompt"
       >
         <Edit className="w-4 h-4 text-accent" />
       </button>

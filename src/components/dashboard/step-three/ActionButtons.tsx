@@ -1,6 +1,7 @@
 
 import { Copy, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface ActionButtonsProps {
   handleCopyPrompt: () => void;
@@ -12,11 +13,17 @@ export const ActionButtons = ({
   handleSavePrompt
 }: ActionButtonsProps) => {
   const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
   
-  const safeHandleCopyPrompt = () => {
+  const safeHandleCopyPrompt = async (e: React.MouseEvent) => {
+    if (isProcessing) return;
+    
     try {
+      e.preventDefault();
+      setIsProcessing(true);
+      
       if (typeof handleCopyPrompt === 'function') {
-        handleCopyPrompt();
+        await handleCopyPrompt();
       } else {
         throw new Error("Copy function is not defined");
       }
@@ -27,13 +34,20 @@ export const ActionButtons = ({
         description: "An error occurred while trying to copy the prompt",
         variant: "destructive"
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
   
-  const safeHandleSavePrompt = () => {
+  const safeHandleSavePrompt = async (e: React.MouseEvent) => {
+    if (isProcessing) return;
+    
     try {
+      e.preventDefault();
+      setIsProcessing(true);
+      
       if (typeof handleSavePrompt === 'function') {
-        handleSavePrompt();
+        await handleSavePrompt();
       } else {
         throw new Error("Save function is not defined");
       }
@@ -44,6 +58,8 @@ export const ActionButtons = ({
         description: "An error occurred while trying to save the prompt",
         variant: "destructive"
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
   
@@ -52,6 +68,8 @@ export const ActionButtons = ({
       <button
         onClick={safeHandleCopyPrompt}
         className="aurora-button inline-flex items-center gap-2"
+        disabled={isProcessing}
+        aria-label="Copy prompt"
       >
         <Copy className="w-4 h-4" />
         Copy
@@ -59,6 +77,8 @@ export const ActionButtons = ({
       <button
         onClick={safeHandleSavePrompt}
         className="aurora-button inline-flex items-center gap-2"
+        disabled={isProcessing}
+        aria-label="Save prompt"
       >
         <Save className="w-4 h-4" />
         Save

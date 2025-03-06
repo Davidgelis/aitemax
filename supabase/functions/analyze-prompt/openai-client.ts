@@ -9,33 +9,61 @@ export async function analyzePromptWithAI(
   systemMessage: string, 
   apiKey: string
 ): Promise<any> {
-  const userMessage = `Analyze this prompt: "${promptText}"`;
-  
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: userMessage }
-      ],
-      temperature: 0.7,
-    }),
-  });
-  
-  if (!response.ok) {
-    const errorData = await response.text();
-    console.error("OpenAI API error:", errorData);
-    throw new Error(`OpenAI API responded with status ${response.status}: ${errorData}`);
+  if (!promptText || typeof promptText !== 'string') {
+    console.error("Invalid prompt text:", promptText);
+    throw new Error("Invalid prompt text provided");
+  }
+
+  if (!apiKey) {
+    console.error("Missing API key");
+    throw new Error("OpenAI API key is required");
   }
   
-  const data = await response.json();
-  return {
-    content: data.choices[0].message.content,
-    usage: data.usage
-  };
+  const userMessage = `Analyze this prompt: "${promptText}"`;
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: userMessage }
+        ],
+        temperature: 0.7,
+      }),
+    });
+    
+    if (!response.ok) {
+      let errorMessage = `OpenAI API responded with status ${response.status}`;
+      try {
+        const errorData = await response.text();
+        console.error("OpenAI API error:", errorData);
+        errorMessage += `: ${errorData}`;
+      } catch (parseError) {
+        console.error("Failed to parse error response:", parseError);
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    const data = await response.json();
+    
+    if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error("Invalid response from OpenAI API:", data);
+      throw new Error("Invalid response format from OpenAI API");
+    }
+    
+    return {
+      content: data.choices[0].message.content,
+      usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+    };
+  } catch (error) {
+    console.error("Error calling OpenAI API:", error);
+    throw error;
+  }
 }

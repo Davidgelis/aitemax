@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,64 +14,20 @@ export const usePromptOperations = (
   masterCommand: string
 ) => {
   const { toast } = useToast();
-  const [editingPromptLocal, setEditingPromptLocal] = useState("");
   const [processedPrompt, setProcessedPrompt] = useState(finalPrompt || "");
   const [variableHighlights, setVariableHighlights] = useState<Record<string, string[]>>({});
+  const [isProcessing, setIsProcessing] = useState(false);
   
-  // Handle variable value change with live updating
-  const handleVariableValueChange = (variableId: string, newValue: string) => {
-    if (!variableId) {
-      console.error("Invalid variableId provided to handleVariableValueChange");
-      return;
-    }
-    
-    console.log(`Updating variable ${variableId} to value: ${newValue}`);
-    
-    try {
-      // Update the variables array with the new value
-      const updatedVariables = variables.map(v => 
-        v.id === variableId ? { ...v, value: newValue, isRelevant: true } : v
-      );
-      
-      // Update variables state
-      setVariables(updatedVariables);
-      
-      // Get the old value to track replacements
-      const oldValue = variables.find(v => v.id === variableId)?.value || '';
-      
-      // If we're doing an empty value update and there was no previous value, just return
-      if (newValue.trim() === '' && oldValue.trim() === '') {
-        return;
-      }
-      
-      // Process the prompt again with updated variables
-      setTimeout(() => {
-        try {
-          const newProcessedPrompt = getProcessedPrompt();
-          setProcessedPrompt(newProcessedPrompt);
-        } catch (error) {
-          console.error("Error processing prompt after variable update:", error);
-        }
-      }, 0);
-      
-      // Toast confirmation of update
-      toast({
-        title: "Variable updated",
-        description: "The prompt has been updated with your changes",
-        variant: "default"
-      });
-    } catch (error) {
-      console.error("Error in handleVariableValueChange:", error);
-      toast({
-        title: "Error updating variable",
-        description: "An error occurred while updating the variable",
-        variant: "destructive"
-      });
-    }
-  };
-
+  // Ensure variables is a valid array
+  const safeVariables = Array.isArray(variables) ? variables : [];
+  
+  // Helper function to escape special regex characters
+  const escapeRegExp = useCallback((string: string = "") => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }, []);
+  
   // Process the prompt with variable replacements and track their positions
-  const getProcessedPrompt = () => {
+  const getProcessedPrompt = useCallback(() => {
     if (!finalPrompt) return "";
     
     try {
@@ -79,7 +35,7 @@ export const usePromptOperations = (
       const highlightPositions: Record<string, string[]> = {};
       
       // Only replace variables if they have both a name and value
-      const validVariables = variables.filter(v => 
+      const validVariables = safeVariables.filter(v => 
         v && v.isRelevant === true && 
         v.name && v.name.trim() !== '' && 
         v.value && v.value.trim() !== ''
@@ -98,9 +54,11 @@ export const usePromptOperations = (
             highlightPositions[variable.id] = [];
             
             // Find all occurrences of this variable value in the text
-            let match;
-            const valueRegex = new RegExp(escapeRegExp(variable.value), 'g');
             const tempProcessed = processed.replace(regex, variable.value);
+            
+            // Create a new regex for each search to reset lastIndex
+            const valueRegex = new RegExp(escapeRegExp(variable.value), 'g');
+            let match;
             
             while ((match = valueRegex.exec(tempProcessed)) !== null) {
               highlightPositions[variable.id].push(variable.value);
@@ -121,7 +79,7 @@ export const usePromptOperations = (
       console.error("Error in getProcessedPrompt:", error);
       return finalPrompt;
     }
-  };
+  }, [finalPrompt, safeVariables, escapeRegExp]);
   
   // Update the processed prompt whenever variables change
   useEffect(() => {
@@ -131,9 +89,65 @@ export const usePromptOperations = (
     } catch (error) {
       console.error("Error updating processed prompt:", error);
     }
-  }, [variables, finalPrompt]);
+  }, [getProcessedPrompt]);
   
-  const handleOpenEditPrompt = () => {
+  // Handle variable value change with live updating
+  const handleVariableValueChange = useCallback((variableId: string, newValue: string) => {
+    if (!variableId) {
+      console.error("Invalid variableId provided to handleVariableValueChange");
+      return;
+    }
+    
+    console.log(`Updating variable ${variableId} to value: ${newValue}`);
+    
+    if (isProcessing) {
+      console.log("Skipping update, already processing");
+      return;
+    }
+    
+    try {
+      setIsProcessing(true);
+      
+      // Update the variables array with the new value
+      const updatedVariables = safeVariables.map(v => 
+        v.id === variableId ? { ...v, value: newValue, isRelevant: true } : v
+      );
+      
+      // Update variables state
+      setVariables(updatedVariables);
+      
+      // Get the old value to track replacements
+      const oldValue = safeVariables.find(v => v.id === variableId)?.value || '';
+      
+      // If we're doing an empty value update and there was no previous value, just return
+      if (newValue.trim() === '' && oldValue.trim() === '') {
+        setIsProcessing(false);
+        return;
+      }
+      
+      // Process the prompt again with updated variables on next tick
+      setTimeout(() => {
+        try {
+          const newProcessedPrompt = getProcessedPrompt();
+          setProcessedPrompt(newProcessedPrompt);
+          setIsProcessing(false);
+        } catch (error) {
+          console.error("Error processing prompt after variable update:", error);
+          setIsProcessing(false);
+        }
+      }, 10);
+    } catch (error) {
+      console.error("Error in handleVariableValueChange:", error);
+      setIsProcessing(false);
+      toast({
+        title: "Error updating variable",
+        description: "An error occurred while updating the variable",
+        variant: "destructive"
+      });
+    }
+  }, [safeVariables, setVariables, getProcessedPrompt, toast, isProcessing]);
+  
+  const handleOpenEditPrompt = useCallback(() => {
     try {
       setEditingPrompt(finalPrompt || "");
       setShowEditPromptSheet(true);
@@ -145,9 +159,9 @@ export const usePromptOperations = (
         variant: "destructive"
       });
     }
-  };
+  }, [finalPrompt, setEditingPrompt, setShowEditPromptSheet, toast]);
   
-  const handleSaveEditedPrompt = (editedPrompt: string) => {
+  const handleSaveEditedPrompt = useCallback((editedPrompt: string) => {
     try {
       setFinalPrompt(editedPrompt);
       setShowEditPromptSheet(false);
@@ -164,9 +178,9 @@ export const usePromptOperations = (
         variant: "destructive"
       });
     }
-  };
+  }, [setFinalPrompt, setShowEditPromptSheet, toast]);
   
-  const handleAdaptPrompt = () => {
+  const handleAdaptPrompt = useCallback(() => {
     try {
       // Implementation for adapting prompt
       setShowEditPromptSheet(false);
@@ -183,15 +197,15 @@ export const usePromptOperations = (
         variant: "destructive"
       });
     }
-  };
+  }, [setShowEditPromptSheet, toast]);
   
-  const handleCopyPrompt = () => {
+  const handleCopyPrompt = useCallback(() => {
     try {
       const textToCopy = showJson
         ? JSON.stringify({
             prompt: finalPrompt || "",
             masterCommand: masterCommand || "",
-            variables: variables.filter(v => v && v.isRelevant === true) || [],
+            variables: safeVariables.filter(v => v && v.isRelevant === true) || [],
           }, null, 2)
         : getProcessedPrompt();
       
@@ -218,9 +232,9 @@ export const usePromptOperations = (
         variant: "destructive"
       });
     }
-  };
+  }, [showJson, finalPrompt, masterCommand, safeVariables, getProcessedPrompt, toast]);
   
-  const handleRegenerate = () => {
+  const handleRegenerate = useCallback(() => {
     try {
       // Implementation for regenerating prompt
       toast({
@@ -235,22 +249,17 @@ export const usePromptOperations = (
         variant: "destructive"
       });
     }
-  };
-  
-  // Helper function to escape special regex characters
-  const escapeRegExp = (string: string = "") => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  };
+  }, [toast]);
   
   // Get the list of relevant variables for display in step 3
-  const getRelevantVariables = () => {
+  const getRelevantVariables = useCallback(() => {
     try {
-      return variables.filter(v => v && v.isRelevant === true) || [];
+      return safeVariables.filter(v => v && v.isRelevant === true) || [];
     } catch (error) {
       console.error("Error in getRelevantVariables:", error);
       return [];
     }
-  };
+  }, [safeVariables]);
 
   return {
     processedPrompt,

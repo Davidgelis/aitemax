@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Variable } from "./types";
 import { MasterCommandSection } from "./step-three/MasterCommandSection";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -61,6 +61,30 @@ export const StepThreeContent = ({
 }: StepThreeContentProps) => {
   const { toast } = useToast();
   const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
+  const [safeProcessedPrompt, setSafeProcessedPrompt] = useState("");
+  
+  // Safely get the processed prompt
+  const safeGetProcessedPrompt = useCallback(() => {
+    try {
+      if (typeof getProcessedPrompt === 'function') {
+        return getProcessedPrompt() || "";
+      }
+      return finalPrompt || "";
+    } catch (error) {
+      console.error("Error getting processed prompt:", error);
+      return finalPrompt || "";
+    }
+  }, [getProcessedPrompt, finalPrompt]);
+
+  // Update the safe processed prompt when dependencies change
+  useEffect(() => {
+    try {
+      const processed = safeGetProcessedPrompt();
+      setSafeProcessedPrompt(processed);
+    } catch (error) {
+      console.error("Error updating processed prompt:", error);
+    }
+  }, [safeGetProcessedPrompt, variables, finalPrompt]);
   
   // Ensure we have valid variables
   useEffect(() => {
@@ -96,7 +120,7 @@ export const StepThreeContent = ({
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
       <MasterCommandSection 
-        masterCommand={masterCommand}
+        masterCommand={masterCommand || ""}
         setMasterCommand={setMasterCommand}
         handleRegenerate={handleRegenerate}
       />
@@ -111,11 +135,11 @@ export const StepThreeContent = ({
       />
 
       <FinalPromptDisplay 
-        finalPrompt={finalPrompt}
-        getProcessedPrompt={getProcessedPrompt}
+        finalPrompt={finalPrompt || ""}
+        getProcessedPrompt={safeGetProcessedPrompt}
         variables={safeVariables}
         showJson={showJson}
-        masterCommand={masterCommand}
+        masterCommand={masterCommand || ""}
         handleOpenEditPrompt={handleOpenEditPrompt}
       />
 
@@ -132,7 +156,7 @@ export const StepThreeContent = ({
       <EditPromptSheet 
         showEditPromptSheet={showEditPromptSheet}
         setShowEditPromptSheet={setShowEditPromptSheet}
-        editingPrompt={editingPrompt}
+        editingPrompt={editingPrompt || ""}
         setEditingPrompt={setEditingPrompt}
         handleSaveEditedPrompt={handleSaveEditedPrompt}
         handleAdaptPrompt={handleAdaptPrompt}
