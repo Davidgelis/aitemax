@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +39,8 @@ export const usePromptOperations = (
       relevantVariables.forEach(variable => {
         if (!variable.name || !variable.value) return;
         
+        // Use variable code if available, otherwise use the name
+        const displayText = variable.code || variable.name;
         const variablePattern = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
         processedPrompt = processedPrompt.replace(variablePattern, variable.value);
       });
@@ -119,7 +122,8 @@ export const usePromptOperations = (
           name,
           value: "",
           isRelevant: true,
-          category: "Custom"
+          category: "Custom",
+          code: `VAR_${index + 1}` // Generate a code for new variables
         }));
       
       const updatedVars = existingVars.map(v => ({

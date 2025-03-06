@@ -113,7 +113,8 @@ export const VariablesSection = ({
                   <div key={variable.id} className="grid grid-cols-[1fr,2fr] gap-2">
                     <div className="flex items-center">
                       <div className="text-xs py-1 px-2 bg-background rounded-md truncate">
-                        <span className="font-mono">{`{{${variable.name}}}`}</span>
+                        <span className="font-mono">{`{{${variable.code || variable.name}}}`}</span>
+                        <span className="text-muted-foreground ml-1">({variable.name})</span>
                       </div>
                     </div>
                     <input

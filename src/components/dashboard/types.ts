@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface AIModel {
@@ -26,7 +25,8 @@ export interface Variable {
   value: string;
   isRelevant: boolean | null;
   category?: string;
-  occurrences?: string[]; // Add occurrences to track where variables appear
+  occurrences?: string[];
+  code?: string;
 }
 
 export interface PromptSection {
@@ -61,17 +61,13 @@ export interface Toggle {
   id: string;
 }
 
-// Helper function to convert between Variable[] and Json
 export const variablesToJson = (variables: Variable[]): Json => {
   return variables as unknown as Json;
 };
 
-// Helper function to convert Json to Variable[]
 export const jsonToVariables = (json: Json | null): Variable[] => {
   if (!json) return [];
-  // Ensure the Json is an array before casting
   if (Array.isArray(json)) {
-    // Cast each item in the array to ensure it has the correct structure
     return json.map(item => {
       if (typeof item === 'object' && item !== null) {
         return {
@@ -80,11 +76,11 @@ export const jsonToVariables = (json: Json | null): Variable[] => {
           value: (item as any).value || '',
           isRelevant: (item as any).isRelevant === true,
           category: (item as any).category || 'Task',
-          occurrences: (item as any).occurrences || []
+          occurrences: (item as any).occurrences || [],
+          code: (item as any).code || ''
         } as Variable;
       }
-      // Return a default variable if item is not an object
-      return { id: `v${Date.now()}`, name: '', value: '', isRelevant: null, category: 'Task' } as Variable;
+      return { id: `v${Date.now()}`, name: '', value: '', isRelevant: null, category: 'Task', code: '' } as Variable;
     });
   }
   return [];

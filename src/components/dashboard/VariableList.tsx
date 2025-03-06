@@ -34,6 +34,7 @@ export const VariableList = ({
   const [highlightedVariables, setHighlightedVariables] = useState<Record<string, boolean>>({});
   const [variableNames, setVariableNames] = useState<Record<string, string>>({});
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+  const [variableCodes, setVariableCodes] = useState<Record<string, string>>({});
   const { toast } = useToast();
   
   // Filter out category names and empty names for display
@@ -59,21 +60,29 @@ export const VariableList = ({
   useEffect(() => {
     const names: Record<string, string> = {};
     const values: Record<string, string> = {};
+    const codes: Record<string, string> = {};
     const highlighted: Record<string, boolean> = {};
     
-    variables.forEach(variable => {
+    variables.forEach((variable, index) => {
       names[variable.id] = variable.name || '';
       values[variable.id] = variable.value || '';
+      codes[variable.id] = variable.code || `VAR_${index + 1}`;
       highlighted[variable.id] = variable.value && variable.value.trim() !== '';
       
       // Auto-set relevance based on value
       if (variable.value && variable.value.trim() !== '' && variable.isRelevant === null) {
         onVariableRelevance(variable.id, true);
       }
+      
+      // Ensure every variable has a code
+      if (!variable.code) {
+        onVariableChange(variable.id, 'code', `VAR_${index + 1}`);
+      }
     });
     
     setVariableNames(names);
     setVariableValues(values);
+    setVariableCodes(codes);
     setHighlightedVariables(highlighted);
   }, [variables]);
 
@@ -113,6 +122,18 @@ export const VariableList = ({
     }
     
     onVariableChange(variableId, 'name', name);
+  };
+  
+  // Handle code change
+  const handleCodeChange = (variableId: string, code: string) => {
+    // Update local state
+    setVariableCodes(prev => ({
+      ...prev,
+      [variableId]: code
+    }));
+    
+    // Call the original change handler
+    onVariableChange(variableId, 'code', code);
   };
 
   // Handle delete (marking as not relevant)
@@ -154,7 +175,7 @@ export const VariableList = ({
                 <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
                   {index + 1}
                 </div>
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <Input
                     type="text"
                     placeholder="Variable name"
@@ -163,6 +184,15 @@ export const VariableList = ({
                     className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
                     autoComplete="off"
                     aria-label={`Name for variable ${index + 1}`}
+                  />
+                  <Input
+                    type="text"
+                    placeholder="Variable code"
+                    value={variableCodes[variable.id] || `VAR_${index + 1}`}
+                    onChange={(e) => handleCodeChange(variable.id, e.target.value)}
+                    className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] bg-[#F0F0F0] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
+                    autoComplete="off"
+                    aria-label={`Code for variable ${index + 1}`}
                   />
                   <Input
                     type="text"

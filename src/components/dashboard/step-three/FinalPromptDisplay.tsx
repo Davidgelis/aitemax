@@ -1,4 +1,3 @@
-
 import { Edit } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback } from "react";
@@ -28,11 +27,9 @@ export const FinalPromptDisplay = ({
   const [jsonGenerated, setJsonGenerated] = useState(false);
   const { toast } = useToast();
   
-  // Get the current user
   const [userId, setUserId] = useState<string | null>(null);
   const [promptId, setPromptId] = useState<string | null>(null);
   
-  // Get the current user on component mount
   useEffect(() => {
     const getUserId = async () => {
       const { data } = await supabase.auth.getSession();
@@ -43,12 +40,10 @@ export const FinalPromptDisplay = ({
     getUserId();
   }, []);
   
-  // Ensure variables is a valid array before filtering
   const relevantVariables = Array.isArray(variables) 
     ? variables.filter(v => v && typeof v === 'object' && v?.isRelevant === true) 
     : [];
   
-  // Convert the prompt to JSON structure using o3-mini
   const convertPromptToJson = useCallback(async () => {
     if (!finalPrompt || finalPrompt.trim() === "" || jsonGenerated) return;
     
@@ -85,14 +80,12 @@ export const FinalPromptDisplay = ({
     }
   }, [finalPrompt, masterCommand, toast, userId, promptId, jsonGenerated]);
   
-  // When the prompt changes or when showJson is first activated, update the JSON structure
   useEffect(() => {
     if (showJson && !jsonGenerated && !isLoadingJson) {
       convertPromptToJson();
     }
   }, [showJson, finalPrompt, convertPromptToJson, jsonGenerated, isLoadingJson]);
   
-  // Update processed prompt when finalPrompt or variables change
   useEffect(() => {
     try {
       if (typeof getProcessedPrompt === 'function') {
@@ -105,12 +98,10 @@ export const FinalPromptDisplay = ({
     }
   }, [getProcessedPrompt, finalPrompt, variables]);
   
-  // Helper function to escape special characters in regex
   const escapeRegExp = (string: string = "") => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   };
   
-  // Helper function to highlight variables in text
   const highlightVariablesInText = (text: string) => {
     if (!text || !Array.isArray(relevantVariables) || relevantVariables.length === 0) {
       return text;
@@ -118,25 +109,23 @@ export const FinalPromptDisplay = ({
     
     let processedText = text;
     
-    // First pass: look for {{variableName}} patterns and highlight them
     relevantVariables.forEach(variable => {
       if (!variable || !variable.name) return;
       
       try {
+        const displayName = variable.code || variable.name;
         const regex = new RegExp(`{{\\s*(${escapeRegExp(variable.name)})\\s*}}`, 'g');
         processedText = processedText.replace(regex, 
-          `<span class="unresolved-variable">{{$1}}</span>`);
+          `<span class="unresolved-variable">{{${displayName}}}</span>`);
       } catch (error) {
         console.error(`Error highlighting variable placeholder ${variable.name}:`, error);
       }
     });
     
-    // Second pass: look for values that match variable values
     relevantVariables.forEach(variable => {
       if (!variable || !variable.value || variable.value.trim() === '') return;
       
       try {
-        // Use word boundary regex to match only full words/terms
         const valueRegex = new RegExp(`\\b(${escapeRegExp(variable.value)})\\b`, 'g');
         processedText = processedText.replace(valueRegex, 
           `<span class="variable-highlight">$1</span>`);
@@ -148,7 +137,6 @@ export const FinalPromptDisplay = ({
     return processedText;
   };
   
-  // Render the processed prompt with highlighted variables
   const renderProcessedPrompt = () => {
     if (showJson) {
       try {
@@ -164,7 +152,6 @@ export const FinalPromptDisplay = ({
           );
         }
         
-        // Fallback to simple JSON view
         return (
           <pre className="text-xs font-mono">
             {JSON.stringify({ 
@@ -179,14 +166,11 @@ export const FinalPromptDisplay = ({
       }
     }
 
-    // Handle regular display with highlighted variables
     try {
-      // Ensure we have a processed prompt
       if (!processedPrompt) {
         return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
       }
       
-      // Split by double line breaks to preserve paragraphs
       const paragraphs = processedPrompt.split('\n\n');
       
       return (
@@ -194,7 +178,6 @@ export const FinalPromptDisplay = ({
           {paragraphs.map((paragraph, index) => {
             if (!paragraph) return null;
             
-            // Process paragraph to highlight variables
             const highlightedContent = highlightVariablesInText(paragraph);
             
             return (

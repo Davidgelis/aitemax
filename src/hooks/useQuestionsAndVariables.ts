@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,18 +80,20 @@ export const useQuestionsAndVariables = (
     );
   };
 
-  const addVariable = () => {
-    const newId = `v${Date.now()}${Math.floor(Math.random() * 1000)}`;
-    const newVariable: Variable = {
-      id: newId,
-      name: "",
-      value: "",
-      category: "Custom",
-      isRelevant: null,
-    };
-    console.log("Adding new variable:", newVariable);
-    setVariables([...variables, newVariable]);
-  };
+  const addVariable = useCallback(() => {
+    const newVariableId = `v-${Date.now()}`;
+    setVariables(current => [
+      ...current,
+      {
+        id: newVariableId,
+        name: '',
+        value: '',
+        isRelevant: null,
+        category: 'Custom',
+        code: `VAR_${current.length + 1}`
+      }
+    ]);
+  }, [setVariables]);
 
   const removeVariable = () => {
     if (!variableToDelete) return;
