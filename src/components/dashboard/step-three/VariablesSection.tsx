@@ -131,11 +131,13 @@ export const VariablesSection = ({
         </div>
       )}
       
-      <style jsx>{`
+      <style>
+        {`
         .font-mono {
           font-family: monospace;
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };

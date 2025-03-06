@@ -240,20 +240,22 @@ export const FinalPromptDisplay = ({
         </div>
       </div>
       
-      <style jsx>{`
-        :global(.variable-highlight) {
+      <style>
+        {`
+        .variable-highlight {
           background-color: rgba(51, 254, 166, 0.2);
           border-radius: 2px;
           padding: 0 2px;
           border-bottom: 1px solid rgba(51, 254, 166, 0.5);
         }
-        :global(.unresolved-variable) {
+        .unresolved-variable {
           background-color: rgba(254, 51, 51, 0.1);
           border-radius: 2px;
           padding: 0 2px;
           border-bottom: 1px dashed rgba(254, 51, 51, 0.5);
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };
