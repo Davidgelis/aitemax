@@ -299,7 +299,9 @@ export const StepThreeContent = ({
         </SheetContent>
       </Sheet>
 
-      <style jsx global>{`
+      {/* Fixed the style tag by removing invalid jsx and global properties */}
+      <style>
+        {`
         .variable-highlight {
           background: white;
           border: 1px solid #33fea6;
@@ -334,7 +336,8 @@ export const StepThreeContent = ({
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };
