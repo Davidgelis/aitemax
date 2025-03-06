@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -51,9 +50,13 @@ export const useQuestionsAndVariables = (
     const updatedVariables = variables.map((v) => {
       if (v.id === variableId) {
         // When a value is provided for name or value, automatically mark as relevant
-        const isRelevant = field === 'name' || field === 'value' 
-          ? value.trim() !== "" || (field === 'name' ? (v.value?.trim() !== "" || false) : (v.name.trim() !== ""))
-          : v.isRelevant ?? true; // Use null coalescing to default to true if isRelevant is null
+        let isRelevant = v.isRelevant;
+        
+        // Only update relevance if it's null or we're setting a value
+        if (isRelevant === null || value.trim() !== "") {
+          isRelevant = value.trim() !== "" || 
+            (field === 'name' ? v.value?.trim() !== "" : v.name.trim() !== "");
+        }
         
         // Debug the variable before and after update
         const updatedVar = { 
@@ -61,6 +64,7 @@ export const useQuestionsAndVariables = (
           [field]: value, 
           isRelevant 
         };
+        
         console.log("Variable before update:", v);
         console.log("Variable after update:", updatedVar);
         
@@ -96,7 +100,7 @@ export const useQuestionsAndVariables = (
       name: "",
       value: "",
       category: "Custom",
-      isRelevant: true,
+      isRelevant: null,
     };
     console.log("Adding new variable:", newVariable);
     setVariables([...variables, newVariable]);

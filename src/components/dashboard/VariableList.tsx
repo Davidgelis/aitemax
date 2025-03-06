@@ -134,7 +134,7 @@ export const VariableList = ({
                   <input
                     type="text"
                     placeholder="Variable name"
-                    value={variable.name}
+                    value={variable.name || ""}
                     onChange={(e) => handleNameChange(variable.id, e.target.value)}
                     className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
                     autoComplete="off"
