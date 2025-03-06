@@ -85,7 +85,7 @@ export const VariablesSection = ({
         </div>
         <div className="bg-background/50 p-4 rounded-lg text-center">
           <p className="text-sm text-muted-foreground">
-            No variables detected in your prompt. Edit your prompt to add variables using {'{{'} variableName {'}}'}  syntax.
+            No variables detected in your prompt. Edit your prompt to add variables using {'{{'} variableName {'}}'} syntax.
           </p>
         </div>
       </div>
