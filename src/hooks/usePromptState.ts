@@ -1,9 +1,9 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { defaultVariables, mockQuestions, sampleFinalPrompt } from "@/components/dashboard/constants";
 import { supabase } from "@/integrations/supabase/client";
+import { usePromptDrafts } from "@/hooks/use-prompt-drafts";
 
 export const usePromptState = (user: any) => {
   const [promptText, setPromptText] = useState("");
@@ -27,6 +27,40 @@ export const usePromptState = (user: any) => {
   const [promptJsonStructure, setPromptJsonStructure] = useState<PromptJsonStructure | null>(null);
   const { toast } = useToast();
 
+  const {
+    saveDraft,
+    loadDraft,
+    clearDraft
+  } = usePromptDrafts(
+    promptText,
+    masterCommand,
+    variables,
+    selectedPrimary,
+    selectedSecondary,
+    currentStep,
+    user
+  );
+
+  useEffect(() => {
+    if (user) {
+      loadDraft().then(draft => {
+        if (draft) {
+          toast({
+            title: "Draft Loaded",
+            description: "Your previous work has been restored.",
+          });
+          
+          if (draft.promptText) setPromptText(draft.promptText);
+          if (draft.masterCommand) setMasterCommand(draft.masterCommand);
+          if (draft.variables) setVariables(draft.variables);
+          if (draft.selectedPrimary) setSelectedPrimary(draft.selectedPrimary);
+          if (draft.selectedSecondary) setSelectedSecondary(draft.selectedSecondary);
+          if (draft.currentStep) setCurrentStep(draft.currentStep);
+        }
+      });
+    }
+  }, [user]);
+
   const fetchSavedPrompts = async () => {
     if (!user) return;
     
@@ -42,7 +76,6 @@ export const usePromptState = (user: any) => {
       }
       
       const formattedPrompts: SavedPrompt[] = data?.map(item => {
-        // Create a SavedPrompt object without jsonStructure first
         const prompt: SavedPrompt = {
           id: item.id,
           title: item.title || 'Untitled Prompt',
@@ -54,8 +87,6 @@ export const usePromptState = (user: any) => {
           variables: jsonToVariables(item.variables),
         };
         
-        // If we have JSON structure stored separately (not in the database schema yet)
-        // we'll handle it outside this function
         return prompt;
       }) || [];
       
@@ -100,7 +131,6 @@ export const usePromptState = (user: any) => {
     }
 
     try {
-      // First, get the JSON structure if not already available
       let jsonStructure = promptJsonStructure;
       
       if (!jsonStructure && finalPrompt) {
@@ -162,18 +192,18 @@ export const usePromptState = (user: any) => {
           variables: jsonToVariables(data[0].variables),
         };
         
-        // Add the JSON structure if available
         if (jsonStructure) {
           newPrompt.jsonStructure = jsonStructure;
         }
         
-        // Update savedPrompts state to include the new prompt at the beginning
         setSavedPrompts(prevPrompts => [newPrompt, ...prevPrompts]);
       }
 
+      await clearDraft();
+      
       toast({
         title: "Success",
-        description: "Prompt saved successfully with JSON structure",
+        description: "Prompt saved successfully",
       });
     } catch (error: any) {
       console.error("Error saving prompt:", error.message);
@@ -256,7 +286,6 @@ export const usePromptState = (user: any) => {
           variables: jsonToVariables(data[0].variables),
         };
         
-        // Copy the JSON structure if available in the original prompt
         if (prompt.jsonStructure) {
           newPrompt.jsonStructure = prompt.jsonStructure;
         }
@@ -310,29 +339,24 @@ export const usePromptState = (user: any) => {
 
   const loadSavedPrompt = (prompt: SavedPrompt) => {
     console.log("Loading saved prompt:", prompt);
-    // Ensure all necessary data is loaded
     setPromptText(prompt.promptText || "");
     setFinalPrompt(prompt.promptText || "");
     setMasterCommand(prompt.masterCommand || "");
     setSelectedPrimary(prompt.primaryToggle);
     setSelectedSecondary(prompt.secondaryToggle);
     
-    // Set the JSON structure if available
     if (prompt.jsonStructure) {
       setPromptJsonStructure(prompt.jsonStructure);
     } else {
       setPromptJsonStructure(null);
     }
     
-    // Make sure we have variables - if they're missing, use default ones
     if (prompt.variables && prompt.variables.length > 0) {
       setVariables(prompt.variables);
     } else {
-      // Set default variables but mark them all as relevant
       setVariables(defaultVariables.map(v => ({ ...v, isRelevant: true })));
     }
     
-    // Go directly to step 3 and mark as viewing saved prompt
     setCurrentStep(3);
     setIsViewingSavedPrompt(true);
     
@@ -386,6 +410,7 @@ export const usePromptState = (user: any) => {
     handleDeletePrompt,
     handleDuplicatePrompt,
     handleRenamePrompt,
-    loadSavedPrompt
+    loadSavedPrompt,
+    handleSavePrompt
   };
 };

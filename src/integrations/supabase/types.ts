@@ -69,6 +69,48 @@ export type Database = {
         }
         Relationships: []
       }
+      prompt_drafts: {
+        Row: {
+          created_at: string
+          current_step: number | null
+          id: string
+          master_command: string | null
+          primary_toggle: string | null
+          prompt_text: string | null
+          secondary_toggle: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+          variables: Json | null
+        }
+        Insert: {
+          created_at?: string
+          current_step?: number | null
+          id?: string
+          master_command?: string | null
+          primary_toggle?: string | null
+          prompt_text?: string | null
+          secondary_toggle?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          variables?: Json | null
+        }
+        Update: {
+          created_at?: string
+          current_step?: number | null
+          id?: string
+          master_command?: string | null
+          primary_toggle?: string | null
+          prompt_text?: string | null
+          secondary_toggle?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       prompts: {
         Row: {
           created_at: string | null
