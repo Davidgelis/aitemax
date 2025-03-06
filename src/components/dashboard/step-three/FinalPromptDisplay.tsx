@@ -1,7 +1,9 @@
 
 import { Edit } from "lucide-react";
-import { Variable } from "../types";
-import { useEffect, useState } from "react";
+import { Variable, PromptJsonStructure } from "../types";
+import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface FinalPromptDisplayProps {
   finalPrompt: string;
@@ -21,11 +23,55 @@ export const FinalPromptDisplay = ({
   handleOpenEditPrompt
 }: FinalPromptDisplayProps) => {
   const [processedPrompt, setProcessedPrompt] = useState("");
+  const [promptJson, setPromptJson] = useState<PromptJsonStructure | null>(null);
+  const [isLoadingJson, setIsLoadingJson] = useState(false);
+  const { toast } = useToast();
   
   // Ensure variables is a valid array before filtering
   const relevantVariables = Array.isArray(variables) 
     ? variables.filter(v => v && typeof v === 'object' && v?.isRelevant === true) 
     : [];
+  
+  // Convert the prompt to JSON structure using GPT
+  const convertPromptToJson = useCallback(async () => {
+    if (!finalPrompt || finalPrompt.trim() === "") return;
+    
+    setIsLoadingJson(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('prompt-to-json', {
+        body: {
+          prompt: finalPrompt,
+          masterCommand
+        }
+      });
+      
+      if (error) {
+        throw new Error(`Error calling prompt-to-json: ${error.message}`);
+      }
+      
+      if (data && data.jsonStructure) {
+        setPromptJson(data.jsonStructure);
+        console.log("Prompt JSON structure:", data.jsonStructure);
+      }
+    } catch (error) {
+      console.error("Error converting prompt to JSON:", error);
+      toast({
+        title: "Error generating JSON",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingJson(false);
+    }
+  }, [finalPrompt, masterCommand, toast]);
+  
+  // When the prompt changes, update the JSON structure
+  useEffect(() => {
+    if (showJson) {
+      convertPromptToJson();
+    }
+  }, [showJson, convertPromptToJson]);
   
   useEffect(() => {
     try {
@@ -43,6 +89,19 @@ export const FinalPromptDisplay = ({
   const renderProcessedPrompt = () => {
     if (showJson) {
       try {
+        if (isLoadingJson) {
+          return <div className="text-xs animate-pulse">Generating JSON structure...</div>;
+        }
+        
+        if (promptJson) {
+          return (
+            <pre className="text-xs font-mono overflow-x-auto">
+              {JSON.stringify(promptJson, null, 2)}
+            </pre>
+          );
+        }
+        
+        // Fallback to simple JSON view
         return (
           <pre className="text-xs font-mono">
             {JSON.stringify({ 

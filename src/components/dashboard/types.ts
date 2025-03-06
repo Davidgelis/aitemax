@@ -26,6 +26,22 @@ export interface Variable {
   value: string;
   isRelevant: boolean | null;
   category?: string;
+  occurrences?: string[]; // Add occurrences to track where variables appear
+}
+
+export interface PromptSection {
+  title: string;
+  content: string;
+}
+
+export interface PromptJsonStructure {
+  title: string;
+  summary: string;
+  sections: PromptSection[];
+  variables: Variable[];
+  masterCommand?: string;
+  timestamp?: string;
+  error?: string;
 }
 
 export interface SavedPrompt {
@@ -37,6 +53,7 @@ export interface SavedPrompt {
   primaryToggle: string | null;
   secondaryToggle: string | null;
   variables: Variable[];
+  jsonStructure?: PromptJsonStructure;
 }
 
 export interface Toggle {
@@ -62,7 +79,8 @@ export const jsonToVariables = (json: Json | null): Variable[] => {
           name: (item as any).name || '',
           value: (item as any).value || '',
           isRelevant: (item as any).isRelevant === true,
-          category: (item as any).category || 'Task'
+          category: (item as any).category || 'Task',
+          occurrences: (item as any).occurrences || []
         } as Variable;
       }
       // Return a default variable if item is not an object

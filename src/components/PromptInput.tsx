@@ -1,20 +1,45 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface PromptInputProps {
   onSubmit: (prompt: string) => void;
   placeholder?: string;
   className?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  autoFocus?: boolean;
 }
 
-const PromptInput = ({ onSubmit, placeholder = "Input your prompt...", className = "" }: PromptInputProps) => {
-  const [value, setValue] = useState("");
+const PromptInput = ({ 
+  onSubmit, 
+  placeholder = "Input your prompt...", 
+  className = "",
+  value,
+  onChange,
+  autoFocus = false
+}: PromptInputProps) => {
+  const [inputValue, setInputValue] = useState(value || "");
+  
+  // Update internal state when external value changes
+  useEffect(() => {
+    if (value !== undefined) {
+      setInputValue(value);
+    }
+  }, [value]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (value.trim()) {
-      onSubmit(value.trim());
-      setValue("");
+    if (inputValue.trim()) {
+      onSubmit(inputValue.trim());
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    
+    if (onChange) {
+      onChange(newValue);
     }
   };
 
@@ -22,10 +47,11 @@ const PromptInput = ({ onSubmit, placeholder = "Input your prompt...", className
     <form onSubmit={handleSubmit} className={`w-full max-w-2xl mx-auto ${className}`}>
       <div className="relative group">
         <textarea
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
+          value={inputValue}
+          onChange={handleChange}
           placeholder={placeholder}
-          className="w-full h-32 p-4 rounded-xl resize-none"
+          autoFocus={autoFocus}
+          className="w-full h-32 p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all"
           style={{ 
             backgroundColor: "#041524",
             color: "#33fea6", 
@@ -34,6 +60,7 @@ const PromptInput = ({ onSubmit, placeholder = "Input your prompt...", className
             caretColor: "#33fea6"
           }}
         />
+        <div className="absolute inset-0 rounded-xl pointer-events-none border border-transparent group-hover:border-accent/30 transition-all"></div>
       </div>
     </form>
   );

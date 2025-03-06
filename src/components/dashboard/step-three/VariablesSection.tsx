@@ -1,6 +1,6 @@
 
-import { useState, useEffect } from "react";
 import { Variable } from "../types";
+import { useState, useEffect } from "react";
 
 interface VariablesSectionProps {
   variables: Variable[];
@@ -11,85 +11,81 @@ export const VariablesSection = ({
   variables,
   handleVariableValueChange
 }: VariablesSectionProps) => {
-  const [localVariableValues, setLocalVariableValues] = useState<Record<string, string>>({});
+  const [groupedVariables, setGroupedVariables] = useState<Record<string, Variable[]>>({});
+  const [isVisible, setIsVisible] = useState(true);
   
-  // Initialize the local state from the variables
+  // Group variables by category
   useEffect(() => {
-    if (!Array.isArray(variables)) return;
+    if (!Array.isArray(variables)) {
+      console.error("Invalid variables provided to VariablesSection:", variables);
+      setGroupedVariables({});
+      return;
+    }
     
-    const newValues: Record<string, string> = {};
-    variables.forEach(variable => {
-      if (variable && variable.id) {
-        newValues[variable.id] = variable.value || "";
+    const grouped: Record<string, Variable[]> = {};
+    const relevantVars = variables.filter(v => v && v.isRelevant === true);
+    
+    relevantVars.forEach(variable => {
+      const category = variable.category || "Other";
+      
+      if (!grouped[category]) {
+        grouped[category] = [];
       }
+      
+      grouped[category].push(variable);
     });
-    setLocalVariableValues(newValues);
+    
+    setGroupedVariables(grouped);
   }, [variables]);
   
-  // Filter variables to only show relevant ones
-  const relevantVariables = Array.isArray(variables)
-    ? variables.filter(v => v && typeof v === 'object' && v.isRelevant === true)
-    : [];
-  
-  const handleInputChange = (variableId: string, value: string) => {
-    // Update local state immediately for smooth typing
-    setLocalVariableValues(prev => ({
-      ...prev,
-      [variableId]: value
-    }));
-    
-    // Debounce the actual state update to avoid too many re-renders
-    const timeoutId = setTimeout(() => {
-      try {
-        handleVariableValueChange(variableId, value);
-      } catch (error) {
-        console.error("Error updating variable value:", error);
-      }
-    }, 300);
-    
-    return () => clearTimeout(timeoutId);
-  };
-  
-  if (!relevantVariables.length) {
-    return null;
-  }
-
-  return (
-    <div className="mb-6">
-      <h3 className="text-lg text-accent font-medium mb-2">Variables</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {relevantVariables.map((variable) => {
-          // Ensure the variable has a valid id
-          if (!variable || !variable.id) return null;
-          
-          const localValue = localVariableValues[variable.id] !== undefined
-            ? localVariableValues[variable.id]
-            : variable.value || "";
-            
-          return (
-            <div 
-              key={variable.id} 
-              className="bg-muted/30 p-4 rounded-lg border border-border"
-            >
-              <label className="block text-sm font-medium mb-1">
-                {variable.name || "Unnamed Variable"}
-              </label>
-              <input
-                type="text"
-                value={localValue}
-                onChange={(e) => handleInputChange(variable.id, e.target.value)}
-                className="w-full p-2 border border-input rounded-md bg-background"
-                placeholder="Enter value..."
-              />
-              {variable.category && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Category: {variable.category}
-                </p>
-              )}
-            </div>
-          );
-        })}
+  // Early return if there are no variables to display
+  if (!variables || variables.length === 0) {
+    return (
+      <div className="bg-background/50 p-3 rounded-lg mb-4">
+        <p className="text-sm text-muted-foreground">No variables available</p>
       </div>
+    );
+  }
+  
+  // Get count of relevant variables
+  const relevantVariablesCount = variables.filter(v => v && v.isRelevant === true).length;
+  
+  return (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-2">
+        <button 
+          onClick={() => setIsVisible(!isVisible)}
+          className="text-sm text-accent font-medium hover:underline focus:outline-none"
+        >
+          Variables ({relevantVariablesCount}) {isVisible ? '▼' : '►'}
+        </button>
+      </div>
+      
+      {isVisible && (
+        <div className="space-y-4">
+          {Object.entries(groupedVariables).map(([category, categoryVariables]) => (
+            <div key={category} className="bg-background/50 p-3 rounded-lg">
+              <h3 className="text-sm font-medium mb-2">{category}</h3>
+              <div className="grid gap-2">
+                {categoryVariables.map(variable => (
+                  <div key={variable.id} className="grid grid-cols-[1fr,2fr] gap-2">
+                    <div className="text-xs text-muted-foreground py-1 px-2 bg-background rounded-md truncate">
+                      {variable.name}
+                    </div>
+                    <input
+                      type="text"
+                      value={variable.value || ''}
+                      onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
+                      className="text-xs py-1 px-2 w-full bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
+                      placeholder="Enter value"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
