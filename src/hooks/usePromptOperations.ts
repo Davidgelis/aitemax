@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
+import { extractVariablesFromPrompt } from "@/utils/promptUtils";
 
 export const usePromptOperations = (
   variables: Variable[],
