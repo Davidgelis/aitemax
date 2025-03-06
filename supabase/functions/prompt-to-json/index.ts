@@ -3,11 +3,57 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Helper function to record token usage in Supabase
+async function recordTokenUsage(
+  userId: string, 
+  promptId: string | null,
+  step: number,
+  promptTokens: number, 
+  completionTokens: number, 
+  model: string
+) {
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.warn("Supabase credentials missing, token usage will not be recorded");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${supabaseUrl}/rest/v1/token_usage`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        prompt_id: promptId,
+        step,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        model
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("Error recording token usage:", errorData);
+    } else {
+      console.log(`Token usage recorded successfully for user ${userId} at step ${step}`);
+    }
+  } catch (error) {
+    console.error("Error recording token usage:", error);
+  }
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -16,13 +62,13 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, masterCommand } = await req.json();
+    const { prompt, masterCommand, userId, promptId } = await req.json();
     
     if (!prompt) {
       throw new Error("Prompt is required");
     }
     
-    console.log("Converting prompt to JSON:", prompt.substring(0, 100) + "...");
+    console.log("Converting prompt to JSON with GPT-4o-mini:", prompt.substring(0, 100) + "...");
     
     const systemMessage = `
       You are a JSON structure generator for prompt text. Your task is to:
@@ -38,6 +84,7 @@ serve(async (req) => {
       - Create a "variables" array for customizable items with "id", "name", "value", and "occurrences" (array of sections the variable appears in)
       - Include a "title" field with a short title for the prompt
       - Include a "summary" field with a very brief description
+      - For variables, extract terms from the prompt that seem like they could be customized
       
       The JSON schema should look like:
       {
@@ -47,7 +94,7 @@ serve(async (req) => {
           {"title": "Section Name", "content": "Section content"}
         ],
         "variables": [
-          {"id": "v1", "name": "Variable Name", "value": "Current Value", "occurrences": ["Section Name"]}
+          {"id": "v1", "name": "Variable Name", "value": "Current Value", "occurrences": ["Section Name"], "isRelevant": true, "category": "Task"}
         ]
       }
     `;
@@ -59,7 +106,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o-mini', // Explicitly use GPT-4o-mini
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: `Analyze this prompt and convert to the specified JSON structure: ${prompt}` }
@@ -89,7 +136,19 @@ serve(async (req) => {
       // Add timestamp
       jsonResult.timestamp = new Date().toISOString();
       
-      console.log("Successfully converted prompt to JSON structure");
+      console.log("Successfully converted prompt to JSON structure with GPT-4o-mini");
+      
+      // Record token usage if userId is provided
+      if (userId) {
+        await recordTokenUsage(
+          userId,
+          promptId,
+          4, // Step 4: JSON structure generation
+          data.usage.prompt_tokens,
+          data.usage.completion_tokens,
+          'gpt-4o-mini'
+        );
+      }
     } catch (parseError) {
       console.error("Error parsing JSON response:", parseError);
       console.log("Raw response:", data.choices[0].message.content);

@@ -22,6 +22,8 @@ export async function analyzePromptWithAI(
   const userMessage = `Analyze this prompt: "${promptText}"`;
   
   try {
+    console.log("Calling OpenAI API with GPT-4o-mini for prompt analysis...");
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -29,7 +31,7 @@ export async function analyzePromptWithAI(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o-mini', // Explicitly use GPT-4o-mini for analysis
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: userMessage }
@@ -57,6 +59,8 @@ export async function analyzePromptWithAI(
       console.error("Invalid response from OpenAI API:", data);
       throw new Error("Invalid response format from OpenAI API");
     }
+    
+    console.log("Successfully analyzed prompt with GPT-4o-mini");
     
     return {
       content: data.choices[0].message.content,

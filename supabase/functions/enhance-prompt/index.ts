@@ -139,7 +139,7 @@ Based on this information, generate an enhanced final prompt that follows the st
       `
     };
 
-    // Call GPT-4o API to enhance the prompt
+    // Call GPT-4o API to enhance the prompt - explicitly using GPT-4o model
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -147,7 +147,7 @@ Based on this information, generate an enhanced final prompt that follows the st
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o', // Explicitly use GPT-4o
         messages: [systemMessage, userMessage],
         temperature: 0.7,
       }),
@@ -162,7 +162,7 @@ Based on this information, generate an enhanced final prompt that follows the st
     const data = await response.json();
     const enhancedPrompt = data.choices[0].message.content;
     
-    console.log("Prompt enhancement completed successfully");
+    console.log("Prompt enhancement completed successfully with GPT-4o");
     
     // Record the token usage for this step if userId is provided
     if (userId) {

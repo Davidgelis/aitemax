@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
+import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { defaultVariables, mockQuestions, sampleFinalPrompt } from "@/components/dashboard/constants";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +23,7 @@ export const usePromptState = (user: any) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState(false);
+  const [promptJsonStructure, setPromptJsonStructure] = useState<PromptJsonStructure | null>(null);
   const { toast } = useToast();
 
   const fetchSavedPrompts = async () => {
@@ -81,33 +81,6 @@ export const usePromptState = (user: any) => {
     });
   };
 
-  const loadSavedPrompt = (prompt: SavedPrompt) => {
-    console.log("Loading saved prompt:", prompt);
-    // Ensure all necessary data is loaded
-    setPromptText(prompt.promptText || "");
-    setFinalPrompt(prompt.promptText || "");
-    setMasterCommand(prompt.masterCommand || "");
-    setSelectedPrimary(prompt.primaryToggle);
-    setSelectedSecondary(prompt.secondaryToggle);
-    
-    // Make sure we have variables - if they're missing, use default ones
-    if (prompt.variables && prompt.variables.length > 0) {
-      setVariables(prompt.variables);
-    } else {
-      // Set default variables but mark them all as relevant
-      setVariables(defaultVariables.map(v => ({ ...v, isRelevant: true })));
-    }
-    
-    // Go directly to step 3 and mark as viewing saved prompt
-    setCurrentStep(3);
-    setIsViewingSavedPrompt(true);
-    
-    toast({
-      title: "Prompt Loaded",
-      description: `Loaded prompt: ${prompt.title}`,
-    });
-  };
-
   const handleSavePrompt = async () => {
     if (!user) {
       toast({
@@ -119,6 +92,34 @@ export const usePromptState = (user: any) => {
     }
 
     try {
+      // First, get the JSON structure if not already available
+      let jsonStructure = promptJsonStructure;
+      
+      if (!jsonStructure && finalPrompt) {
+        setIsLoadingPrompts(true);
+        try {
+          const { data, error } = await supabase.functions.invoke('prompt-to-json', {
+            body: {
+              prompt: finalPrompt,
+              masterCommand,
+              userId: user.id
+            }
+          });
+          
+          if (error) throw error;
+          
+          if (data && data.jsonStructure) {
+            jsonStructure = data.jsonStructure;
+            setPromptJsonStructure(data.jsonStructure);
+          }
+        } catch (jsonError) {
+          console.error("Error generating JSON for saving:", jsonError);
+          // Continue saving without JSON structure
+        } finally {
+          setIsLoadingPrompts(false);
+        }
+      }
+      
       const relevantVariables = variables.filter(v => v.isRelevant === true);
       const promptData = {
         user_id: user.id,
@@ -128,6 +129,7 @@ export const usePromptState = (user: any) => {
         primary_toggle: selectedPrimary,
         secondary_toggle: selectedSecondary,
         variables: variablesToJson(relevantVariables),
+        json_structure: jsonStructure as any,
         current_step: currentStep,
         updated_at: new Date().toISOString()
       };
@@ -151,6 +153,7 @@ export const usePromptState = (user: any) => {
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
           variables: jsonToVariables(data[0].variables),
+          jsonStructure: data[0].json_structure as PromptJsonStructure
         };
         
         // Update savedPrompts state to include the new prompt at the beginning
@@ -159,7 +162,7 @@ export const usePromptState = (user: any) => {
 
       toast({
         title: "Success",
-        description: "Prompt saved successfully",
+        description: "Prompt saved successfully with JSON structure",
       });
     } catch (error: any) {
       console.error("Error saving prompt:", error.message);
@@ -240,6 +243,7 @@ export const usePromptState = (user: any) => {
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
           variables: jsonToVariables(data[0].variables),
+          jsonStructure: data[0].json_structure as PromptJsonStructure
         };
         
         setSavedPrompts([newPrompt, ...savedPrompts]);
@@ -289,6 +293,40 @@ export const usePromptState = (user: any) => {
     }
   };
 
+  const loadSavedPrompt = (prompt: SavedPrompt) => {
+    console.log("Loading saved prompt:", prompt);
+    // Ensure all necessary data is loaded
+    setPromptText(prompt.promptText || "");
+    setFinalPrompt(prompt.promptText || "");
+    setMasterCommand(prompt.masterCommand || "");
+    setSelectedPrimary(prompt.primaryToggle);
+    setSelectedSecondary(prompt.secondaryToggle);
+    
+    // Set the JSON structure if available
+    if (prompt.jsonStructure) {
+      setPromptJsonStructure(prompt.jsonStructure);
+    } else {
+      setPromptJsonStructure(null);
+    }
+    
+    // Make sure we have variables - if they're missing, use default ones
+    if (prompt.variables && prompt.variables.length > 0) {
+      setVariables(prompt.variables);
+    } else {
+      // Set default variables but mark them all as relevant
+      setVariables(defaultVariables.map(v => ({ ...v, isRelevant: true })));
+    }
+    
+    // Go directly to step 3 and mark as viewing saved prompt
+    setCurrentStep(3);
+    setIsViewingSavedPrompt(true);
+    
+    toast({
+      title: "Prompt Loaded",
+      description: `Loaded prompt: ${prompt.title}`,
+    });
+  };
+
   return {
     promptText,
     setPromptText,
@@ -325,6 +363,8 @@ export const usePromptState = (user: any) => {
     isLoadingPrompts,
     isViewingSavedPrompt,
     setIsViewingSavedPrompt,
+    promptJsonStructure,
+    setPromptJsonStructure,
     fetchSavedPrompts,
     handleNewPrompt,
     handleSavePrompt,

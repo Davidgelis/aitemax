@@ -60,7 +60,7 @@ const PromptInput = ({
             caretColor: "#33fea6"
           }}
         />
-        <div className="absolute inset-0 rounded-xl pointer-events-none border border-transparent group-hover:border-accent/30 transition-all"></div>
+        <div className="absolute inset-0 rounded-xl pointer-events-none border border-transparent group-hover:border-accent/30 transition-all animate-aurora opacity-5"></div>
       </div>
     </form>
   );
