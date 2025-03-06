@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -57,7 +56,6 @@ const Dashboard = () => {
   
   const promptState = usePromptState(user);
   
-  // Create a filtered prompts variable within Dashboard component
   const filteredPrompts = promptState.savedPrompts.filter(
     (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm.toLowerCase())
   );
@@ -169,7 +167,6 @@ const Dashboard = () => {
               isInitializingModels={isUpdatingModels}
               selectedCognitive={selectedCognitive}
               handleCognitiveToggle={handleCognitiveToggle}
-              // Pass all promptState props needed for complete functionality
               promptState={promptState}
             />
           </div>
@@ -187,6 +184,9 @@ const Dashboard = () => {
           handleDuplicatePrompt={promptState.handleDuplicatePrompt}
           handleRenamePrompt={promptState.handleRenamePrompt}
           loadSavedPrompt={promptState.loadSavedPrompt}
+          drafts={promptState.drafts}
+          isLoadingDrafts={promptState.isLoadingDrafts}
+          loadDraft={promptState.loadSelectedDraft}
         />
       </div>
     </SidebarProvider>

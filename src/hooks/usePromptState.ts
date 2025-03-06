@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +30,10 @@ export const usePromptState = (user: any) => {
   const {
     saveDraft,
     loadDraft,
-    clearDraft
+    clearDraft,
+    drafts,
+    isLoadingDrafts,
+    fetchDrafts
   } = usePromptDrafts(
     promptText,
     masterCommand,
@@ -61,6 +63,36 @@ export const usePromptState = (user: any) => {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (promptText && !isViewingSavedPrompt) {
+        saveDraft();
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [promptText, isViewingSavedPrompt, saveDraft]);
+
+  const loadSelectedDraft = (draft: any) => {
+    if (draft.promptText) setPromptText(draft.promptText);
+    if (draft.masterCommand) setMasterCommand(draft.masterCommand);
+    if (draft.variables) setVariables(draft.variables);
+    if (draft.primaryToggle) setSelectedPrimary(draft.primaryToggle);
+    if (draft.secondaryToggle) setSelectedSecondary(draft.secondaryToggle);
+    if (draft.currentStep) setCurrentStep(draft.currentStep);
+    
+    setFinalPrompt(draft.promptText || "");
+    
+    toast({
+      title: "Draft Loaded",
+      description: "Your draft has been restored.",
+    });
+  };
 
   const fetchSavedPrompts = async () => {
     if (!user) return;
@@ -105,6 +137,14 @@ export const usePromptState = (user: any) => {
   };
 
   const handleNewPrompt = () => {
+    if (promptText && !isViewingSavedPrompt) {
+      saveDraft();
+      toast({
+        title: "Draft Saved",
+        description: "Your work has been saved as a draft.",
+      });
+    }
+    
     setPromptText("");
     setQuestions([]);
     setVariables(defaultVariables.map(v => ({ ...v, value: "", isRelevant: null })));
@@ -201,6 +241,7 @@ export const usePromptState = (user: any) => {
       }
 
       await clearDraft();
+      setIsViewingSavedPrompt(true);
       
       toast({
         title: "Success",
@@ -339,6 +380,10 @@ export const usePromptState = (user: any) => {
   };
 
   const loadSavedPrompt = (prompt: SavedPrompt) => {
+    if (promptText && !isViewingSavedPrompt) {
+      saveDraft();
+    }
+    
     console.log("Loading saved prompt:", prompt);
     setPromptText(prompt.promptText || "");
     setFinalPrompt(prompt.promptText || "");
@@ -366,6 +411,12 @@ export const usePromptState = (user: any) => {
       description: `Loaded prompt: ${prompt.title}`,
     });
   };
+
+  useEffect(() => {
+    if (user) {
+      fetchSavedPrompts();
+    }
+  }, [user]);
 
   return {
     promptText,
@@ -411,6 +462,9 @@ export const usePromptState = (user: any) => {
     handleDeletePrompt,
     handleDuplicatePrompt,
     handleRenamePrompt,
-    loadSavedPrompt
+    loadSavedPrompt,
+    drafts,
+    isLoadingDrafts,
+    loadSelectedDraft
   };
 };

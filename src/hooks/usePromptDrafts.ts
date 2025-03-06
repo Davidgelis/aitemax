@@ -1,10 +1,11 @@
 
-import { useCallback, useEffect } from "react";
-import { Variable, variablesToJson } from "@/components/dashboard/types";
+import { useCallback, useEffect, useState } from "react";
+import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface PromptDraft {
+  id?: string;
   title: string;
   promptText: string;
   masterCommand: string;
@@ -12,6 +13,7 @@ interface PromptDraft {
   secondaryToggle: string | null;
   variables: Variable[];
   currentStep: number;
+  updated_at?: string;
 }
 
 export const usePromptDrafts = (
@@ -24,6 +26,8 @@ export const usePromptDrafts = (
   user: any
 ) => {
   const { toast } = useToast();
+  const [drafts, setDrafts] = useState<PromptDraft[]>([]);
+  const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
 
   const saveDraft = useCallback(async () => {
     if (!user) return;
@@ -137,17 +141,62 @@ export const usePromptDrafts = (
     }
   }, [user]);
 
+  const fetchDrafts = useCallback(async () => {
+    if (!user) return;
+    
+    setIsLoadingDrafts(true);
+    try {
+      const { data, error } = await supabase
+        .from('prompt_drafts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (data) {
+        const formattedDrafts: PromptDraft[] = data.map(draft => ({
+          id: draft.id,
+          title: draft.title || 'Untitled Draft',
+          promptText: draft.prompt_text || '',
+          masterCommand: draft.master_command || '',
+          primaryToggle: draft.primary_toggle,
+          secondaryToggle: draft.secondary_toggle,
+          variables: jsonToVariables(draft.variables),
+          currentStep: draft.current_step || 1,
+          updated_at: draft.updated_at
+        }));
+        
+        setDrafts(formattedDrafts);
+      }
+    } catch (error) {
+      console.error('Error fetching drafts:', error);
+    } finally {
+      setIsLoadingDrafts(false);
+    }
+  }, [user]);
+
   // Auto-save draft every 30 seconds if there are changes
   useEffect(() => {
     if (!promptText) return;
 
     const intervalId = setInterval(saveDraft, 30000);
     return () => clearInterval(intervalId);
-  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep]);
+  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, saveDraft]);
+
+  // Fetch drafts on mount
+  useEffect(() => {
+    if (user) {
+      fetchDrafts();
+    }
+  }, [user, fetchDrafts]);
 
   return {
+    drafts,
+    isLoadingDrafts,
     saveDraft,
     loadDraft,
-    clearDraft
+    clearDraft,
+    fetchDrafts
   };
 };

@@ -1,5 +1,4 @@
-
-import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText, BarChart3 } from "lucide-react";
+import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText, BarChart3, Clock } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -7,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SavedPrompt } from "./types";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { format } from "date-fns";
 
 // Admin user ID
 const ADMIN_USER_ID = "8b40d73f-fffb-411f-9044-480773968d58";
@@ -23,6 +23,9 @@ interface UserSidebarProps {
   handleDuplicatePrompt: (prompt: SavedPrompt) => void;
   handleRenamePrompt: (id: string, newTitle: string) => void;
   loadSavedPrompt?: (prompt: SavedPrompt) => void;
+  drafts?: any[];
+  isLoadingDrafts?: boolean;
+  loadDraft?: (draft: any) => void;
 }
 
 export const UserSidebar = ({
@@ -36,7 +39,10 @@ export const UserSidebar = ({
   handleDeletePrompt,
   handleDuplicatePrompt,
   handleRenamePrompt,
-  loadSavedPrompt
+  loadSavedPrompt,
+  drafts = [],
+  isLoadingDrafts = false,
+  loadDraft
 }: UserSidebarProps) => {
   const navigate = useNavigate();
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
@@ -64,6 +70,20 @@ export const UserSidebar = ({
       setEditingPromptId(null);
     }
   };
+
+  // Helper to format date
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+    } catch (e) {
+      return dateString;
+    }
+  };
+
+  const filteredContent = searchTerm
+    ? filteredPrompts
+    : [...drafts, ...savedPrompts];
 
   return (
     <Sidebar side="right">
@@ -151,81 +171,197 @@ export const UserSidebar = ({
         </div>
 
         <div className="overflow-auto">
-          {isLoadingPrompts ? (
+          {(isLoadingPrompts || isLoadingDrafts) ? (
             <div className="p-4 text-center">
               <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-              <span className="text-sm text-muted-foreground">Loading your prompts...</span>
+              <span className="text-sm text-muted-foreground">Loading...</span>
             </div>
-          ) : filteredPrompts.length > 0 ? (
-            filteredPrompts.map((item) => (
-              <div
-                key={item.id}
-                className="p-4 border-b flex items-center justify-between group/item cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => loadSavedPrompt && editingPromptId !== item.id && loadSavedPrompt(item)}
-              >
-                <div className="flex items-center gap-2 w-full">
-                  <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                  <div className="flex flex-col flex-1 min-w-0">
-                    {editingPromptId === item.id ? (
-                      <input
-                        type="text"
-                        value={editingTitle}
-                        onChange={(e) => setEditingTitle(e.target.value)}
-                        onBlur={saveEdit}
-                        onKeyDown={handleKeyDown}
-                        className="text-sm font-medium border border-transparent focus:border-[#33fea6] focus:outline-none rounded px-1 w-full"
-                        autoFocus
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    ) : (
-                      <div className="flex items-center">
-                        <span className="text-sm font-medium truncate">{item.title}</span>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startEditing(item);
-                          }} 
-                          className="ml-1 opacity-0 group-hover/item:opacity-100 transition-opacity"
-                        >
-                          <Pencil className="h-3 w-3 text-muted-foreground hover:text-[#33fea6]" />
-                        </button>
-                      </div>
-                    )}
-                    <span className="text-xs text-muted-foreground">{item.date}</span>
+          ) : filteredContent.length > 0 ? (
+            <>
+              {/* Drafts Section */}
+              {!searchTerm && drafts.length > 0 && (
+                <div className="px-4 py-2 border-b bg-muted/20">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">Drafts</span>
                   </div>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
-                    <div 
-                      className="prompt-action-button"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreVertical className="h-4 w-4" />
+              )}
+              
+              {!searchTerm && drafts.map((draft) => (
+                <div
+                  key={draft.id || 'local-draft'}
+                  className="p-4 border-b flex items-center justify-between group/item cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => loadDraft && loadDraft(draft)}
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <div className="flex items-center">
+                        <span className="text-sm font-medium truncate">
+                          {draft.title} <span className="text-xs font-normal text-muted-foreground">(Draft)</span>
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(draft.updated_at) || 'Recently edited'}
+                      </span>
                     </div>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={(e) => {
-                      e.stopPropagation();
-                      handleDuplicatePrompt(item);
-                    }}>
-                      <CopyIcon className="mr-2 h-4 w-4" />
-                      <span>Duplicate</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={(e) => {
+                  </div>
+                </div>
+              ))}
+              
+              {/* Saved Prompts Section */}
+              {!searchTerm && savedPrompts.length > 0 && (
+                <div className="px-4 py-2 border-b bg-muted/20">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">Saved Prompts</span>
+                  </div>
+                </div>
+              )}
+              
+              {/* Only show filtered prompts when searching */}
+              {searchTerm ? filteredPrompts.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-4 border-b flex items-center justify-between group/item cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => loadSavedPrompt && editingPromptId !== item.id && loadSavedPrompt(item)}
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+                    <div className="flex flex-col flex-1 min-w-0">
+                      {editingPromptId === item.id ? (
+                        <input
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onBlur={saveEdit}
+                          onKeyDown={handleKeyDown}
+                          className="text-sm font-medium border border-transparent focus:border-[#33fea6] focus:outline-none rounded px-1 w-full"
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <div className="flex items-center">
+                          <span className="text-sm font-medium truncate">{item.title}</span>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditing(item);
+                            }} 
+                            className="ml-1 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                          >
+                            <Pencil className="h-3 w-3 text-muted-foreground hover:text-[#33fea6]" />
+                          </button>
+                        </div>
+                      )}
+                      <span className="text-xs text-muted-foreground">{item.date}</span>
+                    </div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
+                      <div 
+                        className="prompt-action-button"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={(e) => {
                         e.stopPropagation();
-                        handleDeletePrompt(item.id);
-                      }}
-                    >
-                      <Trash className="mr-2 h-4 w-4" />
-                      <span>Delete</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ))
+                        handleDuplicatePrompt(item);
+                      }}>
+                        <CopyIcon className="mr-2 h-4 w-4" />
+                        <span>Duplicate</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePrompt(item.id);
+                        }}
+                      >
+                        <Trash className="mr-2 h-4 w-4" />
+                        <span>Delete</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              )) : (
+                // Show saved prompts when not searching
+                savedPrompts.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-4 border-b flex items-center justify-between group/item cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => loadSavedPrompt && editingPromptId !== item.id && loadSavedPrompt(item)}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+                      <div className="flex flex-col flex-1 min-w-0">
+                        {editingPromptId === item.id ? (
+                          <input
+                            type="text"
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            onBlur={saveEdit}
+                            onKeyDown={handleKeyDown}
+                            className="text-sm font-medium border border-transparent focus:border-[#33fea6] focus:outline-none rounded px-1 w-full"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <div className="flex items-center">
+                            <span className="text-sm font-medium truncate">{item.title}</span>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEditing(item);
+                              }} 
+                              className="ml-1 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                            >
+                              <Pencil className="h-3 w-3 text-muted-foreground hover:text-[#33fea6]" />
+                            </button>
+                          </div>
+                        )}
+                        <span className="text-xs text-muted-foreground">{item.date}</span>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
+                        <div 
+                          className="prompt-action-button"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleDuplicatePrompt(item);
+                        }}>
+                          <CopyIcon className="mr-2 h-4 w-4" />
+                          <span>Duplicate</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletePrompt(item.id);
+                          }}
+                        >
+                          <Trash className="mr-2 h-4 w-4" />
+                          <span>Delete</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ))
+              )}
+            </>
           ) : (
             <div className="p-4 text-center text-muted-foreground">
               {user ? (
