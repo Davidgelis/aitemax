@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,9 +73,9 @@ export default function Analytics() {
         if (userError) throw userError;
 
         // Get prompt counts per user - using the RPC function
-        // Using any for now as a workaround for the type issue
+        // Fixed: Use the correct type parameters for the RPC function
         const { data: promptCountData, error: promptError } = await supabase
-          .rpc<any>('get_prompt_counts_per_user');
+          .rpc('get_prompt_counts_per_user', {}, { count: 'exact' });
 
         if (promptError) throw promptError;
 
@@ -94,11 +93,13 @@ export default function Analytics() {
         }, {} as Record<string, string | null>);
 
         // Create a map of user_id to prompt count
-        // Ensure promptCountData is an array before using reduce
-        const promptCountMap = Array.isArray(promptCountData) ? promptCountData.reduce((acc: Record<string, number>, item: PromptCountResult) => {
-          acc[item.user_id] = parseInt(item.count);
-          return acc;
-        }, {}) : {};
+        // Ensure promptCountData is an array and properly handled
+        const promptCountMap: Record<string, number> = {};
+        if (Array.isArray(promptCountData)) {
+          promptCountData.forEach((item: PromptCountResult) => {
+            promptCountMap[item.user_id] = parseInt(item.count);
+          });
+        }
 
         // Combine the data
         const combinedStats = userData.map(user => ({
