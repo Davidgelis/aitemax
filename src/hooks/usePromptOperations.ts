@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
-import { extractVariablesFromPrompt } from "@/utils/promptUtils";
+import { extractVariablesFromPrompt, replaceVariableInPrompt } from "@/utils/promptUtils";
 
 export const usePromptOperations = (
   variables: Variable[],
@@ -27,7 +27,7 @@ export const usePromptOperations = (
       }
       
       const relevantVariables = variables.filter(
-        v => v && v.isRelevant === true && v.name
+        v => v && v.isRelevant === true
       );
       
       if (relevantVariables.length === 0) {
@@ -36,22 +36,14 @@ export const usePromptOperations = (
       
       let processedPrompt = finalPrompt;
       
-      // First replace variables with their values if they have them
-      relevantVariables.forEach(variable => {
-        if (!variable.name || !variable.value) return;
-        
-        // Find all occurrences of the value in the text
-        const valueRegex = new RegExp(variable.value, 'g');
-        processedPrompt = processedPrompt.replace(valueRegex, `{{${variable.name}}}`);
-      });
-      
-      // Then replace any remaining {{variable}} patterns with their values
       relevantVariables.forEach(variable => {
         if (!variable.name) return;
         
-        const pattern = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
-        const replacement = variable.value || `{{${variable.name}}}`;
-        processedPrompt = processedPrompt.replace(pattern, replacement);
+        // If the variable has a value, replace the placeholder with the value
+        if (variable.value) {
+          const pattern = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
+          processedPrompt = processedPrompt.replace(pattern, variable.value);
+        }
       });
       
       return processedPrompt;
@@ -63,38 +55,29 @@ export const usePromptOperations = (
 
   const handleVariableValueChange = useCallback((variableId: string, newValue: string) => {
     try {
+      // First, find the variable being updated
+      const variableToUpdate = variables.find(v => v.id === variableId);
+      if (!variableToUpdate) {
+        console.error("Variable not found:", variableId);
+        return;
+      }
+      
+      const oldValue = variableToUpdate.value || "";
+      const varName = variableToUpdate.name;
+      
+      // Create a new updatedPrompt using the utility function
+      const updatedPrompt = replaceVariableInPrompt(finalPrompt, oldValue, newValue, varName);
+      
+      // Set the updated prompt
+      setFinalPrompt(updatedPrompt);
+      
+      // Update the variable in state
       setVariables(currentVars => {
         if (!Array.isArray(currentVars)) {
           console.error("Invalid variables array in handleVariableValueChange:", currentVars);
           return [];
         }
         
-        // Find the variable being changed
-        const variableToUpdate = currentVars.find(v => v.id === variableId);
-        if (!variableToUpdate) return currentVars;
-        
-        // Get the old value and variable name
-        const oldValue = variableToUpdate.value;
-        const varName = variableToUpdate.name;
-        
-        // Update the final prompt text - handle empty value case
-        if (oldValue && newValue) {
-          // If there was an old value and new value, replace old with new
-          const updatedPrompt = finalPrompt.replace(new RegExp(oldValue, 'g'), newValue);
-          setFinalPrompt(updatedPrompt);
-        } else if (oldValue && !newValue) {
-          // If value is being cleared, restore the placeholder
-          const updatedPrompt = finalPrompt.replace(new RegExp(oldValue, 'g'), `{{${varName}}}`);
-          setFinalPrompt(updatedPrompt);
-        } else if (!oldValue && newValue) {
-          // If there was no old value but new value exists, replace placeholder with new value
-          const pattern = new RegExp(`{{\\s*${varName}\\s*}}`, 'g');
-          const updatedPrompt = finalPrompt.replace(pattern, newValue);
-          setFinalPrompt(updatedPrompt);
-        }
-        // If both old and new values are empty, no need to update the prompt
-        
-        // Update the variable in state
         return currentVars.map(v => {
           if (v.id === variableId) {
             return { ...v, value: newValue };
@@ -105,7 +88,7 @@ export const usePromptOperations = (
     } catch (error) {
       console.error("Error in handleVariableValueChange:", error);
     }
-  }, [setVariables, setFinalPrompt, finalPrompt]);
+  }, [setVariables, setFinalPrompt, finalPrompt, variables]);
 
   const handleOpenEditPrompt = useCallback(() => {
     setEditingPrompt(finalPrompt);
