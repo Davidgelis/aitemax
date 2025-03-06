@@ -2,9 +2,10 @@
 import { Plus, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Variable } from "./types";
-import { RefObject, useState } from "react";
+import { RefObject, useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { filterCategoryVariables } from "./constants";
+import { useToast } from "@/hooks/use-toast";
 
 interface VariableListProps {
   variables: Variable[];
@@ -31,6 +32,12 @@ export const VariableList = ({
 }: VariableListProps) => {
   // Track which variables have values to highlight them
   const [highlightedVariables, setHighlightedVariables] = useState<Record<string, boolean>>({});
+  const { toast } = useToast();
+  
+  // Debug variables state
+  useEffect(() => {
+    console.log("Variables in VariableList:", variables);
+  }, [variables]);
   
   // Filter out category names and empty names
   const filteredVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
@@ -53,6 +60,8 @@ export const VariableList = ({
 
   // Handle variable value change with highlighting
   const handleValueChange = (variableId: string, value: string) => {
+    console.log(`Value change for variable ${variableId}:`, value);
+    
     // Track the highlighted state based on whether the value has content
     setHighlightedVariables(prev => ({
       ...prev,
@@ -81,6 +90,7 @@ export const VariableList = ({
   
   // Handle name change and mark relevant if name is entered
   const handleNameChange = (variableId: string, name: string) => {
+    console.log(`Name change for variable ${variableId}:`, name);
     onVariableChange(variableId, 'name', name);
     
     // Automatically mark as relevant when a name is added
@@ -125,9 +135,10 @@ export const VariableList = ({
                   />
                   <Input
                     placeholder="Value"
-                    value={variable.value}
+                    value={variable.value || ""}
                     onChange={(e) => handleValueChange(variable.id, e.target.value)}
                     className={`flex-1 h-9 ${highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''}`}
+                    aria-label={`Value for ${variable.name || 'variable'}`}
                   />
                 </div>
                 <div className="flex">
@@ -135,7 +146,6 @@ export const VariableList = ({
                     <AlertDialogTrigger asChild>
                       <button
                         onClick={() => {
-                          // Mark as evaluated when delete button is clicked
                           setVariableToDelete(variable.id);
                         }}
                         className="p-2 rounded-full hover:bg-[#33fea6]/20"

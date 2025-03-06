@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +16,11 @@ export const useQuestionsAndVariables = (
 ) => {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const { toast } = useToast();
+
+  // Debug variables whenever they change
+  useEffect(() => {
+    console.log("Variables in useQuestionsAndVariables:", variables);
+  }, [variables]);
 
   const handleQuestionAnswer = (questionId: string, answer: string) => {
     setQuestions(
@@ -41,24 +47,41 @@ export const useQuestionsAndVariables = (
   ) => {
     console.log(`Updating variable ${variableId}, field: ${field}, value: ${value}`);
     
-    setVariables(
-      variables.map((v) => {
-        if (v.id === variableId) {
-          // When a value is provided for name or value, automatically mark as relevant
-          const isRelevant = field === 'name' || field === 'value' 
-            ? value.trim() !== "" 
-            : v.isRelevant;
-          
-          return { ...v, [field]: value, isRelevant };
-        }
-        return v;
-      })
-    );
+    // Create a new variables array with the updated variable
+    const updatedVariables = variables.map((v) => {
+      if (v.id === variableId) {
+        // When a value is provided for name or value, automatically mark as relevant
+        const isRelevant = field === 'name' || field === 'value' 
+          ? value.trim() !== "" 
+          : v.isRelevant;
+        
+        // Debug the variable before and after update
+        const updatedVar = { ...v, [field]: value, isRelevant };
+        console.log("Variable before update:", v);
+        console.log("Variable after update:", updatedVar);
+        
+        return updatedVar;
+      }
+      return v;
+    });
+    
+    console.log("Updated variables array:", updatedVariables);
+    
+    // Update the state with the new array
+    setVariables(updatedVariables);
   };
 
   const handleVariableRelevance = (variableId: string, isRelevant: boolean) => {
+    console.log(`Setting variable ${variableId} relevance to:`, isRelevant);
+    
     setVariables(
-      variables.map((v) => (v.id === variableId ? { ...v, isRelevant } : v))
+      variables.map((v) => {
+        if (v.id === variableId) {
+          console.log(`Updating relevance for ${v.name || 'unnamed variable'} to`, isRelevant);
+          return { ...v, isRelevant };
+        }
+        return v;
+      })
     );
   };
 
@@ -71,10 +94,12 @@ export const useQuestionsAndVariables = (
       category: "Custom",
       isRelevant: true,
     };
+    console.log("Adding new variable:", newVariable);
     setVariables([...variables, newVariable]);
   };
 
   const removeVariable = (id: string) => {
+    console.log(`Removing variable ${id}`);
     setVariables(variables.filter((v) => v.id !== id));
     setVariableToDelete(null);
   };
