@@ -465,6 +465,7 @@ export const usePromptState = (user: any) => {
     loadSavedPrompt,
     drafts,
     isLoadingDrafts,
-    loadSelectedDraft
+    loadSelectedDraft,
+    deleteDraft
   };
 };

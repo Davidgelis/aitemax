@@ -1,4 +1,4 @@
-import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText, Clock } from "lucide-react";
+import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText, Clock, BarChart } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -112,7 +112,7 @@ export const UserSidebar = ({
               
               {isAdmin && (
                 <DropdownMenuItem onClick={() => navigate("/analytics")} className="menu-item-glow">
-                  <BarChart3 className="mr-2 h-4 w-4" />
+                  <BarChart className="mr-2 h-4 w-4" />
                   <span>Analytics</span>
                 </DropdownMenuItem>
               )}
