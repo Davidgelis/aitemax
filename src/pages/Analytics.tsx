@@ -67,11 +67,9 @@ export default function Analytics() {
 
         if (userError) throw userError;
 
-        // Get prompt counts per user
+        // Get prompt counts per user - using count aggregation function
         const { data: promptCountData, error: promptError } = await supabase
-          .from('prompts')
-          .select('user_id, count')
-          .group('user_id');
+          .rpc('get_prompt_counts_per_user');
 
         if (promptError) throw promptError;
 
@@ -100,9 +98,9 @@ export default function Analytics() {
           username: usernameMap[user.user_id] || 'Unknown User',
           total_prompt_tokens: user.total_prompt_tokens || 0,
           total_completion_tokens: user.total_completion_tokens || 0,
-          total_prompt_cost: parseFloat(user.total_prompt_cost) || 0,
-          total_completion_cost: parseFloat(user.total_completion_cost) || 0,
-          total_cost: parseFloat(user.total_cost) || 0,
+          total_prompt_cost: Number(user.total_prompt_cost) || 0,
+          total_completion_cost: Number(user.total_completion_cost) || 0,
+          total_cost: Number(user.total_cost) || 0,
           prompts_count: promptCountMap[user.user_id] || 0
         }));
 
