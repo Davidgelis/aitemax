@@ -10,34 +10,31 @@ export const usePromptOperations = (
   showJson: boolean,
   setEditingPrompt: (prompt: string) => void,
   setShowEditPromptSheet: (show: boolean) => void,
-  masterCommand: string
+  masterCommand: string,
+  editingPrompt: string
 ) => {
   const [isCopied, setIsCopied] = useState(false);
   const { toast } = useToast();
 
-  // Process the prompt to replace variables with their values
   const getProcessedPrompt = useCallback(() => {
     try {
       if (!finalPrompt) return "";
       
-      // Ensure variables is a valid array
       if (!Array.isArray(variables)) {
         console.error("Invalid variables array in getProcessedPrompt:", variables);
         return finalPrompt;
       }
       
-      // Filter to only the relevant variables with values
       const relevantVariables = variables.filter(
         v => v && v.isRelevant === true && v.name && v.value
       );
       
       if (relevantVariables.length === 0) {
-        return finalPrompt; // No variables to replace
+        return finalPrompt;
       }
       
       let processedPrompt = finalPrompt;
       
-      // Replace each {{variable}} with its value
       relevantVariables.forEach(variable => {
         if (!variable.name || !variable.value) return;
         
@@ -52,7 +49,6 @@ export const usePromptOperations = (
     }
   }, [finalPrompt, variables]);
 
-  // Extract variables from the prompt text
   const extractVariablesFromPrompt = useCallback((promptText: string) => {
     if (!promptText) return [];
     
@@ -76,12 +72,9 @@ export const usePromptOperations = (
     }
   }, []);
 
-  // Update a variable's value
   const handleVariableValueChange = useCallback((variableId: string, newValue: string) => {
     try {
-      // Use the function form of setVariables to properly update the state
       setVariables((currentVars: Variable[]) => {
-        // Ensure current is a valid array
         if (!Array.isArray(currentVars)) {
           console.error("Invalid variables array in handleVariableValueChange:", currentVars);
           return [];
@@ -99,34 +92,26 @@ export const usePromptOperations = (
     }
   }, [setVariables]);
 
-  // Open the edit prompt sheet
   const handleOpenEditPrompt = useCallback(() => {
     setEditingPrompt(finalPrompt);
     setShowEditPromptSheet(true);
   }, [finalPrompt, setEditingPrompt, setShowEditPromptSheet]);
 
-  // Save the edited prompt and update variables
   const handleSaveEditedPrompt = useCallback((editedPrompt: string) => {
-    // Update the final prompt with the edited text
     setFinalPrompt(editedPrompt);
     
-    // Extract variables from the edited prompt
     const promptVariableNames = extractVariablesFromPrompt(editedPrompt);
     
-    // Update the variables array
     setVariables((currentVars: Variable[]) => {
-      // Ensure current is a valid array
       if (!Array.isArray(currentVars)) {
         console.error("Invalid variables array in handleSaveEditedPrompt:", currentVars);
         return [];
       }
       
-      // Keep existing variables that are still in the prompt
       const existingVars = currentVars.filter(v => 
         promptVariableNames.includes(v.name)
       );
       
-      // Create new variables for any new variable names found
       const newVars = promptVariableNames
         .filter(name => !currentVars.some(v => v.name === name))
         .map((name, index) => ({
@@ -137,17 +122,14 @@ export const usePromptOperations = (
           category: "Custom"
         }));
       
-      // Mark all variables as relevant since they exist in the prompt
       const updatedVars = existingVars.map(v => ({
         ...v,
         isRelevant: true
       }));
       
-      // Combine existing and new variables
       return [...updatedVars, ...newVars];
     });
     
-    // Close the edit sheet
     setShowEditPromptSheet(false);
     
     toast({
@@ -156,10 +138,7 @@ export const usePromptOperations = (
     });
   }, [setFinalPrompt, extractVariablesFromPrompt, setVariables, setShowEditPromptSheet, toast]);
 
-  // Adapt the prompt (future API integration)
   const handleAdaptPrompt = useCallback(() => {
-    // This is where we would call an API to adapt the prompt
-    // For now, we're just handling the simple case
     handleSaveEditedPrompt(editingPrompt);
     
     toast({
@@ -168,7 +147,6 @@ export const usePromptOperations = (
     });
   }, [handleSaveEditedPrompt, editingPrompt, toast]);
 
-  // Copy the processed prompt to clipboard
   const handleCopyPrompt = useCallback(() => {
     try {
       const textToCopy = getProcessedPrompt();
@@ -194,10 +172,7 @@ export const usePromptOperations = (
     }
   }, [getProcessedPrompt, toast]);
 
-  // Regenerate the final prompt from all inputs
   const handleRegenerate = useCallback(() => {
-    // This would be where we call an API to regenerate
-    // For now we'll just show a toast
     toast({
       title: "Regenerating prompt",
       description: "This feature will regenerate your prompt with the current inputs.",
