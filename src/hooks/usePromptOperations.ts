@@ -77,18 +77,16 @@ export const usePromptOperations = (
         const oldValue = variableToUpdate.value;
         const varName = variableToUpdate.name;
         
-        // Update the final prompt text
+        // Update the final prompt text - fix the typing issue here
         if (oldValue) {
           // If there was an old value, replace it with the new one
-          setFinalPrompt(current => current.replace(new RegExp(oldValue, 'g'), newValue));
+          const updatedPrompt = finalPrompt.replace(new RegExp(oldValue, 'g'), newValue);
+          setFinalPrompt(updatedPrompt);
         } else {
           // If there was no old value, look for {{varName}} pattern and replace it
-          setFinalPrompt(current => 
-            current.replace(
-              new RegExp(`{{\\s*${varName}\\s*}}`, 'g'), 
-              newValue
-            )
-          );
+          const pattern = new RegExp(`{{\\s*${varName}\\s*}}`, 'g');
+          const updatedPrompt = finalPrompt.replace(pattern, newValue);
+          setFinalPrompt(updatedPrompt);
         }
         
         // Update the variable in state
@@ -102,7 +100,7 @@ export const usePromptOperations = (
     } catch (error) {
       console.error("Error in handleVariableValueChange:", error);
     }
-  }, [setVariables, setFinalPrompt]);
+  }, [setVariables, setFinalPrompt, finalPrompt]);
 
   const handleOpenEditPrompt = useCallback(() => {
     setEditingPrompt(finalPrompt);
