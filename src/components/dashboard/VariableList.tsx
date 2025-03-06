@@ -35,11 +35,6 @@ export const VariableList = ({
   const { toast } = useToast();
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   
-  // Debug variables state
-  useEffect(() => {
-    console.log("Variables in VariableList:", variables);
-  }, [variables]);
-  
   // Filter out category names and empty names for display
   const filteredVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
   
@@ -61,8 +56,6 @@ export const VariableList = ({
 
   // Handle variable value change with highlighting
   const handleValueChange = (variableId: string, value: string) => {
-    console.log(`Value change for variable ${variableId}:`, value);
-    
     // Track the highlighted state based on whether the value has content
     setHighlightedVariables(prev => ({
       ...prev,
@@ -91,25 +84,12 @@ export const VariableList = ({
   
   // Handle name change and mark relevant if name is entered
   const handleNameChange = (variableId: string, name: string) => {
-    console.log(`Name change for variable ${variableId}:`, name);
     onVariableChange(variableId, 'name', name);
     
     // Automatically mark as relevant when a name is added
     if (name.trim() !== '') {
       onVariableRelevance(variableId, true);
     }
-  };
-
-  // Ensure focus stays in input and selection manages correctly
-  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    console.log("Input focused:", e.target.name);
-    // Force selection to ensure cursor is visible
-    setTimeout(() => {
-      if (e.target) {
-        const len = e.target.value.length;
-        e.target.setSelectionRange(len, len);
-      }
-    }, 0);
   };
 
   return (
@@ -140,32 +120,26 @@ export const VariableList = ({
                   {index + 1}
                 </div>
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Input
-                    ref={el => inputRefs.current[`name-${variable.id}`] = el}
+                  <input
+                    type="text"
                     placeholder="Variable name"
                     value={variable.name}
                     onChange={(e) => handleNameChange(variable.id, e.target.value)}
-                    onFocus={handleInputFocus}
-                    className="flex-1 h-9 text-[#545454]"
+                    className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
                     autoComplete="off"
                     aria-label={`Name for variable ${index + 1}`}
-                    name={`var-name-${variable.id}`}
-                    readOnly={false}
-                    type="text"
                     id={`var-name-${variable.id}`}
                   />
-                  <Input
-                    ref={el => inputRefs.current[`value-${variable.id}`] = el}
+                  <input
+                    type="text"
                     placeholder="Value"
                     value={variable.value || ""}
                     onChange={(e) => handleValueChange(variable.id, e.target.value)}
-                    onFocus={handleInputFocus}
-                    className={`flex-1 h-9 text-[#545454] ${highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''}`}
+                    className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
+                      highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''
+                    }`}
                     autoComplete="off"
                     aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
-                    name={`var-value-${variable.id}`}
-                    readOnly={false}
-                    type="text"
                     id={`var-value-${variable.id}`}
                   />
                 </div>
