@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +34,8 @@ export const usePromptState = (user: any) => {
     clearDraft,
     drafts,
     isLoadingDrafts,
-    fetchDrafts
+    fetchDrafts,
+    deleteDraft
   } = usePromptDrafts(
     promptText,
     masterCommand,
