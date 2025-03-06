@@ -36,7 +36,16 @@ export const usePromptOperations = (
       
       let processedPrompt = finalPrompt;
       
-      // Replace variables with their values
+      // First replace variables with their values if they have them
+      relevantVariables.forEach(variable => {
+        if (!variable.name || !variable.value) return;
+        
+        // Find all occurrences of the value in the text
+        const valueRegex = new RegExp(variable.value, 'g');
+        processedPrompt = processedPrompt.replace(valueRegex, `{{${variable.name}}}`);
+      });
+      
+      // Then replace any remaining {{variable}} patterns with their values
       relevantVariables.forEach(variable => {
         if (!variable.name) return;
         
@@ -60,6 +69,29 @@ export const usePromptOperations = (
           return [];
         }
         
+        // Find the variable being changed
+        const variableToUpdate = currentVars.find(v => v.id === variableId);
+        if (!variableToUpdate) return currentVars;
+        
+        // Get the old value and variable name
+        const oldValue = variableToUpdate.value;
+        const varName = variableToUpdate.name;
+        
+        // Update the final prompt text
+        if (oldValue) {
+          // If there was an old value, replace it with the new one
+          setFinalPrompt(current => current.replace(new RegExp(oldValue, 'g'), newValue));
+        } else {
+          // If there was no old value, look for {{varName}} pattern and replace it
+          setFinalPrompt(current => 
+            current.replace(
+              new RegExp(`{{\\s*${varName}\\s*}}`, 'g'), 
+              newValue
+            )
+          );
+        }
+        
+        // Update the variable in state
         return currentVars.map(v => {
           if (v.id === variableId) {
             return { ...v, value: newValue };
@@ -70,7 +102,7 @@ export const usePromptOperations = (
     } catch (error) {
       console.error("Error in handleVariableValueChange:", error);
     }
-  }, [setVariables]);
+  }, [setVariables, setFinalPrompt]);
 
   const handleOpenEditPrompt = useCallback(() => {
     setEditingPrompt(finalPrompt);
