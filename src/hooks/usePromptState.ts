@@ -417,6 +417,23 @@ export const usePromptState = (user: any) => {
     });
   };
 
+  const handleDeleteDraft = async (draftId: string) => {
+    if (deleteDraft) {
+      await deleteDraft(draftId);
+      
+      // If the deleted draft was the current one, reset the state
+      if (draftId === currentDraftId) {
+        setPromptText("");
+        setMasterCommand("");
+        setVariables(defaultVariables.map(v => ({ ...v, value: "", isRelevant: null })));
+        setFinalPrompt("");
+        setSelectedPrimary(null);
+        setSelectedSecondary(null);
+        setCurrentStep(1);
+      }
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchSavedPrompts();
@@ -472,6 +489,7 @@ export const usePromptState = (user: any) => {
     isLoadingDrafts,
     loadSelectedDraft: loadSelectedDraftState,
     deleteDraft,
-    currentDraftId
+    currentDraftId,
+    handleDeleteDraft
   };
 };

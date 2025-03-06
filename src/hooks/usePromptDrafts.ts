@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useState } from "react";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -178,10 +179,25 @@ export const usePromptDrafts = (
         };
       }
 
+      // Only check local storage if no drafts found in the database
       const localDraft = localStorage.getItem('promptDraft');
       if (localDraft) {
         const parsed = JSON.parse(localDraft);
         if (parsed.id) {
+          // Verify that the draft actually exists in the database
+          const { data: draftExists, error: checkError } = await supabase
+            .from('prompt_drafts')
+            .select('id')
+            .eq('id', parsed.id)
+            .limit(1);
+            
+          if (checkError || !draftExists || draftExists.length === 0) {
+            // If the draft doesn't exist in the database, clear local storage
+            localStorage.removeItem('promptDraft');
+            setCurrentDraftId(null);
+            return null;
+          }
+          
           setCurrentDraftId(parsed.id);
         }
         return parsed;
@@ -189,11 +205,34 @@ export const usePromptDrafts = (
 
     } catch (error) {
       console.error('Error loading draft:', error);
+      
+      // Check if local draft exists and verify it
       const localDraft = localStorage.getItem('promptDraft');
       if (localDraft) {
         const parsed = JSON.parse(localDraft);
         if (parsed.id) {
-          setCurrentDraftId(parsed.id);
+          // Verify that the draft exists in the database
+          try {
+            const { data: draftExists, error: checkError } = await supabase
+              .from('prompt_drafts')
+              .select('id')
+              .eq('id', parsed.id)
+              .limit(1);
+              
+            if (checkError || !draftExists || draftExists.length === 0) {
+              // If the draft doesn't exist, clear local storage
+              localStorage.removeItem('promptDraft');
+              setCurrentDraftId(null);
+              return null;
+            }
+            
+            setCurrentDraftId(parsed.id);
+          } catch (verifyError) {
+            // If verification fails, clear local storage
+            localStorage.removeItem('promptDraft');
+            setCurrentDraftId(null);
+            return null;
+          }
         }
         return parsed;
       }
@@ -229,6 +268,7 @@ export const usePromptDrafts = (
     if (!user) return;
 
     try {
+      // Delete from database
       const { error } = await supabase
         .from('prompt_drafts')
         .delete()
@@ -236,11 +276,23 @@ export const usePromptDrafts = (
 
       if (error) throw error;
 
+      // Remove from local state
+      setDrafts(prevDrafts => prevDrafts.filter(draft => draft.id !== draftId));
+      
+      // If the deleted draft is the current draft, clear local storage and currentDraftId
       if (draftId === currentDraftId) {
+        localStorage.removeItem('promptDraft');
         setCurrentDraftId(null);
       }
-
-      setDrafts(prevDrafts => prevDrafts.filter(draft => draft.id !== draftId));
+      
+      // Also check local storage to make sure the draft is removed if it exists there
+      const localDraft = localStorage.getItem('promptDraft');
+      if (localDraft) {
+        const parsedDraft = JSON.parse(localDraft);
+        if (parsedDraft.id === draftId) {
+          localStorage.removeItem('promptDraft');
+        }
+      }
       
       toast({
         title: "Success",
@@ -259,7 +311,20 @@ export const usePromptDrafts = (
   const loadSelectedDraft = useCallback((draft: PromptDraft) => {
     if (draft.id) {
       setCurrentDraftId(draft.id);
+      
+      // Update local storage with the selected draft
+      localStorage.setItem('promptDraft', JSON.stringify({
+        id: draft.id,
+        promptText: draft.promptText,
+        masterCommand: draft.masterCommand,
+        variables: draft.variables,
+        selectedPrimary: draft.primaryToggle,
+        secondaryToggle: draft.secondaryToggle,
+        currentStep: draft.currentStep,
+        timestamp: new Date().toISOString()
+      }));
     }
+    
     return {
       promptText: draft.promptText,
       masterCommand: draft.masterCommand,
