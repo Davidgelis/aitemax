@@ -74,9 +74,9 @@ export default function Analytics() {
         if (userError) throw userError;
 
         // Get prompt counts per user - using the RPC function
-        // Fixed: Added proper type parameters for the RPC function
+        // Using any for now as a workaround for the type issue
         const { data: promptCountData, error: promptError } = await supabase
-          .rpc('get_prompt_counts_per_user');
+          .rpc<any>('get_prompt_counts_per_user');
 
         if (promptError) throw promptError;
 
@@ -94,8 +94,8 @@ export default function Analytics() {
         }, {} as Record<string, string | null>);
 
         // Create a map of user_id to prompt count
-        // Fixed: Check if promptCountData exists and ensure it's treated as an array
-        const promptCountMap = promptCountData ? promptCountData.reduce((acc: Record<string, number>, item: PromptCountResult) => {
+        // Ensure promptCountData is an array before using reduce
+        const promptCountMap = Array.isArray(promptCountData) ? promptCountData.reduce((acc: Record<string, number>, item: PromptCountResult) => {
           acc[item.user_id] = parseInt(item.count);
           return acc;
         }, {}) : {};
