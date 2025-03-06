@@ -62,6 +62,11 @@ export const VariableList = ({
       [variableId]: value.trim() !== ''
     }));
     
+    // Mark as relevant when value is added
+    if (value.trim() !== '') {
+      onVariableRelevance(variableId, true);
+    }
+    
     // Call the original change handler
     onVariableChange(variableId, 'value', value);
   };
@@ -69,6 +74,12 @@ export const VariableList = ({
   // Handle name change
   const handleNameChange = (variableId: string, name: string) => {
     console.log(`Variable name change - ID: ${variableId}, Name: ${name}`);
+    
+    // Mark as relevant when name is added
+    if (name.trim() !== '') {
+      onVariableRelevance(variableId, true);
+    }
+    
     onVariableChange(variableId, 'name', name);
   };
 
@@ -89,6 +100,11 @@ export const VariableList = ({
     const initialHighlightState: Record<string, boolean> = {};
     variables.forEach(variable => {
       initialHighlightState[variable.id] = variable.value && variable.value.trim() !== '';
+      
+      // Auto-set relevance based on value
+      if (variable.value && variable.value.trim() !== '' && variable.isRelevant === null) {
+        onVariableRelevance(variable.id, true);
+      }
     });
     setHighlightedVariables(initialHighlightState);
   }, [variables]);

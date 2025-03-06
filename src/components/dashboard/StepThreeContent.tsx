@@ -85,20 +85,19 @@ export const StepThreeContent = ({
       );
     }
 
-    // Format the prompt with variable highlighting
+    // Create a processed version that shows variable values highlighted
     const processedPrompt = getProcessedPrompt();
     const paragraphs = processedPrompt.split('\n\n');
     
-    // Highlight variables in the prompt
     return (
       <div className="prose prose-sm max-w-none">
         {paragraphs.map((paragraph, index) => {
           let content = paragraph;
           
-          // Look for variable values in the content
+          // Highlight all variable values in the content
           relevantVariables.forEach(variable => {
             if (variable.value && variable.value.trim() !== '') {
-              const regex = new RegExp(`(${escapeRegExp(variable.value)})`, 'g');
+              const regex = new RegExp(`(${escapeRegExp(variable.value)})`, 'gi');
               content = content.replace(regex, '<span class="variable-highlight">$1</span>');
             }
           });
@@ -219,7 +218,7 @@ export const StepThreeContent = ({
         {relevantVariables.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 max-h-[250px] overflow-y-auto pr-2">
             {relevantVariables.map((variable) => (
-              <div key={variable.id} className="variable-card">
+              <div key={variable.id} className="variable-card bg-white border border-[#33fea6] rounded-lg p-3 shadow-sm transition-all hover:shadow-md">
                 <div className="flex justify-between items-center mb-1">
                   <span className="text-xs font-medium text-[#545454]">{variable.name}</span>
                   <div className="flex items-center gap-1">
@@ -233,7 +232,9 @@ export const StepThreeContent = ({
                     type="text"
                     value={variable.value || ""}
                     onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
-                    className="flex-1 h-9 px-3 py-2 bg-white border border-[#33fea6] rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#33fea6] transition-all"
+                    className={`flex-1 h-9 px-3 py-2 bg-white border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#33fea6] transition-all ${
+                      variable.value && variable.value.trim() !== '' ? 'border-[#33fea6]' : 'border-gray-300'
+                    }`}
                     placeholder="Enter value..."
                   />
                   <button 

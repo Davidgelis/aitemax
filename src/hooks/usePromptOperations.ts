@@ -16,6 +16,7 @@ export const usePromptOperations = (
   const { toast } = useToast();
   const [editingPromptLocal, setEditingPromptLocal] = useState("");
   const [processedPrompt, setProcessedPrompt] = useState(finalPrompt);
+  const [variableHighlights, setVariableHighlights] = useState<Record<string, string[]>>({});
   
   // Handle variable value change with live updating
   const handleVariableValueChange = (variableId: string, newValue: string) => {
@@ -45,9 +46,10 @@ export const usePromptOperations = (
     });
   };
 
-  // Process the prompt with variable replacements
+  // Process the prompt with variable replacements and track their positions
   const getProcessedPrompt = () => {
     let processed = finalPrompt;
+    const highlightPositions: Record<string, string[]> = {};
     
     // Only replace variables if they have both a name and value
     const validVariables = variables.filter(v => 
@@ -60,8 +62,26 @@ export const usePromptOperations = (
       // Create a regex that matches the variable name enclosed in {{...}}
       // with optional whitespace inside the braces
       const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
+      
+      // For tracking variable positions
+      if (variable.value) {
+        highlightPositions[variable.id] = [];
+        
+        // Find all occurrences of this variable value in the text
+        let match;
+        const valueRegex = new RegExp(escapeRegExp(variable.value), 'g');
+        const tempProcessed = processed.replace(regex, variable.value);
+        
+        while ((match = valueRegex.exec(tempProcessed)) !== null) {
+          highlightPositions[variable.id].push(variable.value);
+        }
+      }
+      
       processed = processed.replace(regex, variable.value || '');
     });
+    
+    // Update the highlight positions for use in rendering
+    setVariableHighlights(highlightPositions);
     
     return processed;
   };
@@ -134,6 +154,11 @@ export const usePromptOperations = (
   const escapeRegExp = (string: string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   };
+  
+  // Get the list of relevant variables for display in step 3
+  const getRelevantVariables = () => {
+    return variables.filter(v => v.isRelevant === true);
+  };
 
   return {
     getProcessedPrompt,
@@ -142,6 +167,8 @@ export const usePromptOperations = (
     handleSaveEditedPrompt,
     handleAdaptPrompt,
     handleCopyPrompt,
-    handleRegenerate
+    handleRegenerate,
+    getRelevantVariables,
+    variableHighlights
   };
 };
