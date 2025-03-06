@@ -2,7 +2,7 @@
 import { Plus, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Variable } from "./types";
-import { RefObject, useState, useEffect } from "react";
+import { RefObject, useState, useEffect, useRef } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { filterCategoryVariables } from "./constants";
 import { useToast } from "@/hooks/use-toast";
@@ -33,19 +33,20 @@ export const VariableList = ({
   // Track which variables have values to highlight them
   const [highlightedVariables, setHighlightedVariables] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   
   // Debug variables state
   useEffect(() => {
     console.log("Variables in VariableList:", variables);
   }, [variables]);
   
-  // Filter out category names and empty names
+  // Filter out category names and empty names for display
   const filteredVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
   
   // Group variables by category
   const groupedVariables: Record<string, Variable[]> = {};
   
-  filteredVariables.forEach(variable => {
+  variables.forEach(variable => {
     const category = variable.category || 'Other';
     if (!groupedVariables[category]) {
       groupedVariables[category] = [];
@@ -99,6 +100,18 @@ export const VariableList = ({
     }
   };
 
+  // Ensure focus stays in input and selection manages correctly
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    console.log("Input focused:", e.target.name);
+    // Force selection to ensure cursor is visible
+    setTimeout(() => {
+      if (e.target) {
+        const len = e.target.value.length;
+        e.target.setSelectionRange(len, len);
+      }
+    }, 0);
+  };
+
   return (
     <>
       <div className="flex items-center justify-between mb-4">
@@ -128,17 +141,26 @@ export const VariableList = ({
                 </div>
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Input
+                    ref={el => inputRefs.current[`name-${variable.id}`] = el}
                     placeholder="Variable name"
                     value={variable.name}
                     onChange={(e) => handleNameChange(variable.id, e.target.value)}
-                    className="flex-1 h-9"
+                    onFocus={handleInputFocus}
+                    className="flex-1 h-9 text-[#545454]"
+                    autoComplete="off"
+                    aria-label={`Name for variable ${index + 1}`}
+                    name={`var-name-${variable.id}`}
                   />
                   <Input
+                    ref={el => inputRefs.current[`value-${variable.id}`] = el}
                     placeholder="Value"
                     value={variable.value || ""}
                     onChange={(e) => handleValueChange(variable.id, e.target.value)}
-                    className={`flex-1 h-9 ${highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''}`}
-                    aria-label={`Value for ${variable.name || 'variable'}`}
+                    onFocus={handleInputFocus}
+                    className={`flex-1 h-9 text-[#545454] ${highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''}`}
+                    autoComplete="off"
+                    aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
+                    name={`var-value-${variable.id}`}
                   />
                 </div>
                 <div className="flex">

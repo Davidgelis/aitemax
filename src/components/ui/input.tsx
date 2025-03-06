@@ -1,6 +1,5 @@
 
 import * as React from "react"
-
 import { cn } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
@@ -14,6 +13,9 @@ const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLI
         )}
         ref={ref}
         {...props}
+        // Ensure the component is editable
+        readOnly={props.readOnly}
+        aria-readonly={props.readOnly}
       />
     )
   }

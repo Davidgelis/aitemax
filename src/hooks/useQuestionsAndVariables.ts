@@ -52,7 +52,7 @@ export const useQuestionsAndVariables = (
       if (v.id === variableId) {
         // When a value is provided for name or value, automatically mark as relevant
         const isRelevant = field === 'name' || field === 'value' 
-          ? value.trim() !== "" 
+          ? value.trim() !== "" || (field === 'name' ? v.value.trim() !== "" : v.name.trim() !== "")
           : v.isRelevant;
         
         // Debug the variable before and after update
@@ -86,7 +86,7 @@ export const useQuestionsAndVariables = (
   };
 
   const addVariable = () => {
-    const newId = `v${Date.now()}`;
+    const newId = `v${Date.now()}${Math.floor(Math.random() * 1000)}`;
     const newVariable: Variable = {
       id: newId,
       name: "",

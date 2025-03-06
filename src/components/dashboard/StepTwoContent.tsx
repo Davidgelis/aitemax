@@ -3,6 +3,7 @@ import { Question, Variable } from "./types";
 import { RefObject } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
+
 interface StepTwoContentProps {
   questions: Question[];
   variables: Variable[];
@@ -20,6 +21,7 @@ interface StepTwoContentProps {
   variablesContainerRef: RefObject<HTMLDivElement>;
   originalPrompt: string;
 }
+
 export const StepTwoContent = ({
   questions,
   variables,
@@ -37,9 +39,10 @@ export const StepTwoContent = ({
   variablesContainerRef,
   originalPrompt
 }: StepTwoContentProps) => {
-  return <div className="border rounded-xl p-6 bg-card">
+  return (
+    <div className="border rounded-xl p-6 bg-card">
       <div className="mb-6">
-        <p className="text-card-foreground mb-4">Answer the following questions and complete the variables to improve your final prompt accuracy. Fill in only what applies and mark or remove the irrelevant ones.</p>
+        <p className="text-[#545454] mb-4">Answer the following questions and complete the variables to improve your final prompt accuracy. Fill in only what applies and mark or remove the irrelevant ones.</p>
         
         <QuestionList 
           questions={questions} 
@@ -73,5 +76,6 @@ export const StepTwoContent = ({
           Continue
         </button>
       </div>
-    </div>;
+    </div>
+  );
 };
