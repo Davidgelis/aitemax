@@ -68,8 +68,10 @@ export const useQuestionsAndVariables = (
       (q) => q.isRelevant === true || q.isRelevant === false
     );
 
-    // Make sure all variables have been marked as relevant or not
-    const allVariablesEvaluated = variables.every(
+    // For variables, only check those that haven't been deleted
+    // A variable is either explicitly marked as relevant/not relevant or has been deleted
+    const remainingVariables = variables.filter(v => v.name.trim() !== '');
+    const allVariablesEvaluated = remainingVariables.every(
       (v) => v.isRelevant === true || v.isRelevant === false
     );
 
@@ -77,6 +79,16 @@ export const useQuestionsAndVariables = (
     const allRelevantQuestionsAnswered = questions.every(
       (q) => !q.isRelevant || (q.isRelevant && q.answer && q.answer.trim() !== "")
     );
+
+    // Add logging to help diagnose the issue
+    console.log({
+      allQuestionsEvaluated,
+      allVariablesEvaluated,
+      allRelevantQuestionsAnswered,
+      questionCount: questions.length,
+      variableCount: variables.length,
+      remainingVariablesCount: remainingVariables.length
+    });
 
     return (
       allQuestionsEvaluated && allVariablesEvaluated && allRelevantQuestionsAnswered

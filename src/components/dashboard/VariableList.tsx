@@ -63,6 +63,7 @@ export const VariableList = ({
 
   // Handle marking a variable as not relevant (through delete)
   const handleDelete = (id: string) => {
+    // First mark as not relevant, then remove it
     onVariableRelevance(id, false);
     onDeleteVariable();
   };
