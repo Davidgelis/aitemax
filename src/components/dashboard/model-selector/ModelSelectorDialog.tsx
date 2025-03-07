@@ -4,6 +4,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AIModel } from '../types';
 import { DisplayModel } from './types';
+import { useMemo } from 'react';
 
 interface ModelSelectorDialogProps {
   open: boolean;
@@ -275,6 +276,11 @@ export const ModelSelectorDialog = ({
                   letterSpacing: position === 0 ? '0.5px' : 'normal',
                   transform: `scale(${position === 0 ? 1.05 : 1})`,
                   transition: 'all 700ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  ...(model.name === '-' ? {
+                    fontSize: position === 0 ? '9.375rem' : '6.25rem', // 5x bigger for dash
+                    lineHeight: position === 0 ? '5rem' : '3.5rem',
+                    marginTop: position === 0 ? '-2rem' : '-1.5rem'
+                  } : {})
                 }}
               >
                 {model.name}
@@ -286,6 +292,3 @@ export const ModelSelectorDialog = ({
     </Dialog>
   );
 };
-
-// Import useMemo
-import { useMemo } from 'react';
