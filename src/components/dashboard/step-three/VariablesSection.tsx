@@ -24,7 +24,7 @@ export const VariablesSection = ({
     }
     
     const grouped: Record<string, Variable[]> = {};
-    const relevantVars = variables.filter(v => v && v.isRelevant === true);
+    const relevantVars = variables.filter(v => v && v.isRelevant !== false);
     
     relevantVars.forEach(variable => {
       const category = variable.category || "Other";
@@ -49,7 +49,7 @@ export const VariablesSection = ({
   }
   
   // Get count of relevant variables
-  const relevantVariablesCount = variables.filter(v => v && v.isRelevant === true).length;
+  const relevantVariablesCount = variables.filter(v => v && v.isRelevant !== false).length;
   
   if (relevantVariablesCount === 0) {
     return (
@@ -120,3 +120,4 @@ export const VariablesSection = ({
     </div>
   );
 };
+

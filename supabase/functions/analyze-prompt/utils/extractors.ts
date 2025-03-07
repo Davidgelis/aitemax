@@ -107,6 +107,12 @@ export function extractQuestions(analysis: string, promptText: string): any[] {
  * Extract variables from AI analysis
  */
 export function extractVariables(analysis: string, promptText: string): any[] {
+  // Direct extraction of variables from prompt to ensure they're always captured
+  const directVariables = extractDirectVariablesFromPrompt(promptText);
+  if (directVariables.length > 0) {
+    return directVariables;
+  }
+  
   // Try to find a JSON block containing variables
   const jsonMatch = analysis.match(/```json\s*({[\s\S]*?})\s*```/);
   
@@ -129,8 +135,8 @@ export function extractVariables(analysis: string, promptText: string): any[] {
             id: v.id || `v${i+1}`,
             name: v.name,
             value: v.value || "",
-            isRelevant: null,
-            category: v.category || "Task"
+            isRelevant: true, // Mark as relevant by default
+            category: v.category || getCategoryFromVariableName(v.name)
           }));
       }
     } catch (e) {
@@ -140,31 +146,7 @@ export function extractVariables(analysis: string, promptText: string): any[] {
   
   // Check for variable patterns like {{VariableName}}
   let enhancedPrompt = extractEnhancedPrompt(analysis);
-  const contextualVariables = [];
-  const variableRegex = /{{(\w+)}}/g;
-  let match;
-  
-  while ((match = variableRegex.exec(enhancedPrompt)) !== null) {
-    const name = match[1];
-    // Check if variable already exists, isn't a category name, and has a valid format
-    if (name && 
-        name.trim().length > 1 &&  // Must be more than a single character
-        !/^\*+$/.test(name) &&     // Must not be just asterisks
-        !/^[sS]$/.test(name) &&    // Must not be just 's'
-        name !== 'Task' && 
-        name !== 'Persona' && 
-        name !== 'Conditions' && 
-        name !== 'Instructions' && 
-        !contextualVariables.some((v: any) => v.name === name)) {
-      contextualVariables.push({
-        id: `v${contextualVariables.length + 1}`,
-        name,
-        value: "",
-        isRelevant: null,
-        category: getCategoryFromVariableName(name)
-      });
-    }
-  }
+  const contextualVariables = extractDirectVariablesFromPrompt(enhancedPrompt);
   
   if (contextualVariables.length > 0) {
     return contextualVariables;
@@ -191,7 +173,7 @@ export function extractVariables(analysis: string, promptText: string): any[] {
         id: `v${variables.length + 1}`,
         name,
         value,
-        isRelevant: null,
+        isRelevant: true, // Mark as relevant by default
         category
       });
     }
@@ -203,6 +185,39 @@ export function extractVariables(analysis: string, promptText: string): any[] {
   }
   
   return generateContextualVariablesForPrompt(promptText);
+}
+
+/**
+ * Extract variables directly from prompt text using {{variable}} syntax
+ */
+export function extractDirectVariablesFromPrompt(promptText: string): any[] {
+  const variables = [];
+  const variableRegex = /{{(\w+)}}/g;
+  let match;
+  
+  while ((match = variableRegex.exec(promptText)) !== null) {
+    const name = match[1];
+    // Check if variable already exists, isn't a category name, and has a valid format
+    if (name && 
+        name.trim().length > 1 &&  // Must be more than a single character
+        !/^\*+$/.test(name) &&     // Must not be just asterisks
+        !/^[sS]$/.test(name) &&    // Must not be just 's'
+        name !== 'Task' && 
+        name !== 'Persona' && 
+        name !== 'Conditions' && 
+        name !== 'Instructions' && 
+        !variables.some((v: any) => v.name === name)) {
+      variables.push({
+        id: `v${variables.length + 1}`,
+        name,
+        value: "",
+        isRelevant: true, // Mark as relevant by default
+        category: getCategoryFromVariableName(name)
+      });
+    }
+  }
+  
+  return variables;
 }
 
 /**
@@ -252,3 +267,4 @@ export function extractEnhancedPrompt(analysis: string): string {
   
   return "# Enhanced Prompt\n\nYour enhanced prompt will appear here after answering the questions.";
 }
+

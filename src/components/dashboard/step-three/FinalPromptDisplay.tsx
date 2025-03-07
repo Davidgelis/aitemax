@@ -1,8 +1,10 @@
+
 import { Edit } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { hasVariablePlaceholders } from "@/utils/promptUtils";
 
 interface FinalPromptDisplayProps {
   finalPrompt: string;
@@ -41,7 +43,7 @@ export const FinalPromptDisplay = ({
   }, []);
   
   const relevantVariables = Array.isArray(variables) 
-    ? variables.filter(v => v && typeof v === 'object' && v?.isRelevant === true) 
+    ? variables.filter(v => v && typeof v === 'object' && v?.isRelevant !== false) 
     : [];
   
   const convertPromptToJson = useCallback(async () => {
@@ -109,20 +111,24 @@ export const FinalPromptDisplay = ({
     
     let processedText = text;
     
+    // First, highlight variable placeholders
+    const placeholderPattern = /{{([^}]+)}}/g;
+    processedText = processedText.replace(placeholderPattern, (match, name) => {
+      return `<span class="unresolved-variable">${match}</span>`;
+    });
+    
+    // Then highlight variables that have values
     relevantVariables.forEach(variable => {
       if (!variable || !variable.name) return;
       
       try {
-        if (!variable.value) {
-          const pattern = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
-          processedText = processedText.replace(pattern, 
-            `<span class="unresolved-variable">{{${variable.name}}}</span>`);
-        } 
-        else {
+        if (variable.value) {
           const escapedValue = escapeRegExp(variable.value);
-          const valuePattern = new RegExp(`\\b${escapedValue}\\b`, 'g');
-          processedText = processedText.replace(valuePattern, 
-            `<span class="variable-highlight">${variable.value}</span>`);
+          if (escapedValue.length > 2) { // Only replace if value is substantial
+            const valuePattern = new RegExp(`\\b${escapedValue}\\b`, 'g');
+            processedText = processedText.replace(valuePattern, 
+              `<span class="variable-highlight">${variable.value}</span>`);
+          }
         }
       } catch (error) {
         console.error(`Error highlighting variable ${variable.name}:`, error);
@@ -198,9 +204,18 @@ export const FinalPromptDisplay = ({
               <div key={index}>
                 {paragraphs.map((paragraph, pIndex) => {
                   if (!paragraph.trim()) return null;
-                  const highlightedContent = highlightVariablesInText(paragraph);
+                  
+                  // Check if paragraph contains variable placeholders before processing
+                  const hasVariables = hasVariablePlaceholders(paragraph) || 
+                                       relevantVariables.some(v => v.value && paragraph.includes(v.value));
+                  
+                  const highlightedContent = hasVariables 
+                    ? highlightVariablesInText(paragraph) 
+                    : paragraph;
+                    
                   return (
-                    <p key={`${index}-${pIndex}`} dangerouslySetInnerHTML={{ __html: highlightedContent }} />
+                    <p key={`${index}-${pIndex}`} 
+                       dangerouslySetInnerHTML={{ __html: highlightedContent }} />
                   );
                 })}
               </div>

@@ -45,3 +45,26 @@ export const replaceVariableInPrompt = (
   const pattern = new RegExp(`\\b${oldValue}\\b`, 'g');
   return prompt.replace(pattern, newValue);
 };
+
+// Function to check for variable placeholders in text
+export const hasVariablePlaceholders = (text: string): boolean => {
+  const pattern = /{{([^}]+)}}/g;
+  return pattern.test(text);
+};
+
+// Function to convert all variables placeholders to their values
+export const fillAllVariables = (prompt: string, variables: any[]): string => {
+  if (!Array.isArray(variables) || variables.length === 0) return prompt;
+  
+  let processedPrompt = prompt;
+  
+  variables.forEach(variable => {
+    if (variable && variable.name && variable.value) {
+      const pattern = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
+      processedPrompt = processedPrompt.replace(pattern, variable.value);
+    }
+  });
+  
+  return processedPrompt;
+};
+
