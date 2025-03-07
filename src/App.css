@@ -105,3 +105,9 @@
 .animate-aurora {
   animation: aurora 300s ease infinite; /* Changed from 15s to 300s (20x slower) */
 }
+
+/* Toggle thumb aurora effect */
+[data-state="checked"] .animate-aurora {
+  background: linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white);
+  background-size: 400% 400%;
+}

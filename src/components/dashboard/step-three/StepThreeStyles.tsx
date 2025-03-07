@@ -65,6 +65,13 @@ export const StepThreeStyles = () => {
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
+      
+      /* Toggle thumb aurora effect */
+      [data-state="checked"] .animate-aurora {
+        background: linear-gradient(90deg, #041524, #084b49, #33fea6, #64bf95, white);
+        background-size: 300% 100%;
+        animation: aurora 300s ease infinite;
+      }
       `}
     </style>
   );
