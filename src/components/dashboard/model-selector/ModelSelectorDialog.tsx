@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -276,9 +277,14 @@ export const ModelSelectorDialog = ({
                   transition: 'all 700ms cubic-bezier(0.4, 0, 0.2, 1)',
                   ...(model.name === '-' ? {
                     fontSize: position === 0 ? '9.375rem' : '6.25rem',
-                    lineHeight: position === 0 ? '3rem' : '2.1rem',
-                    marginTop: position === 0 ? '-1rem' : '-0.75rem',
-                    borderRadius: '0.5rem'
+                    lineHeight: position === 0 ? '1.8rem' : '1.26rem', // Reduced by 40% from 3rem/2.1rem
+                    marginTop: position === 0 ? '-0.6rem' : '-0.45rem', 
+                    padding: '0.25rem 1rem',
+                    backgroundColor: position === 0 ? 'rgba(51, 254, 166, 0.1)' : 'transparent',
+                    borderRadius: '0.5rem',
+                    display: 'inline-block',
+                    width: '70%',
+                    maxWidth: '200px'
                   } : {})
                 }}
               >
