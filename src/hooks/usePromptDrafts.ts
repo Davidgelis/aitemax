@@ -335,12 +335,8 @@ export const usePromptDrafts = (
     };
   }, []);
 
-  useEffect(() => {
-    if (!promptText) return;
-
-    const intervalId = setInterval(saveDraft, 30000);
-    return () => clearInterval(intervalId);
-  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, saveDraft]);
+  // Removed the auto-save interval
+  // This ensures drafts are only saved when the user clicks a new prompt or navigates away
 
   return {
     drafts,

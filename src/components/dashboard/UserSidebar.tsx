@@ -191,7 +191,7 @@ export const UserSidebar = ({
               {!searchTerm && drafts.map((draft) => (
                 <div
                   key={draft.id || 'local-draft'}
-                  className="p-4 border-b flex items-center hover:bg-gray-50 transition-colors cursor-pointer min-h-[72px]"
+                  className="p-4 border-b flex items-center hover:bg-gray-50 transition-colors cursor-pointer min-h-[72px] group/draft"
                   onClick={() => loadDraft && loadDraft(draft)}
                 >
                   <div className="flex items-center gap-2 w-full">
@@ -215,7 +215,9 @@ export const UserSidebar = ({
                           handleDeleteDraft(draft.id);
                         }
                       }}
-                      className="opacity-0 group-hover/item:opacity-100 transition-opacity p-2 hover:text-destructive"
+                      className="p-2 hover:text-destructive transition-colors opacity-0 group-hover/draft:opacity-100"
+                      title="Delete draft"
+                      aria-label="Delete draft"
                     >
                       <Trash className="h-4 w-4" />
                     </button>

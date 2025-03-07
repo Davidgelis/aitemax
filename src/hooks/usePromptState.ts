@@ -67,20 +67,6 @@ export const usePromptState = (user: any) => {
     }
   }, [user]);
 
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (promptText && !isViewingSavedPrompt) {
-        saveDraft();
-      }
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [promptText, isViewingSavedPrompt, saveDraft]);
-
   const loadSelectedDraftState = (draft: any) => {
     const draftData = loadSelectedDraft(draft);
     

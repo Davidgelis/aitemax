@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -7,6 +8,7 @@ import { StepController } from "@/components/dashboard/StepController";
 import { usePromptState } from "@/hooks/usePromptState";
 import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const fallbackModels = [
   {
@@ -53,12 +55,47 @@ const Dashboard = () => {
   const [modelsInitialized, setModelsInitialized] = useState(false);
   const [isUpdatingModels, setIsUpdatingModels] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
   
   const promptState = usePromptState(user);
   
   const filteredPrompts = promptState.savedPrompts.filter(
     (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm.toLowerCase())
   );
+  
+  // Save draft when navigating away
+  useEffect(() => {
+    const saveDraftBeforeNavigate = (nextPath: string) => {
+      if (nextPath !== location.pathname && promptState.promptText && !promptState.isViewingSavedPrompt) {
+        promptState.saveDraft();
+      }
+    };
+
+    // For regular navigation
+    const handleRouteChange = (e: PopStateEvent) => {
+      const nextPath = window.location.pathname;
+      if (nextPath !== location.pathname) {
+        saveDraftBeforeNavigate(nextPath);
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('popstate', handleRouteChange);
+
+    // Intercept Link navigation
+    const originalPushState = window.history.pushState;
+    window.history.pushState = function() {
+      const nextPath = arguments[2] as string;
+      saveDraftBeforeNavigate(nextPath);
+      return originalPushState.apply(this, arguments as any);
+    };
+
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+      window.history.pushState = originalPushState;
+    };
+  }, [location.pathname, promptState.promptText, promptState.isViewingSavedPrompt, promptState.saveDraft]);
   
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -187,7 +224,7 @@ const Dashboard = () => {
           drafts={promptState.drafts}
           isLoadingDrafts={promptState.isLoadingDrafts}
           loadDraft={promptState.loadSelectedDraft}
-          handleDeleteDraft={promptState.deleteDraft}
+          handleDeleteDraft={promptState.handleDeleteDraft}
           currentDraftId={promptState.currentDraftId}
         />
       </div>
