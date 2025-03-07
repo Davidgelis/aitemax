@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -269,7 +270,8 @@ export const ModelSelectorDialog = ({
               <div
                 className={`text-center px-6 py-2 whitespace-nowrap font-bold transition-all duration-700 ease-in-out`}
                 style={{
-                  color: position === 0 ? '#33fea6' : '#b2b2b2',
+                  // Always use non-selected color (#b2b2b2) for the dash, regardless of position
+                  color: model.name === '-' ? '#b2b2b2' : position === 0 ? '#33fea6' : '#b2b2b2',
                   fontSize: position === 0 ? '1.875rem' : '1.25rem',
                   fontWeight: 700,
                   letterSpacing: position === 0 ? '0.5px' : 'normal',
@@ -288,7 +290,8 @@ export const ModelSelectorDialog = ({
                     <div 
                       className="w-16 h-3 rounded-md"
                       style={{ 
-                        backgroundColor: position === 0 ? '#33fea6' : '#b2b2b2',
+                        // Always use non-selected color (#b2b2b2) for the dash, regardless of position
+                        backgroundColor: '#b2b2b2',
                       }}
                     />
                   </div>
