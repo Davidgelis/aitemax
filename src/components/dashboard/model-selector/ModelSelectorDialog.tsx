@@ -38,11 +38,11 @@ export const ModelSelectorDialog = ({
 }: ModelSelectorDialogProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  // Add the "None" option to the models array
+  // Add the "-" option to the models array
   const displayModelsArray = useMemo(() => {
     if (hasNoneOption) {
       return [
-        { id: 'none', name: '- None', provider: null } as AIModel,
+        { id: 'none', name: '-', provider: null } as AIModel,
         ...sortedModels
       ];
     }
