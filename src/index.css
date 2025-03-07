@@ -116,6 +116,11 @@
   box-shadow: 0 4px 12px rgba(100, 191, 149, 0.1);
 }
 
+/* Action button hover styles */
+.prompt-action-button:hover {
+  color: #33fea6;
+}
+
 /* Animation for prompt highlighting */
 @keyframes highlight-fade {
   0% { background-color: rgba(100, 191, 149, 0.2); }

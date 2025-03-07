@@ -271,15 +271,15 @@ export const UserSidebar = ({
                             e.stopPropagation();
                             startEditing(item);
                           }} 
-                          className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1"
+                          className="p-1 transition-colors"
                         >
                           <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-[#33fea6]" />
                         </button>
                       )}
                       <DropdownMenu>
-                        <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
+                        <DropdownMenuTrigger>
                           <div 
-                            className="prompt-action-button p-1"
+                            className="p-1 hover:text-[#33fea6] transition-colors"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <MoreVertical className="h-4 w-4" />
@@ -349,15 +349,15 @@ export const UserSidebar = ({
                               e.stopPropagation();
                               startEditing(item);
                             }} 
-                            className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1"
+                            className="p-1 transition-colors"
                           >
                             <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-[#33fea6]" />
                           </button>
                         )}
                         <DropdownMenu>
-                          <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
+                          <DropdownMenuTrigger>
                             <div 
-                              className="prompt-action-button p-1"
+                              className="p-1 hover:text-[#33fea6] transition-colors"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <MoreVertical className="h-4 w-4" />
