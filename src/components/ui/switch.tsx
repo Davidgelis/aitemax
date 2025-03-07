@@ -14,7 +14,7 @@ const Switch = React.forwardRef<
     default: "bg-primary data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
     primary: "bg-[#33fea6] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
     secondary: "bg-[#084b49] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
-    aurora: "bg-aurora-gradient bg-aurora animate-aurora" // Improved aurora gradient
+    aurora: "bg-aurora-gradient bg-aurora animate-aurora"
   }
 
   // Ensure the variant is valid, defaulting to "default" if not
