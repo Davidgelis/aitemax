@@ -99,7 +99,7 @@ export const isVariableUsedInPrompt = (prompt: string, variableName: string): bo
   return pattern.test(prompt);
 };
 
-// Advanced context-aware variable extraction function
+// Advanced context-aware variable extraction function with improved detection
 export const extractContextAwareVariables = (text: string): { name: string, value: string }[] => {
   if (!text || typeof text !== 'string') return [];
   
@@ -133,32 +133,92 @@ export const extractContextAwareVariables = (text: string): { name: string, valu
     }
   }
   
+  // Enhanced analysis for common prompt patterns
   // Look for specific patterns that might indicate variables
-  const patterns = [
-    { regex: /(?:^|\s)(tone|voice)(?:\s+(?:is|should be|of))?(?:\s+['"a-zA-Z]+)?/i, name: "Tone" },
-    { regex: /(?:^|\s)(audience|recipient)(?:\s+(?:is|are|includes))?(?:\s+['"a-zA-Z]+)?/i, name: "Audience" },
-    { regex: /(?:^|\s)(format|style|type)(?:\s+(?:is|should be))?(?:\s+['"a-zA-Z]+)?/i, name: "Format" },
-    { regex: /(?:^|\s)(length|word count)(?:\s+(?:is|should be|of))?(?:\s+\d+)?/i, name: "Length" },
-    { regex: /(?:^|\s)(topic|subject)(?:\s+(?:is|about))?(?:\s+['"a-zA-Z]+)?/i, name: "Topic" }
+  const enhancedPatterns = [
+    // Content type patterns
+    { regex: /(?:create|write|generate)\s+(?:a|an)\s+([a-zA-Z\s]+)/i, name: "ContentType" },
+    { regex: /(?:design|develop|build)\s+(?:a|an)\s+([a-zA-Z\s]+)/i, name: "ProjectType" },
+    
+    // Subject matter patterns
+    { regex: /(?:about|regarding|concerning|on)\s+([a-zA-Z\s]+)/i, name: "Subject" },
+    { regex: /(?:for)\s+([a-zA-Z\s]+(?:\s+[a-zA-Z]+){0,3})/i, name: "Audience" },
+    
+    // Specific attributes patterns
+    { regex: /(?:^|\s)(tone|voice)(?:\s+(?:is|should be|of))?(?:\s+([a-zA-Z]+))?/i, name: "Tone", valueGroup: 2 },
+    { regex: /(?:^|\s)(audience|recipient|target)(?:\s+(?:is|are|includes))?(?:\s+([a-zA-Z\s]+))?/i, name: "Audience", valueGroup: 2 },
+    { regex: /(?:^|\s)(format|style|type)(?:\s+(?:is|should be))?(?:\s+([a-zA-Z]+))?/i, name: "Format", valueGroup: 2 },
+    { regex: /(?:^|\s)(length|word count)(?:\s+(?:is|should be|of))?(?:\s+(\d+))?/i, name: "Length", valueGroup: 2 },
+    { regex: /(?:^|\s)(topic|subject)(?:\s+(?:is|about))?(?:\s+([a-zA-Z\s]+))?/i, name: "Topic", valueGroup: 2 },
+    { regex: /(?:^|\s)(platform|channel|medium)(?:\s+(?:is|on))?(?:\s+([a-zA-Z]+))?/i, name: "Platform", valueGroup: 2 },
+    { regex: /(?:^|\s)(language|locale)(?:\s+(?:is|in))?(?:\s+([a-zA-Z]+))?/i, name: "Language", valueGroup: 2 },
+    { regex: /(?:^|\s)(industry|sector|field)(?:\s+(?:is|in))?(?:\s+([a-zA-Z\s]+))?/i, name: "Industry", valueGroup: 2 },
+    { regex: /(?:^|\s)(brand|company|organization)(?:\s+(?:is|called))?(?:\s+([a-zA-Z\s]+))?/i, name: "Brand", valueGroup: 2 },
+    { regex: /(?:^|\s)(product|service)(?:\s+(?:is|called))?(?:\s+([a-zA-Z\s]+))?/i, name: "Product", valueGroup: 2 },
+    { regex: /(?:^|\s)(purpose|goal|objective)(?:\s+(?:is|to))?/i, name: "Purpose" },
+    { regex: /(?:^|\s)(deadline|timeframe|due date)(?:\s+(?:is|by))?/i, name: "Deadline" },
+    
+    // Image-specific patterns (since your screenshot shows image-related variables)
+    { regex: /(?:image|picture|photo|illustration)\s+of\s+([a-zA-Z\s]+)/i, name: "ImageSubject" },
+    { regex: /(?:^|\s)(background|setting|scene)(?:\s+(?:is|in|at|with))?(?:\s+([a-zA-Z\s]+))?/i, name: "Background", valueGroup: 2 },
+    { regex: /(?:^|\s)(style|artistic style|art style)(?:\s+(?:is|should be|like))?(?:\s+([a-zA-Z\s]+))?/i, name: "ArtStyle", valueGroup: 2 },
+    { regex: /(?:^|\s)(color scheme|palette|colors)(?:\s+(?:is|with|using))?(?:\s+([a-zA-Z\s,]+))?/i, name: "ColorScheme", valueGroup: 2 },
+    { regex: /(?:^|\s)(mood|atmosphere|feeling)(?:\s+(?:is|should be))?(?:\s+([a-zA-Z\s]+))?/i, name: "Mood", valueGroup: 2 },
+    { regex: /(?:^|\s)(character|person|figure|celebrity)(?:\s+(?:is|should be|like))?(?:\s+([a-zA-Z\s]+))?/i, name: "Character", valueGroup: 2 },
+    { regex: /(?:^|\s)(composition|layout|arrangement)(?:\s+(?:is|should be|with))?(?:\s+([a-zA-Z\s]+))?/i, name: "Composition", valueGroup: 2 },
+    { regex: /(?:^|\s)(lighting|light source|illumination)(?:\s+(?:is|should be|with))?(?:\s+([a-zA-Z\s]+))?/i, name: "Lighting", valueGroup: 2 },
+    { regex: /(?:^|\s)(technique|method|approach)(?:\s+(?:is|should be|using))?(?:\s+([a-zA-Z\s]+))?/i, name: "Technique", valueGroup: 2 },
+    { regex: /(?:^|\s)(perspective|viewpoint|angle)(?:\s+(?:is|should be|from))?(?:\s+([a-zA-Z\s]+))?/i, name: "Perspective", valueGroup: 2 },
+    { regex: /(?:^|\s)(era|time period|century)(?:\s+(?:is|should be|from))?(?:\s+([a-zA-Z0-9\s]+))?/i, name: "TimePeriod", valueGroup: 2 },
+    { regex: /(?:^|\s)(cultural reference|influence)(?:\s+(?:is|should be|from))?(?:\s+([a-zA-Z\s]+))?/i, name: "CulturalReference", valueGroup: 2 },
+    
+    // Celebrity/person specific patterns (since your screenshot shows this type of variable)
+    { regex: /Korean\s+(?:celebrity|actor|actress|idol|star)\s+([a-zA-Z\s]+)/i, name: "KoreanCelebrity" },
+    { regex: /(?:celebrity|actor|actress|idol|star)\s+([a-zA-Z\s]+)/i, name: "Celebrity" },
+    { regex: /(?:^|\s)(nationality|country|origin)(?:\s+(?:is|from))?(?:\s+([a-zA-Z\s]+))?/i, name: "Nationality", valueGroup: 2 }
   ];
   
-  // Search for each pattern
-  for (const pattern of patterns) {
+  // Apply all the enhanced patterns to extract potential variables
+  for (const pattern of enhancedPatterns) {
     const patternMatch = text.match(pattern.regex);
-    if (patternMatch && !variables.some(v => v.name === pattern.name)) {
-      // Try to extract a default value if present
+    if (patternMatch) {
+      // Determine the value - either from a specified group or the first match
       let value = "";
-      const valueMatch = text.match(new RegExp(`${pattern.regex.source}\\s+(['"a-zA-Z0-9]+)`, 'i'));
-      if (valueMatch && valueMatch[2]) {
-        value = valueMatch[2].replace(/['"]/g, '');
+      if (pattern.valueGroup && patternMatch[pattern.valueGroup]) {
+        value = patternMatch[pattern.valueGroup].trim();
+      } else if (patternMatch[1]) {
+        value = patternMatch[1].trim();
       }
       
-      variables.push({
-        name: pattern.name,
-        value
-      });
+      // Skip if we already have this variable name
+      if (!variables.some(v => v.name === pattern.name)) {
+        variables.push({
+          name: pattern.name,
+          value: value
+        });
+      }
     }
   }
+  
+  // Optional: Analyze noun phrases for potential subjects
+  // This is more advanced and might extract a lot of variables, so use with caution
+  const words = text.split(/\s+/);
+  const potentialSubjects = words.filter(word => 
+    word.length > 3 && 
+    word[0] === word[0].toUpperCase() && 
+    !variables.some(v => v.name === word || v.value === word)
+  );
+  
+  // Add unique potential subjects (limit to avoid too many)
+  const uniqueSubjects = [...new Set(potentialSubjects)].slice(0, 3);
+  uniqueSubjects.forEach(subject => {
+    if (!variables.some(v => v.name === "Subject" + subject)) {
+      variables.push({
+        name: "Subject" + subject,
+        value: subject
+      });
+    }
+  });
   
   return variables;
 };

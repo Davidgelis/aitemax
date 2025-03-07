@@ -8,7 +8,8 @@ import {
   extractQuestions, 
   extractVariables, 
   extractMasterCommand, 
-  extractEnhancedPrompt 
+  extractEnhancedPrompt,
+  extractImpliedVariablesFromPrompt
 } from "./utils/extractors.ts";
 import { 
   generateContextQuestionsForPrompt,
@@ -85,8 +86,12 @@ async function recordTokenUsage(
   }
 }
 
-// Function to check if text looks like a placeholder
+// Enhanced function to check if text looks like a placeholder with more sophisticated detection
 function isPlaceholderText(text: string): boolean {
+  // If text is empty or too short, consider it placeholder
+  if (!text || text.trim().length < 5) return true;
+  
+  // Common placeholder terms and phrases
   const placeholderPatterns = [
     /start by typing your prompt/i,
     /for example:/i,
@@ -94,10 +99,27 @@ function isPlaceholderText(text: string): boolean {
     /write a prompt for/i,
     /placeholder/i,
     /sample text/i,
-    /example prompt/i
+    /example prompt/i,
+    /input your prompt/i,
+    /type here/i,
+    /enter your prompt/i,
+    /prompt goes here/i,
+    /sample prompt/i
   ];
   
-  return placeholderPatterns.some(pattern => pattern.test(text));
+  // Check if the text contains well-known placeholder patterns
+  const containsPlaceholder = placeholderPatterns.some(pattern => pattern.test(text));
+  if (containsPlaceholder) return true;
+  
+  // Check if the text is too generic/instructional rather than an actual prompt
+  const instructionalPatterns = [
+    /^\s*what do you want .+? to do/i,
+    /^\s*how can I help you/i,
+    /^\s*tell me what you need/i,
+    /^\s*describe what you want/i
+  ];
+  
+  return instructionalPatterns.some(pattern => pattern.test(text));
 }
 
 // Function to strip out placeholder text if it contains real content too
@@ -109,7 +131,12 @@ function cleanPlaceholderText(text: string): string {
     "Create an email template",
     "Write a prompt for",
     "Input your prompt",
-    "Sample text"
+    "Sample text",
+    "Example prompt",
+    "Type here",
+    "Enter your prompt",
+    "Prompt goes here",
+    "Sample prompt"
   ];
   
   let cleanedText = text;
@@ -145,12 +172,15 @@ serve(async (req) => {
     // Clean the prompt text of placeholder content
     const cleanedPromptText = cleanPlaceholderText(promptText);
     
+    // Extract variables directly from the prompt as a first pass
+    const directVariables = extractImpliedVariablesFromPrompt(cleanedPromptText);
+    
     // Skip analysis if the text appears to be only a placeholder or example
     if (isPlaceholderText(promptText) || !cleanedPromptText) {
       console.log("Detected placeholder text, returning fallback analysis");
       return new Response(JSON.stringify({
         questions: generateContextQuestionsForPrompt(""),
-        variables: generateContextualVariablesForPrompt(""),
+        variables: directVariables.length > 0 ? directVariables : generateContextualVariablesForPrompt(""),
         masterCommand: "Please provide a specific prompt to analyze",
         enhancedPrompt: "# Please Replace Placeholder Text\n\nPlease replace the placeholder text with your actual prompt to receive a proper analysis.",
         error: "Placeholder text detected"
@@ -187,7 +217,18 @@ serve(async (req) => {
     try {
       // Process the analysis to extract questions, variables, etc.
       const questions = extractQuestions(analysis, cleanedPromptText);
-      const variables = extractVariables(analysis, cleanedPromptText);
+      
+      // Get variables from both the analysis and direct extraction from prompt
+      // and combine them, prioritizing the AI analysis but ensuring we have variables from the prompt too
+      const analysisVariables = extractVariables(analysis, cleanedPromptText);
+      
+      // If we don't have variables from analysis, use the directly extracted ones
+      const variables = analysisVariables.length > 0 ? 
+        analysisVariables : 
+        directVariables.length > 0 ? 
+          directVariables : 
+          generateContextualVariablesForPrompt(cleanedPromptText);
+      
       const masterCommand = extractMasterCommand(analysis);
       const enhancedPrompt = extractEnhancedPrompt(analysis);
       
@@ -207,8 +248,8 @@ serve(async (req) => {
     } catch (extractionError) {
       console.error("Error extracting structured data from analysis:", extractionError);
       
-      // Directly extract variables from the prompt text
-      const directVariables = extractVariables("", cleanedPromptText);
+      // Directly extract variables from the prompt text as fallback
+      const directVariables = extractImpliedVariablesFromPrompt(cleanedPromptText);
       
       // Fallback to context-specific questions
       const contextQuestions = generateContextQuestionsForPrompt(cleanedPromptText);

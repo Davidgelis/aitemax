@@ -1,3 +1,4 @@
+
 import { Variable } from "../types";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
@@ -21,23 +22,31 @@ export const VariablesSection = ({
   // Flag to check if prompt has variable placeholders
   const hasPlaceholders = finalPrompt ? hasVariablePlaceholders(finalPrompt) : false;
   
-  // Determine which variables are actually used in the final prompt
+  // Determine which variables are actually used in the final prompt or should be shown
   useEffect(() => {
     if (finalPrompt && variables.length > 0) {
       const usedVarIds = new Set<string>();
       
       variables.forEach(variable => {
-        const pattern = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
-        if (pattern.test(finalPrompt)) {
-          usedVarIds.add(variable.id);
+        // Check if the variable appears in the final prompt
+        if (variable.name) {
+          const pattern = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
+          if (pattern.test(finalPrompt)) {
+            usedVarIds.add(variable.id);
+          } else if (variable.isRelevant === true) {
+            // Include variables marked as relevant even if not in the prompt
+            usedVarIds.add(variable.id);
+          }
         }
       });
       
       setRelevantVariableIds(usedVarIds);
     } else {
-      // If no final prompt or no variables, consider all variables relevant
-      const allVarIds = new Set(variables.map(v => v.id));
-      setRelevantVariableIds(allVarIds);
+      // If no final prompt or no variables, consider all variables with values or marked relevant
+      const relevantVarIds = new Set(variables
+        .filter(v => v.isRelevant === true || (v.value && v.value.trim() !== ''))
+        .map(v => v.id));
+      setRelevantVariableIds(relevantVarIds);
     }
   }, [finalPrompt, variables]);
   
@@ -51,17 +60,23 @@ export const VariablesSection = ({
     
     const grouped: Record<string, Variable[]> = {};
     
-    // Filter variables based on relevance
+    // Filter variables based on relevance or placeholder detection
     let filteredVars = variables;
     
-    // If we have detected variables in the prompt text, only show those
     if (hasPlaceholders && relevantVariableIds.size > 0) {
+      // If we have placeholders and relevant variables, show those
       filteredVars = variables.filter(v => relevantVariableIds.has(v.id));
-    } else {
-      // Otherwise use the isRelevant flag
+    } else if (variables.some(v => v.isRelevant !== null)) {
+      // If we have variables with explicit relevance, respect that
       filteredVars = variables.filter(v => v && v.isRelevant !== false);
     }
     
+    // If we still have no variables to display after filtering, show all
+    if (filteredVars.length === 0 && variables.length > 0) {
+      filteredVars = variables;
+    }
+    
+    // Group by category
     filteredVars.forEach(variable => {
       const category = variable.category || "Other";
       
@@ -84,12 +99,12 @@ export const VariablesSection = ({
     );
   }
   
-  // Get count of relevant variables
-  const relevantVariablesCount = hasPlaceholders 
-    ? relevantVariableIds.size 
-    : variables.filter(v => v && v.isRelevant !== false).length;
+  // Get count of variables to display
+  const displayedVariablesCount = Object.values(groupedVariables).reduce(
+    (count, vars) => count + vars.length, 0
+  );
   
-  if (relevantVariablesCount === 0) {
+  if (displayedVariablesCount === 0) {
     return (
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
@@ -111,7 +126,7 @@ export const VariablesSection = ({
           onClick={() => setIsVisible(!isVisible)}
           className="text-sm text-accent font-medium hover:underline focus:outline-none"
         >
-          Variables ({relevantVariablesCount}) {isVisible ? '▼' : '►'}
+          Variables ({displayedVariablesCount}) {isVisible ? '▼' : '►'}
         </button>
       </div>
       

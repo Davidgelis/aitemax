@@ -1,4 +1,3 @@
-
 // Helper functions to extract structured data from AI analysis
 
 /**
@@ -148,6 +147,9 @@ export function extractVariables(analysis: string, promptText: string): any[] {
   // Direct extraction of variables from prompt to ensure they're always captured
   const directVariables = extractDirectVariablesFromPrompt(promptText);
   
+  // Get context-aware variables from the prompt text
+  const contextAwareVars = extractImpliedVariablesFromPrompt(promptText);
+  
   // Try to find a JSON block containing variables
   const jsonMatch = analysis.match(/```json\s*({[\s\S]*?})\s*```/);
   
@@ -175,54 +177,53 @@ export function extractVariables(analysis: string, promptText: string): any[] {
             code: v.code || `VAR_${i+1}`
           }));
           
-        // Combine direct variables and AI-extracted variables to ensure we get the best of both
-        if (directVariables.length > 0) {
-          // Create a merged list without duplicates
-          const mergedVariables = [...directVariables];
-          
-          for (const aiVar of aiVariables) {
-            if (!mergedVariables.some(v => v.name.toLowerCase() === aiVar.name.toLowerCase())) {
-              mergedVariables.push(aiVar);
-            }
+        // Combine direct variables, context-aware, and AI-extracted variables
+        // to ensure we get the best variables from all sources
+        const combinedVariables = [...directVariables, ...contextAwareVars];
+        
+        for (const aiVar of aiVariables) {
+          if (!combinedVariables.some(v => v.name.toLowerCase() === aiVar.name.toLowerCase())) {
+            combinedVariables.push(aiVar);
           }
-          
-          return mergedVariables.map((v, i) => ({
-            ...v,
-            code: v.code || `VAR_${i+1}`
-          }));
         }
         
-        return aiVariables;
+        return combinedVariables.map((v, i) => ({
+          ...v,
+          code: v.code || `VAR_${i+1}`,
+          id: v.id || `v${i+1}`
+        }));
       }
     } catch (e) {
       console.error("Error parsing JSON from analysis:", e);
     }
   }
   
-  // Check for variable patterns like {{VariableName}}
+  // Check for variable patterns like {{VariableName}} in enhanced prompt
   let enhancedPrompt = extractEnhancedPrompt(analysis);
   const contextualVariables = extractDirectVariablesFromPrompt(enhancedPrompt);
   
-  // Combine with directly extracted variables from original prompt
-  if (contextualVariables.length > 0 || directVariables.length > 0) {
-    const combinedVariables = [...directVariables];
-    
-    // Add contextual variables that don't already exist
-    for (const contextVar of contextualVariables) {
-      if (!combinedVariables.some(v => v.name.toLowerCase() === contextVar.name.toLowerCase())) {
-        combinedVariables.push(contextVar);
-      }
+  // Combine all variables from different sources
+  const allVariables = [...directVariables, ...contextAwareVars, ...contextualVariables];
+  
+  // Remove duplicates by name (case insensitive)
+  const uniqueVariables: any[] = [];
+  allVariables.forEach(variable => {
+    if (!uniqueVariables.some(v => v.name.toLowerCase() === variable.name.toLowerCase())) {
+      uniqueVariables.push(variable);
     }
-    
-    if (combinedVariables.length > 0) {
-      return combinedVariables.map((v, i) => ({
-        ...v,
-        code: v.code || `VAR_${i+1}`
-      }));
-    }
+  });
+  
+  if (uniqueVariables.length > 0) {
+    return uniqueVariables.map((v, i) => ({
+      ...v,
+      id: v.id || `v${i+1}`,
+      code: v.code || `VAR_${i+1}`,
+      category: v.category || getCategoryFromVariableName(v.name),
+      isRelevant: v.isRelevant !== undefined ? v.isRelevant : true
+    }));
   }
   
-  // Fallback: Look for variable definitions in the text
+  // Fallback: Look for variable definitions in analysis text
   const variables = [];
   // Look for lines like "Variable: Name = Value" or "{{Name}}: Description"
   const variableDefMatches = analysis.matchAll(/(?:Variable|Var|\*\*|-)(?:\s+\d+)?(?:\s*\(([^)]+)\))?:?\s*(?:{{)?(\w+)(?:}})?(?:\s*[:=]\s*(.+?))?(?=\n|$)/g);
@@ -252,8 +253,8 @@ export function extractVariables(analysis: string, promptText: string): any[] {
   
   // If we found some contextual variables in the analysis
   if (variables.length > 0) {
-    // Combine with direct variables
-    const combinedVars = [...directVariables];
+    // Combine all sources of variables
+    const combinedVars = [...directVariables, ...contextAwareVars];
     
     for (const analysisVar of variables) {
       if (!combinedVars.some(v => v.name.toLowerCase() === analysisVar.name.toLowerCase())) {
@@ -261,32 +262,27 @@ export function extractVariables(analysis: string, promptText: string): any[] {
       }
     }
     
-    return combinedVars.map((v, i) => ({
+    if (combinedVars.length > 0) {
+      return combinedVars.map((v, i) => ({
+        ...v,
+        id: v.id || `v${i+1}`,
+        code: v.code || `VAR_${i+1}`
+      }));
+    }
+  }
+  
+  // If we still have no variables, try contextual extraction as a last resort
+  if (allVariables.length === 0) {
+    return extractImpliedVariablesFromPrompt(promptText).map((v, i) => ({
       ...v,
+      id: v.id || `v${i+1}`,
       code: v.code || `VAR_${i+1}`
     }));
   }
   
-  // If we have direct variables from the prompt, use them
-  if (directVariables.length > 0) {
-    return directVariables.map((v, i) => ({
-      ...v,
-      code: v.code || `VAR_${i+1}`
-    }));
-  }
-  
-  // Extract potential variables from the prompt text even if not in {{brackets}}
-  const impliedVars = extractImpliedVariablesFromPrompt(promptText);
-  if (impliedVars.length > 0) {
-    return impliedVars.map((v, i) => ({
-      ...v,
-      code: v.code || `VAR_${i+1}`
-    }));
-  }
-  
-  // Final fallback: Generate context-appropriate variables
-  return generateContextualVariablesForPrompt(promptText).map((v, i) => ({
+  return allVariables.map((v, i) => ({
     ...v,
+    id: v.id || `v${i+1}`,
     code: v.code || `VAR_${i+1}`
   }));
 }
@@ -330,7 +326,7 @@ export function extractDirectVariablesFromPrompt(promptText: string): any[] {
 }
 
 /**
- * Extract implied variables from prompt text by looking for key terms
+ * Enhanced function to extract implied variables from prompt text by looking for key terms and patterns
  */
 export function extractImpliedVariablesFromPrompt(promptText: string): any[] {
   if (!promptText || typeof promptText !== 'string') {
@@ -359,77 +355,127 @@ export function extractImpliedVariablesFromPrompt(promptText: string): any[] {
     }
   }
   
-  // Common variable patterns to look for
-  const patterns = [
-    { regex: /(?:^|\s)(tone|voice)(?:\s+(?:is|should be|of))?(?:\s+['"a-zA-Z]+)?/i, name: "Tone", category: "Persona" },
-    { regex: /(?:^|\s)(audience|recipient|target)(?:\s+(?:is|are|includes))?(?:\s+['"a-zA-Z]+)?/i, name: "Audience", category: "Persona" },
-    { regex: /(?:^|\s)(format|style|type)(?:\s+(?:is|should be))?(?:\s+['"a-zA-Z]+)?/i, name: "Format", category: "Instructions" },
-    { regex: /(?:^|\s)(length|word count|character limit)(?:\s+(?:is|should be|of))?(?:\s+\d+)?/i, name: "Length", category: "Conditions" },
-    { regex: /(?:^|\s)(topic|subject|theme)(?:\s+(?:is|about))?(?:\s+['"a-zA-Z]+)?/i, name: "Topic", category: "Task" },
-    { regex: /(?:^|\s)(goal|objective|purpose)(?:\s+(?:is|to))?/i, name: "Goal", category: "Task" },
-    { regex: /(?:^|\s)(deadline|timeframe|due date)(?:\s+(?:is|by))?/i, name: "Deadline", category: "Conditions" },
-    { regex: /(?:^|\s)(language|dialect)(?:\s+(?:is|should be))?(?:\s+['"a-zA-Z]+)?/i, name: "Language", category: "Instructions" },
-    { regex: /(?:^|\s)(image|picture|photo)(?:\s+(?:of|showing|depicting))?(?:\s+['"a-zA-Z]+)?/i, name: "Image", category: "Task" },
-    { regex: /(?:^|\s)(color|background|palette)(?:\s+(?:is|should be))?(?:\s+['"a-zA-Z]+)?/i, name: "Color", category: "Instructions" },
-    { regex: /(?:^|\s)(content|elements|components)(?:\s+(?:include|consist of|contain))?/i, name: "Content", category: "Task" },
-    { regex: /(?:^|\s)(setting|location|place|scene)(?:\s+(?:is|in|at))?(?:\s+['"a-zA-Z]+)?/i, name: "Setting", category: "Task" },
-    { regex: /(?:^|\s)(character|person|figure)(?:\s+(?:is|should be))?(?:\s+['"a-zA-Z]+)?/i, name: "Character", category: "Task" },
-    { regex: /(?:^|\s)(celebrity|artist|actor|star)(?:\s+(?:is|should be|like))?(?:\s+['"a-zA-Z]+)?/i, name: "Celebrity", category: "Task" }
+  // Enhanced patterns with more context-specific and domain-specific patterns
+  const enhancedPatterns = [
+    // Content type patterns
+    { regex: /(?:create|write|generate)\s+(?:a|an)\s+([a-zA-Z\s]+)/i, name: "ContentType" },
+    { regex: /(?:design|develop|build)\s+(?:a|an)\s+([a-zA-Z\s]+)/i, name: "ProjectType" },
+    
+    // Subject matter patterns
+    { regex: /(?:about|regarding|concerning|on)\s+([a-zA-Z\s]+)/i, name: "Subject" },
+    { regex: /(?:for)\s+([a-zA-Z\s]+(?:\s+[a-zA-Z]+){0,3})/i, name: "Audience" },
+    
+    // Basic patterns (originally from promptUtils.ts)
+    { regex: /(?:^|\s)(tone|voice)(?:\s+(?:is|should be|of))?(?:\s+([a-zA-Z]+))?/i, name: "Tone", valueGroup: 2 },
+    { regex: /(?:^|\s)(audience|recipient|target)(?:\s+(?:is|are|includes))?(?:\s+([a-zA-Z\s]+))?/i, name: "Audience", valueGroup: 2 },
+    { regex: /(?:^|\s)(format|style|type)(?:\s+(?:is|should be))?(?:\s+([a-zA-Z]+))?/i, name: "Format", valueGroup: 2 },
+    { regex: /(?:^|\s)(length|word count)(?:\s+(?:is|should be|of))?(?:\s+(\d+))?/i, name: "Length", valueGroup: 2 },
+    { regex: /(?:^|\s)(topic|subject)(?:\s+(?:is|about))?(?:\s+([a-zA-Z\s]+))?/i, name: "Topic", valueGroup: 2 },
+    { regex: /(?:^|\s)(platform|channel|medium)(?:\s+(?:is|on))?(?:\s+([a-zA-Z]+))?/i, name: "Platform", valueGroup: 2 },
+    { regex: /(?:^|\s)(language|dialect)(?:\s+(?:is|in))?(?:\s+([a-zA-Z]+))?/i, name: "Language", valueGroup: 2 },
+    { regex: /(?:^|\s)(industry|sector|field)(?:\s+(?:is|in))?(?:\s+([a-zA-Z\s]+))?/i, name: "Industry", valueGroup: 2 },
+    { regex: /(?:^|\s)(brand|company|organization)(?:\s+(?:is|called))?(?:\s+([a-zA-Z\s]+))?/i, name: "Brand", valueGroup: 2 },
+    { regex: /(?:^|\s)(product|service)(?:\s+(?:is|called))?(?:\s+([a-zA-Z\s]+))?/i, name: "Product", valueGroup: 2 },
+    { regex: /(?:^|\s)(purpose|goal|objective)(?:\s+(?:is|to))?/i, name: "Purpose" },
+    { regex: /(?:^|\s)(deadline|timeframe|due date)(?:\s+(?:is|by))?/i, name: "Deadline" },
+    
+    // Image-specific patterns (since this might be about image prompts)
+    { regex: /(?:image|picture|photo|illustration)\s+of\s+([a-zA-Z\s]+)/i, name: "ImageSubject" },
+    { regex: /(?:^|\s)(background|setting|scene)(?:\s+(?:is|in|at|with))?(?:\s+([a-zA-Z\s]+))?/i, name: "Background", valueGroup: 2 },
+    { regex: /(?:^|\s)(style|artistic style|art style)(?:\s+(?:is|should be|like))?(?:\s+([a-zA-Z\s]+))?/i, name: "ArtStyle", valueGroup: 2 },
+    { regex: /(?:^|\s)(color scheme|palette|colors)(?:\s+(?:is|with|using))?(?:\s+([a-zA-Z\s,]+))?/i, name: "ColorScheme", valueGroup: 2 },
+    { regex: /(?:^|\s)(mood|atmosphere|feeling)(?:\s+(?:is|should be))?(?:\s+([a-zA-Z\s]+))?/i, name: "Mood", valueGroup: 2 },
+    { regex: /(?:^|\s)(character|person|figure|celebrity)(?:\s+(?:is|should be|like))?(?:\s+([a-zA-Z\s]+))?/i, name: "Character", valueGroup: 2 },
+    { regex: /(?:^|\s)(composition|layout|arrangement)(?:\s+(?:is|should be|with))?(?:\s+([a-zA-Z\s]+))?/i, name: "Composition", valueGroup: 2 },
+    { regex: /(?:^|\s)(lighting|light source|illumination)(?:\s+(?:is|should be|with))?(?:\s+([a-zA-Z\s]+))?/i, name: "Lighting", valueGroup: 2 },
+    { regex: /(?:^|\s)(technique|method|approach)(?:\s+(?:is|should be|using))?(?:\s+([a-zA-Z\s]+))?/i, name: "Technique", valueGroup: 2 },
+    { regex: /(?:^|\s)(perspective|viewpoint|angle)(?:\s+(?:is|should be|from))?(?:\s+([a-zA-Z\s]+))?/i, name: "Perspective", valueGroup: 2 },
+    { regex: /(?:^|\s)(era|time period|century)(?:\s+(?:is|should be|from))?(?:\s+([a-zA-Z0-9\s]+))?/i, name: "TimePeriod", valueGroup: 2 },
+    { regex: /(?:^|\s)(cultural reference|influence)(?:\s+(?:is|should be|from))?(?:\s+([a-zA-Z\s]+))?/i, name: "CulturalReference", valueGroup: 2 },
+    
+    // Celebrity/person specific patterns
+    { regex: /Korean\s+(?:celebrity|actor|actress|idol|star)\s+([a-zA-Z\s]+)/i, name: "KoreanCelebrity" },
+    { regex: /(?:celebrity|actor|actress|idol|star)\s+([a-zA-Z\s]+)/i, name: "Celebrity" },
+    { regex: /(?:^|\s)(nationality|country|origin)(?:\s+(?:is|from))?(?:\s+([a-zA-Z\s]+))?/i, name: "Nationality", valueGroup: 2 }
   ];
   
-  // Search for each pattern
-  for (const pattern of patterns) {
-    const match = promptText.match(pattern.regex);
-    if (match && !variables.some(v => v.name === pattern.name)) {
-      // Try to extract a default value if present
+  // Apply all the enhanced patterns to extract potential variables
+  for (const pattern of enhancedPatterns) {
+    const patternMatch = promptText.match(pattern.regex);
+    if (patternMatch) {
+      // Determine the value - either from a specified group or the first match
       let value = "";
-      
-      // For example, if we find "tone should be professional", extract "professional"
-      const valueMatch = promptText.match(new RegExp(`${pattern.regex.source}\\s+(['"a-zA-Z0-9]+)`, 'i'));
-      if (valueMatch && valueMatch[2]) {
-        value = valueMatch[2].replace(/['"]/g, '');
+      if (pattern.valueGroup && patternMatch[pattern.valueGroup]) {
+        value = patternMatch[pattern.valueGroup].trim();
+      } else if (patternMatch[1]) {
+        value = patternMatch[1].trim();
       }
       
+      // Skip if we already have this variable name
+      if (!variables.some(v => v.name === pattern.name) && pattern.name) {
+        variables.push({
+          id: `v${variables.length + 1}`,
+          name: pattern.name,
+          value: value,
+          isRelevant: true,
+          category: getCategoryFromVariableName(pattern.name),
+          code: `VAR_${variables.length + 1}`
+        });
+      }
+    }
+  }
+  
+  // Process common prompt structures - capture main intent
+  const firstSentence = promptText.split(/[.!?]/, 1)[0].trim();
+  if (firstSentence && firstSentence.length > 5 && firstSentence.length < 50) {
+    const intentWords = ["create", "generate", "write", "design", "make", "develop", "build", "produce"];
+    
+    for (const word of intentWords) {
+      if (firstSentence.toLowerCase().includes(word) && !variables.some(v => v.name === "Intent")) {
+        variables.push({
+          id: `v${variables.length + 1}`,
+          name: "Intent",
+          value: firstSentence,
+          isRelevant: true,
+          category: "Task",
+          code: `VAR_${variables.length + 1}`
+        });
+        break;
+      }
+    }
+  }
+  
+  // If no variables found, try to detect important words/phrases
+  if (variables.length === 0) {
+    const words = promptText.split(/\s+/);
+    
+    // Find words that start with capital letters (potential entities)
+    const capitalWords = words.filter(word => 
+      word.length > 3 && 
+      word[0] === word[0].toUpperCase() &&
+      !/^(The|And|But|Or|If|When|What|How|Why|Who|Where)$/i.test(word)
+    );
+    
+    // Add unique capital words (potential entities) as variables
+    const uniqueCapitalWords = [...new Set(capitalWords)].slice(0, 3);
+    uniqueCapitalWords.forEach((word, index) => {
       variables.push({
         id: `v${variables.length + 1}`,
-        name: pattern.name,
-        value,
+        name: `Entity${index + 1}`,
+        value: word,
         isRelevant: true,
-        category: pattern.category,
+        category: "Task",
         code: `VAR_${variables.length + 1}`
       });
-    }
+    });
   }
   
-  // Analyze prompt structure - look for specific keywords that indicate variables
-  const lines = promptText.split(/[.,;\n]/);
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-    
-    // Skip short or empty lines
-    if (trimmedLine.length < 5) continue;
-    
-    // Look for noun phrases that might be variables
-    const nounPhraseMatches = trimmedLine.match(/\b([A-Z][a-z]+(?:\s+[a-z]+){0,2})\b/g);
-    if (nounPhraseMatches) {
-      for (const phrase of nounPhraseMatches) {
-        if (phrase.length > 3 && 
-            !variables.some(v => v.name === phrase) &&
-            !['Task', 'Persona', 'Conditions', 'Instructions'].includes(phrase)) {
-          variables.push({
-            id: `v${variables.length + 1}`,
-            name: phrase,
-            value: "",
-            isRelevant: true,
-            category: getCategoryFromVariableName(phrase),
-            code: `VAR_${variables.length + 1}`
-          });
-        }
-      }
-    }
+  // Final fallback: If we still have no variables extracted
+  if (variables.length === 0) {
+    return generateContextualVariablesForPrompt(promptText);
   }
   
-  return variables.length > 0 ? variables : generateContextualVariablesForPrompt(promptText);
+  return variables;
 }
 
 /**

@@ -1,3 +1,4 @@
+
 import { Plus, Trash } from "lucide-react";
 import { Variable } from "./types";
 import { RefObject, useState, useEffect } from "react";
@@ -37,12 +38,18 @@ export const VariableList = ({
   const { toast } = useToast();
   
   // Filter out category names and empty names for display
-  const filteredVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
+  const filteredVariables = variables.filter(v => {
+    return v && v.name && v.name.trim() !== '' &&
+      v.name !== 'Task' && 
+      v.name !== 'Persona' && 
+      v.name !== 'Conditions' && 
+      v.name !== 'Instructions';
+  });
   
   // Group variables by category
   const groupedVariables: Record<string, Variable[]> = {};
   
-  variables.forEach(variable => {
+  filteredVariables.forEach(variable => {
     const category = variable.category || 'Other';
     if (!groupedVariables[category]) {
       groupedVariables[category] = [];
@@ -62,7 +69,7 @@ export const VariableList = ({
     const codes: Record<string, string> = {};
     const highlighted: Record<string, boolean> = {};
     
-    variables.forEach((variable, index) => {
+    filteredVariables.forEach((variable, index) => {
       names[variable.id] = variable.name || '';
       values[variable.id] = variable.value || '';
       codes[variable.id] = variable.code || `VAR_${index + 1}`;
@@ -83,7 +90,7 @@ export const VariableList = ({
     setVariableValues(values);
     setVariableCodes(codes);
     setHighlightedVariables(highlighted);
-  }, [variables]);
+  }, [filteredVariables]);
 
   // Handle variable value change with highlighting
   const handleValueChange = (variableId: string, value: string) => {
@@ -161,15 +168,15 @@ export const VariableList = ({
       </div>
       
       <div ref={containerRef} className="max-h-[280px] overflow-y-auto pr-2 space-y-4">
-        {!hasValidVariables && variables.length === 0 && (
+        {!hasValidVariables && filteredVariables.length === 0 && (
           <div className="text-center text-muted-foreground py-4">
             No variables available
           </div>
         )}
         
-        {variables.length > 0 && (
+        {filteredVariables.length > 0 && (
           <div className="space-y-3">
-            {variables.map((variable, index) => (
+            {filteredVariables.map((variable, index) => (
               <div key={variable.id} className="flex gap-3 items-center">
                 <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
                   {index + 1}
