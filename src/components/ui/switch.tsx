@@ -14,11 +14,14 @@ const Switch = React.forwardRef<
     default: "bg-primary data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
     primary: "bg-[#33fea6] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
     secondary: "bg-[#084b49] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
-    aurora: "bg-white border-gray-200" // White background for the switch
+    aurora: "bg-white border-gray-200" // White background for the switch track
   }
 
   // Ensure the variant is valid, defaulting to "default" if not
   const safeVariant = (variant && variantStyles[variant]) ? variant : "default";
+  
+  // Determine if we should show the aurora effect on the thumb
+  const isAuroraActive = variant === "aurora" && props.checked;
 
   return (
     <SwitchPrimitives.Root
@@ -32,8 +35,10 @@ const Switch = React.forwardRef<
     >
       <SwitchPrimitives.Thumb
         className={cn(
-          "pointer-events-none block h-4 w-4 rounded-full shadow-lg shadow-[rgba(0,0,0,0.3)] ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
-          variant === "aurora" && props.checked ? "bg-aurora-gradient bg-aurora animate-aurora" : "bg-white"
+          "pointer-events-none block h-4 w-4 rounded-full shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
+          isAuroraActive 
+            ? "aurora-thumb" // Custom class for the aurora effect on the thumb only
+            : "bg-white"
         )}
       />
     </SwitchPrimitives.Root>
