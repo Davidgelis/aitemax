@@ -14,7 +14,7 @@ const Switch = React.forwardRef<
     default: "bg-primary data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
     primary: "bg-[#33fea6] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
     secondary: "bg-[#084b49] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
-    aurora: "bg-white border-gray-200" // Removed all color effects
+    aurora: "bg-white border-gray-200" // White background for the switch
   }
 
   // Ensure the variant is valid, defaulting to "default" if not
