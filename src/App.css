@@ -44,8 +44,8 @@
 
 /* Aurora button styling */
 .aurora-button {
-  background: linear-gradient(90deg, #084b49, #33fea6, #64bf95);
-  background-size: 200% 100%;
+  background: linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white);
+  background-size: 400% 400%;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -53,6 +53,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
+  animation: aurora 15s ease infinite;
 }
 
 .aurora-button:hover {
@@ -81,5 +82,5 @@
 }
 
 .animate-aurora {
-  animation: aurora 10s ease infinite;
+  animation: aurora 15s ease infinite;
 }

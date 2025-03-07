@@ -27,7 +27,7 @@ export const ToggleSection = ({
     
     if (itemVariant === "primary") return "border-2 border-primary/30 glow-effect";
     if (itemVariant === "secondary") return "border-2 border-[#64bf95]/30 glow-effect";
-    if (itemVariant === "aurora") return "border border-white/30"; // Light border for aurora
+    if (itemVariant === "aurora") return "border border-white/30";
     
     return "border";
   };
@@ -55,7 +55,7 @@ export const ToggleSection = ({
                 : 'bg-card'
             } flex-1 transition-all duration-300`}
           >
-            <span className={`text-sm ${isAurora ? 'text-white flex-nowrap whitespace-nowrap pr-6 font-medium' : 'text-[#041524] flex flex-col items-start'}`}>
+            <span className={`text-sm ${isAurora ? 'text-white flex-nowrap whitespace-nowrap pr-6 font-medium' : 'text-text flex flex-col items-start'}`}>
               {isAurora 
                 ? item.label 
                 : item.label.split(" ").map((word, index) => (
@@ -68,6 +68,7 @@ export const ToggleSection = ({
               checked={isSelected}
               onCheckedChange={() => onToggleChange(item.id)}
               variant={variant}
+              className={isAurora ? "z-10" : ""}
             />
           </div>
         );
