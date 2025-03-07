@@ -113,13 +113,11 @@ export const FinalPromptDisplay = ({
       if (!variable || !variable.name) return;
       
       try {
-        // Highlight unresolved variables (those without values)
         if (!variable.value) {
           const pattern = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
           processedText = processedText.replace(pattern, 
             `<span class="unresolved-variable">{{${variable.name}}}</span>`);
         } 
-        // Highlight resolved variables (those with values)
         else {
           const escapedValue = escapeRegExp(variable.value);
           const valuePattern = new RegExp(`\\b${escapedValue}\\b`, 'g');
@@ -168,17 +166,44 @@ export const FinalPromptDisplay = ({
         return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
       }
       
-      const paragraphs = processedPrompt.split('\n\n');
+      const sections = processedPrompt.split(/^(Task:|Persona:|Conditions:|Instructions:)/gm);
+      
+      let title = "";
+      const titleMatch = processedPrompt.match(/\*\*\[(.*?)\]\*\*/);
+      if (titleMatch && titleMatch[1]) {
+        title = titleMatch[1];
+      }
       
       return (
         <div className="prose prose-sm max-w-none">
-          {paragraphs.map((paragraph, index) => {
-            if (!paragraph) return null;
+          {title && (
+            <div className="bg-primary/10 p-2 rounded-md mb-4 font-bold text-center">
+              {title}
+            </div>
+          )}
+          
+          {sections.map((section, index) => {
+            if (!section.trim()) return null;
             
-            const highlightedContent = highlightVariablesInText(paragraph);
+            if (["Task:", "Persona:", "Conditions:", "Instructions:"].includes(section)) {
+              return (
+                <h3 key={index} className="text-primary font-bold mt-4 mb-2">
+                  {section}
+                </h3>
+              );
+            }
             
+            const paragraphs = section.split('\n\n');
             return (
-              <p key={index} dangerouslySetInnerHTML={{ __html: highlightedContent }} />
+              <div key={index}>
+                {paragraphs.map((paragraph, pIndex) => {
+                  if (!paragraph.trim()) return null;
+                  const highlightedContent = highlightVariablesInText(paragraph);
+                  return (
+                    <p key={`${index}-${pIndex}`} dangerouslySetInnerHTML={{ __html: highlightedContent }} />
+                  );
+                })}
+              </div>
             );
           })}
         </div>
@@ -233,6 +258,14 @@ export const FinalPromptDisplay = ({
           border-radius: 2px;
           padding: 0 2px;
           border-bottom: 1px dashed rgba(254, 51, 51, 0.5);
+        }
+        .animate-aurora {
+          animation: aurora 15s ease infinite;
+        }
+        @keyframes aurora {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
         }
         `}
       </style>
