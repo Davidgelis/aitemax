@@ -18,6 +18,7 @@ interface ModelSelectorDialogProps {
   setScrollDirection: (direction: 'up' | 'down' | null) => void;
   isAnimating: boolean;
   setIsAnimating: (value: boolean) => void;
+  hasNoneOption?: boolean;
 }
 
 export const ModelSelectorDialog = ({
@@ -32,9 +33,21 @@ export const ModelSelectorDialog = ({
   scrollDirection,
   setScrollDirection,
   isAnimating,
-  setIsAnimating
+  setIsAnimating,
+  hasNoneOption = true
 }: ModelSelectorDialogProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Add the "None" option to the models array
+  const displayModelsArray = useMemo(() => {
+    if (hasNoneOption) {
+      return [
+        { id: 'none', name: '- None', provider: null } as AIModel,
+        ...sortedModels
+      ];
+    }
+    return sortedModels;
+  }, [sortedModels, hasNoneOption]);
 
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
@@ -47,18 +60,22 @@ export const ModelSelectorDialog = ({
     if (e.deltaY > 0) {
       setScrollDirection('down');
       setActiveIndex((prev) => {
-        const next = prev >= sortedModels.length - 1 ? 0 : prev + 1;
-        if (sortedModels[next]) {
-          onSelect(sortedModels[next]);
+        const next = prev >= displayModelsArray.length - 1 ? 0 : prev + 1;
+        if (next === 0) {
+          onSelect(null); // Select null for the "None" option
+        } else {
+          onSelect(displayModelsArray[next]);
         }
         return next;
       });
     } else {
       setScrollDirection('up');
       setActiveIndex((prev) => {
-        const next = prev <= 0 ? sortedModels.length - 1 : prev - 1;
-        if (sortedModels[next]) {
-          onSelect(sortedModels[next]);
+        const next = prev <= 0 ? displayModelsArray.length - 1 : prev - 1;
+        if (next === 0) {
+          onSelect(null); // Select null for the "None" option
+        } else {
+          onSelect(displayModelsArray[next]);
         }
         return next;
       });
@@ -92,9 +109,11 @@ export const ModelSelectorDialog = ({
       setIsAnimating(true);
       setScrollDirection('down');
       setActiveIndex((prev) => {
-        const next = prev >= sortedModels.length - 1 ? 0 : prev + 1;
-        if (sortedModels[next]) {
-          onSelect(sortedModels[next]);
+        const next = prev >= displayModelsArray.length - 1 ? 0 : prev + 1;
+        if (next === 0) {
+          onSelect(null); // Select null for the "None" option
+        } else {
+          onSelect(displayModelsArray[next]);
         }
         return next;
       });
@@ -109,9 +128,11 @@ export const ModelSelectorDialog = ({
       setIsAnimating(true);
       setScrollDirection('up');
       setActiveIndex((prev) => {
-        const next = prev <= 0 ? sortedModels.length - 1 : prev - 1;
-        if (sortedModels[next]) {
-          onSelect(sortedModels[next]);
+        const next = prev <= 0 ? displayModelsArray.length - 1 : prev - 1;
+        if (next === 0) {
+          onSelect(null); // Select null for the "None" option
+        } else {
+          onSelect(displayModelsArray[next]);
         }
         return next;
       });
@@ -131,12 +152,16 @@ export const ModelSelectorDialog = ({
 
   const handleSelectModel = (selectedIndex: number) => {
     setActiveIndex(selectedIndex);
-    onSelect(sortedModels[selectedIndex]);
+    if (selectedIndex === 0 && hasNoneOption) {
+      onSelect(null); // Select null for the "None" option
+    } else {
+      onSelect(displayModelsArray[selectedIndex]);
+    }
     onOpenChange(false);
   };
 
   const getDisplayModels = (): DisplayModel[] => {
-    if (sortedModels.length === 0) return [];
+    if (displayModelsArray.length === 0) return [];
     
     const displayCount = 5;
     const halfCount = Math.floor(displayCount / 2);
@@ -146,11 +171,11 @@ export const ModelSelectorDialog = ({
     for (let i = -halfCount; i <= halfCount; i++) {
       let index = activeIndex + i;
       
-      if (index < 0) index = sortedModels.length + index;
-      if (index >= sortedModels.length) index = index - sortedModels.length;
+      if (index < 0) index = displayModelsArray.length + index;
+      if (index >= displayModelsArray.length) index = index - displayModelsArray.length;
       
       displayModels.push({
-        model: sortedModels[index],
+        model: displayModelsArray[index],
         position: i,
         index
       });
@@ -199,7 +224,7 @@ export const ModelSelectorDialog = ({
         window.removeEventListener('keydown', handleKeyDown);
       };
     }
-  }, [open, sortedModels.length]);
+  }, [open, displayModelsArray.length]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -261,3 +286,6 @@ export const ModelSelectorDialog = ({
     </Dialog>
   );
 };
+
+// Import useMemo
+import { useMemo } from 'react';

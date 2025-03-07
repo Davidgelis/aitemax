@@ -106,6 +106,7 @@ export const ModelSelector = ({ onSelect, isInitializingModels = false, selected
             setScrollDirection={setScrollDirection}
             isAnimating={isAnimating}
             setIsAnimating={setIsAnimating}
+            hasNoneOption={true}
           />
         </div>
       )}

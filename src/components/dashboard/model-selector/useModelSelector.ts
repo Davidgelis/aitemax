@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { ModelService } from '@/services/model';
 import { useToast } from '@/hooks/use-toast';
@@ -43,10 +44,15 @@ export const useModelSelector = (selectedModel: AIModel | null, onSelect: (model
       console.log(`Fetched ${modelList.length} models from ${providerList.length} providers`);
       
       if (selectedModel) {
+        // If there's a selected model, find its index in the sorted models array
+        // adding +1 because of the None option at index 0
         const index = modelList.findIndex(model => model.id === selectedModel.id);
         if (index !== -1) {
-          setActiveIndex(index);
+          setActiveIndex(index + 1); // +1 for None option
         }
+      } else {
+        // If no model is selected, set activeIndex to 0 (None option)
+        setActiveIndex(0);
       }
       
       setLoading(false);
@@ -71,10 +77,15 @@ export const useModelSelector = (selectedModel: AIModel | null, onSelect: (model
     
     if (isOpen) {
       if (selectedModel) {
+        // If there's a selected model, find its index in the sorted models array
+        // adding +1 because of the None option at index 0
         const index = sortedModels.findIndex(model => model.id === selectedModel.id);
         if (index !== -1) {
-          setActiveIndex(index);
+          setActiveIndex(index + 1); // +1 for None option
         }
+      } else {
+        // If no model is selected, set activeIndex to 0 (None option)
+        setActiveIndex(0);
       }
     }
   };
