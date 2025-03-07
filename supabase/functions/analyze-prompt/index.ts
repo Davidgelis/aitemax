@@ -95,12 +95,14 @@ serve(async (req) => {
     const { promptText, primaryToggle, secondaryToggle, userId, promptId } = await req.json();
     
     console.log(`Analyzing prompt: "${promptText}"\n`);
+    console.log(`Primary toggle: ${primaryToggle || "None"}`);
+    console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
     
     // Create a system message with better context about our purpose
     const systemMessage = createSystemPrompt(primaryToggle, secondaryToggle);
     
     // Get analysis from OpenAI
-    const analysisResult = await analyzePromptWithAI(promptText, systemMessage, openAIApiKey);
+    const analysisResult = await analyzePromptWithAI(promptText, systemMessage.content, openAIApiKey);
     const analysis = analysisResult.content;
     
     // Record token usage for this step if userId is provided
