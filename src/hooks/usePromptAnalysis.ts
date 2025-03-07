@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions, primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { extractContextAwareVariables } from "@/utils/promptUtils";
 
 // Helper function to validate variable names
 const isValidVariableName = (name: string): boolean => {
@@ -53,6 +55,8 @@ export const usePromptAnalysis = (
   // Extract variables directly from prompt text
   const extractDirectVariables = (text: string): Variable[] => {
     const variables: Variable[] = [];
+    
+    // First, try to extract variables with {{brackets}}
     const variableRegex = /{{(\w+)}}/g;
     let match;
     
@@ -84,9 +88,44 @@ export const usePromptAnalysis = (
           name,
           value: "",
           isRelevant: true,
-          category
+          category,
+          code: `VAR_${variables.length + 1}`
         });
       }
+    }
+    
+    // If no variables with {{brackets}}, try to extract context-aware variables
+    if (variables.length === 0) {
+      const contextVariables = extractContextAwareVariables(text);
+      
+      contextVariables.forEach((v, index) => {
+        if (v.name && 
+            v.name.trim().length > 1 && 
+            !variables.some(existing => existing.name === v.name)) {
+          
+          const category = v.name.toLowerCase().includes('recipient') || 
+                          v.name.toLowerCase().includes('audience') || 
+                          v.name.toLowerCase().includes('tone') 
+                          ? "Persona" 
+                          : v.name.toLowerCase().includes('count') || 
+                            v.name.toLowerCase().includes('limit') || 
+                            v.name.toLowerCase().includes('time')
+                            ? "Conditions"
+                            : v.name.toLowerCase().includes('format') || 
+                              v.name.toLowerCase().includes('style')
+                              ? "Instructions"
+                              : "Task";
+                            
+          variables.push({
+            id: `v${variables.length + 1}`,
+            name: v.name,
+            value: v.value || "",
+            isRelevant: true,
+            category,
+            code: `VAR_${index + 1}`
+          });
+        }
+      });
     }
     
     return variables;
@@ -154,13 +193,10 @@ export const usePromptAnalysis = (
           setQuestions(mockQuestions);
         }
         
-        // Prioritize direct variables from the prompt text
-        if (directVariables.length > 0) {
-          console.log("Using direct variables from prompt:", directVariables);
-          setVariables(directVariables);
-        } else if (data.variables && data.variables.length > 0) {
+        // First check if we have real variables from the AI analysis
+        if (data.variables && data.variables.length > 0) {
           // Additional filtering to ensure no invalid variables get through
-          const validVariables = data.variables
+          const aiVariables = data.variables
             .filter((v: any) => 
               v.name && 
               isValidVariableName(v.name) && 
@@ -173,31 +209,32 @@ export const usePromptAnalysis = (
               ...v,
               id: v.id || `v${index + 1}`,
               value: v.value || "",
-              isRelevant: v.isRelevant === null ? true : v.isRelevant
+              isRelevant: v.isRelevant === null ? true : v.isRelevant,
+              code: v.code || `VAR_${index + 1}`
             }));
-            
-          // If we have valid variables after filtering, use them
-          if (validVariables.length > 0) {
-            setVariables(validVariables);
-          } else {
-            // If no variables detected from AI, use direct variables as fallback
-            if (directVariables.length > 0) {
-              setVariables(directVariables);
-            } else {
-              // Otherwise use default variables from constants
-              const { defaultVariables } = await import("@/components/dashboard/constants");
-              setVariables(defaultVariables);
-            }
-          }
-        } else {
-          // If no variables detected from AI, use direct variables as fallback
-          if (directVariables.length > 0) {
+          
+          // If we have valid variables from AI, use them
+          if (aiVariables.length > 0) {
+            setVariables(aiVariables);
+          } 
+          // If not, prioritize directly extracted variables
+          else if (directVariables.length > 0) {
             setVariables(directVariables);
-          } else {
-            // Otherwise use default variables from constants
+          } 
+          // Fallback to default variables as a last resort
+          else {
             const { defaultVariables } = await import("@/components/dashboard/constants");
             setVariables(defaultVariables);
           }
+        } 
+        // If no variables from AI, use direct variables
+        else if (directVariables.length > 0) {
+          setVariables(directVariables);
+        } 
+        // Fallback to default variables
+        else {
+          const { defaultVariables } = await import("@/components/dashboard/constants");
+          setVariables(defaultVariables);
         }
         
         if (data.masterCommand) {
@@ -253,7 +290,7 @@ export const usePromptAnalysis = (
       setTimeout(() => {
         setIsLoading(false);
         setCurrentStep(2);
-      }, 3000);
+      }, 2000);
     }
   };
 

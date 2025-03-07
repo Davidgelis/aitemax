@@ -98,3 +98,67 @@ export const isVariableUsedInPrompt = (prompt: string, variableName: string): bo
   const pattern = new RegExp(`{{\\s*${variableName}\\s*}}`, 'g');
   return pattern.test(prompt);
 };
+
+// Advanced context-aware variable extraction function
+export const extractContextAwareVariables = (text: string): { name: string, value: string }[] => {
+  if (!text || typeof text !== 'string') return [];
+  
+  const variables: { name: string, value: string }[] = [];
+  
+  // First extract any variables in {{brackets}}
+  const bracketsRegex = /{{(\w+)}}/g;
+  let match;
+  
+  while ((match = bracketsRegex.exec(text)) !== null) {
+    if (match[1] && !variables.some(v => v.name === match[1])) {
+      variables.push({
+        name: match[1],
+        value: ""
+      });
+    }
+  }
+  
+  // Then look for key-value pairs in the format "key: value" or "key = value"
+  const keyValueRegex = /(?:^|\n|\s)([a-zA-Z\s]+)(?:\:|=)\s*["']?([^"'\n,]+)["']?(?:[,\n]|$)/g;
+  
+  while ((match = keyValueRegex.exec(text)) !== null) {
+    const name = match[1].trim();
+    const value = match[2].trim();
+    
+    if (name && name.length > 1 && !variables.some(v => v.name === name)) {
+      variables.push({
+        name,
+        value
+      });
+    }
+  }
+  
+  // Look for specific patterns that might indicate variables
+  const patterns = [
+    { regex: /(?:^|\s)(tone|voice)(?:\s+(?:is|should be|of))?(?:\s+['"a-zA-Z]+)?/i, name: "Tone" },
+    { regex: /(?:^|\s)(audience|recipient)(?:\s+(?:is|are|includes))?(?:\s+['"a-zA-Z]+)?/i, name: "Audience" },
+    { regex: /(?:^|\s)(format|style|type)(?:\s+(?:is|should be))?(?:\s+['"a-zA-Z]+)?/i, name: "Format" },
+    { regex: /(?:^|\s)(length|word count)(?:\s+(?:is|should be|of))?(?:\s+\d+)?/i, name: "Length" },
+    { regex: /(?:^|\s)(topic|subject)(?:\s+(?:is|about))?(?:\s+['"a-zA-Z]+)?/i, name: "Topic" }
+  ];
+  
+  // Search for each pattern
+  for (const pattern of patterns) {
+    const patternMatch = text.match(pattern.regex);
+    if (patternMatch && !variables.some(v => v.name === pattern.name)) {
+      // Try to extract a default value if present
+      let value = "";
+      const valueMatch = text.match(new RegExp(`${pattern.regex.source}\\s+(['"a-zA-Z0-9]+)`, 'i'));
+      if (valueMatch && valueMatch[2]) {
+        value = valueMatch[2].replace(/['"]/g, '');
+      }
+      
+      variables.push({
+        name: pattern.name,
+        value
+      });
+    }
+  }
+  
+  return variables;
+};

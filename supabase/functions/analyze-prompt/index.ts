@@ -100,6 +100,39 @@ function isPlaceholderText(text: string): boolean {
   return placeholderPatterns.some(pattern => pattern.test(text));
 }
 
+// Function to strip out placeholder text if it contains real content too
+function cleanPlaceholderText(text: string): string {
+  // Check if the text contains both placeholder and real content
+  const placeholderLines = [
+    "Start by typing your prompt",
+    "For example:",
+    "Create an email template",
+    "Write a prompt for",
+    "Input your prompt",
+    "Sample text"
+  ];
+  
+  let cleanedText = text;
+  
+  // Remove common placeholder lines while preserving user content
+  placeholderLines.forEach(line => {
+    // Case insensitive replacement of placeholder lines
+    const regex = new RegExp(`^\\s*${line}.*$`, 'im');
+    cleanedText = cleanedText.replace(regex, '');
+  });
+  
+  // Remove common example prompts if they appear to be placeholders
+  if (cleanedText.includes('Create an email template for customer onboarding')) {
+    cleanedText = cleanedText.replace(/Create an email template for customer onboarding/g, '');
+  }
+  
+  if (cleanedText.includes('Write a prompt for generating code documentation')) {
+    cleanedText = cleanedText.replace(/Write a prompt for generating code documentation/g, '');
+  }
+  
+  return cleanedText.trim();
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -109,8 +142,11 @@ serve(async (req) => {
   try {
     const { promptText, primaryToggle, secondaryToggle, userId, promptId } = await req.json();
     
-    // Skip analysis if the text appears to be a placeholder or example
-    if (isPlaceholderText(promptText)) {
+    // Clean the prompt text of placeholder content
+    const cleanedPromptText = cleanPlaceholderText(promptText);
+    
+    // Skip analysis if the text appears to be only a placeholder or example
+    if (isPlaceholderText(promptText) || !cleanedPromptText) {
       console.log("Detected placeholder text, returning fallback analysis");
       return new Response(JSON.stringify({
         questions: generateContextQuestionsForPrompt(""),
@@ -124,7 +160,7 @@ serve(async (req) => {
       });
     }
     
-    console.log(`Analyzing prompt: "${promptText}"\n`);
+    console.log(`Analyzing prompt: "${cleanedPromptText}"\n`);
     console.log(`Primary toggle: ${primaryToggle || "None"}`);
     console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
     
@@ -132,7 +168,7 @@ serve(async (req) => {
     const systemMessage = createSystemPrompt(primaryToggle, secondaryToggle);
     
     // Get analysis from OpenAI
-    const analysisResult = await analyzePromptWithAI(promptText, systemMessage.content, openAIApiKey);
+    const analysisResult = await analyzePromptWithAI(cleanedPromptText, systemMessage.content, openAIApiKey);
     const analysis = analysisResult.content;
     
     // Record token usage for this step if userId is provided
@@ -150,8 +186,8 @@ serve(async (req) => {
     // Try to extract structured data from the analysis
     try {
       // Process the analysis to extract questions, variables, etc.
-      const questions = extractQuestions(analysis, promptText);
-      const variables = extractVariables(analysis, promptText);
+      const questions = extractQuestions(analysis, cleanedPromptText);
+      const variables = extractVariables(analysis, cleanedPromptText);
       const masterCommand = extractMasterCommand(analysis);
       const enhancedPrompt = extractEnhancedPrompt(analysis);
       
@@ -171,15 +207,18 @@ serve(async (req) => {
     } catch (extractionError) {
       console.error("Error extracting structured data from analysis:", extractionError);
       
+      // Directly extract variables from the prompt text
+      const directVariables = extractVariables("", cleanedPromptText);
+      
       // Fallback to context-specific questions
-      const contextQuestions = generateContextQuestionsForPrompt(promptText);
+      const contextQuestions = generateContextQuestionsForPrompt(cleanedPromptText);
       
       // Fallback to mock data but still return a 200 status code
       return new Response(JSON.stringify({
         questions: contextQuestions,
-        variables: generateContextualVariablesForPrompt(promptText),
-        masterCommand: "Analyzed prompt: " + promptText.substring(0, 50) + "...",
-        enhancedPrompt: "# Enhanced Prompt\n\n" + promptText,
+        variables: directVariables.length > 0 ? directVariables : generateContextualVariablesForPrompt(cleanedPromptText),
+        masterCommand: "Analyzed prompt: " + cleanedPromptText.substring(0, 50) + "...",
+        enhancedPrompt: "# Enhanced Prompt\n\n" + cleanedPromptText,
         error: extractionError.message,
         rawAnalysis: analysis,
         usage: analysisResult.usage
