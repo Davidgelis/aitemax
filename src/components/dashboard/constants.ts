@@ -102,10 +102,10 @@ export const primaryToggles: Toggle[] = [
     prompt: "You are an AI specializing in enhancing math-focused prompts. The current prompt is already clear and well-structured. Please revise it only as needed to emphasize step-by-step reasoning (chain-of-thought) and a brief self-review for logical or arithmetic mistakes. Integrate any final clarifications or disclaimers that ensure accurate problem-solving, but retain the prompt's overall structure, tone, and clarity."
   },
   { 
-    id: "reasoning", 
-    label: "Complex Reasoning",
-    definition: "This reinforces advanced critical thinking by urging the AI to explore multiple perspectives, identify assumptions, and structure complex logic while maintaining the prompt's original tone and clarity.",
-    prompt: "You are an AI that handles multi-layered, abstract problems. The existing prompt is strong; please refine it to ensure thorough examination of diverse angles, potential hidden assumptions, and any conflicting viewpoints. Integrate a methodical breakdown of complex concepts referencing known logical frameworks, while preserving the prompt's original tone and focus."
+    id: "image", 
+    label: "Image Creating",
+    definition: "This reinforces clarity for image generation by specifying style, resolution, and content guidelines while preserving the original prompt's coherence and structure.",
+    prompt: "You are an AI that refines prompts for generating images. The existing prompt is already solid; please make minimal adjustments to specify the desired visual style or medium, clarify necessary resolution or aspect ratio, and note any disclaimers for sensitive or copyrighted content. Keep the overall structure intact, focusing solely on these new image-related details."
   },
   { 
     id: "coding", 
@@ -141,9 +141,9 @@ export const secondaryToggles: Toggle[] = [
     prompt: "You are an AI that refines prompts for creative writing or ideation. The original prompt is already strong; simply tweak it to emphasize variety in tone or style, possibly request multiple viewpoints or drafts, and invite a short self-review for consistency, plot holes, or stylistic mismatches. Retain the core creative direction while adding these gentle enhancements to ensure the final output can engage diverse audiences and maintain narrative coherence."
   },
   { 
-    id: "image", 
-    label: "Image Creating",
-    definition: "This reinforces clarity for image generation by specifying style, resolution, and content guidelines while preserving the original prompt's coherence and structure.",
-    prompt: "You are an AI that refines prompts for generating images. The existing prompt is already solid; please make minimal adjustments to specify the desired visual style or medium, clarify necessary resolution or aspect ratio, and note any disclaimers for sensitive or copyrighted content. Keep the overall structure intact, focusing solely on these new image-related details."
+    id: "reasoning", 
+    label: "Complex Reasoning",
+    definition: "This reinforces advanced critical thinking by urging the AI to explore multiple perspectives, identify assumptions, and structure complex logic while maintaining the prompt's original tone and clarity.",
+    prompt: "You are an AI that handles multi-layered, abstract problems. The existing prompt is strong; please refine it to ensure thorough examination of diverse angles, potential hidden assumptions, and any conflicting viewpoints. Integrate a methodical breakdown of complex concepts referencing known logical frameworks, while preserving the prompt's original tone and focus."
   }
 ];
