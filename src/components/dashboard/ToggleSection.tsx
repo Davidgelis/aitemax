@@ -27,7 +27,7 @@ export const ToggleSection = ({
     
     if (itemVariant === "primary") return "border-2 border-primary/30 glow-effect";
     if (itemVariant === "secondary") return "border-2 border-[#64bf95]/30 glow-effect";
-    if (itemVariant === "aurora") return ""; // Remove border for aurora variant
+    if (itemVariant === "aurora") return "border border-white/30"; // Light border for aurora
     
     return "border";
   };
@@ -49,9 +49,13 @@ export const ToggleSection = ({
         return (
           <div 
             key={item.id} 
-            className={`flex items-center justify-between py-1.5 px-3 ${getBorderClass(isSelected, variant)} rounded-lg ${isAurora ? 'bg-aurora animate-aurora w-[200%]' : 'bg-card'} flex-1 transition-all duration-300`}
+            className={`flex items-center justify-between py-1.5 px-3 ${getBorderClass(isSelected, variant)} rounded-lg ${
+              isAurora 
+                ? 'bg-aurora-gradient bg-aurora animate-aurora shadow-md' 
+                : 'bg-card'
+            } flex-1 transition-all duration-300`}
           >
-            <span className={`text-sm ${isAurora ? 'text-white flex-nowrap whitespace-nowrap pr-6' : 'text-[#041524] flex flex-col items-start'}`}>
+            <span className={`text-sm ${isAurora ? 'text-white flex-nowrap whitespace-nowrap pr-6 font-medium' : 'text-[#041524] flex flex-col items-start'}`}>
               {isAurora 
                 ? item.label 
                 : item.label.split(" ").map((word, index) => (

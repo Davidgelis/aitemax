@@ -47,11 +47,14 @@ export default {
           "100%": { transform: "translateX(0)" }
         },
         "aurora": {
-          "0%, 100%": {
+          "0%": {
             "background-position": "0% 50%"
           },
           "50%": {
             "background-position": "100% 50%"
+          },
+          "100%": {
+            "background-position": "0% 50%"
           }
         }
       },
@@ -61,7 +64,7 @@ export default {
         "aurora": "aurora 15s ease infinite"
       },
       backgroundImage: {
-        'aurora-gradient': "linear-gradient(-45deg, #33fea6, #64bf95, white, #33fea6)",
+        'aurora-gradient': "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white)",
       },
       backgroundSize: {
         'aurora': "400% 400%",
