@@ -13,13 +13,13 @@ const Switch = React.forwardRef<
   const getVariantClasses = (variant: string) => {
     switch(variant) {
       case "primary":
-        return "bg-[#33fea6]/20 data-[state=checked]:bg-[#33fea6]";
+        return "bg-white data-[state=checked]:bg-[#33fea6]";
       case "secondary":
-        return "bg-[#084b49]/20 data-[state=checked]:bg-[#084b49]";
+        return "bg-white data-[state=checked]:bg-[#084b49]";
       case "aurora":
-        return "bg-[#33fea6]/20 data-[state=checked]:bg-[#33fea6]";
+        return "bg-white data-[state=checked]:bg-[#33fea6]";
       default:
-        return "bg-primary/20 data-[state=checked]:bg-primary";
+        return "bg-white data-[state=checked]:bg-primary";
     }
   };
   
