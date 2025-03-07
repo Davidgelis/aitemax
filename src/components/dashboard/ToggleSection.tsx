@@ -25,9 +25,9 @@ export const ToggleSection = ({
   const getBorderClass = (isSelected: boolean, itemVariant: string) => {
     if (!isSelected) return "border";
     
-    if (itemVariant === "primary") return "border-2 border-[#64bf95]/30 glow-effect";
+    if (itemVariant === "primary") return "border-2 border-[#33fea6]/30 glow-effect";
     if (itemVariant === "secondary") return "border-2 border-[#084b49]/30 glow-effect";
-    if (itemVariant === "aurora") return "border-2 border-[#64bf95]/30 glow-effect"; // Updated to #64bf95
+    if (itemVariant === "aurora") return "border-2 border-[#64bf95]/30 glow-effect";
     
     return "border";
   };
