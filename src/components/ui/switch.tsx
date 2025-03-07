@@ -14,15 +14,12 @@ const Switch = React.forwardRef<
     default: "bg-primary data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
     primary: "bg-[#33fea6] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
     secondary: "bg-[#084b49] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
-    aurora: "bg-white border-gray-200" // White background for the switch track
+    aurora: "data-[state=checked]:bg-[#33fea6] data-[state=unchecked]:bg-white border-gray-200" // Green track background when checked
   }
 
   // Ensure the variant is valid, defaulting to "default" if not
   const safeVariant = (variant && variantStyles[variant]) ? variant : "default";
   
-  // Determine if thumb should use primary color
-  const isAuroraActive = variant === "aurora" && props.checked;
-
   return (
     <SwitchPrimitives.Root
       className={cn(
@@ -36,9 +33,7 @@ const Switch = React.forwardRef<
       <SwitchPrimitives.Thumb
         className={cn(
           "pointer-events-none block h-4 w-4 rounded-full shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
-          isAuroraActive 
-            ? "bg-[#33fea6]" // Simple solid color instead of aurora effect
-            : "bg-white"
+          "bg-white" // Always white thumb
         )}
       />
     </SwitchPrimitives.Root>
