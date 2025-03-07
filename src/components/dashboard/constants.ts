@@ -1,3 +1,6 @@
+
+import { Toggle } from "./types";
+
 export const defaultVariables = [
   {
     id: "v-1",
@@ -24,6 +27,41 @@ export const defaultVariables = [
     code: "VAR_3"
   },
 ];
+
+export const loadingMessages = [
+  "Analyzing your prompt...",
+  "Identifying key variables...",
+  "Extracting important contexts...",
+  "Generating relevant questions...",
+  "Preparing prompt elements...",
+  "Finalizing analysis..."
+];
+
+export const placeholderTestQuestions = [
+  {
+    id: "q-placeholder-1",
+    text: "What is the desired tone of the output?",
+    answer: "",
+    isRelevant: null,
+    category: "Style"
+  },
+  {
+    id: "q-placeholder-2",
+    text: "Are there any specific constraints or limitations?",
+    answer: "",
+    isRelevant: null,
+    category: "Constraints"
+  }
+];
+
+export const filterCategoryVariables = (variables: any[]) => {
+  return variables.filter(v => 
+    v.name !== 'Task' && 
+    v.name !== 'Persona' && 
+    v.name !== 'Conditions' && 
+    v.name !== 'Instructions'
+  );
+};
 
 export const mockQuestions = [
   {
@@ -56,7 +94,7 @@ Conditions: The story must be engaging and concise.
 Instructions: Craft a narrative that captivates the reader from start to finish.
 `;
 
-export const primaryToggles = [
+export const primaryToggles: Toggle[] = [
   { 
     id: "math", 
     label: "Mathematical Problem-Solving",

@@ -10,6 +10,7 @@ import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
 import { AIModel } from "@/components/dashboard/types";
 import { ModelSelector } from './model-selector';
+import { primaryToggles, secondaryToggles } from "./constants";
 
 interface StepControllerProps {
   user: any;

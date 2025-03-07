@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions } from "@/components/dashboard/constants";
@@ -25,7 +26,7 @@ export const usePromptAnalysis = (
   promptId?: string | null
 ) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [currentLoadingMessage, setCurrentLoadingMessage] = useState("Analyzing your prompt...");
+  const [currentLoadingMessage, setCurrentLoadingMessage] = useState<number | string>(0);
   const { toast } = useToast();
 
   // Show loading messages while isLoading is true
@@ -34,8 +35,13 @@ export const usePromptAnalysis = (
     if (isLoading) {
       // Set up an interval to rotate through loading messages
       timeout = setTimeout(() => {
-        if (currentLoadingMessage < loadingMessages.length - 1) {
-          setCurrentLoadingMessage(prev => prev + 1);
+        if (typeof currentLoadingMessage === 'number' && currentLoadingMessage < loadingMessages.length - 1) {
+          setCurrentLoadingMessage(prev => {
+            if (typeof prev === 'number') {
+              return prev + 1;
+            }
+            return 0;
+          });
         } else {
           // Loop back to first message if we've reached the end
           setCurrentLoadingMessage(0);
