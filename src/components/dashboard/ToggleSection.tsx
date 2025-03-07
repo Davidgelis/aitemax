@@ -25,9 +25,9 @@ export const ToggleSection = ({
   const getBorderClass = (isSelected: boolean, itemVariant: string) => {
     if (!isSelected) return "border";
     
-    if (itemVariant === "primary") return "border-2 border-primary/30 glow-effect";
-    if (itemVariant === "secondary") return "border-2 border-[#64bf95]/30 glow-effect";
-    if (itemVariant === "aurora") return "border-2 border-primary/30 glow-effect"; // Updated to match primary
+    if (itemVariant === "primary") return "border-2 border-[#64bf95]/30 glow-effect";
+    if (itemVariant === "secondary") return "border-2 border-[#084b49]/30 glow-effect";
+    if (itemVariant === "aurora") return "border-2 border-[#64bf95]/30 glow-effect"; // Updated to #64bf95
     
     return "border";
   };
@@ -62,7 +62,7 @@ export const ToggleSection = ({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <button className="text-card-foreground hover:text-primary transition-colors ml-2">
+                          <button className="text-card-foreground hover:text-[#64bf95] transition-colors ml-2">
                             <HelpCircle size={18} />
                           </button>
                         </TooltipTrigger>
@@ -75,7 +75,7 @@ export const ToggleSection = ({
                 </div>
               </div>
             ) : (
-              /* For primary and secondary variants, use the same layout as Aurora but keep multiline text */
+              /* For primary and secondary variants, position toggle at the right side */
               <div className="flex items-center justify-between w-full">
                 <span className="text-sm text-text flex flex-col items-start">
                   {item.label.split(" ").map((word, index) => (
@@ -99,7 +99,7 @@ export const ToggleSection = ({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <button className="text-card-foreground hover:text-primary transition-colors">
+              <button className="text-card-foreground hover:text-[#64bf95] transition-colors">
                 <HelpCircle size={18} />
               </button>
             </TooltipTrigger>

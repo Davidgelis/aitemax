@@ -43,7 +43,7 @@
 
 /* Aurora button styling */
 .aurora-button {
-  background: linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white);
+  background: linear-gradient(-45deg, #041524, #084b49, #64bf95, #64bf95, white);
   background-size: 400% 400%;
   color: white;
   border: none;
@@ -57,7 +57,7 @@
 
 .aurora-button:hover {
   background-position: right center;
-  box-shadow: 0 0 10px rgba(51, 254, 166, 0.5);
+  box-shadow: 0 0 10px rgba(100, 191, 149, 0.5);
 }
 
 .aurora-button:disabled {
@@ -103,10 +103,10 @@
 
 /* Aurora thumb styling - specific for the switch circle/thumb */
 .aurora-thumb {
-  background: linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white);
+  background: linear-gradient(-45deg, #041524, #084b49, #64bf95, #64bf95, white);
   background-size: 400% 400%;
   animation: aurora 8s ease infinite;
-  box-shadow: 0 0 6px rgba(51, 254, 166, 0.8);
+  box-shadow: 0 0 6px rgba(100, 191, 149, 0.8);
 }
 
 .animate-aurora {

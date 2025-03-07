@@ -5,7 +5,7 @@ export const StepThreeStyles = () => {
       {`
       .variable-highlight {
         background: white;
-        border: 1px solid #33fea6;
+        border: 1px solid #64bf95;
         border-radius: 2px;
         padding: 1px 2px;
         margin: 0 1px;
@@ -26,7 +26,7 @@ export const StepThreeStyles = () => {
       .aurora-button {
         position: relative;
         overflow: hidden;
-        background: linear-gradient(90deg, #041524, #084b49, #33fea6, #64bf95, white);
+        background: linear-gradient(90deg, #041524, #084b49, #64bf95, #64bf95, white);
         background-size: 300% 100%;
         color: white;
         border: none;
@@ -63,7 +63,7 @@ export const StepThreeStyles = () => {
       
       .aurora-button:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(100, 191, 149, 0.1);
       }
       `}
     </style>
