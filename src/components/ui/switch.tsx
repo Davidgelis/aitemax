@@ -13,13 +13,13 @@ const Switch = React.forwardRef<
   const getVariantClasses = (variant: string) => {
     switch(variant) {
       case "primary":
-        return "bg-white data-[state=checked]:bg-[#33fea6]";
+        return "bg-[#33fea6]/20 data-[state=checked]:bg-[#33fea6]";
       case "secondary":
-        return "bg-white data-[state=checked]:bg-[#084b49]";
+        return "bg-[#084b49]/20 data-[state=checked]:bg-[#084b49]";
       case "aurora":
-        return "bg-white data-[state=checked]:bg-[#33fea6]";
+        return "bg-[#33fea6]/20 data-[state=checked]:bg-[#33fea6]";
       default:
-        return "bg-white data-[state=checked]:bg-primary";
+        return "bg-primary/20 data-[state=checked]:bg-primary";
     }
   };
   
@@ -36,7 +36,7 @@ const Switch = React.forwardRef<
       <SwitchPrimitives.Thumb
         className={cn(
           "pointer-events-none block h-4 w-4 rounded-full shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
-          "data-[state=unchecked]:bg-[#33fea6] data-[state=checked]:bg-white"
+          "bg-white" // Always white thumb
         )}
       />
     </SwitchPrimitives.Root>
