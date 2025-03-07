@@ -75,7 +75,8 @@ export const ToggleSection = ({
                 </div>
               </div>
             ) : (
-              <>
+              /* For primary and secondary variants, use the same layout as Aurora but keep multiline text */
+              <div className="flex items-center justify-between w-full">
                 <span className="text-sm text-text flex flex-col items-start">
                   {item.label.split(" ").map((word, index) => (
                     <span key={index} className="leading-tight">{word}</span>
@@ -87,7 +88,7 @@ export const ToggleSection = ({
                   onCheckedChange={() => onToggleChange(item.id)}
                   variant={variant}
                 />
-              </>
+              </div>
             )}
           </div>
         );
