@@ -20,7 +20,7 @@ const Switch = React.forwardRef<
   // Ensure the variant is valid, defaulting to "default" if not
   const safeVariant = (variant && variantStyles[variant]) ? variant : "default";
   
-  // Determine if we should show the aurora effect on the thumb
+  // Determine if thumb should use primary color
   const isAuroraActive = variant === "aurora" && props.checked;
 
   return (
@@ -37,7 +37,7 @@ const Switch = React.forwardRef<
         className={cn(
           "pointer-events-none block h-4 w-4 rounded-full shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
           isAuroraActive 
-            ? "aurora-thumb" // Custom class for the aurora effect on the thumb only
+            ? "bg-[#33fea6]" // Simple solid color instead of aurora effect
             : "bg-white"
         )}
       />

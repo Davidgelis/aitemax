@@ -1,3 +1,4 @@
+
 export const StepThreeStyles = () => {
   return (
     <style>
@@ -65,20 +66,7 @@ export const StepThreeStyles = () => {
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
       
-      /* Toggle thumb aurora effect - specific implementation */
-      .aurora-thumb {
-        background: linear-gradient(90deg, #041524, #084b49, #33fea6, #64bf95, white) !important;
-        background-size: 300% 100% !important;
-        animation: aurora 8s ease infinite !important;
-        box-shadow: 0 0 6px rgba(51, 254, 166, 0.8) !important;
-      }
-      
-      /* Toggle thumb aurora effect - enhanced for visibility */
-      [data-state="checked"] .animate-aurora {
-        background: linear-gradient(90deg, #041524, #084b49, #33fea6, #64bf95, white) !important;
-        background-size: 300% 100% !important;
-        animation: aurora 8s ease infinite !important;
-      }
+      /* Removed aurora-thumb and aurora-specific toggle styling */
       `}
     </style>
   );
