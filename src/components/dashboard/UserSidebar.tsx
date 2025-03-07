@@ -190,14 +190,14 @@ export const UserSidebar = ({
               {!searchTerm && drafts.map((draft) => (
                 <div
                   key={draft.id || 'local-draft'}
-                  className="p-4 border-b flex items-center justify-between group/item cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="p-4 border-b flex items-center hover:bg-gray-50 transition-colors cursor-pointer min-h-[72px]"
                   onClick={() => loadDraft && loadDraft(draft)}
                 >
                   <div className="flex items-center gap-2 w-full">
-                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                    <div className="flex flex-col flex-1 min-w-0">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                    <div className="flex flex-col flex-1 min-w-0 w-[70%]">
                       <div className="flex items-center">
-                        <span className="text-sm font-medium truncate">
+                        <span className="text-sm font-medium line-clamp-2">
                           {draft.title} <span className="text-xs font-normal text-muted-foreground">(Draft)</span>
                         </span>
                       </div>
@@ -206,17 +206,19 @@ export const UserSidebar = ({
                       </span>
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (handleDeleteDraft && draft.id) {
-                        handleDeleteDraft(draft.id);
-                      }
-                    }}
-                    className="opacity-0 group-hover/item:opacity-100 transition-opacity p-2 hover:text-destructive"
-                  >
-                    <Trash className="h-4 w-4" />
-                  </button>
+                  <div className="ml-auto flex-shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (handleDeleteDraft && draft.id) {
+                          handleDeleteDraft(draft.id);
+                        }
+                      }}
+                      className="opacity-0 group-hover/item:opacity-100 transition-opacity p-2 hover:text-destructive"
+                    >
+                      <Trash className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
 
@@ -232,80 +234,12 @@ export const UserSidebar = ({
               {searchTerm ? filteredPrompts.map((item) => (
                 <div
                   key={item.id}
-                  className="p-4 border-b flex items-center justify-between group/item cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="p-4 border-b group/item cursor-pointer hover:bg-gray-50 transition-colors min-h-[72px]"
                   onClick={() => loadSavedPrompt && editingPromptId !== item.id && loadSavedPrompt(item)}
                 >
-                  <div className="flex items-center gap-2 w-full">
-                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                    <div className="flex flex-col flex-1 min-w-0">
-                      {editingPromptId === item.id ? (
-                        <input
-                          type="text"
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
-                          onBlur={saveEdit}
-                          onKeyDown={handleKeyDown}
-                          className="text-sm font-medium border border-transparent focus:border-[#33fea6] focus:outline-none rounded px-1 w-full"
-                          autoFocus
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      ) : (
-                        <div className="flex items-center">
-                          <span className="text-sm font-medium truncate">{item.title}</span>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEditing(item);
-                            }} 
-                            className="ml-1 opacity-0 group-hover/item:opacity-100 transition-opacity"
-                          >
-                            <Pencil className="h-3 w-3 text-muted-foreground hover:text-[#33fea6]" />
-                          </button>
-                        </div>
-                      )}
-                      <span className="text-xs text-muted-foreground">{item.date}</span>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
-                      <div 
-                        className="prompt-action-button"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </div>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation();
-                        handleDuplicatePrompt(item);
-                      }}>
-                        <CopyIcon className="mr-2 h-4 w-4" />
-                        <span>Duplicate</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeletePrompt(item.id);
-                        }}
-                      >
-                        <Trash className="mr-2 h-4 w-4" />
-                        <span>Delete</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              )) : (
-                savedPrompts.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-4 border-b flex items-center justify-between group/item cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => loadSavedPrompt && editingPromptId !== item.id && loadSavedPrompt(item)}
-                  >
-                    <div className="flex items-center gap-2 w-full">
-                      <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+                  <div className="flex items-start w-full">
+                    <div className="flex items-start gap-2 w-[70%]">
+                      <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground mt-1.5 flex-shrink-0" />
                       <div className="flex flex-col flex-1 min-w-0">
                         {editingPromptId === item.id ? (
                           <input
@@ -320,51 +254,131 @@ export const UserSidebar = ({
                           />
                         ) : (
                           <div className="flex items-center">
-                            <span className="text-sm font-medium truncate">{item.title}</span>
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                startEditing(item);
-                              }} 
-                              className="ml-1 opacity-0 group-hover/item:opacity-100 transition-opacity"
-                            >
-                              <Pencil className="h-3 w-3 text-muted-foreground hover:text-[#33fea6]" />
-                            </button>
+                            <span className="text-sm font-medium line-clamp-2">{item.title}</span>
                           </div>
                         )}
                         <span className="text-xs text-muted-foreground">{item.date}</span>
                       </div>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
-                        <div 
-                          className="prompt-action-button"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </div>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          handleDuplicatePrompt(item);
-                        }}>
-                          <CopyIcon className="mr-2 h-4 w-4" />
-                          <span>Duplicate</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
+                    <div className="flex items-center ml-auto w-[30%] justify-end gap-1 flex-shrink-0">
+                      {editingPromptId !== item.id && (
+                        <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeletePrompt(item.id);
-                          }}
+                            startEditing(item);
+                          }} 
+                          className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1"
                         >
-                          <Trash className="mr-2 h-4 w-4" />
-                          <span>Delete</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-[#33fea6]" />
+                        </button>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
+                          <div 
+                            className="prompt-action-button p-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleDuplicatePrompt(item);
+                          }}>
+                            <CopyIcon className="mr-2 h-4 w-4" />
+                            <span>Duplicate</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeletePrompt(item.id);
+                            }}
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            <span>Delete</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </div>
+              )) : (
+                savedPrompts.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-4 border-b group/item cursor-pointer hover:bg-gray-50 transition-colors min-h-[72px]"
+                    onClick={() => loadSavedPrompt && editingPromptId !== item.id && loadSavedPrompt(item)}
+                  >
+                    <div className="flex items-start w-full">
+                      <div className="flex items-start gap-2 w-[70%]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground mt-1.5 flex-shrink-0" />
+                        <div className="flex flex-col flex-1 min-w-0">
+                          {editingPromptId === item.id ? (
+                            <input
+                              type="text"
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onBlur={saveEdit}
+                              onKeyDown={handleKeyDown}
+                              className="text-sm font-medium border border-transparent focus:border-[#33fea6] focus:outline-none rounded px-1 w-full"
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : (
+                            <div className="flex items-center">
+                              <span className="text-sm font-medium line-clamp-2">{item.title}</span>
+                            </div>
+                          )}
+                          <span className="text-xs text-muted-foreground">{item.date}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center ml-auto w-[30%] justify-end gap-1 flex-shrink-0">
+                        {editingPromptId !== item.id && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditing(item);
+                            }} 
+                            className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1"
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-[#33fea6]" />
+                          </button>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="opacity-0 group-hover/item:opacity-100 transition-opacity">
+                            <div 
+                              className="prompt-action-button p-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleDuplicatePrompt(item);
+                            }}>
+                              <CopyIcon className="mr-2 h-4 w-4" />
+                              <span>Duplicate</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeletePrompt(item.id);
+                              }}
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              <span>Delete</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
                   </div>
                 ))
               )}
