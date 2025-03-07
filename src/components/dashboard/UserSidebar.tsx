@@ -51,6 +51,7 @@ export const UserSidebar = ({
   const navigate = useNavigate();
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>('');
+  const [confirmingDeleteDraftId, setConfirmingDeleteDraftId] = useState<string | null>(null);
 
   const isAdmin = user?.id === ADMIN_USER_ID;
   
@@ -80,6 +81,13 @@ export const UserSidebar = ({
       return format(new Date(dateString), 'MMM d, yyyy h:mm a');
     } catch (e) {
       return dateString;
+    }
+  };
+
+  const handleDeleteDraftClick = (draftId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (handleDeleteDraft) {
+      handleDeleteDraft(draftId);
     }
   };
 
@@ -191,7 +199,7 @@ export const UserSidebar = ({
               {!searchTerm && drafts.map((draft) => (
                 <div
                   key={draft.id || 'local-draft'}
-                  className="p-4 border-b flex items-center hover:bg-gray-50 transition-colors cursor-pointer min-h-[72px]"
+                  className="p-4 border-b flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer group/draft min-h-[72px]"
                   onClick={() => loadDraft && loadDraft(draft)}
                 >
                   <div className="flex items-center gap-2 w-full">
@@ -207,19 +215,16 @@ export const UserSidebar = ({
                       </span>
                     </div>
                   </div>
-                  <div className="ml-auto flex-shrink-0 h-full flex items-center">
+                  
+                  {draft.id && (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (handleDeleteDraft && draft.id) {
-                          handleDeleteDraft(draft.id);
-                        }
-                      }}
-                      className="opacity-0 group-hover/item:opacity-100 transition-opacity p-2 hover:text-destructive"
+                      onClick={(e) => handleDeleteDraftClick(draft.id, e)}
+                      className="opacity-0 group-hover/draft:opacity-100 transition-opacity p-2 rounded-full hover:bg-red-50 hover:text-red-500"
+                      title="Delete draft"
                     >
-                      <Trash className="h-4 w-4" />
+                      <Trash className="w-4 h-4" />
                     </button>
-                  </div>
+                  )}
                 </div>
               ))}
 
