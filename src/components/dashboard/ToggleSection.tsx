@@ -49,7 +49,7 @@ export const ToggleSection = ({
             {isAurora ? (
               <div className="flex items-center justify-between w-full">
                 <span className="text-sm text-text whitespace-nowrap mr-4">{item.label}</span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center ml-auto">
                   <Switch 
                     id={item.id}
                     checked={isSelected}
@@ -57,12 +57,12 @@ export const ToggleSection = ({
                     variant={variant}
                   />
                   
-                  {/* Help icon for Aurora directly in the toggle container */}
+                  {/* Help icon positioned at far right */}
                   {tooltipText && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <button className="text-card-foreground hover:text-primary transition-colors">
+                          <button className="text-card-foreground hover:text-primary transition-colors ml-2">
                             <HelpCircle size={18} />
                           </button>
                         </TooltipTrigger>
