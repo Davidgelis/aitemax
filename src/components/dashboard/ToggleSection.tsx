@@ -43,12 +43,12 @@ export const ToggleSection = ({
         return (
           <div 
             key={item.id} 
-            className={`flex items-center py-1.5 px-3 ${getBorderClass(isSelected, variant)} rounded-lg bg-white flex-1 transition-all duration-300 ${isAurora ? 'pr-1' : ''}`}
+            className={`flex items-center py-1.5 px-3 ${getBorderClass(isSelected, variant)} rounded-lg bg-white flex-1 transition-all duration-300`}
           >
             {/* For Aurora variant, keep text in a single line */}
             {isAurora ? (
-              <div className="flex items-center justify-between w-full gap-3">
-                <span className="text-sm text-text whitespace-nowrap mr-2">{item.label}</span>
+              <div className="flex items-center justify-between w-full">
+                <span className="text-sm text-text whitespace-nowrap mr-4">{item.label}</span>
                 <div className="flex items-center gap-2">
                   <Switch 
                     id={item.id}
