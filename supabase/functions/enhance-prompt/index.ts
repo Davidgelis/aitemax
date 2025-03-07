@@ -72,6 +72,37 @@ async function recordTokenUsage(
   }
 }
 
+// Toggle prompts map
+const togglePrompts = {
+  math: "You are an AI specializing in enhancing math-focused prompts. The current prompt is already clear and well-structured. Please revise it only as needed to emphasize step-by-step reasoning (chain-of-thought) and a brief self-review for logical or arithmetic mistakes. Integrate any final clarifications or disclaimers that ensure accurate problem-solving, but retain the prompt's overall structure, tone, and clarity.",
+  
+  reasoning: "You are an AI that handles multi-layered, abstract problems. The existing prompt is strong; please refine it to ensure thorough examination of diverse angles, potential hidden assumptions, and any conflicting viewpoints. Integrate a methodical breakdown of complex concepts referencing known logical frameworks, while preserving the prompt's original tone and focus.",
+  
+  coding: "You are an AI with expertise in optimizing coding prompts. The original prompt is already thorough. Please revise it slightly to confirm the target language and environment, include a brief instruction for testing and debugging in an iterative loop, and encourage a quick self-audit of the code for syntax or logical issues. Maintain the rest of the prompt's structure, focusing only on these fine-tuning elements.",
+  
+  copilot: "You are an AI that adapts prompts to a continuous, \"copilot-style\" context. The existing prompt is nearly perfect; simply adjust it to encourage iterative back-and-forth steps rather than a one-off answer, add a note about tracking updates or changes as a \"memory,\" and invite the user (or the AI) to refine each answer at least once for a truly collaborative workflow. Keep the original prompt's strong structure and coherence intact, adding only these new copilot elements.",
+  
+  token: "You are an AI that revises prompts to prioritize token efficiency and minimize computational cost based on the four strategic pillars. From the Master Prompt just created, produce a refined version that generates concise, direct responses without unnecessary detail or verbosity. Ensure code snippets remain minimal and optimized, using compressed formats (like bullet points or short paragraphs) wherever possible. Limit disclaimers, self-references, or hedging language unless strictly required. Dynamically adjust reasoning depth to the importance of the query, avoiding lengthy step-by-step explanations if a direct answer suffices. For multiple-choice or list-based tasks, group responses to prevent excessive token generation. The final output should balance completeness, accuracy, and cost-effectiveness, leveraging pre-trained knowledge over verbose reasoning while preserving clarity and correctness.",
+  
+  strict: "You are an AI that specializes in enforcing precise formats. The prompt you're about to revise is already excellent, so only make minimal changes to explicitly reinforce the required output format, instruct the AI to verify that it hasn't broken the specified structure, and, if appropriate, provide a simple example illustrating correct formatting. Do not alter the prompt's main content or style; just ensure strict-formatting instructions are crystal clear.",
+  
+  creative: "You are an AI that refines prompts for creative writing or ideation. The original prompt is already strong; simply tweak it to emphasize variety in tone or style, possibly request multiple viewpoints or drafts, and invite a short self-review for consistency, plot holes, or stylistic mismatches. Retain the core creative direction while adding these gentle enhancements to ensure the final output can engage diverse audiences and maintain narrative coherence.",
+  
+  image: "You are an AI that refines prompts for generating images. The existing prompt is already solid; please make minimal adjustments to specify the desired visual style or medium, clarify necessary resolution or aspect ratio, and note any disclaimers for sensitive or copyrighted content. Keep the overall structure intact, focusing solely on these new image-related details."
+};
+
+// Toggle labels map for loading message
+const toggleLabels = {
+  math: "Mathematical Problem-Solving",
+  reasoning: "Complex Reasoning",
+  coding: "Coding",
+  copilot: "Copilot",
+  token: "Token Saver",
+  strict: "Strict Response",
+  creative: "Creative",
+  image: "Image Creating"
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -94,6 +125,24 @@ serve(async (req) => {
     console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
     console.log(`Questions answered: ${answeredQuestions.length}`);
     console.log(`Relevant variables: ${relevantVariables.length}`);
+    console.log(`Primary toggle: ${primaryToggle || "None"}`);
+    console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
+    
+    // Get toggle prompts if applicable
+    const primaryPrompt = primaryToggle ? togglePrompts[primaryToggle] : "";
+    const secondaryPrompt = secondaryToggle ? togglePrompts[secondaryToggle] : "";
+    
+    // Create loading message based on toggles
+    let loadingMessage = "Enhancing your prompt";
+    if (primaryToggle) {
+      loadingMessage += ` for ${toggleLabels[primaryToggle]}`;
+      if (secondaryToggle) {
+        loadingMessage += ` and to be ${toggleLabels[secondaryToggle]}`;
+      }
+    } else if (secondaryToggle) {
+      loadingMessage += ` to be ${toggleLabels[secondaryToggle]}`;
+    }
+    loadingMessage += "...";
     
     // Build the system message with the template provided
     const systemMessage = {
@@ -105,6 +154,9 @@ serve(async (req) => {
       "Instructions": "Follow these step-by-step guidelines to correct and enhance the input prompt:\n\n1. Outline the Approach:\n   - Briefly describe your methodology for analyzing and enhancing the prompt, taking into account its original intent and length.\n\n2. Analyze the Input:\n   - Identify key components, intentions, and areas for improvement. Determine whether the input is minimal or detailed, and adjust your enhancement process accordingly.\n\n3. Synthesize and Organize:\n   - Combine your analysis into a coherent, revised version of the prompt. Important: Ensure that the final output of the corrected prompt is strictly structured into the four pillars: Task, Persona, Conditions, and Instructions.\n\n4. Finalize the Corrected Prompt:\n   - Ensure the final version is a complete, standalone prompt capable of generating high-quality, contextually rich responses. If any parts lack sufficient context, leave clearly labeled placeholders (e.g., \"[Context Needed]\") for the user to supply additional details.\n\n5. Include a Notes Section:\n   - Append a \"Notes\" section at the end for any extra clarifications, examples, or commentaries. This section may include specific instructions for various scenarios (e.g., project planning, creative writing, educational content)."
       
       ADDITIONALLY, come up with a short, concise title (5 words or less) that captures the essence of the prompt. The title should be innovative and suitable for the prompt's purpose. Place this title at the very beginning of your response, before the Task section, formatted as "**[TITLE]**".
+      
+      ${primaryPrompt ? `\n\nPRIMARY TOGGLE INSTRUCTION: ${primaryPrompt}` : ""}
+      ${secondaryPrompt ? `\n\nSECONDARY TOGGLE INSTRUCTION: ${secondaryPrompt}` : ""}
       `
     };
 
@@ -178,6 +230,7 @@ Based on this information, generate an enhanced final prompt that follows the st
     
     return new Response(JSON.stringify({ 
       enhancedPrompt,
+      loadingMessage,
       usage: data.usage
     }), {
       status: 200,
@@ -188,7 +241,8 @@ Based on this information, generate an enhanced final prompt that follows the st
     
     return new Response(JSON.stringify({
       error: error.message,
-      enhancedPrompt: "# Error Enhancing Prompt\n\nThere was an error analyzing your inputs. Please try again or adjust your inputs."
+      enhancedPrompt: "# Error Enhancing Prompt\n\nThere was an error analyzing your inputs. Please try again or adjust your inputs.",
+      loadingMessage: "Error enhancing prompt..."
     }), {
       status: 200, // Always return 200 to avoid edge function error
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -1,4 +1,3 @@
-
 import { Switch } from "@/components/ui/switch";
 import { Toggle } from "./types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -58,7 +57,7 @@ export const ToggleSection = ({
                   />
                   
                   {/* Help icon positioned at far right */}
-                  {tooltipText && (
+                  {item.definition && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -67,7 +66,7 @@ export const ToggleSection = ({
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="bottom" className="max-w-xs text-xs">
-                          {tooltipText}
+                          {item.definition}
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -82,12 +81,30 @@ export const ToggleSection = ({
                     <span key={index} className="leading-tight">{word}</span>
                   ))}
                 </span>
-                <Switch 
-                  id={item.id}
-                  checked={isSelected}
-                  onCheckedChange={() => onToggleChange(item.id)}
-                  variant={variant}
-                />
+                <div className="flex items-center">
+                  <Switch 
+                    id={item.id}
+                    checked={isSelected}
+                    onCheckedChange={() => onToggleChange(item.id)}
+                    variant={variant}
+                  />
+                  
+                  {/* Help icon for definition */}
+                  {item.definition && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button className="text-card-foreground hover:text-[#64bf95] transition-colors ml-2">
+                            <HelpCircle size={18} />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-xs text-xs">
+                          {item.definition}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
               </div>
             )}
           </div>

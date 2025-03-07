@@ -5,13 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const useQuestionsAndVariables = (
   questions: Question[],
-  setQuestions: (questions: Question[]) => void,
+  setQuestions: React.Dispatch<React.SetStateAction<Question[]>>,
   variables: Variable[],
-  setVariables: (variablesOrUpdateFn: Variable[] | ((current: Variable[]) => Variable[])) => void,
+  setVariables: React.Dispatch<React.SetStateAction<Variable[]>>,
   variableToDelete: string | null,
-  setVariableToDelete: (id: string | null) => void,
-  user: any = null,
-  promptId: string | null = null
+  setVariableToDelete: React.Dispatch<React.SetStateAction<string | null>>,
+  user?: any,
+  promptId?: string | null
 ) => {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const { toast } = useToast();
@@ -137,74 +137,48 @@ export const useQuestionsAndVariables = (
   };
 
   const enhancePromptWithGPT = async (
-    originalPrompt: string,
-    primaryToggle: string | null,
+    promptToEnhance: string, 
+    primaryToggle: string | null, 
     secondaryToggle: string | null,
-    setFinalPrompt: (prompt: string) => void
-  ) => {
-    setIsEnhancing(true);
-    
+    setFinalPrompt: React.Dispatch<React.SetStateAction<string>>
+  ): Promise<void> => {
     try {
-      // Prepare data first - mark empty items as not relevant
-      const { updatedQuestions, updatedVariables } = prepareDataForEnhancement();
+      setIsEnhancing(true);
       
-      // Filter to only answered questions that are marked as relevant
-      const answeredQuestions = updatedQuestions.filter(
-        (q) => q.isRelevant && q.answer && q.answer.trim() !== ""
+      // Filter out only answered and relevant questions
+      const answeredQuestions = questions.filter(
+        q => q.answer && q.answer.trim() !== "" && q.isRelevant !== false
       );
       
-      // Filter to only variables with both name and value that are marked as relevant
-      const relevantVariables = updatedVariables.filter(
-        (v) => v.isRelevant && v.name.trim() !== "" && v.value.trim() !== ""
+      // Filter out only relevant variables
+      const relevantVariables = variables.filter(
+        v => v.isRelevant === true
       );
-      
-      const payload: any = {
-        originalPrompt,
-        answeredQuestions,
-        relevantVariables,
-        primaryToggle,
-        secondaryToggle
-      };
-      
-      if (user) {
-        payload.userId = user.id;
-      }
-      
-      if (promptId) {
-        payload.promptId = promptId;
-      }
       
       const { data, error } = await supabase.functions.invoke('enhance-prompt', {
-        body: payload
+        body: {
+          originalPrompt: promptToEnhance,
+          answeredQuestions,
+          relevantVariables,
+          primaryToggle,
+          secondaryToggle,
+          userId: user?.id,
+          promptId
+        }
       });
       
       if (error) {
         throw error;
       }
       
-      if (data) {
-        setFinalPrompt(data.enhancedPrompt);
-        
-        if (data.usage) {
-          console.log("Generate prompt token usage:", data.usage);
-          console.log(`Prompt tokens: ${data.usage.prompt_tokens}, Completion tokens: ${data.usage.completion_tokens}`);
-        }
-        
-        return data.enhancedPrompt;
-      } else {
-        throw new Error("No data returned from enhance-prompt function");
-      }
+      setFinalPrompt(data.enhancedPrompt);
     } catch (error) {
       console.error("Error enhancing prompt with GPT:", error);
       toast({
-        title: "Error",
-        description: "There was an error enhancing your prompt. A basic prompt has been generated.",
+        title: "Error enhancing prompt",
+        description: "An error occurred while enhancing your prompt. Please try again.",
         variant: "destructive",
       });
-      
-      const defaultPrompt = `# Enhanced Prompt\n\n${originalPrompt}`;
-      setFinalPrompt(defaultPrompt);
-      return defaultPrompt;
     } finally {
       setIsEnhancing(false);
     }

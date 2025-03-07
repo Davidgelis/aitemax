@@ -55,6 +55,7 @@ export const StepController = ({
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
+  const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with GPT-4o...");
   
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.prompt_text === promptText)?.id || null
@@ -165,6 +166,24 @@ export const StepController = ({
     if (step === 3) {
       setIsEnhancingPrompt(true);
       
+      // Create a context-aware loading message based on toggles
+      let message = "Enhancing your prompt";
+      if (selectedPrimary) {
+        const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label || selectedPrimary;
+        message += ` for ${primaryLabel}`;
+        
+        if (selectedSecondary) {
+          const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
+          message += ` and to be ${secondaryLabel}`;
+        }
+      } else if (selectedSecondary) {
+        const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
+        message += ` to be ${secondaryLabel}`;
+      }
+      message += "...";
+      
+      setEnhancingMessage(message);
+      
       try {
         await enhancePromptWithGPT(promptText, selectedPrimary, selectedSecondary, setFinalPrompt);
         setCurrentStep(step);
@@ -200,7 +219,7 @@ export const StepController = ({
       let message = isInitializingModels 
         ? "Initializing AI models..." 
         : isEnhancingPrompt || isEnhancing
-          ? "Enhancing your prompt with GPT-4o..."
+          ? enhancingMessage
           : currentLoadingMessage;
           
       return <LoadingState currentLoadingMessage={message} />;

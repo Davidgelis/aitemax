@@ -1,127 +1,111 @@
-import { Question, Toggle, Variable } from "./types";
+export const defaultVariables = [
+  {
+    id: "v-1",
+    name: "Input",
+    value: "",
+    isRelevant: null,
+    category: "General",
+    code: "VAR_1"
+  },
+  {
+    id: "v-2",
+    name: "Output Format",
+    value: "",
+    isRelevant: null,
+    category: "General",
+    code: "VAR_2"
+  },
+  {
+    id: "v-3",
+    name: "Context",
+    value: "",
+    isRelevant: null,
+    category: "General",
+    code: "VAR_3"
+  },
+];
 
-export const primaryToggles: Toggle[] = [
-  { label: "Complex Reasoning", id: "complex" },
-  { label: "Mathematical Problem-Solving", id: "math" },
-  { label: "Coding", id: "coding" },
-  { label: "Copilot", id: "copilot" },
-  { label: "Image Creating", id: "image" },
+export const mockQuestions = [
+  {
+    id: "q-1",
+    text: "What is the desired tone of the output?",
+    answer: "",
+    isRelevant: null,
+    category: "Style"
+  },
+  {
+    id: "q-2",
+    text: "Are there any specific constraints or limitations?",
+    answer: "",
+    isRelevant: null,
+    category: "Constraints"
+  },
+  {
+    id: "q-3",
+    text: "What is the target audience?",
+    answer: "",
+    isRelevant: null,
+    category: "Audience"
+  },
+];
+
+export const sampleFinalPrompt = `
+Task: Generate a compelling narrative.
+Persona: A seasoned storyteller.
+Conditions: The story must be engaging and concise.
+Instructions: Craft a narrative that captivates the reader from start to finish.
+`;
+
+export const primaryToggles = [
+  { 
+    id: "math", 
+    label: "Mathematical Problem-Solving",
+    definition: "This reinforces step-by-step reasoning (chain-of-thought) and ensures logical accuracy while maintaining the original structure and tone for mathematical problem-solving.",
+    prompt: "You are an AI specializing in enhancing math-focused prompts. The current prompt is already clear and well-structured. Please revise it only as needed to emphasize step-by-step reasoning (chain-of-thought) and a brief self-review for logical or arithmetic mistakes. Integrate any final clarifications or disclaimers that ensure accurate problem-solving, but retain the prompt's overall structure, tone, and clarity."
+  },
+  { 
+    id: "reasoning", 
+    label: "Complex Reasoning",
+    definition: "This reinforces advanced critical thinking by urging the AI to explore multiple perspectives, identify assumptions, and structure complex logic while maintaining the prompt's original tone and clarity.",
+    prompt: "You are an AI that handles multi-layered, abstract problems. The existing prompt is strong; please refine it to ensure thorough examination of diverse angles, potential hidden assumptions, and any conflicting viewpoints. Integrate a methodical breakdown of complex concepts referencing known logical frameworks, while preserving the prompt's original tone and focus."
+  },
+  { 
+    id: "coding", 
+    label: "Coding",
+    definition: "This reinforces step-by-step optimization for coding prompts by confirming the target language and environment, encouraging iterative testing and debugging, and ensuring a quick self-audit for syntax or logical issues while maintaining the original structure and clarity.",
+    prompt: "You are an AI with expertise in optimizing coding prompts. The original prompt is already thorough. Please revise it slightly to confirm the target language and environment, include a brief instruction for testing and debugging in an iterative loop, and encourage a quick self-audit of the code for syntax or logical issues. Maintain the rest of the prompt's structure, focusing only on these fine-tuning elements."
+  },
+  { 
+    id: "copilot", 
+    label: "Copilot",
+    definition: "This reinforces an iterative, back-and-forth workflow by adapting prompts for continuous collaboration, tracking updates as \"memory,\" and inviting refinement to ensure a dynamic, copilot-style problem-solving approach while preserving the prompt's coherence.",
+    prompt: "You are an AI that adapts prompts to a continuous, \"copilot-style\" context. The existing prompt is nearly perfect; simply adjust it to encourage iterative back-and-forth steps rather than a one-off answer, add a note about tracking updates or changes as a \"memory,\" and invite the user (or the AI) to refine each answer at least once for a truly collaborative workflow. Keep the original prompt's strong structure and coherence intact, adding only these new copilot elements."
+  }
 ];
 
 export const secondaryToggles: Toggle[] = [
-  { label: "Token Saver", id: "token" },
-  { label: "Strict Response", id: "strict" },
-  { label: "Creative", id: "creative" },
-];
-
-export const loadingMessages = [
-  "AI is analyzing your prompt across four pillars: Task, Persona, Conditions, and Instructions...",
-  "Identifying key gaps and missing elements in your prompt structure...",
-  "Detecting potential variables and placeholders for customization...",
-  "Generating targeted questions to improve your prompt effectiveness...",
-  "Preparing enhanced prompt structure and recommendations..."
-];
-
-export const mockQuestions: Question[] = [
-  // Task-focused questions about broader context
-  { id: "q1", text: "What is the scale or complexity of the data you're working with?", isRelevant: null, answer: "", category: "Task" },
-  { id: "q2", text: "Are there any specific performance concerns or constraints?", isRelevant: null, answer: "", category: "Task" },
-  
-  // Persona-focused questions about users and audience
-  { id: "q3", text: "Who will be using the output of this prompt?", isRelevant: null, answer: "", category: "Persona" },
-  { id: "q4", text: "What is the technical expertise of the end users?", isRelevant: null, answer: "", category: "Persona" },
-  
-  // Conditions-focused questions about limitations
-  { id: "q5", text: "Are there any security or privacy considerations?", isRelevant: null, answer: "", category: "Conditions" },
-  { id: "q6", text: "What is the expected frequency of use for this solution?", isRelevant: null, answer: "", category: "Conditions" },
-  
-  // Instructions-focused questions about implementation details
-  { id: "q7", text: "Should the solution prioritize readability or efficiency?", isRelevant: null, answer: "", category: "Instructions" },
-  { id: "q8", text: "Are there any specific coding patterns or styles to follow?", isRelevant: null, answer: "", category: "Instructions" },
-];
-
-export const placeholderTestQuestions: Question[] = [
-  { id: "test-q1", text: "What is the primary goal you want to achieve with this prompt?", isRelevant: null, answer: "", category: "Task" },
-  { id: "test-q2", text: "How would you like the AI to approach complex or ambiguous aspects of your request?", isRelevant: null, answer: "", category: "Instructions" },
-];
-
-export const defaultVariables: Variable[] = [
-  // More specific variables with meaningful names
-  { id: "v1", name: "ContentType", value: "", isRelevant: null, category: "Task" },
-  { id: "v2", name: "Objective", value: "", isRelevant: null, category: "Task" },
-  { id: "v3", name: "Audience", value: "", isRelevant: null, category: "Persona" },
-  { id: "v4", name: "ToneStyle", value: "", isRelevant: null, category: "Persona" },
-  { id: "v5", name: "Deadline", value: "", isRelevant: null, category: "Conditions" },
-  { id: "v6", name: "WordCount", value: "", isRelevant: null, category: "Conditions" },
-  { id: "v7", name: "Format", value: "", isRelevant: null, category: "Instructions" },
-  { id: "v8", name: "CallToAction", value: "", isRelevant: null, category: "Instructions" },
-];
-
-export const sampleFinalPrompt = `# Enhanced Prompt Template
-
-## Task
-Your task is to {{ContentType}} and produce {{Objective}}.
-
-## Persona
-You will address {{Audience}} while maintaining a {{ToneStyle}} throughout your response.
-
-## Conditions
-- Complete this within {{Deadline}}
-- Keep the response around {{WordCount}} words
-
-## Instructions
-1. Structure your response with {{Format}}
-2. End with {{CallToAction}}
-
-## Notes
-This prompt has been optimized based on the four-pillar framework: Task, Persona, Conditions, and Instructions.`;
-
-export const QUESTIONS_PER_PAGE = 3;
-
-// Helper function to filter out category names from variables
-export const filterCategoryVariables = (variables: Variable[]): Variable[] => {
-  return variables.filter(v => 
-    v.name !== 'Task' && 
-    v.name !== 'Persona' && 
-    v.name !== 'Conditions' && 
-    v.name !== 'Instructions'
-  );
-};
-
-// Generate context-specific default questions based on prompt type
-export const generateContextQuestions = (promptText: string): Question[] => {
-  const lowerPrompt = promptText.toLowerCase();
-  
-  // For Google Sheets / spreadsheet scripts
-  if (lowerPrompt.includes('google sheet') || lowerPrompt.includes('spreadsheet') || lowerPrompt.includes('excel')) {
-    return [
-      { id: "q1", text: "How many rows of data will typically be processed?", isRelevant: null, answer: "", category: "Task" },
-      { id: "q2", text: "Is this script meant to run automatically or manually?", isRelevant: null, answer: "", category: "Conditions" },
-      { id: "q3", text: "Will non-technical users need to modify the script later?", isRelevant: null, answer: "", category: "Persona" },
-      { id: "q4", text: "Are there any performance concerns with large datasets?", isRelevant: null, answer: "", category: "Instructions" },
-    ];
+  { 
+    id: "token", 
+    label: "Token Saver",
+    definition: "This reinforces token efficiency by ensuring concise, direct responses, minimizing unnecessary detail, dynamically adjusting reasoning depth, and maintaining clarity while reducing computational cost without compromising accuracy.",
+    prompt: "You are an AI that revises prompts to prioritize token efficiency and minimize computational cost based on the four strategic pillars. From the Master Prompt just created, produce a refined version that generates concise, direct responses without unnecessary detail or verbosity. Ensure code snippets remain minimal and optimized, using compressed formats (like bullet points or short paragraphs) wherever possible. Limit disclaimers, self-references, or hedging language unless strictly required. Dynamically adjust reasoning depth to the importance of the query, avoiding lengthy step-by-step explanations if a direct answer suffices. For multiple-choice or list-based tasks, group responses to prevent excessive token generation. The final output should balance completeness, accuracy, and cost-effectiveness, leveraging pre-trained knowledge over verbose reasoning while preserving clarity and correctness."
+  },
+  { 
+    id: "strict", 
+    label: "Strict Response",
+    definition: "This reinforces precise formatting by explicitly enforcing structure, instructing AI to verify output integrity, and, when necessary, providing simple examples, all while keeping the prompt's content and style intact.",
+    prompt: "You are an AI that specializes in enforcing precise formats. The prompt you're about to revise is already excellent, so only make minimal changes to explicitly reinforce the required output format, instruct the AI to verify that it hasn't broken the specified structure, and, if appropriate, provide a simple example illustrating correct formatting. Do not alter the prompt's main content or style; just ensure strict-formatting instructions are crystal clear."
+  },
+  { 
+    id: "creative", 
+    label: "Creative",
+    definition: "This reinforces creative depth by encouraging variety in tone and style, inviting multiple viewpoints or drafts, and ensuring self-review for consistency, engagement, and coherence without altering the original creative direction.",
+    prompt: "You are an AI that refines prompts for creative writing or ideation. The original prompt is already strong; simply tweak it to emphasize variety in tone or style, possibly request multiple viewpoints or drafts, and invite a short self-review for consistency, plot holes, or stylistic mismatches. Retain the core creative direction while adding these gentle enhancements to ensure the final output can engage diverse audiences and maintain narrative coherence."
+  },
+  { 
+    id: "image", 
+    label: "Image Creating",
+    definition: "This reinforces clarity for image generation by specifying style, resolution, and content guidelines while preserving the original prompt's coherence and structure.",
+    prompt: "You are an AI that refines prompts for generating images. The existing prompt is already solid; please make minimal adjustments to specify the desired visual style or medium, clarify necessary resolution or aspect ratio, and note any disclaimers for sensitive or copyrighted content. Keep the overall structure intact, focusing solely on these new image-related details."
   }
-  
-  // For email-related prompts
-  if (lowerPrompt.includes('email') || lowerPrompt.includes('message') || lowerPrompt.includes('communication')) {
-    return [
-      { id: "q1", text: "What is the ongoing relationship with the recipient?", isRelevant: null, answer: "", category: "Persona" },
-      { id: "q2", text: "Is this a one-time message or part of a series?", isRelevant: null, answer: "", category: "Task" },
-      { id: "q3", text: "Are there any sensitive topics to approach carefully?", isRelevant: null, answer: "", category: "Conditions" },
-      { id: "q4", text: "What's the expected response you're hoping to receive?", isRelevant: null, answer: "", category: "Instructions" },
-    ];
-  }
-  
-  // For coding/programming tasks
-  if (lowerPrompt.includes('code') || lowerPrompt.includes('script') || lowerPrompt.includes('program') || lowerPrompt.includes('function')) {
-    return [
-      { id: "q1", text: "What is the expected execution environment?", isRelevant: null, answer: "", category: "Conditions" },
-      { id: "q2", text: "Are there any specific libraries or dependencies to use or avoid?", isRelevant: null, answer: "", category: "Instructions" },
-      { id: "q3", text: "What scale of data will this solution need to handle?", isRelevant: null, answer: "", category: "Task" },
-      { id: "q4", text: "Who will maintain this code in the future?", isRelevant: null, answer: "", category: "Persona" },
-    ];
-  }
-  
-  // Default to general context questions plus the placeholder test questions
-  return [...mockQuestions, ...placeholderTestQuestions];
-};
+];

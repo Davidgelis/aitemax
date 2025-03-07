@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions } from "@/components/dashboard/constants";
@@ -15,18 +14,18 @@ const isValidVariableName = (name: string): boolean => {
 
 export const usePromptAnalysis = (
   promptText: string,
-  setQuestions: (questions: Question[]) => void,
-  setVariables: (variables: Variable[]) => void,
-  setMasterCommand: (command: string) => void,
-  setFinalPrompt: (prompt: string) => void,
-  setCurrentStep: (step: number) => void,
+  setQuestions: React.Dispatch<React.SetStateAction<Question[]>>,
+  setVariables: React.Dispatch<React.SetStateAction<Variable[]>>,
+  setMasterCommand: React.Dispatch<React.SetStateAction<string>>,
+  setFinalPrompt: React.Dispatch<React.SetStateAction<string>>,
+  setCurrentStep: React.Dispatch<React.SetStateAction<number>>,
   selectedPrimary: string | null,
   selectedSecondary: string | null,
-  user: any,
-  promptId: string | null
+  user?: any,
+  promptId?: string | null
 ) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [currentLoadingMessage, setCurrentLoadingMessage] = useState(0);
+  const [currentLoadingMessage, setCurrentLoadingMessage] = useState("Analyzing your prompt...");
   const { toast } = useToast();
 
   // Show loading messages while isLoading is true
@@ -58,7 +57,7 @@ export const usePromptAnalysis = (
     
     // Start loading immediately
     setIsLoading(true);
-    setCurrentLoadingMessage(0);
+    setCurrentLoadingMessage("Analyzing your prompt...");
     
     try {
       // Include userId and promptId in the payload if available
@@ -172,9 +171,61 @@ export const usePromptAnalysis = (
     }
   };
 
+  const enhancePromptWithGPT = async (
+    promptToEnhance: string,
+    questions: Question[],
+    variables: Variable[]
+  ): Promise<string> => {
+    try {
+      setCurrentLoadingMessage("Enhancing your prompt with GPT-4o...");
+      
+      // Filter out only answered and relevant questions
+      const answeredQuestions = questions.filter(
+        q => q.answer && q.answer.trim() !== "" && q.isRelevant !== false
+      );
+      
+      // Filter out only relevant variables
+      const relevantVariables = variables.filter(
+        v => v.isRelevant === true
+      );
+      
+      const { data, error } = await supabase.functions.invoke('enhance-prompt', {
+        body: {
+          originalPrompt: promptToEnhance,
+          answeredQuestions,
+          relevantVariables,
+          primaryToggle: selectedPrimary,
+          secondaryToggle: selectedSecondary,
+          userId: user?.id,
+          promptId
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update loading message if available from the edge function
+      if (data.loadingMessage) {
+        setCurrentLoadingMessage(data.loadingMessage);
+      }
+      
+      return data.enhancedPrompt;
+    } catch (error) {
+      console.error("Error enhancing prompt with GPT:", error);
+      toast({
+        title: "Error enhancing prompt",
+        description: "An error occurred while enhancing your prompt. Please try again.",
+        variant: "destructive",
+      });
+      return "Error enhancing prompt. Please try again.";
+    }
+  };
+
   return {
     isLoading,
     currentLoadingMessage,
-    handleAnalyze
+    handleAnalyze,
+    enhancePromptWithGPT
   };
 };

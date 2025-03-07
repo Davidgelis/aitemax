@@ -57,8 +57,10 @@ export interface SavedPrompt {
 }
 
 export interface Toggle {
-  label: string;
   id: string;
+  label: string;
+  definition?: string;
+  prompt?: string;
 }
 
 export const variablesToJson = (variables: Variable[]): Json => {
