@@ -8,6 +8,7 @@ import { SavedPrompt } from "./types";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { format } from "date-fns";
+import { getTextLines } from "@/lib/utils";
 
 const ADMIN_USER_ID = "8b40d73f-fffb-411f-9044-480773968d58";
 
@@ -206,7 +207,7 @@ export const UserSidebar = ({
                       </span>
                     </div>
                   </div>
-                  <div className="ml-auto flex-shrink-0">
+                  <div className="ml-auto flex-shrink-0 h-full flex items-center">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -234,10 +235,11 @@ export const UserSidebar = ({
               {searchTerm ? filteredPrompts.map((item) => (
                 <div
                   key={item.id}
-                  className="p-4 border-b group/item cursor-pointer hover:bg-gray-50 transition-colors min-h-[72px]"
+                  className="p-4 border-b group/item cursor-pointer hover:bg-gray-50 transition-colors"
+                  style={{ minHeight: `${Math.max(72, getTextLines(item.title, 25) * 20 + 32)}px` }}
                   onClick={() => loadSavedPrompt && editingPromptId !== item.id && loadSavedPrompt(item)}
                 >
-                  <div className="flex items-start w-full">
+                  <div className="flex items-start w-full h-full">
                     <div className="flex items-start gap-2 w-[70%]">
                       <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground mt-1.5 flex-shrink-0" />
                       <div className="flex flex-col flex-1 min-w-0">
@@ -254,13 +256,15 @@ export const UserSidebar = ({
                           />
                         ) : (
                           <div className="flex items-center">
-                            <span className="text-sm font-medium line-clamp-2">{item.title}</span>
+                            <span className="text-sm font-medium break-words">
+                              {item.title}
+                            </span>
                           </div>
                         )}
                         <span className="text-xs text-muted-foreground">{item.date}</span>
                       </div>
                     </div>
-                    <div className="flex items-center ml-auto w-[30%] justify-end gap-1 flex-shrink-0">
+                    <div className="flex items-center ml-auto w-[30%] justify-center h-full flex-shrink-0">
                       {editingPromptId !== item.id && (
                         <button 
                           onClick={(e) => {
@@ -309,10 +313,11 @@ export const UserSidebar = ({
                 savedPrompts.map((item) => (
                   <div
                     key={item.id}
-                    className="p-4 border-b group/item cursor-pointer hover:bg-gray-50 transition-colors min-h-[72px]"
+                    className="p-4 border-b group/item cursor-pointer hover:bg-gray-50 transition-colors"
+                    style={{ minHeight: `${Math.max(72, getTextLines(item.title, 25) * 20 + 32)}px` }}
                     onClick={() => loadSavedPrompt && editingPromptId !== item.id && loadSavedPrompt(item)}
                   >
-                    <div className="flex items-start w-full">
+                    <div className="flex items-start w-full h-full">
                       <div className="flex items-start gap-2 w-[70%]">
                         <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground mt-1.5 flex-shrink-0" />
                         <div className="flex flex-col flex-1 min-w-0">
@@ -329,13 +334,15 @@ export const UserSidebar = ({
                             />
                           ) : (
                             <div className="flex items-center">
-                              <span className="text-sm font-medium line-clamp-2">{item.title}</span>
+                              <span className="text-sm font-medium break-words">
+                                {item.title}
+                              </span>
                             </div>
                           )}
                           <span className="text-xs text-muted-foreground">{item.date}</span>
                         </div>
                       </div>
-                      <div className="flex items-center ml-auto w-[30%] justify-end gap-1 flex-shrink-0">
+                      <div className="flex items-center ml-auto w-[30%] justify-center h-full flex-shrink-0">
                         {editingPromptId !== item.id && (
                           <button 
                             onClick={(e) => {
