@@ -59,7 +59,7 @@ export const StepController = ({
   const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with GPT-4o...");
   
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
-    ? savedPrompts.find(p => p.prompt_text === promptText)?.id || null
+    ? savedPrompts.find(p => p.promptText === promptText)?.id || null
     : null;
   
   const promptAnalysis = usePromptAnalysis(
@@ -186,7 +186,13 @@ export const StepController = ({
       setEnhancingMessage(message);
       
       try {
-        await enhancePromptWithGPT(promptText, selectedPrimary, selectedSecondary, setFinalPrompt);
+        // Pass all required parameters to enhancePromptWithGPT
+        const enhancedPrompt = await promptAnalysis.enhancePromptWithGPT(
+          promptText,
+          questions,
+          variables
+        );
+        setFinalPrompt(enhancedPrompt);
         setCurrentStep(step);
       } catch (error) {
         console.error("Error enhancing prompt:", error);
@@ -219,9 +225,11 @@ export const StepController = ({
     if (isAnalyzing || isInitializingModels || isEnhancingPrompt || isEnhancing) {
       let message = isInitializingModels 
         ? "Initializing AI models..." 
-        : isEnhancingPrompt || isEnhancing
+        : isEnhancingPrompt 
           ? enhancingMessage
-          : currentLoadingMessage;
+          : isEnhancing
+            ? currentLoadingMessage  // Use the dynamic message from usePromptAnalysis when enhancing
+            : currentLoadingMessage;
           
       return <LoadingState currentLoadingMessage={message} />;
     }

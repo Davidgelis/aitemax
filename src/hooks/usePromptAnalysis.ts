@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
-import { loadingMessages, mockQuestions } from "@/components/dashboard/constants";
+import { loadingMessages, mockQuestions, primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -183,7 +183,24 @@ export const usePromptAnalysis = (
     variables: Variable[]
   ): Promise<string> => {
     try {
-      setCurrentLoadingMessage("Enhancing your prompt with GPT-4o...");
+      // Create a context-aware loading message based on toggles
+      let message = "Enhancing your prompt";
+      if (selectedPrimary) {
+        const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label || selectedPrimary;
+        message += ` for ${primaryLabel}`;
+        
+        if (selectedSecondary) {
+          const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
+          message += ` and to be ${secondaryLabel}`;
+        }
+      } else if (selectedSecondary) {
+        const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
+        message += ` to be ${secondaryLabel}`;
+      }
+      message += "...";
+      
+      // Set the customized loading message
+      setCurrentLoadingMessage(message);
       
       // Filter out only answered and relevant questions
       const answeredQuestions = questions.filter(

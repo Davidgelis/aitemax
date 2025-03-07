@@ -6,28 +6,21 @@ interface LoadingStateProps {
 }
 
 export const LoadingState = ({ currentLoadingMessage }: LoadingStateProps) => {
-  // If prompts are being enhanced, show the Aitema X message
-  if (typeof currentLoadingMessage === 'string' && currentLoadingMessage.includes("Enhancing your prompt")) {
+  // If we have a string message, display it directly (like the enhance prompt message)
+  if (typeof currentLoadingMessage === 'string') {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6">
         <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
         <div className="text-xl font-medium animate-fade-in">
-          Aitema X is building your prompt please wait...
+          {currentLoadingMessage}
         </div>
       </div>
     );
   }
   
-  // For other loading states, use the existing logic
-  const message = typeof currentLoadingMessage === 'string' 
-    ? currentLoadingMessage 
-    : loadingMessages[Math.min(Math.max(0, currentLoadingMessage), loadingMessages.length - 1)];
-  
-  // For progress dots, we'll only show them for numeric indexes
-  const showProgressDots = typeof currentLoadingMessage === 'number';
-  const safeIndex = typeof currentLoadingMessage === 'number' 
-    ? Math.min(Math.max(0, currentLoadingMessage), loadingMessages.length - 1) 
-    : 0;
+  // For numeric indices, use the loadingMessages array
+  const safeIndex = Math.min(Math.max(0, currentLoadingMessage), loadingMessages.length - 1);
+  const message = loadingMessages[safeIndex];
   
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6">
@@ -35,18 +28,16 @@ export const LoadingState = ({ currentLoadingMessage }: LoadingStateProps) => {
       <div className="text-xl font-medium animate-fade-in">
         {message}
       </div>
-      {showProgressDots && (
-        <div className="flex gap-2">
-          {loadingMessages.map((_, index) => (
-            <div
-              key={index}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                index === safeIndex ? 'bg-primary scale-125' : 'bg-border'
-              }`}
-            />
-          ))}
-        </div>
-      )}
+      <div className="flex gap-2">
+        {loadingMessages.map((_, index) => (
+          <div
+            key={index}
+            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              index === safeIndex ? 'bg-primary scale-125' : 'bg-border'
+            }`}
+          />
+        ))}
+      </div>
     </div>
   );
 };
