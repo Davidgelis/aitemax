@@ -50,7 +50,7 @@ export const ToggleSection = ({
           <div 
             key={item.id} 
             className={`flex items-center justify-between py-1.5 px-3 ${getBorderClass(isSelected, variant)} rounded-lg ${
-              isAurora ? 'bg-[#041524] shadow-sm' : 'bg-white'
+              isAurora ? 'bg-[#084b49] shadow-sm' : 'bg-white'
             } flex-1 transition-all duration-300`}
           >
             <span className={`text-sm ${isAurora ? 'text-white flex-nowrap whitespace-nowrap pr-6 font-medium' : 'text-text flex flex-col items-start'}`}>
