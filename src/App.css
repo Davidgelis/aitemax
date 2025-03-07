@@ -103,11 +103,13 @@
 }
 
 .animate-aurora {
-  animation: aurora 300s ease infinite; /* Changed from 15s to 300s (20x slower) */
+  animation: aurora 8s ease infinite !important; /* Faster animation to be more noticeable */
 }
 
-/* Toggle thumb aurora effect */
+/* Toggle thumb aurora effect - enhanced visibility */
 [data-state="checked"] .animate-aurora {
-  background: linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white);
-  background-size: 400% 400%;
+  background: linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white) !important;
+  background-size: 400% 400% !important;
+  animation: aurora 8s ease infinite !important;
+  box-shadow: 0 0 5px rgba(51, 254, 166, 0.7) !important;
 }

@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -65,7 +64,7 @@ export default {
       animation: {
         "fade-in": "fade-in 0.6s ease-out",
         "slide-in": "slide-in 0.6s ease-out",
-        "aurora": "aurora 300s ease infinite" // Changed from 15s to 300s (20x slower)
+        "aurora": "aurora 8s ease infinite"
       },
       backgroundImage: {
         'aurora-gradient': "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white)",

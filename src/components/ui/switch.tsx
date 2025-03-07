@@ -33,7 +33,7 @@ const Switch = React.forwardRef<
       <SwitchPrimitives.Thumb
         className={cn(
           "pointer-events-none block h-4 w-4 rounded-full shadow-lg shadow-[rgba(0,0,0,0.3)] ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
-          variant === "aurora" && props.checked ? "animate-aurora bg-aurora-gradient bg-aurora" : "bg-white"
+          variant === "aurora" && props.checked ? "bg-aurora-gradient bg-aurora animate-aurora" : "bg-white"
         )}
       />
     </SwitchPrimitives.Root>
