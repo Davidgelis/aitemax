@@ -11,18 +11,13 @@ const Switch = React.forwardRef<
   }
 >(({ className, variant = "default", ...props }, ref) => {
   const getVariantClasses = (variant: string, checked: boolean) => {
-    // Special case for aurora variant when off - white background
-    if (variant === "aurora" && !checked) {
-      return "bg-white";
-    }
-    
     switch(variant) {
       case "primary":
         return checked ? "bg-[#33fea6]" : "bg-gray-200";
       case "secondary":
         return checked ? "bg-[#084b49]" : "bg-gray-200";
       case "aurora":
-        return checked ? "bg-[#33fea6]/50" : "bg-gray-200"; // Added 50% opacity for aurora when on
+        return checked ? "bg-[#33fea6]" : "bg-gray-200"; // Updated to match other toggles
       default:
         return checked ? "bg-primary" : "bg-gray-200";
     }
@@ -44,7 +39,7 @@ const Switch = React.forwardRef<
       <SwitchPrimitives.Thumb
         className={cn(
           "pointer-events-none block h-4 w-4 rounded-full shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
-          checked ? "bg-white" : variant === "aurora" ? "bg-[#33fea6]" : "bg-white" // Thumb is #33fea6 for aurora when off
+          "bg-white" // Always white thumb for all variants to match the design
         )}
       />
     </SwitchPrimitives.Root>

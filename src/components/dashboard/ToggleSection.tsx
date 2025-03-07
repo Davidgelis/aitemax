@@ -27,46 +27,33 @@ export const ToggleSection = ({
     
     if (itemVariant === "primary") return "border-2 border-primary/30 glow-effect";
     if (itemVariant === "secondary") return "border-2 border-[#64bf95]/30 glow-effect";
-    if (itemVariant === "aurora") return "border border-transparent";
+    if (itemVariant === "aurora") return "border-2 border-primary/30 glow-effect"; // Updated to match primary
     
     return "border";
   };
 
-  // Different styling for the aurora variant
-  const isAurora = variant === "aurora";
-  const containerClass = isAurora 
-    ? "flex items-center gap-2 " + className
-    : "flex flex-wrap gap-2 " + className;
-
-  // For aurora variant, we only show the first toggle
-  const displayToggles = isAurora && toggles.length > 0 ? [toggles[0]] : toggles;
+  const containerClass = "flex flex-wrap gap-2 " + className;
 
   return (
     <div className={containerClass}>
-      {displayToggles.map((item) => {
+      {toggles.map((item) => {
         const isSelected = selectedToggle === item.id;
         
         return (
           <div 
             key={item.id} 
-            className={`flex items-center justify-between py-1.5 px-3 ${getBorderClass(isSelected, variant)} rounded-lg ${
-              isAurora ? 'bg-[#084b49] shadow-sm' : 'bg-white'
-            } flex-1 transition-all duration-300`}
+            className={`flex items-center justify-between py-1.5 px-3 ${getBorderClass(isSelected, variant)} rounded-lg bg-white flex-1 transition-all duration-300`}
           >
-            <span className={`text-sm ${isAurora ? 'text-white flex-nowrap whitespace-nowrap pr-6 font-medium' : 'text-text flex flex-col items-start'}`}>
-              {isAurora 
-                ? item.label 
-                : item.label.split(" ").map((word, index) => (
-                    <span key={index} className="leading-tight">{word}</span>
-                  ))
-              }
+            <span className={`text-sm text-text flex flex-col items-start`}>
+              {item.label.split(" ").map((word, index) => (
+                <span key={index} className="leading-tight">{word}</span>
+              ))}
             </span>
             <Switch 
               id={item.id}
               checked={isSelected}
               onCheckedChange={() => onToggleChange(item.id)}
               variant={variant}
-              className={isAurora ? "z-10" : ""}
             />
           </div>
         );
