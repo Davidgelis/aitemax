@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -287,7 +286,7 @@ export const ModelSelectorDialog = ({
                 {model.name === '-' ? (
                   <div className="flex justify-center items-center">
                     <div 
-                      className="w-20 h-4 rounded-md"
+                      className="w-16 h-3 rounded-md"
                       style={{ 
                         backgroundColor: position === 0 ? '#33fea6' : '#b2b2b2',
                       }}
