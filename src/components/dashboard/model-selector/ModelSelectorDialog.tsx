@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -39,7 +38,6 @@ export const ModelSelectorDialog = ({
 }: ModelSelectorDialogProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  // Add the "-" option to the models array
   const displayModelsArray = useMemo(() => {
     if (hasNoneOption) {
       return [
@@ -63,7 +61,7 @@ export const ModelSelectorDialog = ({
       setActiveIndex((prev) => {
         const next = prev >= displayModelsArray.length - 1 ? 0 : prev + 1;
         if (next === 0) {
-          onSelect(null); // Select null for the "None" option
+          onSelect(null);
         } else {
           onSelect(displayModelsArray[next]);
         }
@@ -74,7 +72,7 @@ export const ModelSelectorDialog = ({
       setActiveIndex((prev) => {
         const next = prev <= 0 ? displayModelsArray.length - 1 : prev - 1;
         if (next === 0) {
-          onSelect(null); // Select null for the "None" option
+          onSelect(null);
         } else {
           onSelect(displayModelsArray[next]);
         }
@@ -112,7 +110,7 @@ export const ModelSelectorDialog = ({
       setActiveIndex((prev) => {
         const next = prev >= displayModelsArray.length - 1 ? 0 : prev + 1;
         if (next === 0) {
-          onSelect(null); // Select null for the "None" option
+          onSelect(null);
         } else {
           onSelect(displayModelsArray[next]);
         }
@@ -131,7 +129,7 @@ export const ModelSelectorDialog = ({
       setActiveIndex((prev) => {
         const next = prev <= 0 ? displayModelsArray.length - 1 : prev - 1;
         if (next === 0) {
-          onSelect(null); // Select null for the "None" option
+          onSelect(null);
         } else {
           onSelect(displayModelsArray[next]);
         }
@@ -154,7 +152,7 @@ export const ModelSelectorDialog = ({
   const handleSelectModel = (selectedIndex: number) => {
     setActiveIndex(selectedIndex);
     if (selectedIndex === 0 && hasNoneOption) {
-      onSelect(null); // Select null for the "None" option
+      onSelect(null);
     } else {
       onSelect(displayModelsArray[selectedIndex]);
     }
@@ -277,9 +275,10 @@ export const ModelSelectorDialog = ({
                   transform: `scale(${position === 0 ? 1.05 : 1})`,
                   transition: 'all 700ms cubic-bezier(0.4, 0, 0.2, 1)',
                   ...(model.name === '-' ? {
-                    fontSize: position === 0 ? '9.375rem' : '6.25rem', // 5x bigger for dash
-                    lineHeight: position === 0 ? '5rem' : '3.5rem',
-                    marginTop: position === 0 ? '-2rem' : '-1.5rem'
+                    fontSize: position === 0 ? '9.375rem' : '6.25rem',
+                    lineHeight: position === 0 ? '3rem' : '2.1rem',
+                    marginTop: position === 0 ? '-1rem' : '-0.75rem',
+                    borderRadius: '0.5rem'
                   } : {})
                 }}
               >
