@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -8,7 +7,6 @@ import { StepController } from "@/components/dashboard/StepController";
 import { usePromptState } from "@/hooks/usePromptState";
 import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate, useLocation } from "react-router-dom";
 
 const fallbackModels = [
   {
@@ -55,33 +53,12 @@ const Dashboard = () => {
   const [modelsInitialized, setModelsInitialized] = useState(false);
   const [isUpdatingModels, setIsUpdatingModels] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const location = useLocation();
   
   const promptState = usePromptState(user);
   
   const filteredPrompts = promptState.savedPrompts.filter(
     (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm.toLowerCase())
   );
-  
-  // Save draft when navigating away from dashboard
-  useEffect(() => {
-    const handleBeforeNavigate = (e: PopStateEvent) => {
-      if (location.pathname === "/dashboard" && promptState.promptText && !promptState.isViewingSavedPrompt) {
-        promptState.saveDraft();
-        toast({
-          title: "Draft Saved",
-          description: "Your work has been saved as a draft."
-        });
-      }
-    };
-    
-    window.addEventListener('popstate', handleBeforeNavigate);
-    
-    return () => {
-      window.removeEventListener('popstate', handleBeforeNavigate);
-    };
-  }, [location.pathname, promptState.promptText, promptState.isViewingSavedPrompt, promptState.saveDraft]);
   
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -178,18 +155,6 @@ const Dashboard = () => {
     }
   }, [user]);
 
-  // Custom handler for new prompt that saves draft first
-  const handleNewPromptWithDraftSave = () => {
-    if (promptState.promptText && !promptState.isViewingSavedPrompt) {
-      promptState.saveDraft();
-      toast({
-        title: "Draft Saved",
-        description: "Your work has been saved as a draft."
-      });
-    }
-    promptState.handleNewPrompt();
-  };
-
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -214,7 +179,7 @@ const Dashboard = () => {
           searchTerm={promptState.searchTerm}
           setSearchTerm={promptState.setSearchTerm}
           isLoadingPrompts={promptState.isLoadingPrompts}
-          handleNewPrompt={handleNewPromptWithDraftSave}
+          handleNewPrompt={promptState.handleNewPrompt}
           handleDeletePrompt={promptState.handleDeletePrompt}
           handleDuplicatePrompt={promptState.handleDuplicatePrompt}
           handleRenamePrompt={promptState.handleRenamePrompt}

@@ -8,8 +8,7 @@ import {
   extractQuestions, 
   extractVariables, 
   extractMasterCommand, 
-  extractEnhancedPrompt,
-  extractImpliedVariablesFromPrompt
+  extractEnhancedPrompt 
 } from "./utils/extractors.ts";
 import { 
   generateContextQuestionsForPrompt,
@@ -86,80 +85,6 @@ async function recordTokenUsage(
   }
 }
 
-// Enhanced function to check if text looks like a placeholder with more sophisticated detection
-function isPlaceholderText(text: string): boolean {
-  // If text is empty or too short, consider it placeholder
-  if (!text || text.trim().length < 5) return true;
-  
-  // Common placeholder terms and phrases
-  const placeholderPatterns = [
-    /start by typing your prompt/i,
-    /for example:/i,
-    /create an email template/i,
-    /write a prompt for/i,
-    /placeholder/i,
-    /sample text/i,
-    /example prompt/i,
-    /input your prompt/i,
-    /type here/i,
-    /enter your prompt/i,
-    /prompt goes here/i,
-    /sample prompt/i
-  ];
-  
-  // Check if the text contains well-known placeholder patterns
-  const containsPlaceholder = placeholderPatterns.some(pattern => pattern.test(text));
-  if (containsPlaceholder) return true;
-  
-  // Check if the text is too generic/instructional rather than an actual prompt
-  const instructionalPatterns = [
-    /^\s*what do you want .+? to do/i,
-    /^\s*how can I help you/i,
-    /^\s*tell me what you need/i,
-    /^\s*describe what you want/i
-  ];
-  
-  return instructionalPatterns.some(pattern => pattern.test(text));
-}
-
-// Function to strip out placeholder text if it contains real content too
-function cleanPlaceholderText(text: string): string {
-  // Check if the text contains both placeholder and real content
-  const placeholderLines = [
-    "Start by typing your prompt",
-    "For example:",
-    "Create an email template",
-    "Write a prompt for",
-    "Input your prompt",
-    "Sample text",
-    "Example prompt",
-    "Type here",
-    "Enter your prompt",
-    "Prompt goes here",
-    "Sample prompt"
-  ];
-  
-  let cleanedText = text;
-  
-  // Remove common placeholder lines while preserving user content
-  placeholderLines.forEach(line => {
-    // Case insensitive replacement of placeholder lines
-    const regex = new RegExp(`^\\s*${line}.*$`, 'im');
-    cleanedText = cleanedText.replace(regex, '');
-  });
-  
-  // Remove common example prompts if they appear to be placeholders
-  if (cleanedText.includes('Create an email template for customer onboarding')) {
-    cleanedText = cleanedText.replace(/Create an email template for customer onboarding/g, '');
-  }
-  
-  if (cleanedText.includes('Write a prompt for generating code documentation')) {
-    cleanedText = cleanedText.replace(/Write a prompt for generating code documentation/g, '');
-  }
-  
-  return cleanedText.trim();
-}
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -169,36 +94,13 @@ serve(async (req) => {
   try {
     const { promptText, primaryToggle, secondaryToggle, userId, promptId } = await req.json();
     
-    // Clean the prompt text of placeholder content
-    const cleanedPromptText = cleanPlaceholderText(promptText);
-    
-    // Extract variables directly from the prompt as a first pass
-    const directVariables = extractImpliedVariablesFromPrompt(cleanedPromptText);
-    
-    // Skip analysis if the text appears to be only a placeholder or example
-    if (isPlaceholderText(promptText) || !cleanedPromptText) {
-      console.log("Detected placeholder text, returning fallback analysis");
-      return new Response(JSON.stringify({
-        questions: generateContextQuestionsForPrompt(""),
-        variables: directVariables.length > 0 ? directVariables : generateContextualVariablesForPrompt(""),
-        masterCommand: "Please provide a specific prompt to analyze",
-        enhancedPrompt: "# Please Replace Placeholder Text\n\nPlease replace the placeholder text with your actual prompt to receive a proper analysis.",
-        error: "Placeholder text detected"
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    console.log(`Analyzing prompt: "${cleanedPromptText}"\n`);
-    console.log(`Primary toggle: ${primaryToggle || "None"}`);
-    console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
+    console.log(`Analyzing prompt: "${promptText}"\n`);
     
     // Create a system message with better context about our purpose
     const systemMessage = createSystemPrompt(primaryToggle, secondaryToggle);
     
     // Get analysis from OpenAI
-    const analysisResult = await analyzePromptWithAI(cleanedPromptText, systemMessage.content, openAIApiKey);
+    const analysisResult = await analyzePromptWithAI(promptText, systemMessage, openAIApiKey);
     const analysis = analysisResult.content;
     
     // Record token usage for this step if userId is provided
@@ -216,19 +118,8 @@ serve(async (req) => {
     // Try to extract structured data from the analysis
     try {
       // Process the analysis to extract questions, variables, etc.
-      const questions = extractQuestions(analysis, cleanedPromptText);
-      
-      // Get variables from both the analysis and direct extraction from prompt
-      // and combine them, prioritizing the AI analysis but ensuring we have variables from the prompt too
-      const analysisVariables = extractVariables(analysis, cleanedPromptText);
-      
-      // If we don't have variables from analysis, use the directly extracted ones
-      const variables = analysisVariables.length > 0 ? 
-        analysisVariables : 
-        directVariables.length > 0 ? 
-          directVariables : 
-          generateContextualVariablesForPrompt(cleanedPromptText);
-      
+      const questions = extractQuestions(analysis, promptText);
+      const variables = extractVariables(analysis, promptText);
       const masterCommand = extractMasterCommand(analysis);
       const enhancedPrompt = extractEnhancedPrompt(analysis);
       
@@ -248,18 +139,15 @@ serve(async (req) => {
     } catch (extractionError) {
       console.error("Error extracting structured data from analysis:", extractionError);
       
-      // Directly extract variables from the prompt text as fallback
-      const directVariables = extractImpliedVariablesFromPrompt(cleanedPromptText);
-      
       // Fallback to context-specific questions
-      const contextQuestions = generateContextQuestionsForPrompt(cleanedPromptText);
+      const contextQuestions = generateContextQuestionsForPrompt(promptText);
       
       // Fallback to mock data but still return a 200 status code
       return new Response(JSON.stringify({
         questions: contextQuestions,
-        variables: directVariables.length > 0 ? directVariables : generateContextualVariablesForPrompt(cleanedPromptText),
-        masterCommand: "Analyzed prompt: " + cleanedPromptText.substring(0, 50) + "...",
-        enhancedPrompt: "# Enhanced Prompt\n\n" + cleanedPromptText,
+        variables: generateContextualVariablesForPrompt(promptText),
+        masterCommand: "Analyzed prompt: " + promptText.substring(0, 50) + "...",
+        enhancedPrompt: "# Enhanced Prompt\n\n" + promptText,
         error: extractionError.message,
         rawAnalysis: analysis,
         usage: analysisResult.usage

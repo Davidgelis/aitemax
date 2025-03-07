@@ -2,53 +2,18 @@
 import { Variable } from "../types";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { hasVariablePlaceholders } from "@/utils/promptUtils";
 
 interface VariablesSectionProps {
   variables: Variable[];
   handleVariableValueChange: (variableId: string, newValue: string) => void;
-  finalPrompt?: string;
 }
 
 export const VariablesSection = ({
   variables,
-  handleVariableValueChange,
-  finalPrompt = ""
+  handleVariableValueChange
 }: VariablesSectionProps) => {
   const [groupedVariables, setGroupedVariables] = useState<Record<string, Variable[]>>({});
   const [isVisible, setIsVisible] = useState(true);
-  const [relevantVariableIds, setRelevantVariableIds] = useState<Set<string>>(new Set());
-  
-  // Flag to check if prompt has variable placeholders
-  const hasPlaceholders = finalPrompt ? hasVariablePlaceholders(finalPrompt) : false;
-  
-  // Determine which variables are actually used in the final prompt or should be shown
-  useEffect(() => {
-    if (finalPrompt && variables.length > 0) {
-      const usedVarIds = new Set<string>();
-      
-      variables.forEach(variable => {
-        // Check if the variable appears in the final prompt
-        if (variable.name) {
-          const pattern = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
-          if (pattern.test(finalPrompt)) {
-            usedVarIds.add(variable.id);
-          } else if (variable.isRelevant === true) {
-            // Include variables marked as relevant even if not in the prompt
-            usedVarIds.add(variable.id);
-          }
-        }
-      });
-      
-      setRelevantVariableIds(usedVarIds);
-    } else {
-      // If no final prompt or no variables, consider all variables with values or marked relevant
-      const relevantVarIds = new Set(variables
-        .filter(v => v.isRelevant === true || (v.value && v.value.trim() !== ''))
-        .map(v => v.id));
-      setRelevantVariableIds(relevantVarIds);
-    }
-  }, [finalPrompt, variables]);
   
   // Group variables by category
   useEffect(() => {
@@ -59,25 +24,9 @@ export const VariablesSection = ({
     }
     
     const grouped: Record<string, Variable[]> = {};
+    const relevantVars = variables.filter(v => v && v.isRelevant === true);
     
-    // Filter variables based on relevance or placeholder detection
-    let filteredVars = variables;
-    
-    if (hasPlaceholders && relevantVariableIds.size > 0) {
-      // If we have placeholders and relevant variables, show those
-      filteredVars = variables.filter(v => relevantVariableIds.has(v.id));
-    } else if (variables.some(v => v.isRelevant !== null)) {
-      // If we have variables with explicit relevance, respect that
-      filteredVars = variables.filter(v => v && v.isRelevant !== false);
-    }
-    
-    // If we still have no variables to display after filtering, show all
-    if (filteredVars.length === 0 && variables.length > 0) {
-      filteredVars = variables;
-    }
-    
-    // Group by category
-    filteredVars.forEach(variable => {
+    relevantVars.forEach(variable => {
       const category = variable.category || "Other";
       
       if (!grouped[category]) {
@@ -88,7 +37,7 @@ export const VariablesSection = ({
     });
     
     setGroupedVariables(grouped);
-  }, [variables, relevantVariableIds, hasPlaceholders]);
+  }, [variables]);
   
   // Early return if there are no variables to display
   if (!variables || variables.length === 0) {
@@ -99,12 +48,10 @@ export const VariablesSection = ({
     );
   }
   
-  // Get count of variables to display
-  const displayedVariablesCount = Object.values(groupedVariables).reduce(
-    (count, vars) => count + vars.length, 0
-  );
+  // Get count of relevant variables
+  const relevantVariablesCount = variables.filter(v => v && v.isRelevant === true).length;
   
-  if (displayedVariablesCount === 0) {
+  if (relevantVariablesCount === 0) {
     return (
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
@@ -126,7 +73,7 @@ export const VariablesSection = ({
           onClick={() => setIsVisible(!isVisible)}
           className="text-sm text-accent font-medium hover:underline focus:outline-none"
         >
-          Variables ({displayedVariablesCount}) {isVisible ? '▼' : '►'}
+          Variables ({relevantVariablesCount}) {isVisible ? '▼' : '►'}
         </button>
       </div>
       

@@ -4,7 +4,6 @@ import { Question, Variable } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions, primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { extractContextAwareVariables } from "@/utils/promptUtils";
 
 // Helper function to validate variable names
 const isValidVariableName = (name: string): boolean => {
@@ -52,85 +51,6 @@ export const usePromptAnalysis = (
     return () => clearTimeout(timeout);
   }, [isLoading, currentLoadingMessage]);
 
-  // Extract variables directly from prompt text
-  const extractDirectVariables = (text: string): Variable[] => {
-    const variables: Variable[] = [];
-    
-    // First, try to extract variables with {{brackets}}
-    const variableRegex = /{{(\w+)}}/g;
-    let match;
-    
-    while ((match = variableRegex.exec(text)) !== null) {
-      const name = match[1];
-      if (name && 
-          name.trim().length > 1 &&
-          name !== 'Task' && 
-          name !== 'Persona' && 
-          name !== 'Conditions' && 
-          name !== 'Instructions' && 
-          !variables.some(v => v.name === name)) {
-        
-        const category = name.toLowerCase().includes('recipient') || 
-                        name.toLowerCase().includes('audience') || 
-                        name.toLowerCase().includes('tone') 
-                        ? "Persona" 
-                        : name.toLowerCase().includes('count') || 
-                          name.toLowerCase().includes('limit') || 
-                          name.toLowerCase().includes('time')
-                          ? "Conditions"
-                          : name.toLowerCase().includes('format') || 
-                            name.toLowerCase().includes('style')
-                            ? "Instructions"
-                            : "Task";
-                          
-        variables.push({
-          id: `v${variables.length + 1}`,
-          name,
-          value: "",
-          isRelevant: true,
-          category,
-          code: `VAR_${variables.length + 1}`
-        });
-      }
-    }
-    
-    // If no variables with {{brackets}}, try to extract context-aware variables
-    if (variables.length === 0) {
-      const contextVariables = extractContextAwareVariables(text);
-      
-      contextVariables.forEach((v, index) => {
-        if (v.name && 
-            v.name.trim().length > 1 && 
-            !variables.some(existing => existing.name === v.name)) {
-          
-          const category = v.name.toLowerCase().includes('recipient') || 
-                          v.name.toLowerCase().includes('audience') || 
-                          v.name.toLowerCase().includes('tone') 
-                          ? "Persona" 
-                          : v.name.toLowerCase().includes('count') || 
-                            v.name.toLowerCase().includes('limit') || 
-                            v.name.toLowerCase().includes('time')
-                            ? "Conditions"
-                            : v.name.toLowerCase().includes('format') || 
-                              v.name.toLowerCase().includes('style')
-                              ? "Instructions"
-                              : "Task";
-                            
-          variables.push({
-            id: `v${variables.length + 1}`,
-            name: v.name,
-            value: v.value || "",
-            isRelevant: true,
-            category,
-            code: `VAR_${index + 1}`
-          });
-        }
-      });
-    }
-    
-    return variables;
-  };
-
   const handleAnalyze = async () => {
     if (!promptText.trim()) {
       toast({
@@ -161,9 +81,6 @@ export const usePromptAnalysis = (
       if (promptId) {
         payload.promptId = promptId;
       }
-
-      // Extract direct variables from prompt text to ensure we always have them
-      const directVariables = extractDirectVariables(promptText);
       
       const { data, error } = await supabase.functions.invoke('analyze-prompt', {
         body: payload
@@ -193,10 +110,9 @@ export const usePromptAnalysis = (
           setQuestions(mockQuestions);
         }
         
-        // First check if we have real variables from the AI analysis
         if (data.variables && data.variables.length > 0) {
           // Additional filtering to ensure no invalid variables get through
-          const aiVariables = data.variables
+          const validVariables = data.variables
             .filter((v: any) => 
               v.name && 
               isValidVariableName(v.name) && 
@@ -208,33 +124,17 @@ export const usePromptAnalysis = (
             .map((v: any, index: number) => ({
               ...v,
               id: v.id || `v${index + 1}`,
-              value: v.value || "",
-              isRelevant: v.isRelevant === null ? true : v.isRelevant,
-              code: v.code || `VAR_${index + 1}`
+              value: v.value || ""
             }));
-          
-          // If we have valid variables from AI, use them
-          if (aiVariables.length > 0) {
-            setVariables(aiVariables);
-          } 
-          // If not, prioritize directly extracted variables
-          else if (directVariables.length > 0) {
-            setVariables(directVariables);
-          } 
-          // Fallback to default variables as a last resort
-          else {
+            
+          // If we have valid variables after filtering, use them
+          if (validVariables.length > 0) {
+            setVariables(validVariables);
+          } else {
+            // Otherwise use default variables from constants
             const { defaultVariables } = await import("@/components/dashboard/constants");
             setVariables(defaultVariables);
           }
-        } 
-        // If no variables from AI, use direct variables
-        else if (directVariables.length > 0) {
-          setVariables(directVariables);
-        } 
-        // Fallback to default variables
-        else {
-          const { defaultVariables } = await import("@/components/dashboard/constants");
-          setVariables(defaultVariables);
         }
         
         if (data.masterCommand) {
@@ -258,14 +158,6 @@ export const usePromptAnalysis = (
       } else {
         console.warn("No data received from analysis function, using fallbacks");
         setQuestions(mockQuestions);
-        
-        // If no data but we have direct variables, use them
-        if (directVariables.length > 0) {
-          setVariables(directVariables);
-        } else {
-          const { defaultVariables } = await import("@/components/dashboard/constants");
-          setVariables(defaultVariables);
-        }
       }
     } catch (error) {
       console.error("Error analyzing prompt with AI:", error);
@@ -275,22 +167,13 @@ export const usePromptAnalysis = (
         variant: "destructive",
       });
       setQuestions(mockQuestions);
-      
-      // If error but we have direct variables, use them
-      const directVariables = extractDirectVariables(promptText);
-      if (directVariables.length > 0) {
-        setVariables(directVariables);
-      } else {
-        const { defaultVariables } = await import("@/components/dashboard/constants");
-        setVariables(defaultVariables);
-      }
     } finally {
       // Keep loading state active for at least a few seconds to show the loading screen
       // This ensures a smoother transition even if the API is fast
       setTimeout(() => {
         setIsLoading(false);
         setCurrentStep(2);
-      }, 2000);
+      }, 3000);
     }
   };
 
@@ -326,7 +209,7 @@ export const usePromptAnalysis = (
       
       // Filter out only relevant variables
       const relevantVariables = variables.filter(
-        v => v.isRelevant !== false
+        v => v.isRelevant === true
       );
       
       const { data, error } = await supabase.functions.invoke('enhance-prompt', {

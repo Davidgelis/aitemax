@@ -1,10 +1,8 @@
-
 import { Edit } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { hasVariablePlaceholders } from "@/utils/promptUtils";
 
 interface FinalPromptDisplayProps {
   finalPrompt: string;
@@ -43,7 +41,7 @@ export const FinalPromptDisplay = ({
   }, []);
   
   const relevantVariables = Array.isArray(variables) 
-    ? variables.filter(v => v && typeof v === 'object' && v?.isRelevant !== false) 
+    ? variables.filter(v => v && typeof v === 'object' && v?.isRelevant === true) 
     : [];
   
   const convertPromptToJson = useCallback(async () => {
@@ -111,24 +109,22 @@ export const FinalPromptDisplay = ({
     
     let processedText = text;
     
-    // First, highlight variable placeholders
-    const placeholderPattern = /{{([^}]+)}}/g;
-    processedText = processedText.replace(placeholderPattern, (match, name) => {
-      return `<span class="unresolved-variable">${match}</span>`;
-    });
-    
-    // Then highlight variables that have values
     relevantVariables.forEach(variable => {
       if (!variable || !variable.name) return;
       
       try {
-        if (variable.value) {
+        // Highlight unresolved variables (those without values)
+        if (!variable.value) {
+          const pattern = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
+          processedText = processedText.replace(pattern, 
+            `<span class="unresolved-variable">{{${variable.name}}}</span>`);
+        } 
+        // Highlight resolved variables (those with values)
+        else {
           const escapedValue = escapeRegExp(variable.value);
-          if (escapedValue.length > 2) { // Only replace if value is substantial
-            const valuePattern = new RegExp(`\\b${escapedValue}\\b`, 'g');
-            processedText = processedText.replace(valuePattern, 
-              `<span class="variable-highlight">${variable.value}</span>`);
-          }
+          const valuePattern = new RegExp(`\\b${escapedValue}\\b`, 'g');
+          processedText = processedText.replace(valuePattern, 
+            `<span class="variable-highlight">${variable.value}</span>`);
         }
       } catch (error) {
         console.error(`Error highlighting variable ${variable.name}:`, error);
@@ -172,53 +168,17 @@ export const FinalPromptDisplay = ({
         return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
       }
       
-      const sections = processedPrompt.split(/^(Task:|Persona:|Conditions:|Instructions:)/gm);
-      
-      let title = "";
-      const titleMatch = processedPrompt.match(/\*\*\[(.*?)\]\*\*/);
-      if (titleMatch && titleMatch[1]) {
-        title = titleMatch[1];
-      }
+      const paragraphs = processedPrompt.split('\n\n');
       
       return (
         <div className="prose prose-sm max-w-none">
-          {title && (
-            <div className="bg-primary/10 p-2 rounded-md mb-4 font-bold text-center">
-              {title}
-            </div>
-          )}
-          
-          {sections.map((section, index) => {
-            if (!section.trim()) return null;
+          {paragraphs.map((paragraph, index) => {
+            if (!paragraph) return null;
             
-            if (["Task:", "Persona:", "Conditions:", "Instructions:"].includes(section)) {
-              return (
-                <h3 key={index} className="text-primary font-bold mt-4 mb-2">
-                  {section}
-                </h3>
-              );
-            }
+            const highlightedContent = highlightVariablesInText(paragraph);
             
-            const paragraphs = section.split('\n\n');
             return (
-              <div key={index}>
-                {paragraphs.map((paragraph, pIndex) => {
-                  if (!paragraph.trim()) return null;
-                  
-                  // Check if paragraph contains variable placeholders before processing
-                  const hasVariables = hasVariablePlaceholders(paragraph) || 
-                                       relevantVariables.some(v => v.value && paragraph.includes(v.value));
-                  
-                  const highlightedContent = hasVariables 
-                    ? highlightVariablesInText(paragraph) 
-                    : paragraph;
-                    
-                  return (
-                    <p key={`${index}-${pIndex}`} 
-                       dangerouslySetInnerHTML={{ __html: highlightedContent }} />
-                  );
-                })}
-              </div>
+              <p key={index} dangerouslySetInnerHTML={{ __html: highlightedContent }} />
             );
           })}
         </div>
@@ -273,14 +233,6 @@ export const FinalPromptDisplay = ({
           border-radius: 2px;
           padding: 0 2px;
           border-bottom: 1px dashed rgba(254, 51, 51, 0.5);
-        }
-        .animate-aurora {
-          animation: aurora 15s ease infinite;
-        }
-        @keyframes aurora {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
         }
         `}
       </style>

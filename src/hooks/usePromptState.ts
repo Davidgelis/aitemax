@@ -67,6 +67,20 @@ export const usePromptState = (user: any) => {
     }
   }, [user]);
 
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (promptText && !isViewingSavedPrompt) {
+        saveDraft();
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [promptText, isViewingSavedPrompt, saveDraft]);
+
   const loadSelectedDraftState = (draft: any) => {
     const draftData = loadSelectedDraft(draft);
     
@@ -128,6 +142,14 @@ export const usePromptState = (user: any) => {
   };
 
   const handleNewPrompt = () => {
+    if (promptText && !isViewingSavedPrompt) {
+      saveDraft();
+      toast({
+        title: "Draft Saved",
+        description: "Your work has been saved as a draft.",
+      });
+    }
+    
     setPromptText("");
     setQuestions([]);
     setVariables(defaultVariables.map(v => ({ ...v, value: "", isRelevant: null })));
@@ -468,7 +490,6 @@ export const usePromptState = (user: any) => {
     loadSelectedDraft: loadSelectedDraftState,
     deleteDraft,
     currentDraftId,
-    handleDeleteDraft,
-    saveDraft
+    handleDeleteDraft
   };
 };
