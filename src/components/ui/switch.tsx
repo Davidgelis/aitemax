@@ -10,21 +10,24 @@ const Switch = React.forwardRef<
     variant?: "default" | "primary" | "secondary" | "aurora"
   }
 >(({ className, variant = "default", ...props }, ref) => {
-  const variantStyles = {
-    default: "bg-primary data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-15",
-    primary: "bg-[#33fea6] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-20",
-    secondary: "bg-[#084b49] data-[state=checked]:bg-opacity-100 data-[state=unchecked]:bg-opacity-20",
-    aurora: "bg-[#33fea6] data-[state=checked]:bg-[#33fea6] data-[state=unchecked]:bg-[#33fea6]/20"
-  }
-
-  // Ensure the variant is valid, defaulting to "default" if not
-  const safeVariant = (variant && variantStyles[variant]) ? variant : "default";
+  const getVariantClasses = (variant: string) => {
+    switch(variant) {
+      case "primary":
+        return "bg-[#33fea6]/20 data-[state=checked]:bg-[#33fea6]";
+      case "secondary":
+        return "bg-[#084b49]/20 data-[state=checked]:bg-[#084b49]";
+      case "aurora":
+        return "bg-[#33fea6]/20 data-[state=checked]:bg-[#33fea6]";
+      default:
+        return "bg-primary/20 data-[state=checked]:bg-primary";
+    }
+  };
   
   return (
     <SwitchPrimitives.Root
       className={cn(
         "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
-        variantStyles[safeVariant],
+        getVariantClasses(variant),
         className
       )}
       {...props}
