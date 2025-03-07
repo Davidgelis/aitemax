@@ -2,6 +2,7 @@
 import { Copy, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface ActionButtonsProps {
   handleCopyPrompt: () => void;
@@ -65,24 +66,26 @@ export const ActionButtons = ({
   
   return (
     <div className="flex justify-between items-center">
-      <button
+      <Button
         onClick={safeHandleCopyPrompt}
-        className="aurora-button inline-flex items-center gap-2"
+        variant="analyze"
         disabled={isProcessing}
         aria-label="Copy prompt"
+        className="gap-2"
       >
         <Copy className="w-4 h-4" />
         Copy
-      </button>
-      <button
+      </Button>
+      <Button
         onClick={safeHandleSavePrompt}
-        className="aurora-button inline-flex items-center gap-2"
+        variant="analyze"
         disabled={isProcessing}
         aria-label="Save prompt"
+        className="gap-2"
       >
         <Save className="w-4 h-4" />
         Save
-      </button>
+      </Button>
     </div>
   );
 };

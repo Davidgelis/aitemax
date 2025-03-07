@@ -36,6 +36,10 @@ export default {
         accent: {
           DEFAULT: "#041524",
         },
+        green: {
+          300: "#4ade80", // Light green color
+          400: "#22c55e", // Medium green color that matches the image
+        },
       },
       keyframes: {
         "fade-in": {
