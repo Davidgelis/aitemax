@@ -15,6 +15,12 @@ PROCESS THE PROMPT AS FOLLOWS:
 3. Generate contextual questions that would help clarify the prompt.
 4. Create a concise master command that summarizes the prompt's intent.
 
+THOROUGH CONTEXT EXTRACTION:
+- Look for implicit needs and requirements that may not be explicitly stated
+- Consider the domain, audience, or format that might be relevant
+- Identify any constraints or limitations that should be considered
+- Look for patterns suggesting specific use cases or applications
+
 YOUR RESPONSE MUST FOLLOW THIS EXACT FORMAT:
 
 ===VARIABLES===
@@ -55,7 +61,7 @@ ${primaryToggleInstruction ? `\n\nPRIMARY TOGGLE CONSIDERATION:\n${primaryToggle
 ${secondaryToggleInstruction ? `\n\nSECONDARY TOGGLE CONSIDERATION:\n${secondaryToggleInstruction}` : ''}
 
 IMPORTANT RULES:
-1. Extract at least 3 variables and generate at least 3 questions.
+1. Extract at least 3-5 variables and generate at least 3-5 questions.
 2. Variables should be things that might need to be modified or parameterized.
 3. Questions should help clarify ambiguous or missing parts of the prompt.
 4. The master command should be a single sentence summarizing the prompt's goal.
@@ -64,6 +70,7 @@ IMPORTANT RULES:
 7. Each variable MUST have a code attribute (VAR_1, VAR_2, etc.)
 8. Preserve the original intent of the prompt in your analysis.
 9. If primary or secondary toggles are selected, ensure your analysis and enhancements align with their requirements.
+10. DO NOT analyze placeholder examples or text that looks like instructions. Only analyze the actual user prompt.
     `
   };
 };

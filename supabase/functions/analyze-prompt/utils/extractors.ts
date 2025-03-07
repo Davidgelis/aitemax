@@ -100,6 +100,44 @@ export function extractQuestions(analysis: string, promptText: string): any[] {
     }
   }
   
+  // If no questions found through regular means, try to generate context-aware questions
+  if (questions.length === 0) {
+    // Look for implied questions in the analysis
+    const paragraphs = analysis.split('\n\n');
+    
+    for (const paragraph of paragraphs) {
+      if (paragraph.toLowerCase().includes('clarify') || 
+          paragraph.toLowerCase().includes('specify') ||
+          paragraph.toLowerCase().includes('missing information')) {
+        
+        // Convert statements into questions
+        const statements = paragraph.split('\n').filter(line => 
+          line.trim().length > 10 && 
+          !line.includes('===') && 
+          !line.startsWith('#')
+        );
+        
+        for (const statement of statements) {
+          const cleanStatement = statement.replace(/^[-*•]\s*/, '').trim();
+          if (cleanStatement) {
+            // Convert statement to question if it's not already a question
+            const question = cleanStatement.endsWith('?') ? 
+              cleanStatement : 
+              `What ${cleanStatement.toLowerCase().startsWith('what') ? cleanStatement.substring(4) : cleanStatement}?`;
+            
+            questions.push({
+              id: `q${questions.length + 1}`,
+              text: question,
+              category: getCategoryFromText(question),
+              isRelevant: null,
+              answer: ""
+            });
+          }
+        }
+      }
+    }
+  }
+  
   return questions.length > 0 ? questions : generateContextQuestionsForPrompt(promptText);
 }
 
@@ -179,12 +217,50 @@ export function extractVariables(analysis: string, promptText: string): any[] {
     }
   }
   
+  // Additional extraction from sections
+  if (variables.length === 0) {
+    // Look for structured sections in the analysis
+    const sections = analysis.split(/(?:^|\n)#+\s+/g);
+    
+    for (const section of sections) {
+      // Look for key terms that might be variables
+      const keyTerms = section.match(/(?:^|\n)(?:Important|Key|Parameter|Options?):\s*(\w+)(?:\s*-\s*(.+?))?(?=\n|$)/g);
+      
+      if (keyTerms) {
+        for (const term of keyTerms) {
+          const match = term.match(/(?:^|\n)(?:Important|Key|Parameter|Options?):\s*(\w+)(?:\s*-\s*(.+?))?(?=\n|$)/);
+          if (match && match[1]) {
+            const name = match[1].trim();
+            const value = match[2] ? match[2].trim() : "";
+            
+            // Skip invalid variable names
+            if (name === 'Task' || name === 'Persona' || name === 'Conditions' || name === 'Instructions' ||
+                name.trim().length <= 1 || /^\*+$/.test(name) || /^[sS]$/.test(name)) {
+              continue;
+            }
+            
+            if (name && !variables.some((v: any) => v.name === name)) {
+              variables.push({
+                id: `v${variables.length + 1}`,
+                name,
+                value,
+                isRelevant: true, // Mark as relevant by default
+                category: getCategoryFromVariableName(name)
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+  
   // If we found some contextual variables in the analysis
   if (variables.length > 0) {
     return variables;
   }
   
-  return generateContextualVariablesForPrompt(promptText);
+  // Extract potential variables from the prompt text even if not in {{brackets}}
+  return extractImpliedVariablesFromPrompt(promptText);
 }
 
 /**
@@ -218,6 +294,50 @@ export function extractDirectVariablesFromPrompt(promptText: string): any[] {
   }
   
   return variables;
+}
+
+/**
+ * Extract implied variables from prompt text by looking for key terms
+ */
+export function extractImpliedVariablesFromPrompt(promptText: string): any[] {
+  const variables = [];
+  
+  // Common variable patterns to look for
+  const patterns = [
+    { regex: /(?:^|\s)(tone|voice)(?:\s+(?:is|should be|of))?(?:\s+['"a-zA-Z]+)?/i, name: "Tone", category: "Persona" },
+    { regex: /(?:^|\s)(audience|recipient|target)(?:\s+(?:is|are|includes))?(?:\s+['"a-zA-Z]+)?/i, name: "Audience", category: "Persona" },
+    { regex: /(?:^|\s)(format|style|type)(?:\s+(?:is|should be))?(?:\s+['"a-zA-Z]+)?/i, name: "Format", category: "Instructions" },
+    { regex: /(?:^|\s)(length|word count|character limit)(?:\s+(?:is|should be|of))?(?:\s+\d+)?/i, name: "Length", category: "Conditions" },
+    { regex: /(?:^|\s)(topic|subject|theme)(?:\s+(?:is|about))?(?:\s+['"a-zA-Z]+)?/i, name: "Topic", category: "Task" },
+    { regex: /(?:^|\s)(goal|objective|purpose)(?:\s+(?:is|to))?/i, name: "Goal", category: "Task" },
+    { regex: /(?:^|\s)(deadline|timeframe|due date)(?:\s+(?:is|by))?/i, name: "Deadline", category: "Conditions" },
+    { regex: /(?:^|\s)(language|dialect)(?:\s+(?:is|should be))?(?:\s+['"a-zA-Z]+)?/i, name: "Language", category: "Instructions" }
+  ];
+  
+  // Search for each pattern
+  for (const pattern of patterns) {
+    const match = promptText.match(pattern.regex);
+    if (match && !variables.some(v => v.name === pattern.name)) {
+      // Try to extract a default value if present
+      let value = "";
+      
+      // For example, if we find "tone should be professional", extract "professional"
+      const valueMatch = promptText.match(new RegExp(`${pattern.regex.source}\\s+(['"a-zA-Z0-9]+)`, 'i'));
+      if (valueMatch && valueMatch[2]) {
+        value = valueMatch[2].replace(/['"]/g, '');
+      }
+      
+      variables.push({
+        id: `v${variables.length + 1}`,
+        name: pattern.name,
+        value,
+        isRelevant: true,
+        category: pattern.category
+      });
+    }
+  }
+  
+  return variables.length > 0 ? variables : generateContextualVariablesForPrompt(promptText);
 }
 
 /**
@@ -268,3 +388,5 @@ export function extractEnhancedPrompt(analysis: string): string {
   return "# Enhanced Prompt\n\nYour enhanced prompt will appear here after answering the questions.";
 }
 
+// Import these at the end to avoid circular dependencies
+import { generateContextQuestionsForPrompt, generateContextualVariablesForPrompt } from "./generators.ts";

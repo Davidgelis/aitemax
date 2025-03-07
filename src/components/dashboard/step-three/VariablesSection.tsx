@@ -1,19 +1,45 @@
-
 import { Variable } from "../types";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { hasVariablePlaceholders } from "@/utils/promptUtils";
 
 interface VariablesSectionProps {
   variables: Variable[];
   handleVariableValueChange: (variableId: string, newValue: string) => void;
+  finalPrompt?: string;
 }
 
 export const VariablesSection = ({
   variables,
-  handleVariableValueChange
+  handleVariableValueChange,
+  finalPrompt = ""
 }: VariablesSectionProps) => {
   const [groupedVariables, setGroupedVariables] = useState<Record<string, Variable[]>>({});
   const [isVisible, setIsVisible] = useState(true);
+  const [relevantVariableIds, setRelevantVariableIds] = useState<Set<string>>(new Set());
+  
+  // Flag to check if prompt has variable placeholders
+  const hasPlaceholders = finalPrompt ? hasVariablePlaceholders(finalPrompt) : false;
+  
+  // Determine which variables are actually used in the final prompt
+  useEffect(() => {
+    if (finalPrompt && variables.length > 0) {
+      const usedVarIds = new Set<string>();
+      
+      variables.forEach(variable => {
+        const pattern = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
+        if (pattern.test(finalPrompt)) {
+          usedVarIds.add(variable.id);
+        }
+      });
+      
+      setRelevantVariableIds(usedVarIds);
+    } else {
+      // If no final prompt or no variables, consider all variables relevant
+      const allVarIds = new Set(variables.map(v => v.id));
+      setRelevantVariableIds(allVarIds);
+    }
+  }, [finalPrompt, variables]);
   
   // Group variables by category
   useEffect(() => {
@@ -24,9 +50,19 @@ export const VariablesSection = ({
     }
     
     const grouped: Record<string, Variable[]> = {};
-    const relevantVars = variables.filter(v => v && v.isRelevant !== false);
     
-    relevantVars.forEach(variable => {
+    // Filter variables based on relevance
+    let filteredVars = variables;
+    
+    // If we have detected variables in the prompt text, only show those
+    if (hasPlaceholders && relevantVariableIds.size > 0) {
+      filteredVars = variables.filter(v => relevantVariableIds.has(v.id));
+    } else {
+      // Otherwise use the isRelevant flag
+      filteredVars = variables.filter(v => v && v.isRelevant !== false);
+    }
+    
+    filteredVars.forEach(variable => {
       const category = variable.category || "Other";
       
       if (!grouped[category]) {
@@ -37,7 +73,7 @@ export const VariablesSection = ({
     });
     
     setGroupedVariables(grouped);
-  }, [variables]);
+  }, [variables, relevantVariableIds, hasPlaceholders]);
   
   // Early return if there are no variables to display
   if (!variables || variables.length === 0) {
@@ -49,7 +85,9 @@ export const VariablesSection = ({
   }
   
   // Get count of relevant variables
-  const relevantVariablesCount = variables.filter(v => v && v.isRelevant !== false).length;
+  const relevantVariablesCount = hasPlaceholders 
+    ? relevantVariableIds.size 
+    : variables.filter(v => v && v.isRelevant !== false).length;
   
   if (relevantVariablesCount === 0) {
     return (
@@ -120,4 +158,3 @@ export const VariablesSection = ({
     </div>
   );
 };
-

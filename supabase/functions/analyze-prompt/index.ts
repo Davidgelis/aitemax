@@ -85,6 +85,21 @@ async function recordTokenUsage(
   }
 }
 
+// Function to check if text looks like a placeholder
+function isPlaceholderText(text: string): boolean {
+  const placeholderPatterns = [
+    /start by typing your prompt/i,
+    /for example:/i,
+    /create an email template/i,
+    /write a prompt for/i,
+    /placeholder/i,
+    /sample text/i,
+    /example prompt/i
+  ];
+  
+  return placeholderPatterns.some(pattern => pattern.test(text));
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -93,6 +108,21 @@ serve(async (req) => {
 
   try {
     const { promptText, primaryToggle, secondaryToggle, userId, promptId } = await req.json();
+    
+    // Skip analysis if the text appears to be a placeholder or example
+    if (isPlaceholderText(promptText)) {
+      console.log("Detected placeholder text, returning fallback analysis");
+      return new Response(JSON.stringify({
+        questions: generateContextQuestionsForPrompt(""),
+        variables: generateContextualVariablesForPrompt(""),
+        masterCommand: "Please provide a specific prompt to analyze",
+        enhancedPrompt: "# Please Replace Placeholder Text\n\nPlease replace the placeholder text with your actual prompt to receive a proper analysis.",
+        error: "Placeholder text detected"
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
     console.log(`Analyzing prompt: "${promptText}"\n`);
     console.log(`Primary toggle: ${primaryToggle || "None"}`);

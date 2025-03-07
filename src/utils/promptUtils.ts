@@ -1,11 +1,15 @@
 
 export const extractVariablesFromPrompt = (prompt: string): string[] => {
+  if (!prompt || typeof prompt !== 'string') return [];
+  
   const pattern = /{{([^}]+)}}/g;
   const matches = prompt.match(pattern) || [];
   return matches.map(match => match.replace(/[{}]/g, '').trim());
 };
 
 export const findVariableOccurrences = (text: string, variableValue: string): number[] => {
+  if (!text || !variableValue) return [];
+  
   const positions: number[] = [];
   let position = text.indexOf(variableValue);
   
@@ -48,13 +52,15 @@ export const replaceVariableInPrompt = (
 
 // Function to check for variable placeholders in text
 export const hasVariablePlaceholders = (text: string): boolean => {
+  if (!text || typeof text !== 'string') return false;
+  
   const pattern = /{{([^}]+)}}/g;
   return pattern.test(text);
 };
 
 // Function to convert all variables placeholders to their values
 export const fillAllVariables = (prompt: string, variables: any[]): string => {
-  if (!Array.isArray(variables) || variables.length === 0) return prompt;
+  if (!prompt || !Array.isArray(variables) || variables.length === 0) return prompt;
   
   let processedPrompt = prompt;
   
@@ -68,3 +74,27 @@ export const fillAllVariables = (prompt: string, variables: any[]): string => {
   return processedPrompt;
 };
 
+// Get variable names from a string formatted with {{varName}}
+export const getVariableNamesFromPrompt = (prompt: string): string[] => {
+  if (!prompt || typeof prompt !== 'string') return [];
+  
+  const variableRegex = /{{(\w+)}}/g;
+  const variableNames: string[] = [];
+  let match;
+  
+  while ((match = variableRegex.exec(prompt)) !== null) {
+    if (match[1] && !variableNames.includes(match[1])) {
+      variableNames.push(match[1]);
+    }
+  }
+  
+  return variableNames;
+};
+
+// Check if a specific variable is used in the prompt
+export const isVariableUsedInPrompt = (prompt: string, variableName: string): boolean => {
+  if (!prompt || typeof prompt !== 'string' || !variableName) return false;
+  
+  const pattern = new RegExp(`{{\\s*${variableName}\\s*}}`, 'g');
+  return pattern.test(prompt);
+};

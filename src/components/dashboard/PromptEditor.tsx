@@ -1,5 +1,6 @@
+
 import { List, ListOrdered } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -26,6 +27,8 @@ export const PromptEditor = ({
   const [error, setError] = useState<string | null>(null);
   const [showPromptDialog, setShowPromptDialog] = useState(false);
   const [submittedPrompt, setSubmittedPrompt] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
+  const placeholderText = "Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'";
 
   const insertBulletList = () => {
     if (!textareaRef.current) return;
@@ -92,6 +95,16 @@ export const PromptEditor = ({
       toast({
         title: "Error",
         description: "Please enter a prompt before analyzing",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Make sure we're not sending the placeholder text for analysis
+    if (promptText === placeholderText) {
+      toast({
+        title: "Error",
+        description: "Please replace the placeholder text with your own prompt",
         variant: "destructive",
       });
       return;
@@ -183,6 +196,27 @@ export const PromptEditor = ({
       });
     }
   };
+  
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (promptText === placeholderText) {
+      setPromptText('');
+    }
+  };
+  
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (promptText === '') {
+      setPromptText(placeholderText);
+    }
+  };
+  
+  // Initialize with placeholder if empty
+  useEffect(() => {
+    if (promptText === '' && !isFocused) {
+      setPromptText(placeholderText);
+    }
+  }, []);
 
   return (
     <div className="border rounded-xl p-6 bg-card min-h-[400px] relative">
@@ -207,8 +241,10 @@ export const PromptEditor = ({
         value={promptText}
         onChange={(e) => setPromptText(e.target.value)}
         onKeyDown={handleKeyDown}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         className="w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
-        placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
+        placeholder=""
       />
       {error && (
         <div className="mt-2 p-2 text-sm text-red-500 bg-red-50 rounded-md">
@@ -219,7 +255,7 @@ export const PromptEditor = ({
         <button 
           onClick={analyzeWithAI}
           className="aurora-button"
-          disabled={isLoading}
+          disabled={isLoading || promptText === placeholderText || promptText === ''}
         >
           {isLoading ? "Processing..." : "Analyze with AI"}
         </button>
