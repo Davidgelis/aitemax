@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { AIModel } from '../types';
 import { DisplayModel } from './types';
 import { useMemo } from 'react';
+import { RectangleHorizontal } from "lucide-react";
 
 interface ModelSelectorDialogProps {
   open: boolean;
@@ -276,19 +277,25 @@ export const ModelSelectorDialog = ({
                   transform: `scale(${position === 0 ? 1.05 : 1})`,
                   transition: 'all 700ms cubic-bezier(0.4, 0, 0.2, 1)',
                   ...(model.name === '-' ? {
-                    fontSize: position === 0 ? '9.375rem' : '6.25rem',
-                    lineHeight: position === 0 ? '1.8rem' : '1.26rem', // Reduced by 40% from 3rem/2.1rem
-                    marginTop: position === 0 ? '-0.6rem' : '-0.45rem', 
-                    padding: '0.25rem 1rem',
-                    backgroundColor: position === 0 ? 'rgba(51, 254, 166, 0.1)' : 'transparent',
-                    borderRadius: '0.5rem',
-                    display: 'inline-block',
-                    width: '70%',
-                    maxWidth: '200px'
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    padding: '0.5rem',
                   } : {})
                 }}
               >
-                {model.name}
+                {model.name === '-' ? (
+                  <div className="flex justify-center items-center">
+                    <div 
+                      className="w-20 h-4 rounded-md"
+                      style={{ 
+                        backgroundColor: position === 0 ? '#33fea6' : '#b2b2b2',
+                      }}
+                    />
+                  </div>
+                ) : (
+                  model.name
+                )}
               </div>
             </div>
           ))}
