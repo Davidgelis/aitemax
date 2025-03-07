@@ -22,7 +22,7 @@ const Switch = React.forwardRef<
       case "secondary":
         return checked ? "bg-[#084b49]" : "bg-gray-200";
       case "aurora":
-        return checked ? "bg-[#33fea6]" : "bg-gray-200"; // When on use the color, off case is handled above
+        return checked ? "bg-[#33fea6]/50" : "bg-gray-200"; // Added 50% opacity for aurora when on
       default:
         return checked ? "bg-primary" : "bg-gray-200";
     }
