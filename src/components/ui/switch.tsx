@@ -10,24 +10,32 @@ const Switch = React.forwardRef<
     variant?: "default" | "primary" | "secondary" | "aurora"
   }
 >(({ className, variant = "default", ...props }, ref) => {
-  const getVariantClasses = (variant: string) => {
+  const getVariantClasses = (variant: string, checked: boolean) => {
+    // Special case for aurora variant when off - white background
+    if (variant === "aurora" && !checked) {
+      return "bg-white";
+    }
+    
     switch(variant) {
       case "primary":
-        return "bg-[#33fea6]/20 data-[state=checked]:bg-[#33fea6]";
+        return checked ? "bg-[#33fea6]" : "bg-gray-200";
       case "secondary":
-        return "bg-[#084b49]/20 data-[state=checked]:bg-[#084b49]";
+        return checked ? "bg-[#084b49]" : "bg-gray-200";
       case "aurora":
-        return "bg-[#33fea6]/20 data-[state=checked]:bg-[#33fea6]";
+        return checked ? "bg-[#33fea6]" : "bg-gray-200"; // When on use the color, off case is handled above
       default:
-        return "bg-primary/20 data-[state=checked]:bg-primary";
+        return checked ? "bg-primary" : "bg-gray-200";
     }
   };
+  
+  // Get the checked state from props
+  const checked = props.checked || false;
   
   return (
     <SwitchPrimitives.Root
       className={cn(
         "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50",
-        getVariantClasses(variant),
+        getVariantClasses(variant, checked),
         className
       )}
       {...props}
@@ -36,7 +44,7 @@ const Switch = React.forwardRef<
       <SwitchPrimitives.Thumb
         className={cn(
           "pointer-events-none block h-4 w-4 rounded-full shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0",
-          "bg-white" // Always white thumb
+          checked ? "bg-white" : variant === "aurora" ? "bg-[#33fea6]" : "bg-white" // Thumb is #33fea6 for aurora when off
         )}
       />
     </SwitchPrimitives.Root>
