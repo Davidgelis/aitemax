@@ -49,14 +49,16 @@ export const StepOneContent = ({
             selectedModel={selectedModel}
           />
           
-          <ToggleSection 
-            toggles={cognitiveToggle} 
-            selectedToggle={selectedCognitive} 
-            onToggleChange={handleCognitiveToggle}
-            variant="aurora"
-            tooltipText={cognitiveTooltip}
-            className="ml-auto"
-          />
+          {/* Wrap cognitive toggle and help icon in a flex container */}
+          <div className="flex items-center gap-1">
+            <ToggleSection 
+              toggles={cognitiveToggle} 
+              selectedToggle={selectedCognitive} 
+              onToggleChange={handleCognitiveToggle}
+              variant="aurora"
+              tooltipText={cognitiveTooltip}
+            />
+          </div>
         </div>
         
         <div className="mt-4">

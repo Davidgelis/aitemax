@@ -1,4 +1,3 @@
-
 import { Switch } from "@/components/ui/switch";
 import { Toggle } from "./types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -33,6 +32,7 @@ export const ToggleSection = ({
   };
 
   const containerClass = "flex flex-wrap gap-2 " + className;
+  const isAurora = variant === "aurora";
 
   return (
     <div className={containerClass}>
@@ -44,11 +44,16 @@ export const ToggleSection = ({
             key={item.id} 
             className={`flex items-center justify-between py-1.5 px-3 ${getBorderClass(isSelected, variant)} rounded-lg bg-white flex-1 transition-all duration-300`}
           >
-            <span className={`text-sm text-text flex flex-col items-start`}>
-              {item.label.split(" ").map((word, index) => (
-                <span key={index} className="leading-tight">{word}</span>
-              ))}
-            </span>
+            {/* For Aurora variant, keep text in a single line */}
+            {isAurora ? (
+              <span className="text-sm text-text whitespace-nowrap">{item.label}</span>
+            ) : (
+              <span className="text-sm text-text flex flex-col items-start">
+                {item.label.split(" ").map((word, index) => (
+                  <span key={index} className="leading-tight">{word}</span>
+                ))}
+              </span>
+            )}
             <Switch 
               id={item.id}
               checked={isSelected}
@@ -59,7 +64,8 @@ export const ToggleSection = ({
         );
       })}
       
-      {tooltipText && (
+      {/* Move tooltip next to the toggle for Aurora variant */}
+      {tooltipText && isAurora ? (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -72,7 +78,23 @@ export const ToggleSection = ({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-      )}
+      ) : null}
+      
+      {/* Keep tooltip at the end for non-Aurora variants */}
+      {tooltipText && !isAurora ? (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="text-card-foreground hover:text-primary transition-colors">
+                <HelpCircle size={18} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs text-xs">
+              {tooltipText}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : null}
     </div>
   );
 };
