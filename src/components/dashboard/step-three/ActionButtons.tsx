@@ -68,7 +68,7 @@ export const ActionButtons = ({
     <div className="flex justify-between items-center">
       <Button
         onClick={safeHandleCopyPrompt}
-        variant="analyze"
+        variant="aurora"
         disabled={isProcessing}
         aria-label="Copy prompt"
         className="gap-2"
@@ -78,7 +78,7 @@ export const ActionButtons = ({
       </Button>
       <Button
         onClick={safeHandleSavePrompt}
-        variant="analyze"
+        variant="aurora"
         disabled={isProcessing}
         aria-label="Save prompt"
         className="gap-2"
