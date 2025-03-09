@@ -78,6 +78,17 @@ export const usePromptAnalysis = (
       return;
     }
     
+    // Add more detailed logging to verify what's being sent to the edge function
+    console.log("Analysis requested with:", {
+      promptLength: promptText.length,
+      primaryToggle: selectedPrimary,
+      secondaryToggle: selectedSecondary,
+      hasImages: images && images.length > 0,
+      imageCount: images ? images.length : 0,
+      hasWebsiteData: !!websiteData,
+      websiteUrl: websiteData ? websiteData.url : null
+    });
+    
     // Start loading immediately
     setIsLoading(true);
     
@@ -124,6 +135,7 @@ export const usePromptAnalysis = (
       
       // Add website data if available
       if (websiteData && websiteData.url) {
+        console.log("Including website data in analysis payload:", websiteData);
         payload.websiteData = websiteData;
       }
       
@@ -131,12 +143,14 @@ export const usePromptAnalysis = (
       if (images && images.length > 0) {
         const firstImage = images[0];
         try {
+          console.log("Converting image to base64 for analysis:", firstImage.file.name);
           const base64 = await imageToBase64(firstImage.file);
           payload.imageData = { 
             base64,
             filename: firstImage.file.name,
             type: firstImage.file.type
           };
+          console.log("Image successfully converted and added to payload");
         } catch (error) {
           console.error("Error converting image to base64:", error);
         }

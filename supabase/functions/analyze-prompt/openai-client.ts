@@ -27,12 +27,13 @@ export async function analyzePromptWithAI(
   
   // If we have an image, create a message with content parts
   if (imageBase64) {
+    console.log("Image provided for analysis - adding to OpenAI API request");
     messages.push({
       role: 'user',
       content: [
         {
           type: "text",
-          text: `Analyze this prompt: "${promptText}" ${additionalContext}`
+          text: `Analyze this prompt for generating questions and variables: "${promptText}" ${additionalContext}`
         },
         {
           type: "image_url",
@@ -44,9 +45,10 @@ export async function analyzePromptWithAI(
     });
   } else {
     // No image, just use a simple text message
+    console.log("No image provided - using text-only OpenAI API request");
     messages.push({
       role: 'user',
-      content: `Analyze this prompt: "${promptText}" ${additionalContext}`
+      content: `Analyze this prompt for generating questions and variables: "${promptText}" ${additionalContext}`
     });
   }
   

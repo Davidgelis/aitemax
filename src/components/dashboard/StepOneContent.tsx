@@ -49,11 +49,21 @@ export const StepOneContent = ({
   
   const handleWebsiteScan = (url: string, instructions: string) => {
     setWebsiteContext({ url, instructions });
+    
+    // Add a console log to verify the website context is being set
+    console.log("Website context set in StepOneContent:", { url, instructions });
   };
   
   const handleAnalyzeWithContext = () => {
+    // Console log to verify what data is being passed to analysis
+    console.log("Analyzing with context:", {
+      hasImages: uploadedImages.length > 0,
+      websiteContext: websiteContext,
+      primaryToggle: selectedPrimary,
+      secondaryToggle: selectedSecondary
+    });
+    
     // Call the parent's onAnalyze function with additional context
-    // This will trigger the process in the parent component that will use our enhanced handleAnalyze function
     onAnalyze();
   };
   
