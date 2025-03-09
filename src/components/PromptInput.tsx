@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { UploadedImage } from '@/components/dashboard/ImageUploader';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
@@ -72,25 +73,9 @@ const PromptInput = ({
   return (
     <form onSubmit={handleSubmit} className={`w-full max-w-2xl mx-auto ${className}`}>
       <div className="relative group">
-        <textarea
-          value={inputValue}
-          onChange={handleChange}
-          placeholder={placeholder}
-          autoFocus={autoFocus}
-          className={`w-full h-32 p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all ${images && images.length > 0 ? 'pt-20' : ''}`}
-          style={{ 
-            backgroundColor: "#041524",
-            color: "#33fea6", 
-            boxShadow: "0 0 20px rgba(51, 254, 166, 0.2)",
-            border: "1px solid rgba(51, 254, 166, 0.3)",
-            caretColor: "#33fea6"
-          }}
-        />
-        
-        <div className="absolute inset-0 rounded-xl pointer-events-none border border-transparent group-hover:border-accent/30 transition-all animate-aurora opacity-5"></div>
-        
+        {/* Images positioned above the textarea */}
         {images && images.length > 0 && (
-          <div className="absolute top-0 right-0 flex flex-wrap gap-2 z-10 max-w-[80%] p-2 justify-end">
+          <div className="absolute top-[-40px] right-0 flex flex-wrap gap-2 z-10 max-w-[80%] justify-end">
             {images.map(image => (
               <div key={image.id} className="relative group">
                 <img 
@@ -110,6 +95,23 @@ const PromptInput = ({
             ))}
           </div>
         )}
+        
+        <textarea
+          value={inputValue}
+          onChange={handleChange}
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          className="w-full h-32 p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all"
+          style={{ 
+            backgroundColor: "#041524",
+            color: "#33fea6", 
+            boxShadow: "0 0 20px rgba(51, 254, 166, 0.2)",
+            border: "1px solid rgba(51, 254, 166, 0.3)",
+            caretColor: "#33fea6"
+          }}
+        />
+        
+        <div className="absolute inset-0 rounded-xl pointer-events-none border border-transparent group-hover:border-accent/30 transition-all animate-aurora opacity-5"></div>
       </div>
       
       <ImageCarousel 

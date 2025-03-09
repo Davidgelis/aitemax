@@ -241,19 +241,9 @@ export const PromptEditor = ({
       </div>
       
       <div className="relative">
-        <textarea 
-          ref={textareaRef}
-          value={promptText}
-          onChange={(e) => setPromptText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className={`w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground ${images && images.length > 0 ? 'pt-20' : ''}`}
-          placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
-        />
-        
-        <div className="absolute inset-0 border border-muted rounded-lg pointer-events-none"></div>
-        
+        {/* Images positioned above the textarea */}
         {images && images.length > 0 && (
-          <div className="absolute top-0 right-0 flex flex-wrap gap-2 z-10 max-w-[80%] p-2 justify-end">
+          <div className="absolute top-[-40px] right-0 flex flex-wrap gap-2 z-10 max-w-[80%] justify-end">
             {images.map(image => (
               <div key={image.id} className="relative group">
                 <img 
@@ -273,6 +263,17 @@ export const PromptEditor = ({
             ))}
           </div>
         )}
+        
+        <textarea 
+          ref={textareaRef}
+          value={promptText}
+          onChange={(e) => setPromptText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
+          placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
+        />
+        
+        <div className="absolute inset-0 border border-muted rounded-lg pointer-events-none"></div>
       </div>
       
       {error && (
@@ -281,14 +282,14 @@ export const PromptEditor = ({
         </div>
       )}
       
-      <div className="absolute bottom-6 left-6">
+      <div className="absolute bottom-[-56px] left-6">
         <ImageUploader 
           onImagesChange={handleImagesChange}
           images={images}
         />
       </div>
       
-      <div className="absolute bottom-6 right-6">
+      <div className="absolute bottom-[-56px] right-6">
         <button 
           onClick={analyzeWithAI}
           className="aurora-button"
