@@ -35,9 +35,22 @@ export async function analyzePromptWithAI(
           type: "text",
           text: `Analyze this prompt for generating questions and variables: "${promptText}" 
           
-First, describe the image in great detail. Extract all specific visual elements like subject, viewpoint, perspective, setting, lighting, colors, mood, composition, time of day, season, etc.
+First, describe the image in EXTREME detail. Extract ALL specific visual elements like:
+- Subject(s): What/who is in the image (people, objects, landscapes)
+- Viewpoint: How the scene is viewed (looking up, eye-level, aerial view)
+- Perspective: The position relative to the subject (close-up, distant, etc.)
+- Setting/Location: The environment where the scene takes place
+- Lighting: Quality, direction, and color of light
+- Colors: Dominant palette, contrasts, saturation
+- Mood/Atmosphere: The feeling conveyed by the image
+- Composition: How elements are arranged in the frame
+- Time of day: Morning, afternoon, evening, night
+- Season: Spring, summer, fall, winter
+- Weather: Clear, cloudy, rainy, etc.
+- Textures: Smooth, rough, detailed, etc.
+- Style: If applicable (photorealistic, cartoon, painting style)
 
-Then use these details to generate relevant questions and variables with pre-filled values based on what you directly observe in the image.
+Then use these SPECIFIC details to pre-fill relevant question answers and variable values that you can directly observe in the image. ONLY pre-fill information you can directly see.
 ${additionalContext}`
         },
         {

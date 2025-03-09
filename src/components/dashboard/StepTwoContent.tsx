@@ -1,9 +1,10 @@
 
 import { Question, Variable } from "./types";
-import { RefObject } from "react";
+import { RefObject, useEffect } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
 import { Info } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface StepTwoContentProps {
   questions: Question[];
@@ -40,6 +41,45 @@ export const StepTwoContent = ({
   variablesContainerRef,
   originalPrompt
 }: StepTwoContentProps) => {
+  const { toast } = useToast();
+  
+  // Auto-mark questions as relevant if they have prefilled answers
+  useEffect(() => {
+    if (questions && questions.length > 0) {
+      questions.forEach(question => {
+        if (question.answer && question.answer.trim() !== '' && question.isRelevant !== true) {
+          // Auto-mark as relevant since it has a pre-filled answer
+          onQuestionRelevance(question.id, true);
+        }
+      });
+    }
+  }, [questions]);
+  
+  // Auto-mark variables as relevant if they have prefilled values
+  useEffect(() => {
+    if (variables && variables.length > 0) {
+      variables.forEach(variable => {
+        if (variable.value && variable.value.trim() !== '' && variable.isRelevant !== true) {
+          // Auto-mark as relevant since it has a pre-filled value
+          onVariableRelevance(variable.id, true);
+        }
+      });
+    }
+  }, [variables]);
+  
+  // Check for pre-filled content on initial load
+  useEffect(() => {
+    const prefilledQuestions = questions.filter(q => q.answer && q.answer.trim() !== '').length;
+    const prefilledVariables = variables.filter(v => v.value && v.value.trim() !== '').length;
+    
+    if (prefilledQuestions > 0 || prefilledVariables > 0) {
+      toast({
+        title: "Information extracted",
+        description: `Pre-filled ${prefilledQuestions} question${prefilledQuestions !== 1 ? 's' : ''} and ${prefilledVariables} variable${prefilledVariables !== 1 ? 's' : ''} based on provided context.`,
+      });
+    }
+  }, []);
+
   return (
     <div className="border rounded-xl p-6 bg-card">
       <div className="mb-6">

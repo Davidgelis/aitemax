@@ -175,22 +175,22 @@ User Instructions: ${websiteData.instructions || "No specific instructions provi
 Content Excerpt: ${websiteContent.text.substring(0, 3000)}...
 Key Terms: ${websiteKeywords.join(', ')}
       
-Please analyze this website context thoroughly when analyzing the prompt. Extract specific concrete details like main topic, purpose, audience, tone, style, key terminology, content structure, and any other relevant information. Use these extracted details to pre-fill answers to questions and variable values where the information is EXPLICITLY present in this content.`;
+Please analyze this website context THOROUGHLY. Extract ALL specific concrete details like main topic, purpose, audience, tone, style, key terminology, content structure, and any other relevant information. Use these SPECIFIC extracted details to pre-fill answers to questions and variable values where the information is EXPLICITLY present in this content. ONLY pre-fill information that you can directly observe in the content.`;
     }
     
     // Add image context if provided
     let imageContext = "";
     if (imageData && imageData.base64) {
       hasAdditionalContext = true;
-      console.log("Image provided for context");
-      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image thoroughly and extract all visual details including:
-- Subject(s) in the image
+      console.log("Image provided for context - will use for pre-filling");
+      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Analyze this image THOROUGHLY and extract ALL visual details including:
+- Subject(s) in the image (people, objects, landscapes)
 - Viewpoint (looking up, eye-level, aerial view, etc.)
-- Perspective (distance, angle, etc.)
+- Perspective (close-up, distance, angle, etc.)
 - Setting/location/environment
-- Time of day (if determinable)
-- Season (if determinable)
-- Weather conditions (if shown)
+- Time of day
+- Season
+- Weather conditions
 - Lighting conditions
 - Color palette
 - Mood/atmosphere
@@ -199,7 +199,7 @@ Please analyze this website context thoroughly when analyzing the prompt. Extrac
 - Textures
 - Any other observable details
 
-Extract these specific details and use them to pre-fill relevant answers to questions and values for variables. Only use information that is EXPLICITLY visible in the image.`;
+Extract ALL these specific details and use them to pre-fill relevant answers to questions and values for variables. ONLY use information that is EXPLICITLY visible in the image.`;
     }
     
     console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);
@@ -268,7 +268,9 @@ Extract these specific details and use them to pre-fill relevant answers to ques
         rawAnalysis: analysis,
         usage: analysisResult.usage,
         primaryToggle,
-        secondaryToggle
+        secondaryToggle,
+        hasAdditionalContext,
+        contextType: imageData?.base64 ? "image" : (websiteData?.url ? "website" : "none")
       };
       
       return new Response(JSON.stringify(result), {
@@ -293,6 +295,10 @@ Extract these specific details and use them to pre-fill relevant answers to ques
           }
           return q;
         });
+      } else if (hasAdditionalContext && imageData && imageData.base64) {
+        // If we have image data, we shouldn't try to pre-fill here in the fallback
+        // as we don't have the analysis yet. Leave it to the client to handle.
+        console.log("Image provided but extraction failed - not pre-filling in fallback");
       } else {
         // Ensure all answers are empty when no additional context is provided
         contextQuestions = contextQuestions.map(q => ({...q, answer: ""}));
@@ -335,7 +341,9 @@ Extract these specific details and use them to pre-fill relevant answers to ques
         rawAnalysis: analysis,
         usage: analysisResult.usage,
         primaryToggle,
-        secondaryToggle
+        secondaryToggle,
+        hasAdditionalContext,
+        contextType: imageData?.base64 ? "image" : (websiteData?.url ? "website" : "none")
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -352,7 +360,9 @@ Extract these specific details and use them to pre-fill relevant answers to ques
       enhancedPrompt: "# Error\n\nThere was an error analyzing your prompt. Please try again.",
       error: error.message,
       primaryToggle: null,
-      secondaryToggle: null
+      secondaryToggle: null,
+      hasAdditionalContext: false,
+      contextType: "none"
     }), {
       status: 200, // Always return a 200 to avoid edge function errors
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

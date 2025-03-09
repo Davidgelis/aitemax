@@ -12,17 +12,17 @@ For each prompt, you should:
 5. Suggest an initial enhanced prompt structure
 
 When analyzing IMAGES:
-- Describe the image in great detail first
-- Identify specific visual elements like: subject, viewpoint, perspective, colors, lighting, style, mood, setting, composition, time of day, season, etc.
-- Extract these elements as concrete variables with values (e.g., Viewpoint: "looking up towards the sky", Perspective: "from ground level", TimeOfDay: "daytime")
-- Use these extracted details to pre-fill relevant question answers and variable values
-- Be VERY detailed and specific about what you can directly observe
+- Describe the image in EXTREME detail first
+- Identify ALL specific visual elements like: subject, viewpoint, perspective, colors, lighting, style, mood, setting, composition, time of day, season, etc.
+- Extract these elements as concrete variables with specific values (e.g., Viewpoint: "looking up towards the sky", Perspective: "from ground level", TimeOfDay: "daytime")
+- Use these extracted details to pre-fill relevant question answers and variable values with SPECIFIC information from the image
+- Be EXTREMELY detailed and specific about what you can directly observe
 
 When analyzing WEBSITE CONTENT:
 - Extract the main topic, purpose, audience, tone, style, and key terminology
 - Identify content structure, formatting patterns, and design elements
-- Extract these as concrete variables with values (e.g., Audience: "technical professionals", Tone: "formal instructional", MainTopic: "cloud computing")
-- Use these extracted details to pre-fill relevant question answers and variable values
+- Extract these as concrete variables with specific values (e.g., Audience: "technical professionals", Tone: "formal instructional", MainTopic: "cloud computing")
+- Use these extracted details to pre-fill relevant question answers and variable values with SPECIFIC information from the website
 
 IMPORTANT: Your response should include a JSON structure with questions and variables as follows:
 \`\`\`json
@@ -46,10 +46,10 @@ For categories, use these definitions:
 
 Make your questions conversational, straightforward, and focused on extracting important context. Variables should be reusable elements that the user might want to adjust over time.
 
-IMPORTANT ABOUT PRE-FILLING:
+CRITICAL INSTRUCTIONS ABOUT PRE-FILLING:
 - ONLY pre-fill answers and values when SPECIFIC information is explicitly provided in the context
 - DO NOT guess, assume, or hallucinate information that isn't clearly provided
-- When an image or website content is provided, analyze it to extract factual, observable information only
+- When an image or website content is provided, extract CONCRETE, SPECIFIC observations and use them directly as pre-filled values
 - Pre-fill answers to questions ONLY when the information is CLEARLY and EXPLICITLY provided in the prompt, image, or website
 - Pre-fill variable values ONLY when you can confidently extract them from the explicit context
 - For questions you can't confidently answer based on provided context, leave the answer field as an empty string
@@ -79,7 +79,7 @@ If an image is included in the message, analyze it carefully and extract ALL fac
 - Style: Realistic, abstract, minimalist, vintage, etc.
 - Texture: Smooth, rough, detailed, etc.
 
-EXTRACT these specific details and use them to pre-fill answers and variable values with CONCRETE OBSERVATIONS, not interpretations.
+EXTRACT these specific details and use them to pre-fill answers and variable values with CONCRETE OBSERVATIONS, not interpretations. BE SPECIFIC and DETAILED.
 `;
 
   // Add specifics for website analysis if present
@@ -194,6 +194,8 @@ And suggest variables like:
 - Season
 - Subject
 - AspectRatio
+
+If an image is provided for reference, extract ALL of these elements from the image and use them to pre-fill answers and variables with SPECIFIC values observed in the image. Be EXTREMELY detailed.
 `;
         break;
     }
