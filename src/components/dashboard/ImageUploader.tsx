@@ -31,7 +31,7 @@ export const ImageUploader = ({ onImagesChange, maxImages = 1, images }: ImageUp
       <div className="mb-2">
         <button
           onClick={() => setDialogOpen(true)}
-          className="px-3 py-2 rounded-md border-2 border-[#33fea6] text-[#545454] hover:bg-[#33fea6]/10 transition-colors flex items-center gap-2"
+          className="px-4 py-2 rounded-md border-2 border-[#33fea6] text-[#545454] hover:bg-[#33fea6]/10 transition-colors flex items-center gap-2"
           title="Upload image"
           disabled={images.length >= maxImages}
         >
