@@ -56,7 +56,6 @@ export const StepTwoContent = ({
     const prefilledVariables = variables.filter(v => v.value && v.value.trim() !== '').length;
     
     console.log("Pre-filled content check:", { prefilledQuestions, prefilledVariables });
-    console.log("First few variables:", variables.slice(0, 3));
     
     if ((prefilledQuestions > 0 || prefilledVariables > 0) && !hasProcessedPrefill) {
       // Show toast notification about pre-filled content

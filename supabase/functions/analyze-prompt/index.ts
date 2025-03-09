@@ -288,10 +288,10 @@ Extract ALL these specific details and use them to pre-fill relevant answers to 
         contextQuestions = contextQuestions.map(q => {
           // Try to pre-fill based on website context
           if (q.text.toLowerCase().includes("topic") || q.text.toLowerCase().includes("subject")) {
-            return {...q, answer: `Based on the website, the main topic appears to be related to ${websiteKeywords.slice(0, 3).join(', ')}`};
+            return {...q, answer: `Based on the website, the main topic appears to be related to ${websiteKeywords.slice(0, 3).join(', ')}`, isRelevant: true};
           }
           if (q.text.toLowerCase().includes("tone") || q.text.toLowerCase().includes("style")) {
-            return {...q, answer: "The tone should match the website's professional presentation"};
+            return {...q, answer: "The tone should match the website's professional presentation", isRelevant: true};
           }
           return q;
         });
@@ -319,10 +319,10 @@ Extract ALL these specific details and use them to pre-fill relevant answers to 
         contextVariables = contextVariables.map(v => {
           // Try to pre-fill based on website keywords
           if (v.name.toLowerCase().includes("topic") || v.name.toLowerCase().includes("subject")) {
-            return {...v, value: websiteKeywords.slice(0, 3).join(', ')};
+            return {...v, value: websiteKeywords.slice(0, 3).join(', '), isRelevant: true};
           }
           if (v.name.toLowerCase().includes("keywords")) {
-            return {...v, value: websiteKeywords.slice(0, 5).join(', ')};
+            return {...v, value: websiteKeywords.slice(0, 5).join(', '), isRelevant: true};
           }
           return v;
         });
