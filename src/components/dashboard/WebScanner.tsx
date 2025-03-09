@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { Globe } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
 import { WebScanDialog } from './WebScanDialog';
 
 interface WebScannerProps {
@@ -27,10 +26,7 @@ export const WebScanner = ({
     // Call the parent handler without modifying any text area
     onWebsiteScan(url, instructions);
     
-    toast({
-      title: "Website scan initiated",
-      description: "The content from the website will be used as context",
-    });
+    // Toast notification removed from here
   };
 
   // Model replacement style button
