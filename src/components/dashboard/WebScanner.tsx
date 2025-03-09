@@ -24,7 +24,7 @@ export const WebScanner = ({
     setSavedUrl(url);
     setSavedInstructions(instructions);
     
-    // Call the parent handler
+    // Call the parent handler without modifying any text area
     onWebsiteScan(url, instructions);
     
     toast({

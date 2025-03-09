@@ -1,4 +1,3 @@
-
 import { ToggleSection } from "./ToggleSection";
 import { PromptEditor } from "./PromptEditor";
 import { Separator } from "@/components/ui/separator";
@@ -49,15 +48,6 @@ export const StepOneContent = ({
   
   const handleWebsiteScan = (url: string, instructions: string) => {
     setWebsiteContext({ url, instructions });
-    
-    // Append website context to prompt text
-    const websiteContextPrompt = `Use the following website as context: ${url}${instructions ? `\nInstructions: ${instructions}` : ''}`;
-    
-    if (promptText.trim()) {
-      setPromptText(`${promptText}\n\n${websiteContextPrompt}`);
-    } else {
-      setPromptText(websiteContextPrompt);
-    }
   };
   
   return (
@@ -69,7 +59,6 @@ export const StepOneContent = ({
             variant="modelReplacement" 
           />
           
-          {/* Container with flex to position toggle and help icon properly */}
           <div className="flex items-center">
             <ToggleSection 
               toggles={cognitiveToggle} 
