@@ -1,3 +1,4 @@
+
 import { List, ListOrdered } from "lucide-react";
 import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -5,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ImageUploader, UploadedImage } from "./ImageUploader";
 import { ImageCarousel } from "./ImageCarousel";
+import { X } from "lucide-react";
 
 interface PromptEditorProps {
   promptText: string;
@@ -203,6 +205,20 @@ export const PromptEditor = ({
     setCarouselOpen(true);
   };
 
+  const handleRemoveImage = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent carousel from opening when clicking delete
+    
+    if (!onImagesChange || !images) return;
+    
+    const imageToRemove = images.find(img => img.id === id);
+    if (imageToRemove) {
+      URL.revokeObjectURL(imageToRemove.url);
+    }
+    
+    const updatedImages = images.filter(img => img.id !== id);
+    onImagesChange(updatedImages);
+  };
+
   return (
     <div className="border rounded-xl p-6 bg-card min-h-[400px] relative">
       <div className="flex justify-between mb-2">
@@ -224,14 +240,38 @@ export const PromptEditor = ({
         </div>
       </div>
       
-      <textarea 
-        ref={textareaRef}
-        value={promptText}
-        onChange={(e) => setPromptText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        className="w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
-        placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
-      />
+      <div className="relative">
+        {images && images.length > 0 && (
+          <div className="absolute top-0 right-0 flex flex-wrap gap-2 z-10 max-w-[60%] p-2">
+            {images.map(image => (
+              <div key={image.id} className="relative group">
+                <img 
+                  src={image.url} 
+                  alt="Uploaded" 
+                  className="w-14 h-14 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
+                  onClick={() => handleImageClick(image.id)}
+                />
+                <button
+                  onClick={(e) => handleRemoveImage(image.id, e)}
+                  className="absolute -top-2 -right-2 bg-[#041524] text-white rounded-full p-0.5 border border-[#33fea6]/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Remove image"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        <textarea 
+          ref={textareaRef}
+          value={promptText}
+          onChange={(e) => setPromptText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className={`w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground ${images && images.length > 0 ? 'pt-20' : ''}`}
+          placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
+        />
+      </div>
       
       {error && (
         <div className="mt-2 p-2 text-sm text-red-500 bg-red-50 rounded-md">

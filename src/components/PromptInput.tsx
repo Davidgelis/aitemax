@@ -74,29 +74,14 @@ const PromptInput = ({
   return (
     <form onSubmit={handleSubmit} className={`w-full max-w-2xl mx-auto ${className}`}>
       <div className="relative group">
-        <textarea
-          value={inputValue}
-          onChange={handleChange}
-          placeholder={placeholder}
-          autoFocus={autoFocus}
-          className="w-full h-32 p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all pt-14"
-          style={{ 
-            backgroundColor: "#041524",
-            color: "#33fea6", 
-            boxShadow: "0 0 20px rgba(51, 254, 166, 0.2)",
-            border: "1px solid rgba(51, 254, 166, 0.3)",
-            caretColor: "#33fea6"
-          }}
-        />
-        
         {images && images.length > 0 && (
-          <div className="absolute top-2 right-2 flex flex-wrap gap-2 z-10 max-w-[calc(100%-20px)]">
+          <div className="absolute top-2 right-2 flex flex-wrap gap-2 z-10 max-w-[60%]">
             {images.map(image => (
               <div key={image.id} className="relative group">
                 <img 
                   src={image.url} 
                   alt="Uploaded" 
-                  className="w-10 h-10 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
+                  className="w-14 h-14 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
                   onClick={() => handleImageClick(image.id)}
                 />
                 <button
@@ -110,6 +95,21 @@ const PromptInput = ({
             ))}
           </div>
         )}
+        
+        <textarea
+          value={inputValue}
+          onChange={handleChange}
+          placeholder={placeholder}
+          autoFocus={autoFocus}
+          className={`w-full h-32 p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all ${images && images.length > 0 ? 'pt-20' : ''}`}
+          style={{ 
+            backgroundColor: "#041524",
+            color: "#33fea6", 
+            boxShadow: "0 0 20px rgba(51, 254, 166, 0.2)",
+            border: "1px solid rgba(51, 254, 166, 0.3)",
+            caretColor: "#33fea6"
+          }}
+        />
         
         <div className="absolute inset-0 rounded-xl pointer-events-none border border-transparent group-hover:border-accent/30 transition-all animate-aurora opacity-5"></div>
       </div>

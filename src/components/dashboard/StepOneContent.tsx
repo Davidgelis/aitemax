@@ -6,7 +6,7 @@ import { primaryToggles, secondaryToggles } from "./constants";
 import { ModelSelector } from "./model-selector";
 import { AIModel } from "./types";
 import { useState } from "react";
-import { UploadedImage } from "./ImageUploader";
+import { UploadedImage, ImageUploader } from "./ImageUploader";
 import { ImageCarousel } from "./ImageCarousel";
 
 interface StepOneContentProps {
