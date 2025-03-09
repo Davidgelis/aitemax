@@ -73,9 +73,9 @@ const PromptInput = ({
   return (
     <form onSubmit={handleSubmit} className={`w-full max-w-2xl mx-auto ${className}`}>
       <div className="relative group">
-        {/* Images positioned above the textarea */}
+        {/* Images positioned above the textarea - moved higher */}
         {images && images.length > 0 && (
-          <div className="absolute top-[-40px] right-0 flex flex-wrap gap-2 z-10 max-w-[80%] justify-end">
+          <div className="absolute top-[-56px] right-0 flex flex-wrap gap-2 z-10 max-w-[80%] justify-end">
             {images.map(image => (
               <div key={image.id} className="relative group">
                 <img 

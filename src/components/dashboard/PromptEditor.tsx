@@ -241,9 +241,9 @@ export const PromptEditor = ({
       </div>
       
       <div className="relative">
-        {/* Images positioned above the textarea */}
+        {/* Images positioned above the textarea - moved higher */}
         {images && images.length > 0 && (
-          <div className="absolute top-[-40px] right-0 flex flex-wrap gap-2 z-10 max-w-[80%] justify-end">
+          <div className="absolute top-[-56px] right-0 flex flex-wrap gap-2 z-10 max-w-[80%] justify-end">
             {images.map(image => (
               <div key={image.id} className="relative group">
                 <img 
