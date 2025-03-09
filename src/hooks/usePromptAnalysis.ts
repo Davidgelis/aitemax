@@ -199,6 +199,9 @@ export const usePromptAnalysis = (
           const prefilledQuestions = aiQuestions.filter((q: Question) => q.answer && q.answer.trim() !== '');
           if (prefilledQuestions.length > 0) {
             console.log(`Received ${prefilledQuestions.length} pre-filled question answers from AI analysis`);
+            prefilledQuestions.forEach((q: Question) => {
+              console.log(`  - Question: "${q.text}", Answer: "${q.answer}"`);
+            });
           }
         } else {
           console.warn("No questions received from analysis, using fallbacks");
@@ -230,6 +233,7 @@ export const usePromptAnalysis = (
             
           // If we have valid variables after filtering, use them
           if (validVariables.length > 0) {
+            console.log("Setting variables with pre-filled values:", validVariables);
             setVariables(validVariables);
             
             // Log pre-filled variable values
@@ -291,7 +295,7 @@ export const usePromptAnalysis = (
       setTimeout(() => {
         setIsLoading(false);
         setCurrentStep(2);
-      }, 3000);
+      }, 1500);
     }
   };
 
