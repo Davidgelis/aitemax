@@ -1,9 +1,9 @@
 
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 
 interface WebScanDialogProps {
   open: boolean;
@@ -34,22 +34,36 @@ export const WebScanDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-white border border-[#084b49]/30 p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2">
-          <DialogTitle className="text-xl font-medium text-[#545454]">Edit Response</DialogTitle>
-          <p className="text-sm text-[#545454] font-normal mt-1">Provide your answer to this question</p>
+          <DialogTitle className="text-xl font-medium text-[#545454]">Web Smart Scan</DialogTitle>
+          <p className="text-sm text-[#545454] font-normal mt-1">Use website content as context for your prompt</p>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="p-6 pt-2">
           <div className="mb-4">
             <label htmlFor="website-url" className="block text-sm font-medium text-[#545454] mb-2">
-              What is the desired tone of the output?
+              Website URL
             </label>
-            <Textarea 
+            <Input 
               id="website-url"
+              type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Type your answer here..."
-              className="w-full min-h-[160px] border-[#084b49]/30 resize-none"
+              placeholder="https://example.com"
+              className="w-full border-[#084b49]/30"
               required
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label htmlFor="instructions" className="block text-sm font-medium text-[#545454] mb-2">
+              How to use the website as context
+            </label>
+            <Textarea 
+              id="instructions"
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              placeholder="Type your instructions here..."
+              className="w-full min-h-[120px] border-[#084b49]/30 resize-none"
             />
           </div>
           
