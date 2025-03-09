@@ -273,7 +273,7 @@ export const PromptEditor = ({
           placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
         />
         
-        <div className="absolute inset-0 border border-muted rounded-lg pointer-events-none"></div>
+        {/* Removed the inner border line that was here */}
       </div>
       
       {error && (
