@@ -34,11 +34,14 @@ For categories, use these definitions:
 Make your questions conversational, straightforward, and focused on extracting important context. Variables should be reusable elements that the user might want to adjust over time.
 
 IMPORTANT ABOUT PRE-FILLING:
-- When an image or website content is provided, analyze it to extract relevant information
-- Pre-fill answers to questions when the information is clearly provided in the prompt, image, or website
-- Pre-fill variable values when you can confidently extract them from the context
-- For questions you can't answer, leave the answer field as an empty string
-- For variables you can't fill, leave the value field as an empty string
+- ONLY pre-fill answers and values when SPECIFIC information is explicitly provided in the context
+- DO NOT guess, assume, or hallucinate information that isn't clearly provided
+- When an image or website content is provided, analyze it to extract factual, observable information only
+- Pre-fill answers to questions ONLY when the information is CLEARLY and EXPLICITLY provided in the prompt, image, or website
+- Pre-fill variable values ONLY when you can confidently extract them from the explicit context
+- For questions you can't confidently answer based on provided context, leave the answer field as an empty string
+- For variables you can't confidently fill based on provided context, leave the value field as an empty string
+- If NO contextual information (image/website) is provided, DO NOT pre-fill any answers or values
 `;
 
   // Add platform context
@@ -48,21 +51,23 @@ You're analyzing this prompt for use on AI platforms where the user will input t
 
   // Add specifics for image analysis if present
   prompt += `
-If an image is included in the message, analyze it carefully and incorporate relevant aspects into your questions and variables. For example:
-- If it's a product image, identify product attributes, style, colors, and setting
-- If it's a design concept, identify design elements, layout, color schemes, and themes
-- If it's a person or character, identify appearance, clothing, mood, setting, and context
-- Extract as much relevant information as possible and use it to pre-fill answers and variable values
+If an image is included in the message, analyze it carefully and incorporate ONLY factual, observable aspects into your questions and variables. For example:
+- If it's a product image, identify product attributes, style, colors, and setting that you can directly observe
+- If it's a design concept, identify design elements, layout, color schemes, and themes that are visually present
+- If it's a person or character, identify appearance, clothing, mood, setting, and context that are directly visible
+- Extract ONLY information that is explicitly visible in the image and use it to pre-fill answers and variable values
+- DO NOT assume, guess, or hallucinate details that aren't clearly visible in the image
 `;
 
   // Add specifics for website analysis if present
   prompt += `
-If website content is included in the message, analyze it carefully and extract relevant information:
-- Identify the main topic, purpose, and audience of the website
-- Extract key information like product details, service descriptions, or content themes
-- Identify style, tone, and formatting preferences from the content
-- Use this information to pre-fill answers to questions and values for variables when confident
-- Extract specific terminology, phrases, or keywords that should be included in the prompt
+If website content is included in the message, analyze it carefully and extract ONLY information that is explicitly present:
+- Identify the main topic, purpose, and audience of the website based solely on the content provided
+- Extract key information like product details, service descriptions, or content themes that are explicitly stated
+- Identify style, tone, and formatting preferences that are directly observable from the content
+- Use this information to pre-fill answers to questions and values for variables ONLY when you're confident the information is explicitly present
+- Extract specific terminology, phrases, or keywords that are present in the content
+- DO NOT assume, guess, or hallucinate details that aren't explicitly stated in the website content
 `;
 
   // Add toggle-specific instructions
@@ -156,7 +161,13 @@ And suggest variables like:
 
   // Add final instructions
   prompt += `
-Remember to make your analysis specific to the user's prompt and any additional context (images or website content). Avoid generic questions and variables. Extract as much information as possible from provided context to pre-fill answers and variables.
+Remember:
+1. Make your analysis specific to the user's prompt and any additional context (images or website content).
+2. Avoid generic questions and variables - focus on what's relevant to the prompt.
+3. ONLY extract information from explicitly provided context to pre-fill answers and variables.
+4. DO NOT make assumptions or hallucinate information that isn't clearly provided.
+5. If no additional context (image/website) is provided, leave all answers and values empty.
+6. It's better to leave a field empty than to guess or assume information.
 
 Return your analysis with the JSON structure described above, along with a brief general analysis of the prompt's intent.
 `;

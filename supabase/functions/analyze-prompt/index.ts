@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -159,7 +160,10 @@ serve(async (req) => {
     // Add website content to context if provided
     let contextualData = "";
     let websiteKeywords = [];
+    let hasAdditionalContext = false;
+    
     if (websiteData && websiteData.url) {
+      hasAdditionalContext = true;
       console.log(`Website provided for context: ${websiteData.url}`);
       const websiteContent = await fetchWebsiteContent(websiteData.url);
       websiteKeywords = extractKeyTerms(websiteContent.text);
@@ -171,14 +175,21 @@ User Instructions: ${websiteData.instructions || "No specific instructions provi
 Content Excerpt: ${websiteContent.text.substring(0, 2000)}...
 Key Terms: ${websiteKeywords.join(', ')}
       
-Please analyze this website context when analyzing the prompt. Pre-fill answers to questions and variable values where possible based on this content.`;
+Please analyze this website context when analyzing the prompt. ONLY pre-fill answers to questions and variable values where the information is EXPLICITLY present in this content.`;
     }
     
     // Add image context if provided
     let imageContext = "";
     if (imageData && imageData.base64) {
+      hasAdditionalContext = true;
       console.log("Image provided for context");
-      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image and consider it when generating questions and variables. The image is provided as a base64 string in the message. Extract relevant information from the image and use it to pre-fill answers to questions and values for variables where possible.`;
+      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image and consider it when generating questions and variables. The image is provided as a base64 string in the message. ONLY extract information that is EXPLICITLY visible in the image and use it to pre-fill answers to questions and values for variables. DO NOT hallucinate or assume details that aren't clearly visible.`;
+    }
+    
+    console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);
+    if (!hasAdditionalContext) {
+      console.log("No additional context provided - ensuring answers and values remain empty");
+      contextualData += "\n\nIMPORTANT: No additional context (website/image) has been provided. DO NOT pre-fill any answers or values - leave them ALL as empty strings.";
     }
     
     // Create a system message with better context about our purpose
@@ -218,6 +229,21 @@ Please analyze this website context when analyzing the prompt. Pre-fill answers 
       console.log(`Extracted ${questions.length} context questions relevant to AI platforms`);
       console.log(`Extracted ${variables.length} variables for customization`);
       
+      // Log how many questions and variables were pre-filled
+      const prefilledQuestions = questions.filter(q => q.answer && q.answer.trim() !== "").length;
+      const prefilledVariables = variables.filter(v => v.value && v.value.trim() !== "").length;
+      console.log(`Pre-filled answers: ${prefilledQuestions}/${questions.length} questions`);
+      console.log(`Pre-filled values: ${prefilledVariables}/${variables.length} variables`);
+      
+      // If no additional context was provided, verify that no pre-filling occurred
+      if (!hasAdditionalContext && (prefilledQuestions > 0 || prefilledVariables > 0)) {
+        console.warn("WARNING: Pre-filled values detected without additional context. Clearing pre-filled values.");
+        
+        // Clear any pre-filled answers when no context was provided
+        questions.forEach(q => { q.answer = ""; });
+        variables.forEach(v => { v.value = ""; });
+      }
+      
       const result = {
         questions,
         variables,
@@ -240,7 +266,7 @@ Please analyze this website context when analyzing the prompt. Pre-fill answers 
       let contextQuestions = generateContextQuestionsForPrompt(promptText);
       
       // If we have website data, add some pre-filled answers
-      if (websiteData && websiteData.url && websiteKeywords.length > 0) {
+      if (hasAdditionalContext && websiteData && websiteData.url && websiteKeywords.length > 0) {
         contextQuestions = contextQuestions.map(q => {
           // Try to pre-fill based on website context
           if (q.text.toLowerCase().includes("topic") || q.text.toLowerCase().includes("subject")) {
@@ -251,6 +277,9 @@ Please analyze this website context when analyzing the prompt. Pre-fill answers 
           }
           return q;
         });
+      } else {
+        // Ensure all answers are empty when no additional context is provided
+        contextQuestions = contextQuestions.map(q => ({...q, answer: ""}));
       }
       
       // Filter out potentially irrelevant questions based on toggle type
@@ -264,7 +293,7 @@ Please analyze this website context when analyzing the prompt. Pre-fill answers 
       let contextVariables = generateContextualVariablesForPrompt(promptText);
       
       // If we have website data, pre-fill some variables
-      if (websiteData && websiteData.url && websiteKeywords.length > 0) {
+      if (hasAdditionalContext && websiteData && websiteData.url && websiteKeywords.length > 0) {
         contextVariables = contextVariables.map(v => {
           // Try to pre-fill based on website keywords
           if (v.name.toLowerCase().includes("topic") || v.name.toLowerCase().includes("subject")) {
@@ -275,6 +304,9 @@ Please analyze this website context when analyzing the prompt. Pre-fill answers 
           }
           return v;
         });
+      } else {
+        // Ensure all values are empty when no additional context is provided
+        contextVariables = contextVariables.map(v => ({...v, value: ""}));
       }
       
       // Fallback to mock data but still return a 200 status code
@@ -298,8 +330,8 @@ Please analyze this website context when analyzing the prompt. Pre-fill answers 
     
     // Always return a 200 status code even on error, with error details in the response body
     return new Response(JSON.stringify({
-      questions: generateContextQuestionsForPrompt(""),
-      variables: generateContextualVariablesForPrompt(""),
+      questions: generateContextQuestionsForPrompt("").map(q => ({...q, answer: ""})),
+      variables: generateContextualVariablesForPrompt("").map(v => ({...v, value: ""})),
       masterCommand: "Error analyzing prompt",
       enhancedPrompt: "# Error\n\nThere was an error analyzing your prompt. Please try again.",
       error: error.message,
