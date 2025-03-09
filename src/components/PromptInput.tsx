@@ -98,22 +98,12 @@ const PromptInput = ({
         )}
         
         <div className="relative">
-          {/* Image upload button positioned inside the textarea at the top right */}
-          <div className="absolute top-2 right-2 z-10">
-            {onImagesChange && (
-              <ImageUploader 
-                onImagesChange={onImagesChange}
-                images={images || []}
-              />
-            )}
-          </div>
-          
           <textarea
             value={inputValue}
             onChange={handleChange}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className="w-full h-32 p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all pt-10"
+            className="w-full h-32 p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all"
             style={{ 
               backgroundColor: "#041524",
               color: "#33fea6", 
@@ -122,6 +112,15 @@ const PromptInput = ({
               caretColor: "#33fea6"
             }}
           />
+          
+          <div className="mt-2">
+            {onImagesChange && (
+              <ImageUploader 
+                onImagesChange={onImagesChange}
+                images={images || []}
+              />
+            )}
+          </div>
         </div>
       </div>
       

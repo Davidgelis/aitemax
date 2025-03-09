@@ -1,4 +1,3 @@
-
 import { List, ListOrdered } from "lucide-react";
 import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -264,24 +263,14 @@ export const PromptEditor = ({
           </div>
         )}
         
-        <div className="relative">
-          {/* Image upload button positioned inside the textarea at the top right */}
-          <div className="absolute top-2 right-2 z-10">
-            <ImageUploader 
-              onImagesChange={handleImagesChange}
-              images={images}
-            />
-          </div>
-          
-          <textarea 
-            ref={textareaRef}
-            value={promptText}
-            onChange={(e) => setPromptText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground pt-10"
-            placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
-          />
-        </div>
+        <textarea 
+          ref={textareaRef}
+          value={promptText}
+          onChange={(e) => setPromptText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
+          placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
+        />
       </div>
       
       {error && (
@@ -290,7 +279,14 @@ export const PromptEditor = ({
         </div>
       )}
       
-      {/* Moved the button to inside the textarea, so remove it from here */}
+      <div className="flex items-center gap-4 absolute bottom-[-56px] left-6">
+        <ImageUploader 
+          onImagesChange={handleImagesChange}
+          images={images}
+          maxImages={1}
+        />
+      </div>
+      
       <div className="absolute bottom-[-56px] right-6">
         <button 
           onClick={analyzeWithAI}
