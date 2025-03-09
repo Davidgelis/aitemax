@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { ImageUp } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
 import { ImageUploadDialog } from './ImageUploadDialog';
 
 export interface UploadedImage {
@@ -21,11 +20,6 @@ export const ImageUploader = ({ onImagesChange, maxImages = 1, images }: ImageUp
   
   const handleImagesUploaded = (newImages: UploadedImage[]) => {
     if (newImages.length > maxImages) {
-      toast({
-        title: "Upload limit reached",
-        description: `You can only upload a maximum of ${maxImages} image.`,
-        variant: "destructive",
-      });
       return;
     }
     
@@ -37,12 +31,12 @@ export const ImageUploader = ({ onImagesChange, maxImages = 1, images }: ImageUp
       <div className="mb-2">
         <button
           onClick={() => setDialogOpen(true)}
-          className="p-2 rounded-md border-2 border-[#64bf95] text-[#64bf95] hover:bg-[#64bf95]/10 transition-colors flex items-center gap-1"
+          className="px-3 py-2 rounded-md border-2 border-[#33fea6] text-[#545454] hover:bg-[#33fea6]/10 transition-colors flex items-center gap-2"
           title="Upload image"
           disabled={images.length >= maxImages}
         >
-          <ImageUp className="w-5 h-5" />
-          <span className="text-sm">Upload Image</span>
+          <ImageUp className="w-5 h-5 text-[#33fea6]" />
+          <span className="text-sm font-medium">Upload Image</span>
         </button>
       </div>
       
