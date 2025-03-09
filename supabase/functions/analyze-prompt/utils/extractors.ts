@@ -100,6 +100,8 @@ export function extractQuestions(analysis: string, promptText: string): any[] {
     }
   }
   
+  // Import the generator function to provide fallback questions if none found
+  const { generateContextQuestionsForPrompt } = require('./generators.ts');
   return questions.length > 0 ? questions : generateContextQuestionsForPrompt(promptText);
 }
 
@@ -130,7 +132,7 @@ export function extractVariables(analysis: string, promptText: string): any[] {
             name: v.name,
             value: v.value || "",
             isRelevant: null,
-            category: v.category || "Task"
+            category: v.category || getCategoryFromVariableName(v.name)
           }));
       }
     } catch (e) {
@@ -138,70 +140,97 @@ export function extractVariables(analysis: string, promptText: string): any[] {
     }
   }
   
-  // Check for variable patterns like {{VariableName}}
-  let enhancedPrompt = extractEnhancedPrompt(analysis);
-  const contextualVariables = [];
-  const variableRegex = /{{(\w+)}}/g;
-  let match;
-  
-  while ((match = variableRegex.exec(enhancedPrompt)) !== null) {
-    const name = match[1];
-    // Check if variable already exists, isn't a category name, and has a valid format
-    if (name && 
-        name.trim().length > 1 &&  // Must be more than a single character
-        !/^\*+$/.test(name) &&     // Must not be just asterisks
-        !/^[sS]$/.test(name) &&    // Must not be just 's'
-        name !== 'Task' && 
-        name !== 'Persona' && 
-        name !== 'Conditions' && 
-        name !== 'Instructions' && 
-        !contextualVariables.some((v: any) => v.name === name)) {
-      contextualVariables.push({
-        id: `v${contextualVariables.length + 1}`,
-        name,
-        value: "",
-        isRelevant: null,
-        category: getCategoryFromVariableName(name)
-      });
-    }
-  }
-  
-  if (contextualVariables.length > 0) {
-    return contextualVariables;
-  }
-  
-  // Fallback: Look for variable definitions in the text
+  // Check for curly brace variables like {VariableName} or {{VariableName}}
   const variables = [];
-  // Look for lines like "Variable: Name = Value" or "{{Name}}: Description"
-  const variableDefMatches = analysis.matchAll(/(?:Variable|Var|\*\*|-)(?:\s+\d+)?(?:\s*\(([^)]+)\))?:?\s*(?:{{)?(\w+)(?:}})?(?:\s*[:=]\s*(.+?))?(?=\n|$)/g);
+  const enhancedPrompt = extractEnhancedPrompt(analysis);
+  const variableRegexes = [
+    /{{(\w+)}}/g,  // Double curly braces
+    /{(\w+)}/g,    // Single curly braces
+    /\[(\w+)\]/g   // Square brackets
+  ];
   
-  for (const match of variableDefMatches) {
-    const category = match[1] || getCategoryFromVariableName(match[2]);
-    const name = match[2].trim();
-    const value = match[3] ? match[3].trim() : "";
-    
-    // Skip category names and invalid variable names
-    if (name === 'Task' || name === 'Persona' || name === 'Conditions' || name === 'Instructions' ||
-        name.trim().length <= 1 || /^\*+$/.test(name) || /^[sS]$/.test(name)) {
-      continue;
-    }
-    
-    if (name && !variables.some((v: any) => v.name === name)) {
-      variables.push({
-        id: `v${variables.length + 1}`,
-        name,
-        value,
-        isRelevant: null,
-        category
-      });
+  // Try all regex patterns to find variables
+  for (const regex of variableRegexes) {
+    let match;
+    while ((match = regex.exec(enhancedPrompt)) !== null) {
+      const name = match[1];
+      // Check if variable already exists, isn't a category name, and has a valid format
+      if (name && 
+          name.trim().length > 1 &&  // Must be more than a single character
+          !/^\*+$/.test(name) &&     // Must not be just asterisks
+          !/^[sS]$/.test(name) &&    // Must not be just 's'
+          name !== 'Task' && 
+          name !== 'Persona' && 
+          name !== 'Conditions' && 
+          name !== 'Instructions' && 
+          !variables.some((v: any) => v.name === name)) {
+        variables.push({
+          id: `v${variables.length + 1}`,
+          name,
+          value: "",
+          isRelevant: null,
+          category: getCategoryFromVariableName(name)
+        });
+      }
     }
   }
   
-  // If we found some contextual variables in the analysis
   if (variables.length > 0) {
     return variables;
   }
   
+  // Fallback: Look for variable patterns in text format
+  const variablePatterns = [
+    /(?:Variable|Var|\*\*|-)(?:\s+\d+)?(?:\s*\(([^)]+)\))?:?\s*(?:{{)?(\w+)(?:}})?(?:\s*[:=]\s*(.+?))?(?=\n|$)/g,
+    /\b(\w+)(?:\s+variable|\s+var)\b(?:\s*[:=]\s*(.+?))?(?=\n|$)/gi,
+    /\bvariable(?:\s+name)?:\s*(\w+)(?:\s*[:=]\s*(.+?))?(?=\n|$)/gi
+  ];
+  
+  // Try all patterns to extract variables
+  for (const pattern of variablePatterns) {
+    const matches = Array.from(analysis.matchAll(pattern));
+    for (const match of matches) {
+      // Different patterns have different capture group positions
+      let category, name, value;
+      if (pattern.toString().includes('Variable|Var')) {
+        category = match[1] || 'Task';
+        name = match[2];
+        value = match[3] || "";
+      } else if (pattern.toString().includes('\\w+.+variable')) {
+        name = match[1];
+        value = match[2] || "";
+        category = getCategoryFromVariableName(name);
+      } else {
+        name = match[1];
+        value = match[2] || "";
+        category = getCategoryFromVariableName(name);
+      }
+      
+      // Skip category names and invalid variable names
+      if (!name || name === 'Task' || name === 'Persona' || name === 'Conditions' || name === 'Instructions' ||
+          name.trim().length <= 1 || /^\*+$/.test(name) || /^[sS]$/.test(name)) {
+        continue;
+      }
+      
+      if (!variables.some((v: any) => v.name === name)) {
+        variables.push({
+          id: `v${variables.length + 1}`,
+          name,
+          value,
+          isRelevant: null,
+          category
+        });
+      }
+    }
+  }
+  
+  // If we found some variables from the analysis
+  if (variables.length > 0) {
+    return variables;
+  }
+  
+  // If no variables found, use the generator to create context-appropriate variables
+  const { generateContextualVariablesForPrompt } = require('./generators.ts');
   return generateContextualVariablesForPrompt(promptText);
 }
 
