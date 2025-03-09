@@ -5,6 +5,8 @@ import { Separator } from "@/components/ui/separator";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { ModelSelector } from "./model-selector";
 import { AIModel } from "./types";
+import { useState } from "react";
+import { UploadedImage } from "./ImageUploader";
 
 interface StepOneContentProps {
   promptText: string;
@@ -35,6 +37,8 @@ export const StepOneContent = ({
   selectedCognitive,
   handleCognitiveToggle
 }: StepOneContentProps) => {
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  
   const cognitiveTooltip = 
     "This button will conduct a final precision-driven refinement of the generated prompt as a second layer of refinment, ensuring you receive the best possible prompt by eliminating ambiguities, reinforcing clarity, and ensuring domain-specific accuracy for optimal task execution.";
   

@@ -3,6 +3,8 @@ import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ImageUploader, UploadedImage } from "./ImageUploader";
+import { ImageCarousel } from "./ImageCarousel";
 
 interface PromptEditorProps {
   promptText: string;
@@ -26,6 +28,9 @@ export const PromptEditor = ({
   const [error, setError] = useState<string | null>(null);
   const [showPromptDialog, setShowPromptDialog] = useState(false);
   const [submittedPrompt, setSubmittedPrompt] = useState("");
+  const [images, setImages] = useState<UploadedImage[]>([]);
+  const [carouselOpen, setCarouselOpen] = useState(false);
+  const [selectedImageId, setSelectedImageId] = useState<string | undefined>(undefined);
 
   const insertBulletList = () => {
     if (!textareaRef.current) return;
@@ -184,24 +189,49 @@ export const PromptEditor = ({
     }
   };
 
+  const handleImagesChange = (newImages: UploadedImage[]) => {
+    setImages(newImages);
+  };
+
+  const handleImageClick = (imageId: string) => {
+    setSelectedImageId(imageId);
+    setCarouselOpen(true);
+  };
+
   return (
     <div className="border rounded-xl p-6 bg-card min-h-[400px] relative">
-      <div className="flex space-x-2 mb-2">
-        <button
-          onClick={insertBulletList}
-          className="p-2 rounded-md hover:bg-accent/20 transition-colors"
-          title="Add bullet list"
-        >
-          <List className="w-5 h-5" style={{ color: "#64bf95" }} />
-        </button>
-        <button
-          onClick={insertNumberedList}
-          className="p-2 rounded-md hover:bg-accent/20 transition-colors"
-          title="Add numbered list"
-        >
-          <ListOrdered className="w-5 h-5" style={{ color: "#64bf95" }} />
-        </button>
+      <div className="flex justify-between mb-2">
+        <div className="flex space-x-2">
+          <button
+            onClick={insertBulletList}
+            className="p-2 rounded-md hover:bg-accent/20 transition-colors"
+            title="Add bullet list"
+          >
+            <List className="w-5 h-5" style={{ color: "#64bf95" }} />
+          </button>
+          <button
+            onClick={insertNumberedList}
+            className="p-2 rounded-md hover:bg-accent/20 transition-colors"
+            title="Add numbered list"
+          >
+            <ListOrdered className="w-5 h-5" style={{ color: "#64bf95" }} />
+          </button>
+        </div>
+        
+        <div className="flex space-x-2 absolute top-6 right-6">
+          {images.map(image => (
+            <div key={image.id} className="relative group">
+              <img 
+                src={image.url} 
+                alt="Uploaded" 
+                className="w-10 h-10 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
+                onClick={() => handleImageClick(image.id)}
+              />
+            </div>
+          ))}
+        </div>
       </div>
+      
       <textarea 
         ref={textareaRef}
         value={promptText}
@@ -210,11 +240,20 @@ export const PromptEditor = ({
         className="w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
         placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
       />
+      
       {error && (
         <div className="mt-2 p-2 text-sm text-red-500 bg-red-50 rounded-md">
           {error}
         </div>
       )}
+      
+      <div className="absolute bottom-6 left-6">
+        <ImageUploader 
+          onImagesChange={handleImagesChange}
+          images={images}
+        />
+      </div>
+      
       <div className="absolute bottom-6 right-6">
         <button 
           onClick={analyzeWithAI}
@@ -240,6 +279,13 @@ export const PromptEditor = ({
           </div>
         </DialogContent>
       </Dialog>
+      
+      <ImageCarousel 
+        images={images}
+        open={carouselOpen}
+        onOpenChange={setCarouselOpen}
+        initialImageId={selectedImageId}
+      />
     </div>
   );
 };

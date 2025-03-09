@@ -1,13 +1,17 @@
 
 import { useState, useEffect } from 'react';
+import { UploadedImage } from '@/components/dashboard/ImageUploader';
+import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
 
 interface PromptInputProps {
-  onSubmit: (prompt: string) => void;
+  onSubmit: (prompt: string, images?: UploadedImage[]) => void;
   placeholder?: string;
   className?: string;
   value?: string;
   onChange?: (value: string) => void;
   autoFocus?: boolean;
+  images?: UploadedImage[];
+  onImagesChange?: (images: UploadedImage[]) => void;
 }
 
 const PromptInput = ({ 
@@ -16,9 +20,13 @@ const PromptInput = ({
   className = "",
   value,
   onChange,
-  autoFocus = false
+  autoFocus = false,
+  images = [],
+  onImagesChange
 }: PromptInputProps) => {
   const [inputValue, setInputValue] = useState(value || "");
+  const [carouselOpen, setCarouselOpen] = useState(false);
+  const [selectedImageId, setSelectedImageId] = useState<string | undefined>(undefined);
   
   // Update internal state when external value changes
   useEffect(() => {
@@ -30,7 +38,7 @@ const PromptInput = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputValue.trim()) {
-      onSubmit(inputValue.trim());
+      onSubmit(inputValue.trim(), images);
     }
   };
 
@@ -43,9 +51,29 @@ const PromptInput = ({
     }
   };
 
+  const handleImageClick = (imageId: string) => {
+    setSelectedImageId(imageId);
+    setCarouselOpen(true);
+  };
+
   return (
     <form onSubmit={handleSubmit} className={`w-full max-w-2xl mx-auto ${className}`}>
       <div className="relative group">
+        {images && images.length > 0 && (
+          <div className="absolute top-2 right-2 flex flex-wrap gap-2 z-10">
+            {images.map(image => (
+              <div key={image.id} className="relative">
+                <img 
+                  src={image.url} 
+                  alt="Uploaded" 
+                  className="w-10 h-10 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
+                  onClick={() => handleImageClick(image.id)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        
         <textarea
           value={inputValue}
           onChange={handleChange}
@@ -62,6 +90,13 @@ const PromptInput = ({
         />
         <div className="absolute inset-0 rounded-xl pointer-events-none border border-transparent group-hover:border-accent/30 transition-all animate-aurora opacity-5"></div>
       </div>
+      
+      <ImageCarousel 
+        images={images}
+        open={carouselOpen}
+        onOpenChange={setCarouselOpen}
+        initialImageId={selectedImageId}
+      />
     </form>
   );
 };
