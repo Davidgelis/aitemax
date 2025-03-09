@@ -25,8 +25,6 @@ export const WebScanner = ({
     
     // Call the parent handler without modifying any text area
     onWebsiteScan(url, instructions);
-    
-    // Toast notification removed from here
   };
 
   // Model replacement style button
@@ -36,10 +34,10 @@ export const WebScanner = ({
         <div className="flex items-center">
           <button 
             onClick={() => setDialogOpen(true)}
-            className="w-[30%] h-10 bg-[#fafafa] border border-[#084b49] text-[#545454] hover:bg-[#f0f0f0] flex justify-between items-center shadow-sm"
+            className="w-[30%] h-8 bg-[#fafafa] border border-[#084b49] text-[#545454] hover:bg-[#f0f0f0] flex justify-between items-center shadow-sm text-xs"
           >
             <span className="truncate ml-2">Web Smart Scan</span>
-            <Globe className="mr-2 h-4 w-4 text-[#084b49]" />
+            <Globe className="mr-2 h-3 w-3 text-[#084b49]" />
           </button>
         </div>
         
@@ -60,11 +58,11 @@ export const WebScanner = ({
       <div className="mb-2">
         <button
           onClick={() => setDialogOpen(true)}
-          className="p-2 rounded-md border-2 border-[#64bf95] text-[#64bf95] hover:bg-[#64bf95]/10 transition-colors flex items-center gap-1"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-md border border-[#64bf95] text-[#64bf95] text-xs hover:bg-[#64bf95]/5 transition-colors"
           title="Scan website"
         >
-          <Globe className="w-5 h-5" />
-          <span className="text-sm">Web Smart Scan</span>
+          <Globe className="w-3 h-3" />
+          <span className="font-medium">Web Scan</span>
         </button>
       </div>
       
