@@ -1,6 +1,6 @@
 
-import { useState, useRef } from 'react';
-import { ImageUp, X } from 'lucide-react';
+import { useState } from 'react';
+import { ImageUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { ImageUploadDialog } from './ImageUploadDialog';
 
@@ -18,8 +18,6 @@ interface ImageUploaderProps {
 
 export const ImageUploader = ({ onImagesChange, maxImages = 5, images }: ImageUploaderProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [carouselOpen, setCarouselOpen] = useState(false);
-  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   
   const handleImagesUploaded = (newImages: UploadedImage[]) => {
     if (newImages.length > maxImages) {
@@ -32,23 +30,6 @@ export const ImageUploader = ({ onImagesChange, maxImages = 5, images }: ImageUp
     }
     
     onImagesChange(newImages);
-  };
-  
-  const handleRemoveImage = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent the carousel from opening when clicking delete
-    
-    const imageToRemove = images.find(img => img.id === id);
-    if (imageToRemove) {
-      URL.revokeObjectURL(imageToRemove.url);
-    }
-    
-    const updatedImages = images.filter(img => img.id !== id);
-    onImagesChange(updatedImages);
-  };
-  
-  const handleImageClick = (id: string) => {
-    setSelectedImageId(id);
-    setCarouselOpen(true);
   };
   
   return (

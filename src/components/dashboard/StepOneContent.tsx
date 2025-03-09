@@ -8,7 +8,6 @@ import { AIModel } from "./types";
 import { useState } from "react";
 import { UploadedImage } from "./ImageUploader";
 import { ImageCarousel } from "./ImageCarousel";
-import { X } from "lucide-react";
 
 interface StepOneContentProps {
   promptText: string;
@@ -48,47 +47,8 @@ export const StepOneContent = ({
   
   const cognitiveToggle = [{ label: "Cognitive Prompt Perfection Model", id: "cognitive" }];
   
-  const handleImageClick = (id: string) => {
-    setSelectedImageId(id);
-    setCarouselOpen(true);
-  };
-  
-  const handleRemoveImage = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent the carousel from opening when clicking delete
-    
-    const imageToRemove = uploadedImages.find(img => img.id === id);
-    if (imageToRemove) {
-      URL.revokeObjectURL(imageToRemove.url);
-    }
-    
-    const updatedImages = uploadedImages.filter(img => img.id !== id);
-    setUploadedImages(updatedImages);
-  };
-  
   return (
     <div className="space-y-4 w-full relative">
-      {uploadedImages.length > 0 && (
-        <div className="absolute top-2 right-2 flex flex-wrap gap-2 justify-end max-w-[200px] z-10">
-          {uploadedImages.map(image => (
-            <div key={image.id} className="relative group">
-              <img 
-                src={image.url} 
-                alt="Uploaded" 
-                className="w-12 h-12 object-cover rounded-md border border-[#64bf95] cursor-pointer"
-                onClick={() => handleImageClick(image.id)}
-              />
-              <button
-                onClick={(e) => handleRemoveImage(image.id, e)}
-                className="absolute -top-2 -right-2 bg-[#041524] text-white rounded-full p-0.5 border border-[#64bf95] opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Remove image"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-      
       <div className="w-full">
         <div className="flex justify-between items-center">
           <ModelSelector 
