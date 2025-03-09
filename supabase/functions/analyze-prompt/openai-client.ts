@@ -52,7 +52,12 @@ First, describe the image in EXTREME detail. Extract ALL specific visual element
 
 Then use these SPECIFIC details to pre-fill relevant question answers and variable values that you can directly observe in the image. It is CRITICAL that you pre-fill the variables with specific values from the image.
 
-PRE-FILL INSTRUCTIONS: For every variable that matches something visible in the image (like Perspective, Viewpoint, Setting, Colors, Mood, TimeOfDay, Season, Weather, etc.), you MUST set a value. For example, if you see a forest scene, the Setting variable should be "Forest". If the view is looking up, the Viewpoint should be "Looking up".
+PRE-FILL INSTRUCTIONS: You MUST pre-fill at least 3-5 variables and 2-4 questions with specific information from the image. For example:
+- If you see a forest scene → Setting variable = "Dense forest with tall pine trees"
+- If image has a sunset → TimeOfDay variable = "Sunset with golden hour lighting"
+- If image shows rain → Weather variable = "Rainy with wet surfaces"
+
+For each pre-filled variable or question, set isRelevant to true.
 
 ${additionalContext}`
         },
@@ -71,7 +76,7 @@ ${additionalContext}`
     let userPrompt = `Analyze this prompt for generating questions and variables: "${promptText}"`;
     
     if (additionalContext) {
-      userPrompt += `\n\n${additionalContext}\n\nIMPORTANT: Based on the provided website context, pre-fill variables and question answers with SPECIFIC values that you can directly observe in the content. Fill ALL relevant variables and questions with concrete values, not placeholders.`;
+      userPrompt += `\n\n${additionalContext}\n\nIMPORTANT: Based on the provided website context, pre-fill variables and question answers with SPECIFIC values that you can directly observe in the content. You MUST pre-fill at least 3-5 variables and 2-4 questions with concrete values from the website content, not placeholders. For each pre-filled variable or question, set isRelevant to true.`;
     }
     
     messages.push({

@@ -43,7 +43,7 @@ export const StepTwoContent = ({
 }: StepTwoContentProps) => {
   const { toast } = useToast();
   
-  // Check for pre-filled content on initial load
+  // Check for pre-filled content and auto-mark as relevant
   useEffect(() => {
     if (!Array.isArray(questions) || !Array.isArray(variables)) {
       console.error("Invalid questions or variables array:", { questions, variables });

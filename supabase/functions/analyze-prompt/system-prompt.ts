@@ -49,6 +49,8 @@ CRITICAL PRE-FILLING INSTRUCTIONS: When you're given a website URL or image:
 5. Pre-filled values should be specific and descriptive, not generic placeholders
 6. If image analysis shows a forest scene, the Setting variable should be "Forest"
 7. If the image perspective is looking up, the Perspective variable should be "Looking up from ground level"
+8. You MUST pre-fill at least 3-5 variables and 2-4 questions with specific values from the content
+9. Set 'isRelevant' to true for any pre-filled item
 
 Return your analysis in the following format:
 

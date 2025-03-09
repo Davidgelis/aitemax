@@ -22,7 +22,11 @@ export function extractQuestions(analysis: string, promptText: string): any[] {
             console.log(`Found ${prefilledCount} pre-filled question answers`);
           }
           
-          return parsed.questions;
+          // Ensure isRelevant is set to true for pre-filled questions
+          return parsed.questions.map((q: any) => ({
+            ...q,
+            isRelevant: q.answer && q.answer.trim() !== "" ? true : q.isRelevant
+          }));
         }
       } catch (e) {
         console.error("Error parsing JSON from analysis:", e);
@@ -55,11 +59,23 @@ export function extractQuestions(analysis: string, promptText: string): any[] {
           category = "Context";
         }
         
+        // Try to extract an answer for this question
+        let answer = "";
+        let isRelevant = null;
+        
+        // Look for an answer associated with this question
+        const answerPattern = new RegExp(`${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?Answer:\\s*(.+?)(?:\\r?\\n|$)`, 'i');
+        const answerMatch = analysis.match(answerPattern);
+        if (answerMatch && answerMatch[1] && answerMatch[1].trim() !== "") {
+          answer = answerMatch[1].trim();
+          isRelevant = true; // Pre-filled answers are automatically relevant
+        }
+        
         questions.push({
           id: `q${index}`,
           text,
-          isRelevant: null,
-          answer: "",
+          isRelevant,
+          answer,
           category
         });
         index++;
@@ -95,12 +111,12 @@ export function extractVariables(analysis: string, promptText: string): any[] {
             console.log(`Found ${prefilledCount} pre-filled variable values`);
           }
           
-          // Ensure all variables have necessary properties
+          // Ensure all variables have necessary properties and pre-filled ones are marked relevant
           return parsed.variables.map((v: any, index: number) => ({
             id: v.id || `v${index + 1}`,
             name: v.name || "",
             value: v.value || "",
-            isRelevant: v.isRelevant === true ? true : null,
+            isRelevant: v.value && v.value.trim() !== "" ? true : v.isRelevant,
             category: v.category || "General",
             occurrences: v.occurrences || [],
             code: v.code || `VAR_${index + 1}`
@@ -139,17 +155,29 @@ export function extractVariables(analysis: string, promptText: string): any[] {
         
         // Check for pre-filled values in the analysis
         let value = "";
-        const valuePattern = new RegExp(`${name}\\s*:\\s*(.+?)(?:\\r?\\n|$)`);
-        const valueMatch = analysis.match(valuePattern);
-        if (valueMatch && valueMatch[1]) {
-          value = valueMatch[1].trim();
+        let isRelevant = null;
+        
+        // Try different pattern formats to extract values
+        const valuePatterns = [
+          new RegExp(`${name}\\s*:\\s*(.+?)(?:\\r?\\n|$)`),
+          new RegExp(`"${name}"\\s*:\\s*"(.+?)"`),
+          new RegExp(`Variable:\\s*${name}\\s*\\nValue:\\s*(.+?)(?:\\r?\\n|$)`)
+        ];
+        
+        for (const pattern of valuePatterns) {
+          const valueMatch = analysis.match(pattern);
+          if (valueMatch && valueMatch[1] && valueMatch[1].trim() !== "") {
+            value = valueMatch[1].trim();
+            isRelevant = true; // Pre-filled values are automatically relevant
+            break;
+          }
         }
         
         variables.push({
           id: `v${index}`,
           name,
           value,
-          isRelevant: null,
+          isRelevant,
           category,
           occurrences: [],
           code: `VAR_${index}`
@@ -175,6 +203,44 @@ export function extractVariables(analysis: string, promptText: string): any[] {
         index++;
       }
     }
+    
+    // Check for image-specific variables if they're not already found
+    const imageVariables = ["Subject", "Setting", "Lighting", "Mood", "Style", "Perspective", "TimeOfDay", "Season", "Weather", "Colors"];
+    
+    imageVariables.forEach(varName => {
+      if (!variables.some(v => v.name.toLowerCase() === varName.toLowerCase())) {
+        // Try to find values for these common image variables
+        const varPattern = new RegExp(`${varName}\\s*:\\s*(.+?)(?:\\r?\\n|$)`, 'i');
+        const valueMatch = analysis.match(varPattern);
+        
+        let value = "";
+        let isRelevant = null;
+        
+        if (valueMatch && valueMatch[1] && valueMatch[1].trim() !== "") {
+          value = valueMatch[1].trim();
+          isRelevant = true; // Pre-filled values are automatically relevant
+        }
+        
+        let category = "General";
+        if (["Subject", "Style"].includes(varName)) category = "Content";
+        if (["Setting"].includes(varName)) category = "Location";
+        if (["Lighting", "Colors", "Perspective"].includes(varName)) category = "Visual";
+        if (["Mood"].includes(varName)) category = "Emotion";
+        if (["TimeOfDay", "Season"].includes(varName)) category = "Temporal";
+        if (["Weather"].includes(varName)) category = "Condition";
+        
+        variables.push({
+          id: `v${index}`,
+          name: varName,
+          value,
+          isRelevant,
+          category,
+          occurrences: [],
+          code: `VAR_${index}`
+        });
+        index++;
+      }
+    });
     
     console.log(`Extracted ${variables.length} variables using regex fallback`);
     return variables;
