@@ -4,7 +4,7 @@ import { PromptEditor } from "./PromptEditor";
 import { Separator } from "@/components/ui/separator";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { useState } from "react";
-import { UploadedImage } from "./ImageUploader";
+import { UploadedImage } from "./types";
 import { ImageCarousel } from "./ImageCarousel";
 import { WebScanner } from "./WebScanner";
 

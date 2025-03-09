@@ -1,10 +1,8 @@
-
 import { useState, useEffect } from "react";
-import { Question, Variable } from "@/components/dashboard/types";
+import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions, primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { UploadedImage } from "@/components/dashboard/ImageUploader";
 
 // Helper function to validate variable names
 const isValidVariableName = (name: string): boolean => {
