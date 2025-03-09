@@ -9,7 +9,6 @@ import { usePromptAnalysis } from "@/hooks/usePromptAnalysis";
 import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
 import { AIModel } from "@/components/dashboard/types";
-import { ModelSelector } from './model-selector';
 import { primaryToggles, secondaryToggles } from "./constants";
 
 interface StepControllerProps {
@@ -167,7 +166,6 @@ export const StepController = ({
     if (step === 3) {
       setIsEnhancingPrompt(true);
       
-      // Create a context-aware loading message based on toggles
       let message = "Enhancing your prompt";
       if (selectedPrimary) {
         const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label || selectedPrimary;
@@ -186,7 +184,6 @@ export const StepController = ({
       setEnhancingMessage(message);
       
       try {
-        // Pass all required parameters to enhancePromptWithGPT
         const enhancedPrompt = await promptAnalysis.enhancePromptWithGPT(
           promptText,
           questions,
@@ -228,7 +225,7 @@ export const StepController = ({
         : isEnhancingPrompt 
           ? enhancingMessage
           : isEnhancing
-            ? currentLoadingMessage  // Use the dynamic message from usePromptAnalysis when enhancing
+            ? currentLoadingMessage
             : currentLoadingMessage;
           
       return <LoadingState currentLoadingMessage={message} />;

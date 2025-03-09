@@ -24,6 +24,9 @@ export const WebScanDialog = ({
     if (url.trim()) {
       onWebsiteScan(url.trim(), instructions.trim());
       onOpenChange(false);
+      // Reset the form after submission
+      setUrl('');
+      setInstructions('');
     }
   };
   

@@ -3,8 +3,6 @@ import { ToggleSection } from "./ToggleSection";
 import { PromptEditor } from "./PromptEditor";
 import { Separator } from "@/components/ui/separator";
 import { primaryToggles, secondaryToggles } from "./constants";
-import { ModelSelector } from "./model-selector";
-import { AIModel } from "./types";
 import { useState } from "react";
 import { UploadedImage, ImageUploader } from "./ImageUploader";
 import { ImageCarousel } from "./ImageCarousel";
@@ -19,8 +17,8 @@ interface StepOneContentProps {
   handleSecondaryToggle: (id: string) => void;
   onAnalyze: () => void;
   isLoading: boolean;
-  selectedModel: AIModel | null;
-  setSelectedModel: (model: AIModel | null) => void;
+  selectedModel: any | null;
+  setSelectedModel: (model: any | null) => void;
   selectedCognitive: string | null;
   handleCognitiveToggle: (id: string) => void;
 }
@@ -66,9 +64,9 @@ export const StepOneContent = ({
     <div className="space-y-4 w-full relative">
       <div className="w-full">
         <div className="flex justify-between items-center">
-          <ModelSelector 
-            onSelect={setSelectedModel} 
-            selectedModel={selectedModel}
+          <WebScanner 
+            onWebsiteScan={handleWebsiteScan} 
+            variant="modelReplacement" 
           />
           
           {/* Container with flex to position toggle and help icon properly */}
@@ -123,8 +121,6 @@ export const StepOneContent = ({
           images={uploadedImages}
           maxImages={1}
         />
-        
-        <WebScanner onWebsiteScan={handleWebsiteScan} />
       </div>
       
       <ImageCarousel 
