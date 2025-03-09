@@ -110,8 +110,6 @@ const PromptInput = ({
             caretColor: "#33fea6"
           }}
         />
-        
-        {/* Removed the inner grey outline div that was here */}
       </div>
       
       <ImageCarousel 

@@ -55,11 +55,9 @@ export const ImageUploadDialog = ({
   const handleFiles = (files: FileList) => {
     const newImages: UploadedImage[] = [];
     
-    // Only process up to the remaining slots
-    const filesToProcess = Math.min(files.length, remainingSlots);
-    
-    for (let i = 0; i < filesToProcess; i++) {
-      const file = files[i];
+    // Only process the first image
+    if (files.length > 0 && remainingSlots > 0) {
+      const file = files[0];
       if (file.type.startsWith('image/')) {
         const url = URL.createObjectURL(file);
         newImages.push({
@@ -71,7 +69,8 @@ export const ImageUploadDialog = ({
     }
     
     if (newImages.length > 0) {
-      onImagesUploaded([...currentImages, ...newImages]);
+      // Replace existing images instead of adding to them
+      onImagesUploaded(newImages);
       onOpenChange(false);
     }
   };
@@ -93,8 +92,8 @@ export const ImageUploadDialog = ({
           
           <p className="text-center mb-6 text-[#545454]">
             {remainingSlots > 0 
-              ? `Drag and drop images here (${remainingSlots} remaining)`
-              : "Maximum number of images reached"
+              ? `Drag and drop an image here`
+              : "You already have an image uploaded"
             }
           </p>
           
@@ -112,7 +111,6 @@ export const ImageUploadDialog = ({
               ref={fileInputRef} 
               className="hidden" 
               accept="image/*" 
-              multiple
               onChange={handleFileChange}
               disabled={remainingSlots <= 0}
             />

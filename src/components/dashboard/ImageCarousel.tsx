@@ -39,14 +39,16 @@ export const ImageCarousel = ({ images, open, onOpenChange, initialImageId }: Im
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl p-0 bg-transparent border-none shadow-none backdrop-blur-md">
         <div className="relative w-full flex justify-center items-center">
-          <button
-            onClick={goToPrevious}
-            disabled={images.length <= 1}
-            className="absolute left-4 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition-colors z-10"
-            aria-label="Previous image"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
+          {/* Only show navigation arrows if we have more than one image */}
+          {images.length > 1 && (
+            <button
+              onClick={goToPrevious}
+              className="absolute left-4 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition-colors z-10"
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+          )}
           
           <div className="max-h-[80vh] flex justify-center">
             <img 
@@ -56,14 +58,16 @@ export const ImageCarousel = ({ images, open, onOpenChange, initialImageId }: Im
             />
           </div>
           
-          <button
-            onClick={goToNext}
-            disabled={images.length <= 1}
-            className="absolute right-4 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition-colors z-10"
-            aria-label="Next image"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
+          {/* Only show navigation arrows if we have more than one image */}
+          {images.length > 1 && (
+            <button
+              onClick={goToNext}
+              className="absolute right-4 bg-black/30 text-white p-2 rounded-full hover:bg-black/50 transition-colors z-10"
+              aria-label="Next image"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          )}
           
           <button
             onClick={() => onOpenChange(false)}

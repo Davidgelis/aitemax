@@ -16,14 +16,14 @@ interface ImageUploaderProps {
   images: UploadedImage[];
 }
 
-export const ImageUploader = ({ onImagesChange, maxImages = 5, images }: ImageUploaderProps) => {
+export const ImageUploader = ({ onImagesChange, maxImages = 1, images }: ImageUploaderProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   
   const handleImagesUploaded = (newImages: UploadedImage[]) => {
     if (newImages.length > maxImages) {
       toast({
         title: "Upload limit reached",
-        description: `You can only upload a maximum of ${maxImages} images.`,
+        description: `You can only upload a maximum of ${maxImages} image.`,
         variant: "destructive",
       });
       return;
@@ -38,11 +38,11 @@ export const ImageUploader = ({ onImagesChange, maxImages = 5, images }: ImageUp
         <button
           onClick={() => setDialogOpen(true)}
           className="p-2 rounded-md border-2 border-[#64bf95] text-[#64bf95] hover:bg-[#64bf95]/10 transition-colors flex items-center gap-1"
-          title="Upload images"
+          title="Upload image"
           disabled={images.length >= maxImages}
         >
           <ImageUp className="w-5 h-5" />
-          <span className="text-sm">Upload Images</span>
+          <span className="text-sm">Upload Image</span>
         </button>
       </div>
       
