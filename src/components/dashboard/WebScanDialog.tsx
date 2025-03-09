@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Globe } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 
 interface WebScanDialogProps {
   open: boolean;
@@ -43,16 +43,13 @@ export const WebScanDialog = ({
             <label htmlFor="website-url" className="block text-sm font-medium text-[#545454] mb-2">
               What is the desired tone of the output?
             </label>
-            <Input 
+            <Textarea 
               id="website-url"
-              type="url" 
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="Type your answer here..."
               className="w-full min-h-[160px] border-[#084b49]/30 resize-none"
               required
-              multiline="true"
-              as="textarea"
             />
           </div>
           
