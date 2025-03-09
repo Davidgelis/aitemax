@@ -97,6 +97,7 @@ serve(async (req) => {
     console.log(`Analyzing prompt: "${promptText}"\n`);
     console.log(`Primary toggle: ${primaryToggle || "None"}`);
     console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
+    console.log(`Creating prompt for AI platform with appropriate context`);
     
     // Create a system message with better context about our purpose
     const systemMessage = createSystemPrompt(primaryToggle, secondaryToggle);
@@ -125,6 +126,9 @@ serve(async (req) => {
       const masterCommand = extractMasterCommand(analysis);
       const enhancedPrompt = extractEnhancedPrompt(analysis);
       
+      console.log(`Extracted ${questions.length} context questions relevant to AI platforms`);
+      console.log(`Extracted ${variables.length} variables for customization`);
+      
       const result = {
         questions,
         variables,
@@ -143,8 +147,16 @@ serve(async (req) => {
     } catch (extractionError) {
       console.error("Error extracting structured data from analysis:", extractionError);
       
-      // Fallback to context-specific questions
-      const contextQuestions = generateContextQuestionsForPrompt(promptText);
+      // Fallback to context-specific questions based on toggles
+      let contextQuestions = generateContextQuestionsForPrompt(promptText);
+      
+      // Filter out potentially irrelevant questions based on toggle type
+      if (primaryToggle === "image") {
+        contextQuestions = contextQuestions.filter(q => 
+          !q.text.toLowerCase().includes("file format") && 
+          !q.text.toLowerCase().includes("file type")
+        );
+      }
       
       // Fallback to mock data but still return a 200 status code
       return new Response(JSON.stringify({
@@ -175,7 +187,7 @@ serve(async (req) => {
       primaryToggle: null,
       secondaryToggle: null
     }), {
-      status: 200, // Always return 200 to avoid the edge function error
+      status: 200, // Always return a 200 to avoid edge function errors
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

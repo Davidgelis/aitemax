@@ -32,7 +32,7 @@ export function createSystemPrompt(primaryToggle: string | null, secondaryToggle
         toggleContext += "\nThe user is creating a prompt for creative writing or ideation. Focus on extracting variables related to style, tone, narrative elements, and creative parameters. Questions should seek clarity on creative constraints, inspiration sources, and desired emotional impact of the output.";
         break;
       case "image":
-        toggleContext += "\nThe user is creating a prompt for image generation. Focus on extracting variables related to visual elements, artistic style, composition, color schemes, and image parameters. Questions should seek clarity on visual details, reference images, and specific aesthetic requirements.";
+        toggleContext += "\nThe user is creating a prompt for image generation. Focus on extracting variables related to visual elements, artistic style, composition, color schemes, and image parameters. Do NOT ask about image file formats as most AI image generators provide a standard format. Questions should seek clarity on visual details, reference images, and specific aesthetic requirements instead.";
         break;
       default:
         // No specific toggle context
@@ -64,9 +64,13 @@ export function createSystemPrompt(primaryToggle: string | null, secondaryToggle
     
     Important context:
     - The purpose of this analysis is to help ANOTHER AI generate a better structured prompt.
-    - Don't ask redundant questions that would be obvious to an AI.
+    - Don't ask redundant questions that would be obvious to an AI or that would be irrelevant to the AI's capabilities.
     - Focus on extracting unique variables and asking clarifying questions that will meaningfully improve the prompt.
     - The final goal is to structure a prompt with these four key pillars: Task, Persona, Conditions, and Instructions.
+    - Remember that this prompt will ultimately be used on an AI platform, so questions should be practical and relevant to what current AI systems can do.
+    - For example, don't ask about specific file formats for image generation, since most AI platforms have their fixed output formats.
+    - Don't ask about technical capabilities that are standard across AI platforms.
+    - Focus instead on understanding the user's intent, specific requirements, and parameters that will make the output more tailored.
     ${toggleContext}
     
     Your output must include:
@@ -74,6 +78,7 @@ export function createSystemPrompt(primaryToggle: string | null, secondaryToggle
        - Questions should seek deeper understanding of the user's needs, not just ask for variables.
        - Examples of good context questions: "How often will this be used?", "What is the scale of data being processed?"
        - These questions should NOT duplicate information asked for in variables.
+       - Do NOT include questions about technical aspects that are fixed in AI platforms or that an AI already knows.
        
     2. A set of SPECIFIC VARIABLES for customization - these should be CONTEXTUAL words or phrases that can be replaced.
        - Variables should be VERY SPECIFIC placeholder values that the user might want to change later.

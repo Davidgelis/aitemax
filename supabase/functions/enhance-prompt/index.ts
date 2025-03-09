@@ -88,7 +88,7 @@ const togglePrompts = {
   
   creative: "You are an AI that refines prompts for creative writing or ideation. The original prompt is already strong; simply tweak it to emphasize variety in tone or style, possibly request multiple viewpoints or drafts, and invite a short self-review for consistency, plot holes, or stylistic mismatches. Retain the core creative direction while adding these gentle enhancements to ensure the final output can engage diverse audiences and maintain narrative coherence.",
   
-  image: "You are an AI that refines prompts for generating images. The existing prompt is already solid; please make minimal adjustments to specify the desired visual style or medium, clarify necessary resolution or aspect ratio, and note any disclaimers for sensitive or copyrighted content. Keep the overall structure intact, focusing solely on these new image-related details."
+  image: "You are an AI that refines prompts for generating images. The existing prompt is already solid; please make minimal adjustments to specify the desired visual style or medium, clarify necessary resolution or aspect ratio, and note any compositional elements that would make the image more coherent and visually striking. Focus on artistic direction rather than technical specs that most AI image generators handle automatically. Keep the overall structure intact, focusing solely on enhancing the creative visual elements."
 };
 
 // Toggle labels map for loading message
@@ -127,6 +127,7 @@ serve(async (req) => {
     console.log(`Relevant variables: ${relevantVariables.length}`);
     console.log(`Primary toggle: ${primaryToggle || "None"}`);
     console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
+    console.log(`Enhancing for use on AI platforms with appropriate context`);
     
     // Get toggle prompts if applicable
     const primaryPrompt = primaryToggle ? togglePrompts[primaryToggle] : "";
@@ -155,6 +156,8 @@ serve(async (req) => {
       
       ADDITIONALLY, come up with a short, concise title (5 words or less) that captures the essence of the prompt. The title should be innovative and suitable for the prompt's purpose. Place this title at the very beginning of your response, before the Task section, formatted as "**[TITLE]**".
       
+      REMEMBER that this prompt will be used on an AI platform, so ensure it follows best practices for AI-to-AI communication and avoids asking for capabilities or formats that are standardized or fixed in AI systems.
+      
       ${primaryPrompt ? `\n\nPRIMARY TOGGLE INSTRUCTION: ${primaryPrompt}` : ""}
       ${secondaryPrompt ? `\n\nSECONDARY TOGGLE INSTRUCTION: ${secondaryPrompt}` : ""}
       `
@@ -173,7 +176,7 @@ serve(async (req) => {
     const userMessage = {
       role: 'user',
       content: `
-Please analyze and enhance the following prompt based on the provided context.
+Please analyze and enhance the following prompt based on the provided context. This prompt will be used on an AI platform, so make it optimized for AI-to-AI communication.
 
 ORIGINAL PROMPT:
 ${originalPrompt}
