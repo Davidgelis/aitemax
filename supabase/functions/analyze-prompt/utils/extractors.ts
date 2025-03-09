@@ -20,7 +20,7 @@ export function extractQuestions(analysis: string, promptText: string): any[] {
           const prefilledCount = parsed.questions.filter((q: any) => q.answer && q.answer.trim() !== "").length;
           if (prefilledCount > 0) {
             console.log(`Found ${prefilledCount} pre-filled question answers`);
-            console.log("First few pre-filled questions:", parsed.questions.filter((q: any) => q.answer && q.answer.trim() !== "").slice(0, 2));
+            console.log("First few pre-filled questions:", parsed.questions.filter((q: any) => q.answer && q.answer.trim() !== "").slice(0, 2).map((q: any) => ({ text: q.text, answer: q.answer })));
           }
           
           // Ensure isRelevant is set to true for pre-filled questions
@@ -118,7 +118,7 @@ export function extractVariables(analysis: string, promptText: string): any[] {
           const prefilledCount = parsed.variables.filter((v: any) => v.value && v.value.trim() !== "").length;
           if (prefilledCount > 0) {
             console.log(`Found ${prefilledCount} pre-filled variable values`);
-            console.log("First few pre-filled variables:", parsed.variables.filter((v: any) => v.value && v.value.trim() !== "").slice(0, 2));
+            console.log("First few pre-filled variables:", parsed.variables.filter((v: any) => v.value && v.value.trim() !== "").slice(0, 2).map((v: any) => ({ name: v.name, value: v.value })));
           }
           
           // Ensure all variables have necessary properties and pre-filled ones are marked relevant

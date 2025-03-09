@@ -182,7 +182,7 @@ User Instructions: ${websiteData.instructions || "No specific instructions provi
 Content Excerpt: ${websiteContent.text.substring(0, 3000)}...
 Key Terms: ${websiteKeywords.join(', ')}
       
-Please analyze this website context THOROUGHLY. Extract ALL specific concrete details like main topic, purpose, audience, tone, style, key terminology, content structure, and any other relevant information. Use these SPECIFIC extracted details to pre-fill answers to questions and variable values where the information is EXPLICITLY present in this content. ONLY pre-fill information that you can directly observe in the content.`;
+CRITICAL INSTRUCTIONS: Analyze this website context THOROUGHLY. Extract ALL specific concrete details like main topic, purpose, audience, tone, style, key terminology, content structure, and any other relevant information. You MUST use these SPECIFIC extracted details to pre-fill answers to questions and variable values where the information is EXPLICITLY present in this content. For each pre-filled question or variable, you MUST set isRelevant to true. DO NOT SKIP THIS STEP.`;
     }
     
     // Add image context if provided
@@ -205,7 +205,7 @@ Please analyze this website context THOROUGHLY. Extract ALL specific concrete de
 - Textures
 - Any other observable details
 
-Extract ALL these specific details and use them to pre-fill relevant answers to questions and values for variables. ONLY use information that is EXPLICITLY visible in the image.`;
+CRITICAL INSTRUCTIONS: You MUST extract all these specific details and use them to pre-fill relevant answers to questions and values for variables. For each pre-filled question or variable, you MUST set isRelevant to true. DO NOT SKIP THIS STEP. Use only information that is EXPLICITLY visible in the image.`;
     }
     
     console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);
@@ -270,17 +270,22 @@ Extract ALL these specific details and use them to pre-fill relevant answers to 
         questions.forEach(q => {
           if (q.answer && q.answer.trim() !== '') {
             q.isRelevant = true;
+            console.log(`Marked question as relevant: "${q.text}" with answer "${q.answer}"`);
           }
         });
         
         variables.forEach(v => {
           if (v.value && v.value.trim() !== '') {
             v.isRelevant = true;
+            console.log(`Marked variable as relevant: "${v.name}" with value "${v.value}"`);
           }
         });
         
-        console.log("Extra check: Variables with pre-filled values:", 
+        console.log("Extra check: Pre-filled variables:", 
           variables.filter(v => v.value && v.value.trim() !== '').map(v => `${v.name}: "${v.value}" (isRelevant: ${v.isRelevant})`));
+        
+        console.log("Extra check: Pre-filled questions:", 
+          questions.filter(q => q.answer && q.answer.trim() !== '').map(q => `"${q.text}": "${q.answer}" (isRelevant: ${q.isRelevant})`));
       }
       
       const result = {
@@ -293,7 +298,9 @@ Extract ALL these specific details and use them to pre-fill relevant answers to 
         primaryToggle,
         secondaryToggle,
         hasAdditionalContext,
-        contextType: imageData?.base64 ? "image" : (websiteData?.url ? "website" : "none")
+        contextType: imageData?.base64 ? "image" : (websiteData?.url ? "website" : "none"),
+        prefilledQuestions,
+        prefilledVariables
       };
       
       return new Response(JSON.stringify(result), {
@@ -354,8 +361,11 @@ Extract ALL these specific details and use them to pre-fill relevant answers to 
         contextVariables = contextVariables.map(v => ({...v, value: ""}));
       }
       
-      console.log("Fallback: Returning context questions with pre-filled: ", 
-        contextQuestions.filter(q => q.answer && q.answer.trim() !== '').length);
+      const prefilledQuestions = contextQuestions.filter(q => q.answer && q.answer.trim() !== '').length;
+      const prefilledVariables = contextVariables.filter(v => v.value && v.value.trim() !== '').length;
+      
+      console.log("Fallback: Returning context questions with pre-filled: ", prefilledQuestions);
+      console.log("Fallback: Returning context variables with pre-filled: ", prefilledVariables);
       
       // Fallback to mock data but still return a 200 status code
       return new Response(JSON.stringify({
@@ -369,7 +379,9 @@ Extract ALL these specific details and use them to pre-fill relevant answers to 
         primaryToggle,
         secondaryToggle,
         hasAdditionalContext,
-        contextType: imageData?.base64 ? "image" : (websiteData?.url ? "website" : "none")
+        contextType: imageData?.base64 ? "image" : (websiteData?.url ? "website" : "none"),
+        prefilledQuestions,
+        prefilledVariables
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -388,7 +400,9 @@ Extract ALL these specific details and use them to pre-fill relevant answers to 
       primaryToggle: null,
       secondaryToggle: null,
       hasAdditionalContext: false,
-      contextType: "none"
+      contextType: "none",
+      prefilledQuestions: 0,
+      prefilledVariables: 0
     }), {
       status: 200, // Always return a 200 to avoid edge function errors
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

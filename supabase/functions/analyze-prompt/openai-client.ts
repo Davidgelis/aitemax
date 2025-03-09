@@ -35,6 +35,8 @@ export async function analyzePromptWithAI(
           type: "text",
           text: `Analyze this prompt for generating questions and variables: "${promptText}" 
           
+IMPORTANT: Thoroughly analyze the image and extract SPECIFIC details to pre-fill questions and variables:
+
 First, describe the image in EXTREME detail. Extract ALL specific visual elements like:
 - Subject(s): What/who is in the image (people, objects, landscapes)
 - Viewpoint: How the scene is viewed (looking up, eye-level, aerial view)
@@ -50,14 +52,23 @@ First, describe the image in EXTREME detail. Extract ALL specific visual element
 - Textures: Smooth, rough, detailed, etc.
 - Style: If applicable (photorealistic, cartoon, painting style)
 
-Then use these SPECIFIC details to pre-fill relevant question answers and variable values that you can directly observe in the image. It is CRITICAL that you pre-fill the variables with specific values from the image.
+CRITICAL: You MUST pre-fill at least 3-5 variables and 2-4 questions with SPECIFIC information from the image. DO NOT use generic placeholders - use exact details you can observe:
 
-PRE-FILL INSTRUCTIONS: You MUST pre-fill at least 3-5 variables and 2-4 questions with specific information from the image. For example:
-- If you see a forest scene → Setting variable = "Dense forest with tall pine trees"
+For example:
+- If you see a forest → Setting variable = "Dense forest with tall pine trees"
 - If image has a sunset → TimeOfDay variable = "Sunset with golden hour lighting"
 - If image shows rain → Weather variable = "Rainy with wet surfaces"
 
-For each pre-filled variable or question, set isRelevant to true. DO NOT FAIL TO SET THIS FLAG.
+For each pre-filled variable or question, you MUST set isRelevant to true. For example:
+{
+  "id": "v1",
+  "name": "Setting",
+  "value": "Dense forest with tall pine trees",
+  "isRelevant": true,
+  "category": "Location"
+}
+
+DO NOT FAIL TO SET THE isRelevant FLAG TO TRUE for pre-filled items.
 
 ${additionalContext}`
         },
@@ -76,7 +87,23 @@ ${additionalContext}`
     let userPrompt = `Analyze this prompt for generating questions and variables: "${promptText}"`;
     
     if (additionalContext) {
-      userPrompt += `\n\n${additionalContext}\n\nIMPORTANT: Based on the provided website context, pre-fill variables and question answers with SPECIFIC values that you can directly observe in the content. You MUST pre-fill at least 3-5 variables and 2-4 questions with concrete values from the website content, not placeholders. For each pre-filled variable or question, set isRelevant to true. DO NOT FAIL TO SET THIS FLAG.`;
+      userPrompt += `\n\n${additionalContext}\n\nIMPORTANT: Based on the provided website context, you MUST pre-fill variables and question answers with SPECIFIC values that you can directly observe in the content. Pre-fill at least 3-5 variables and 2-4 questions with concrete values from the website content, not placeholders. For each pre-filled variable or question, you MUST set isRelevant to true. For example:
+
+{
+  "id": "q1",
+  "text": "What is the main topic?",
+  "answer": "AI-powered content creation tools",
+  "isRelevant": true
+}
+
+{
+  "id": "v1",
+  "name": "Topic",
+  "value": "AI-powered content creation tools",
+  "isRelevant": true
+}
+
+DO NOT FAIL TO SET THE isRelevant FLAG TO TRUE for pre-filled items.`;
     }
     
     messages.push({
