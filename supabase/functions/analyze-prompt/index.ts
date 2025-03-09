@@ -172,10 +172,10 @@ serve(async (req) => {
 URL: ${websiteData.url}
 Title: ${websiteContent.title}
 User Instructions: ${websiteData.instructions || "No specific instructions provided"}
-Content Excerpt: ${websiteContent.text.substring(0, 2000)}...
+Content Excerpt: ${websiteContent.text.substring(0, 3000)}...
 Key Terms: ${websiteKeywords.join(', ')}
       
-Please analyze this website context when analyzing the prompt. ONLY pre-fill answers to questions and variable values where the information is EXPLICITLY present in this content.`;
+Please analyze this website context thoroughly when analyzing the prompt. Extract specific concrete details like main topic, purpose, audience, tone, style, key terminology, content structure, and any other relevant information. Use these extracted details to pre-fill answers to questions and variable values where the information is EXPLICITLY present in this content.`;
     }
     
     // Add image context if provided
@@ -183,7 +183,23 @@ Please analyze this website context when analyzing the prompt. ONLY pre-fill ans
     if (imageData && imageData.base64) {
       hasAdditionalContext = true;
       console.log("Image provided for context");
-      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image and consider it when generating questions and variables. The image is provided as a base64 string in the message. ONLY extract information that is EXPLICITLY visible in the image and use it to pre-fill answers to questions and values for variables. DO NOT hallucinate or assume details that aren't clearly visible.`;
+      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image thoroughly and extract all visual details including:
+- Subject(s) in the image
+- Viewpoint (looking up, eye-level, aerial view, etc.)
+- Perspective (distance, angle, etc.)
+- Setting/location/environment
+- Time of day (if determinable)
+- Season (if determinable)
+- Weather conditions (if shown)
+- Lighting conditions
+- Color palette
+- Mood/atmosphere
+- Composition
+- Style
+- Textures
+- Any other observable details
+
+Extract these specific details and use them to pre-fill relevant answers to questions and values for variables. Only use information that is EXPLICITLY visible in the image.`;
     }
     
     console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);

@@ -89,6 +89,8 @@ export const usePromptAnalysis = (
       websiteUrl: websiteData ? websiteData.url : null
     });
     
+    const hasAdditionalContext = (images && images.length > 0) || (websiteData && websiteData.url);
+    
     // Start loading immediately
     setIsLoading(true);
     
@@ -160,7 +162,8 @@ export const usePromptAnalysis = (
         primaryToggle: selectedPrimary, 
         secondaryToggle: selectedSecondary,
         hasImage: !!(images && images.length > 0),
-        hasWebsite: !!(websiteData && websiteData.url)
+        hasWebsite: !!(websiteData && websiteData.url),
+        hasAdditionalContext
       });
       
       const { data, error } = await supabase.functions.invoke('analyze-prompt', {
@@ -182,8 +185,8 @@ export const usePromptAnalysis = (
           const aiQuestions = data.questions.map((q: any, index: number) => ({
             ...q,
             id: q.id || `q${index + 1}`,
-            // Keep pre-filled answers if they exist
-            answer: q.answer || "",
+            // Keep pre-filled answers if they exist and we have additional context
+            answer: hasAdditionalContext ? (q.answer || "") : "",
             // Mark as relevant if it has an answer
             isRelevant: q.answer && q.answer.trim() !== "" ? true : null
           }));
@@ -208,7 +211,8 @@ export const usePromptAnalysis = (
             .map((v: any, index: number) => ({
               ...v,
               id: v.id || `v${index + 1}`,
-              value: v.value || "",
+              // Only keep pre-filled values if we have additional context
+              value: hasAdditionalContext ? (v.value || "") : "",
               // Mark as relevant if it has a value
               isRelevant: v.value && v.value.trim() !== "" ? true : null
             }));

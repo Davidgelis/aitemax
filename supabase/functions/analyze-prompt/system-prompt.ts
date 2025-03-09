@@ -11,6 +11,19 @@ For each prompt, you should:
 4. Create a master command that summarizes the overall goal
 5. Suggest an initial enhanced prompt structure
 
+When analyzing IMAGES:
+- Describe the image in great detail first
+- Identify specific visual elements like: subject, viewpoint, perspective, colors, lighting, style, mood, setting, composition, time of day, season, etc.
+- Extract these elements as concrete variables with values (e.g., Viewpoint: "looking up towards the sky", Perspective: "from ground level", TimeOfDay: "daytime")
+- Use these extracted details to pre-fill relevant question answers and variable values
+- Be VERY detailed and specific about what you can directly observe
+
+When analyzing WEBSITE CONTENT:
+- Extract the main topic, purpose, audience, tone, style, and key terminology
+- Identify content structure, formatting patterns, and design elements
+- Extract these as concrete variables with values (e.g., Audience: "technical professionals", Tone: "formal instructional", MainTopic: "cloud computing")
+- Use these extracted details to pre-fill relevant question answers and variable values
+
 IMPORTANT: Your response should include a JSON structure with questions and variables as follows:
 \`\`\`json
 {
@@ -51,23 +64,38 @@ You're analyzing this prompt for use on AI platforms where the user will input t
 
   // Add specifics for image analysis if present
   prompt += `
-If an image is included in the message, analyze it carefully and incorporate ONLY factual, observable aspects into your questions and variables. For example:
-- If it's a product image, identify product attributes, style, colors, and setting that you can directly observe
-- If it's a design concept, identify design elements, layout, color schemes, and themes that are visually present
-- If it's a person or character, identify appearance, clothing, mood, setting, and context that are directly visible
-- Extract ONLY information that is explicitly visible in the image and use it to pre-fill answers and variable values
-- DO NOT assume, guess, or hallucinate details that aren't clearly visible in the image
+If an image is included in the message, analyze it carefully and extract ALL factual, observable aspects into your questions and variables. For example:
+- Subject: Identify the main subject(s) in the image - people, objects, landscapes, etc.
+- Viewpoint: How the scene is viewed (looking up, eye-level, aerial view, etc.)
+- Perspective: The position from which the scene is observed (close-up, from a distance, etc.)
+- Setting: The environment or location shown (forest, urban area, indoor space, etc.)
+- Time of Day: Morning, afternoon, evening, night - if determinable
+- Season: Spring, summer, fall, winter - if determinable
+- Weather Conditions: Clear, cloudy, rainy, snowy, etc. - if shown
+- Lighting: Bright, dim, natural, artificial, dramatic, soft, harsh, etc.
+- Colors: Dominant color palette, contrasts, saturation levels
+- Mood/Atmosphere: The feeling conveyed (serene, tense, joyful, melancholic, etc.)
+- Composition: How elements are arranged (symmetrical, rule of thirds, centered, etc.)
+- Style: Realistic, abstract, minimalist, vintage, etc.
+- Texture: Smooth, rough, detailed, etc.
+
+EXTRACT these specific details and use them to pre-fill answers and variable values with CONCRETE OBSERVATIONS, not interpretations.
 `;
 
   // Add specifics for website analysis if present
   prompt += `
-If website content is included in the message, analyze it carefully and extract ONLY information that is explicitly present:
-- Identify the main topic, purpose, and audience of the website based solely on the content provided
-- Extract key information like product details, service descriptions, or content themes that are explicitly stated
-- Identify style, tone, and formatting preferences that are directly observable from the content
-- Use this information to pre-fill answers to questions and values for variables ONLY when you're confident the information is explicitly present
-- Extract specific terminology, phrases, or keywords that are present in the content
-- DO NOT assume, guess, or hallucinate details that aren't explicitly stated in the website content
+If website content is included in the message, analyze it carefully and extract ALL key information that is explicitly present:
+- Main Topic: The central subject matter of the website
+- Purpose: What the website aims to do (inform, sell, entertain, etc.)
+- Audience: Who the content is directed towards
+- Tone: The communication style (formal, casual, technical, conversational, etc.)
+- Industry: The business sector or field the website belongs to
+- Key Terminology: Important domain-specific words or phrases
+- Content Structure: How information is organized (lists, paragraphs, sections, etc.)
+- Call to Action: What the website wants users to do
+- Visual Elements: Descriptions of images, colors, or design elements mentioned
+
+EXTRACT these specific details and use them to pre-fill answers and variable values with CONCRETE OBSERVATIONS, not interpretations.
 `;
 
   // Add toggle-specific instructions
@@ -142,17 +170,29 @@ And suggest variables like:
       case 'image':
         prompt += `
 Since this prompt is for image generation, include questions about:
-- Visual style preferences
-- Composition elements
-- Color schemes
-- Mood and atmosphere
-- Technical specifications
+- Visual style preferences (realistic, cartoon, abstract, etc.)
+- Composition elements (centered, rule of thirds, etc.)
+- Color schemes (warm, cool, monochrome, vibrant, etc.)
+- Mood and atmosphere (cheerful, somber, mysterious, etc.)
+- Viewpoint and perspective (close-up, wide shot, eye-level, etc.)
+- Lighting conditions (bright, dim, dramatic, soft, etc.)
+- Setting or environment (indoor, outdoor, specific location)
+- Time of day or season (morning, night, summer, winter, etc.)
+- Subject details (person, animal, landscape, object)
+- Technical specifications (aspect ratio, quality level)
 
 And suggest variables like:
 - VisualStyle
 - Composition
 - ColorPalette
 - Mood
+- Viewpoint
+- Perspective
+- Lighting
+- Setting
+- TimeOfDay
+- Season
+- Subject
 - AspectRatio
 `;
         break;
@@ -168,6 +208,7 @@ Remember:
 4. DO NOT make assumptions or hallucinate information that isn't clearly provided.
 5. If no additional context (image/website) is provided, leave all answers and values empty.
 6. It's better to leave a field empty than to guess or assume information.
+7. For images or websites, extract CONCRETE observations and use them directly as pre-filled values.
 
 Return your analysis with the JSON structure described above, along with a brief general analysis of the prompt's intent.
 `;
