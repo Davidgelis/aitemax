@@ -21,7 +21,7 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         aurora: "aurora-button text-white",
         analyze: "bg-gradient-to-r from-green-400 to-green-300 text-white hover:shadow-md transition-all duration-300",
-        slim: "px-2.5 py-1 text-xs border border-primary text-text hover:bg-primary/5 transition-colors [&_svg]:size-3",
+        slim: "bg-transparent text-[#545454] hover:bg-[#33fea6]/5 transition-colors [&_svg]:size-3",
       },
       size: {
         default: "h-10 px-4 py-2",

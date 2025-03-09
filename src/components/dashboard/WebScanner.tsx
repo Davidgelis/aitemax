@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Globe } from 'lucide-react';
 import { WebScanDialog } from './WebScanDialog';
+import { Button } from "@/components/ui/button";
 
 interface WebScannerProps {
   onWebsiteScan: (url: string, instructions: string) => void;
@@ -52,18 +53,20 @@ export const WebScanner = ({
     );
   }
   
-  // Default button style (original)
+  // Default button style (using the new Button component)
   return (
     <div className={`flex flex-col ${className}`}>
       <div className="mb-2">
-        <button
+        <Button
           onClick={() => setDialogOpen(true)}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-md border border-[#64bf95] text-[#64bf95] text-xs hover:bg-[#64bf95]/5 transition-colors"
+          variant="slim"
+          size="xs"
+          className="group animate-aurora-border"
           title="Scan website"
         >
-          <Globe className="w-3 h-3" />
-          <span className="font-medium">Web Scan</span>
-        </button>
+          <Globe className="w-3 h-3 text-[#64bf95] group-hover:text-[#33fea6] transition-colors" />
+          <span>Web Scan</span>
+        </Button>
       </div>
       
       <WebScanDialog
