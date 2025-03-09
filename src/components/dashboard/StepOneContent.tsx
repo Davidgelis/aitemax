@@ -8,6 +8,7 @@ import { AIModel } from "./types";
 import { useState } from "react";
 import { UploadedImage, ImageUploader } from "./ImageUploader";
 import { ImageCarousel } from "./ImageCarousel";
+import { WebScanner } from "./WebScanner";
 
 interface StepOneContentProps {
   promptText: string;
@@ -41,11 +42,25 @@ export const StepOneContent = ({
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [carouselOpen, setCarouselOpen] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   
   const cognitiveTooltip = 
     "This button will conduct a final precision-driven refinement of the generated prompt as a second layer of refinment, ensuring you receive the best possible prompt by eliminating ambiguities, reinforcing clarity, and ensuring domain-specific accuracy for optimal task execution.";
   
   const cognitiveToggle = [{ label: "Cognitive Prompt Perfection Model", id: "cognitive" }];
+  
+  const handleWebsiteScan = (url: string, instructions: string) => {
+    setWebsiteContext({ url, instructions });
+    
+    // Append website context to prompt text
+    const websiteContextPrompt = `Use the following website as context: ${url}${instructions ? `\nInstructions: ${instructions}` : ''}`;
+    
+    if (promptText.trim()) {
+      setPromptText(`${promptText}\n\n${websiteContextPrompt}`);
+    } else {
+      setPromptText(websiteContextPrompt);
+    }
+  };
   
   return (
     <div className="space-y-4 w-full relative">
@@ -100,6 +115,16 @@ export const StepOneContent = ({
             onImagesChange={setUploadedImages}
           />
         </div>
+      </div>
+      
+      <div className="flex items-center gap-4 absolute bottom-[-56px] left-6">
+        <ImageUploader 
+          onImagesChange={setUploadedImages}
+          images={uploadedImages}
+          maxImages={1}
+        />
+        
+        <WebScanner onWebsiteScan={handleWebsiteScan} />
       </div>
       
       <ImageCarousel 
