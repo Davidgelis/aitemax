@@ -95,6 +95,8 @@ serve(async (req) => {
     const { promptText, primaryToggle, secondaryToggle, userId, promptId } = await req.json();
     
     console.log(`Analyzing prompt: "${promptText}"\n`);
+    console.log(`Primary toggle: ${primaryToggle || "None"}`);
+    console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
     
     // Create a system message with better context about our purpose
     const systemMessage = createSystemPrompt(primaryToggle, secondaryToggle);
@@ -129,7 +131,9 @@ serve(async (req) => {
         masterCommand,
         enhancedPrompt,
         rawAnalysis: analysis,
-        usage: analysisResult.usage
+        usage: analysisResult.usage,
+        primaryToggle,
+        secondaryToggle
       };
       
       return new Response(JSON.stringify(result), {
@@ -150,7 +154,9 @@ serve(async (req) => {
         enhancedPrompt: "# Enhanced Prompt\n\n" + promptText,
         error: extractionError.message,
         rawAnalysis: analysis,
-        usage: analysisResult.usage
+        usage: analysisResult.usage,
+        primaryToggle,
+        secondaryToggle
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -165,7 +171,9 @@ serve(async (req) => {
       variables: generateContextualVariablesForPrompt(""),
       masterCommand: "Error analyzing prompt",
       enhancedPrompt: "# Error\n\nThere was an error analyzing your prompt. Please try again.",
-      error: error.message
+      error: error.message,
+      primaryToggle: null,
+      secondaryToggle: null
     }), {
       status: 200, // Always return 200 to avoid the edge function error
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

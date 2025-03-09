@@ -63,7 +63,24 @@ export const usePromptAnalysis = (
     
     // Start loading immediately
     setIsLoading(true);
-    setCurrentLoadingMessage("Analyzing your prompt...");
+    
+    // Get toggle label for a more descriptive loading message
+    let loadingMessageText = "Analyzing your prompt";
+    if (selectedPrimary) {
+      const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label;
+      if (primaryLabel) {
+        loadingMessageText += ` for ${primaryLabel}`;
+      }
+    }
+    if (selectedSecondary) {
+      const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label;
+      if (secondaryLabel) {
+        loadingMessageText += ` with ${secondaryLabel} formatting`;
+      }
+    }
+    loadingMessageText += "...";
+    
+    setCurrentLoadingMessage(loadingMessageText);
     
     try {
       // Include userId and promptId in the payload if available
@@ -81,6 +98,11 @@ export const usePromptAnalysis = (
       if (promptId) {
         payload.promptId = promptId;
       }
+      
+      console.log("Sending analysis request with toggles:", { 
+        primaryToggle: selectedPrimary, 
+        secondaryToggle: selectedSecondary 
+      });
       
       const { data, error } = await supabase.functions.invoke('analyze-prompt', {
         body: payload
