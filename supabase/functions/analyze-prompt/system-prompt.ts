@@ -45,12 +45,13 @@ CRITICAL PRE-FILLING INSTRUCTIONS: When you're given a website URL or image:
 1. You MUST extract specific, concrete details from that content
 2. You MUST use those details to pre-fill BOTH question answers and variable values
 3. Every variable that has a matching detail in the content MUST be filled with a specific value
-4. Every question that can be answered from the content MUST be pre-filled
+4. Every question that can be answered from the content MUST be pre-filled with a specific answer
 5. Pre-filled values should be specific and descriptive, not generic placeholders
-6. If image analysis shows a forest scene, the Setting variable should be "Forest"
+6. If image analysis shows a forest scene, the Setting variable should be "Forest with tall pine trees"
 7. If the image perspective is looking up, the Perspective variable should be "Looking up from ground level"
 8. You MUST pre-fill at least 3-5 variables and 2-4 questions with specific values from the content
 9. Set 'isRelevant' to true for any pre-filled item
+10. IMPORTANT: Pre-filled values must not be empty strings and must contain specific details
 
 Return your analysis in the following format:
 

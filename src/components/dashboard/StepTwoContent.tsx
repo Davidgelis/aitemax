@@ -1,6 +1,6 @@
 
 import { Question, Variable } from "./types";
-import { RefObject, useEffect } from "react";
+import { RefObject, useEffect, useState } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
 import { Info } from "lucide-react";
@@ -42,6 +42,7 @@ export const StepTwoContent = ({
   originalPrompt
 }: StepTwoContentProps) => {
   const { toast } = useToast();
+  const [hasProcessedPrefill, setHasProcessedPrefill] = useState(false);
   
   // Check for pre-filled content and auto-mark as relevant
   useEffect(() => {
@@ -57,29 +58,32 @@ export const StepTwoContent = ({
     console.log("Pre-filled content check:", { prefilledQuestions, prefilledVariables });
     console.log("First few variables:", variables.slice(0, 3));
     
-    if (prefilledQuestions > 0 || prefilledVariables > 0) {
+    if ((prefilledQuestions > 0 || prefilledVariables > 0) && !hasProcessedPrefill) {
       // Show toast notification about pre-filled content
+      setHasProcessedPrefill(true);
+      
       toast({
         title: "Information extracted",
         description: `Pre-filled ${prefilledQuestions} question${prefilledQuestions !== 1 ? 's' : ''} and ${prefilledVariables} variable${prefilledVariables !== 1 ? 's' : ''} based on provided context.`,
+        duration: 5000,
       });
       
       // Auto-mark pre-filled questions and variables as relevant
       questions.forEach(question => {
         if (question.answer && question.answer.trim() !== '' && question.isRelevant !== true) {
           console.log(`Auto-marking question as relevant due to pre-filled answer: ${question.text}`);
-          onQuestionRelevance(question.id, true);
+          setTimeout(() => onQuestionRelevance(question.id, true), 0);
         }
       });
       
       variables.forEach(variable => {
         if (variable.value && variable.value.trim() !== '' && variable.isRelevant !== true) {
           console.log(`Auto-marking variable as relevant due to pre-filled value: ${variable.name} = ${variable.value}`);
-          onVariableRelevance(variable.id, true);
+          setTimeout(() => onVariableRelevance(variable.id, true), 0);
         }
       });
     }
-  }, [questions, variables, toast, onQuestionRelevance, onVariableRelevance]);
+  }, [questions, variables, toast, onQuestionRelevance, onVariableRelevance, hasProcessedPrefill]);
 
   return (
     <div className="border rounded-xl p-6 bg-card">

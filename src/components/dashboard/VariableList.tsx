@@ -35,6 +35,7 @@ export const VariableList = ({
   const [variableNames, setVariableNames] = useState<Record<string, string>>({});
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [variableCodes, setVariableCodes] = useState<Record<string, string>>({});
+  const [hasProcessedPrefill, setHasProcessedPrefill] = useState(false);
   const { toast } = useToast();
   
   // Filter out category names and empty names for display
@@ -58,17 +59,19 @@ export const VariableList = ({
 
   // Initialize state from props and handle pre-filled values
   useEffect(() => {
+    if (!Array.isArray(variables) || variables.length === 0) {
+      console.error("Invalid variables array or empty array:", variables);
+      return;
+    }
+    
+    console.log("Variables in VariableList:", variables);
+    
     const names: Record<string, string> = {};
     const values: Record<string, string> = {};
     const codes: Record<string, string> = {};
     const highlighted: Record<string, boolean> = {};
     
-    console.log("Variables in VariableList:", variables);
-    
-    if (!Array.isArray(variables)) {
-      console.error("Invalid variables array:", variables);
-      return;
-    }
+    let prefilledCount = 0;
     
     variables.forEach((variable, index) => {
       if (!variable) {
@@ -85,9 +88,14 @@ export const VariableList = ({
       highlighted[variable.id] = hasValue;
       
       // Auto-set relevance based on value - this is critical for pre-filled values
-      if (hasValue && variable.isRelevant === null) {
-        console.log(`Auto-marking variable ${variable.name} as relevant due to pre-filled value: ${variable.value}`);
-        onVariableRelevance(variable.id, true);
+      if (hasValue) {
+        console.log(`Variable ${variable.name} has pre-filled value: ${variable.value}`);
+        prefilledCount++;
+        
+        if (variable.isRelevant !== true) {
+          console.log(`Auto-marking variable ${variable.name} as relevant due to pre-filled value`);
+          setTimeout(() => onVariableRelevance(variable.id, true), 0);
+        }
       }
       
       // Ensure every variable has a code
@@ -101,12 +109,18 @@ export const VariableList = ({
     setVariableCodes(codes);
     setHighlightedVariables(highlighted);
     
-    // Check for pre-filled values and log them
-    const prefilledCount = Object.values(highlighted).filter(Boolean).length;
-    if (prefilledCount > 0) {
-      console.log(`Found ${prefilledCount} pre-filled variable values`);
+    // Show notification if we have pre-filled values and haven't processed them yet
+    if (prefilledCount > 0 && !hasProcessedPrefill) {
+      console.log(`Found ${prefilledCount} pre-filled variable values - showing notification`);
+      setHasProcessedPrefill(true);
+      
+      toast({
+        title: "Pre-filled values detected",
+        description: `${prefilledCount} variable ${prefilledCount === 1 ? 'value has' : 'values have'} been pre-filled based on the provided context.`,
+        duration: 5000,
+      });
     }
-  }, [variables, onVariableRelevance, onVariableChange]);
+  }, [variables, onVariableRelevance, onVariableChange, toast, hasProcessedPrefill]);
 
   // Handle variable value change with highlighting
   const handleValueChange = (variableId: string, value: string) => {
@@ -203,7 +217,9 @@ export const VariableList = ({
                     placeholder="Variable name"
                     value={variableNames[variable.id] || ""}
                     onChange={(e) => handleNameChange(variable.id, e.target.value)}
-                    className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
+                    className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
+                      variable.name && variable.name.trim() !== '' ? 'border-[#33fea6]/50' : ''
+                    }`}
                     autoComplete="off"
                     aria-label={`Name for variable ${index + 1}`}
                   />
@@ -213,7 +229,7 @@ export const VariableList = ({
                     value={variableValues[variable.id] || ""}
                     onChange={(e) => handleValueChange(variable.id, e.target.value)}
                     className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
-                      highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''
+                      highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6] bg-[#33fea6]/5' : ''
                     }`}
                     autoComplete="off"
                     aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
