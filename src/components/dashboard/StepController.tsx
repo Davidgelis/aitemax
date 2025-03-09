@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -52,7 +51,8 @@ export const StepController = ({
     variableToDelete, setVariableToDelete,
     fetchSavedPrompts, handleNewPrompt, handleSavePrompt,
     handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt,
-    loadSavedPrompt, isViewingSavedPrompt, setIsViewingSavedPrompt
+    loadSavedPrompt, isViewingSavedPrompt, setIsViewingSavedPrompt,
+    saveDraft
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
@@ -188,6 +188,10 @@ export const StepController = ({
         variant: "destructive",
       });
       return;
+    }
+
+    if (step === 2 && currentStep === 1 && user) {
+      saveDraft();
     }
 
     if (step === 3) {

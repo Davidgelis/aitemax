@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +25,7 @@ export const usePromptState = (user: any) => {
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState(false);
   const [promptJsonStructure, setPromptJsonStructure] = useState<PromptJsonStructure | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
   const { toast } = useToast();
 
   const {
@@ -49,41 +49,92 @@ export const usePromptState = (user: any) => {
   );
 
   useEffect(() => {
-    if (user) {
+    if (user && !draftLoaded) {
       loadDraft().then(draft => {
         if (draft) {
-          toast({
-            title: "Draft Loaded",
-            description: "Your previous work has been restored.",
-          });
+          setDraftLoaded(true);
           
-          if (draft.promptText) setPromptText(draft.promptText);
-          if (draft.masterCommand) setMasterCommand(draft.masterCommand);
-          if (draft.variables) setVariables(draft.variables);
-          if (draft.selectedPrimary) setSelectedPrimary(draft.selectedPrimary);
-          if (draft.selectedSecondary) setSelectedSecondary(draft.selectedSecondary);
-          if (draft.currentStep) setCurrentStep(draft.currentStep);
+          // Only load drafts for steps 2 and 3
+          if (draft.currentStep && draft.currentStep > 1) {
+            toast({
+              title: "Draft Loaded",
+              description: "Your previous work has been restored.",
+            });
+            
+            if (draft.promptText) setPromptText(draft.promptText);
+            if (draft.masterCommand) setMasterCommand(draft.masterCommand);
+            if (draft.variables) setVariables(draft.variables);
+            if (draft.selectedPrimary) setSelectedPrimary(draft.selectedPrimary);
+            if (draft.selectedSecondary) setSelectedSecondary(draft.selectedSecondary);
+            if (draft.currentStep) setCurrentStep(draft.currentStep);
+          }
         }
       });
     }
-  }, [user]);
+  }, [user, draftLoaded]);
 
   const loadSelectedDraftState = (draft: any) => {
     const draftData = loadSelectedDraft(draft);
     
-    if (draftData.promptText) setPromptText(draftData.promptText);
-    if (draftData.masterCommand) setMasterCommand(draftData.masterCommand);
-    if (draftData.variables) setVariables(draftData.variables);
-    if (draftData.selectedPrimary) setSelectedPrimary(draftData.selectedPrimary);
-    if (draftData.secondaryToggle) setSelectedSecondary(draftData.secondaryToggle);
-    if (draftData.currentStep) setCurrentStep(draftData.currentStep);
+    // Only load if not for step 1
+    if (draftData.currentStep && draftData.currentStep > 1) {
+      if (draftData.promptText) setPromptText(draftData.promptText);
+      if (draftData.masterCommand) setMasterCommand(draftData.masterCommand);
+      if (draftData.variables) setVariables(draftData.variables);
+      if (draftData.selectedPrimary) setSelectedPrimary(draftData.selectedPrimary);
+      if (draftData.secondaryToggle) setSelectedSecondary(draftData.secondaryToggle);
+      if (draftData.currentStep) setCurrentStep(draftData.currentStep);
+      
+      setFinalPrompt(draftData.promptText || "");
+      
+      toast({
+        title: "Draft Loaded",
+        description: "Your draft has been restored.",
+      });
+    }
+  };
+
+  const handleNewPrompt = () => {
+    // Only save if it's a step 2 or 3 draft that hasn't been explicitly deleted
+    if (promptText && !isViewingSavedPrompt && currentStep > 1) {
+      saveDraft();
+      toast({
+        title: "Draft Saved",
+        description: "Your work has been saved as a draft.",
+      });
+    }
     
-    setFinalPrompt(draftData.promptText || "");
+    setPromptText("");
+    setQuestions([]);
+    setVariables(defaultVariables.map(v => ({ ...v, value: "", isRelevant: null })));
+    setFinalPrompt("");
+    setMasterCommand("");
+    setSelectedPrimary(null);
+    setSelectedSecondary(null);
+    setCurrentStep(1);
+    setIsViewingSavedPrompt(false);
     
     toast({
-      title: "Draft Loaded",
-      description: "Your draft has been restored.",
+      title: "New Prompt",
+      description: "Started a new prompt creation process",
     });
+  };
+
+  const handleDeleteDraft = async (draftId: string) => {
+    if (deleteDraft) {
+      await deleteDraft(draftId);
+      
+      // If the deleted draft was the current one, reset the state only if we're not on step 1
+      if (draftId === currentDraftId && currentStep > 1) {
+        setPromptText("");
+        setMasterCommand("");
+        setVariables(defaultVariables.map(v => ({ ...v, value: "", isRelevant: null })));
+        setFinalPrompt("");
+        setSelectedPrimary(null);
+        setSelectedSecondary(null);
+        setCurrentStep(1);
+      }
+    }
   };
 
   const fetchSavedPrompts = async () => {
@@ -126,31 +177,6 @@ export const usePromptState = (user: any) => {
     } finally {
       setIsLoadingPrompts(false);
     }
-  };
-
-  const handleNewPrompt = () => {
-    if (promptText && !isViewingSavedPrompt) {
-      saveDraft();
-      toast({
-        title: "Draft Saved",
-        description: "Your work has been saved as a draft.",
-      });
-    }
-    
-    setPromptText("");
-    setQuestions([]);
-    setVariables(defaultVariables.map(v => ({ ...v, value: "", isRelevant: null })));
-    setFinalPrompt("");
-    setMasterCommand("");
-    setSelectedPrimary(null);
-    setSelectedSecondary(null);
-    setCurrentStep(1);
-    setIsViewingSavedPrompt(false);
-    
-    toast({
-      title: "New Prompt",
-      description: "Started a new prompt creation process",
-    });
   };
 
   const handleSavePrompt = async () => {
@@ -404,23 +430,6 @@ export const usePromptState = (user: any) => {
     });
   };
 
-  const handleDeleteDraft = async (draftId: string) => {
-    if (deleteDraft) {
-      await deleteDraft(draftId);
-      
-      // If the deleted draft was the current one, reset the state
-      if (draftId === currentDraftId) {
-        setPromptText("");
-        setMasterCommand("");
-        setVariables(defaultVariables.map(v => ({ ...v, value: "", isRelevant: null })));
-        setFinalPrompt("");
-        setSelectedPrimary(null);
-        setSelectedSecondary(null);
-        setCurrentStep(1);
-      }
-    }
-  };
-
   useEffect(() => {
     if (user) {
       fetchSavedPrompts();
@@ -478,7 +487,6 @@ export const usePromptState = (user: any) => {
     deleteDraft,
     currentDraftId,
     handleDeleteDraft,
-    // Export the saveDraft function to fix the error
     saveDraft
   };
 };

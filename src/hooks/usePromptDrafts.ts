@@ -29,6 +29,7 @@ export const usePromptDrafts = (
   const [drafts, setDrafts] = useState<PromptDraft[]>([]);
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [hasLoadedInitialDraft, setHasLoadedInitialDraft] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -72,7 +73,7 @@ export const usePromptDrafts = (
   }, [user]);
 
   const saveDraft = useCallback(async () => {
-    if (!user || !promptText.trim()) return;
+    if (!user || !promptText.trim() || currentStep === 1) return;
 
     try {
       const title = promptText.split('\n')[0] || 'Untitled Draft';
@@ -142,6 +143,7 @@ export const usePromptDrafts = (
       fetchDrafts();
     } catch (error) {
       console.error('Error saving draft:', error);
+      // Still save to localStorage as a backup
       localStorage.setItem('promptDraft', JSON.stringify({
         promptText,
         masterCommand,
@@ -155,7 +157,9 @@ export const usePromptDrafts = (
   }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, user, currentDraftId, fetchDrafts]);
 
   const loadDraft = useCallback(async () => {
-    if (!user) return null;
+    if (!user || hasLoadedInitialDraft) return null;
+    
+    setHasLoadedInitialDraft(true);
 
     try {
       const { data: drafts, error } = await supabase
@@ -168,11 +172,16 @@ export const usePromptDrafts = (
       if (error) throw error;
 
       if (drafts && drafts.length > 0) {
+        // If the draft is for step 1, don't load it since we only want to load drafts for steps 2 and 3
+        if (drafts[0].current_step === 1) {
+          return null;
+        }
+        
         setCurrentDraftId(drafts[0].id);
         return {
           promptText: drafts[0].prompt_text,
           masterCommand: drafts[0].master_command,
-          variables: drafts[0].variables,
+          variables: drafts[0].variables ? jsonToVariables(drafts[0].variables) : [],
           selectedPrimary: drafts[0].primary_toggle,
           selectedSecondary: drafts[0].secondary_toggle,
           currentStep: drafts[0].current_step,
@@ -183,6 +192,12 @@ export const usePromptDrafts = (
       const localDraft = localStorage.getItem('promptDraft');
       if (localDraft) {
         const parsed = JSON.parse(localDraft);
+        
+        // If the draft is for step 1, don't load it
+        if (parsed.currentStep === 1) {
+          return null;
+        }
+        
         if (parsed.id) {
           // Verify that the draft actually exists in the database
           const { data: draftExists, error: checkError } = await supabase
@@ -210,6 +225,12 @@ export const usePromptDrafts = (
       const localDraft = localStorage.getItem('promptDraft');
       if (localDraft) {
         const parsed = JSON.parse(localDraft);
+        
+        // If the draft is for step 1, don't load it
+        if (parsed.currentStep === 1) {
+          return null;
+        }
+        
         if (parsed.id) {
           // Verify that the draft exists in the database
           try {
@@ -239,7 +260,7 @@ export const usePromptDrafts = (
     }
 
     return null;
-  }, [user]);
+  }, [user, hasLoadedInitialDraft]);
 
   const clearDraft = useCallback(async () => {
     if (!user) return;
@@ -335,8 +356,22 @@ export const usePromptDrafts = (
     };
   }, []);
 
-  // Removed the auto-save interval
-  // This ensures drafts are only saved when the user clicks a new prompt or navigates away
+  // Window visibility event handler to save drafts when the user leaves the page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && currentStep > 1) {
+        saveDraft();
+      }
+    };
+
+    // Add event listener for visibility change
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [saveDraft, currentStep]);
 
   return {
     drafts,
