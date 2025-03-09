@@ -43,42 +43,43 @@ export const StepTwoContent = ({
 }: StepTwoContentProps) => {
   const { toast } = useToast();
   
-  // Auto-mark questions as relevant if they have prefilled answers
-  useEffect(() => {
-    if (questions && questions.length > 0) {
-      questions.forEach(question => {
-        if (question.answer && question.answer.trim() !== '' && question.isRelevant !== true) {
-          // Auto-mark as relevant since it has a pre-filled answer
-          onQuestionRelevance(question.id, true);
-        }
-      });
-    }
-  }, [questions]);
-  
-  // Auto-mark variables as relevant if they have prefilled values
-  useEffect(() => {
-    if (variables && variables.length > 0) {
-      variables.forEach(variable => {
-        if (variable.value && variable.value.trim() !== '' && variable.isRelevant !== true) {
-          // Auto-mark as relevant since it has a pre-filled value
-          onVariableRelevance(variable.id, true);
-        }
-      });
-    }
-  }, [variables]);
-  
   // Check for pre-filled content on initial load
   useEffect(() => {
+    if (!Array.isArray(questions) || !Array.isArray(variables)) {
+      console.error("Invalid questions or variables array:", { questions, variables });
+      return;
+    }
+    
+    // Count pre-filled content
     const prefilledQuestions = questions.filter(q => q.answer && q.answer.trim() !== '').length;
     const prefilledVariables = variables.filter(v => v.value && v.value.trim() !== '').length;
     
+    console.log("Pre-filled content check:", { prefilledQuestions, prefilledVariables });
+    console.log("First few variables:", variables.slice(0, 3));
+    
     if (prefilledQuestions > 0 || prefilledVariables > 0) {
+      // Show toast notification about pre-filled content
       toast({
         title: "Information extracted",
         description: `Pre-filled ${prefilledQuestions} question${prefilledQuestions !== 1 ? 's' : ''} and ${prefilledVariables} variable${prefilledVariables !== 1 ? 's' : ''} based on provided context.`,
       });
+      
+      // Auto-mark pre-filled questions and variables as relevant
+      questions.forEach(question => {
+        if (question.answer && question.answer.trim() !== '' && question.isRelevant !== true) {
+          console.log(`Auto-marking question as relevant due to pre-filled answer: ${question.text}`);
+          onQuestionRelevance(question.id, true);
+        }
+      });
+      
+      variables.forEach(variable => {
+        if (variable.value && variable.value.trim() !== '' && variable.isRelevant !== true) {
+          console.log(`Auto-marking variable as relevant due to pre-filled value: ${variable.name} = ${variable.value}`);
+          onVariableRelevance(variable.id, true);
+        }
+      });
     }
-  }, []);
+  }, [questions, variables, toast, onQuestionRelevance, onVariableRelevance]);
 
   return (
     <div className="border rounded-xl p-6 bg-card">

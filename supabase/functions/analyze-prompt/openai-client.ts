@@ -50,7 +50,10 @@ First, describe the image in EXTREME detail. Extract ALL specific visual element
 - Textures: Smooth, rough, detailed, etc.
 - Style: If applicable (photorealistic, cartoon, painting style)
 
-Then use these SPECIFIC details to pre-fill relevant question answers and variable values that you can directly observe in the image. ONLY pre-fill information you can directly see.
+Then use these SPECIFIC details to pre-fill relevant question answers and variable values that you can directly observe in the image. It is CRITICAL that you pre-fill the variables with specific values from the image.
+
+PRE-FILL INSTRUCTIONS: For every variable that matches something visible in the image (like Perspective, Viewpoint, Setting, Colors, Mood, TimeOfDay, Season, Weather, etc.), you MUST set a value. For example, if you see a forest scene, the Setting variable should be "Forest". If the view is looking up, the Viewpoint should be "Looking up".
+
 ${additionalContext}`
         },
         {
@@ -62,11 +65,18 @@ ${additionalContext}`
       ]
     });
   } else {
-    // No image, just use a simple text message
+    // No image, just use a simple text message with appropriate context
     console.log("No image provided - using text-only OpenAI API request");
+    
+    let userPrompt = `Analyze this prompt for generating questions and variables: "${promptText}"`;
+    
+    if (additionalContext) {
+      userPrompt += `\n\n${additionalContext}\n\nIMPORTANT: Based on the provided website context, pre-fill variables and question answers with SPECIFIC values that you can directly observe in the content. Fill ALL relevant variables and questions with concrete values, not placeholders.`;
+    }
+    
     messages.push({
       role: 'user',
-      content: `Analyze this prompt for generating questions and variables: "${promptText}" ${additionalContext}`
+      content: userPrompt
     });
   }
   

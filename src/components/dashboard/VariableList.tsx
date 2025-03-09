@@ -56,21 +56,37 @@ export const VariableList = ({
   const hasValidVariables = categories.length > 0 && 
     categories.some(category => groupedVariables[category].length > 0);
 
-  // Initialize state from props
+  // Initialize state from props and handle pre-filled values
   useEffect(() => {
     const names: Record<string, string> = {};
     const values: Record<string, string> = {};
     const codes: Record<string, string> = {};
     const highlighted: Record<string, boolean> = {};
     
+    console.log("Variables in VariableList:", variables);
+    
+    if (!Array.isArray(variables)) {
+      console.error("Invalid variables array:", variables);
+      return;
+    }
+    
     variables.forEach((variable, index) => {
+      if (!variable) {
+        console.error("Invalid variable at index", index);
+        return;
+      }
+      
       names[variable.id] = variable.name || '';
       values[variable.id] = variable.value || '';
       codes[variable.id] = variable.code || `VAR_${index + 1}`;
-      highlighted[variable.id] = variable.value && variable.value.trim() !== '';
       
-      // Auto-set relevance based on value
-      if (variable.value && variable.value.trim() !== '' && variable.isRelevant === null) {
+      // Mark as highlighted if it has a value
+      const hasValue = variable.value && variable.value.trim() !== '';
+      highlighted[variable.id] = hasValue;
+      
+      // Auto-set relevance based on value - this is critical for pre-filled values
+      if (hasValue && variable.isRelevant === null) {
+        console.log(`Auto-marking variable ${variable.name} as relevant due to pre-filled value: ${variable.value}`);
         onVariableRelevance(variable.id, true);
       }
       
@@ -84,7 +100,13 @@ export const VariableList = ({
     setVariableValues(values);
     setVariableCodes(codes);
     setHighlightedVariables(highlighted);
-  }, [variables]);
+    
+    // Check for pre-filled values and log them
+    const prefilledCount = Object.values(highlighted).filter(Boolean).length;
+    if (prefilledCount > 0) {
+      console.log(`Found ${prefilledCount} pre-filled variable values`);
+    }
+  }, [variables, onVariableRelevance, onVariableChange]);
 
   // Handle variable value change with highlighting
   const handleValueChange = (variableId: string, value: string) => {
