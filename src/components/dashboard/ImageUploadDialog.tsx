@@ -77,9 +77,9 @@ export const ImageUploadDialog = ({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-background/95 backdrop-blur-md border border-[#084b49]/30">
+      <DialogContent className="sm:max-w-md bg-background/95 backdrop-blur-md border border-[#084b49]/30 rounded-none">
         <div 
-          className={`flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-xl transition-colors ${
+          className={`flex flex-col items-center justify-center p-10 border border-dashed transition-colors ${
             isDragging ? 'border-[#33fea6] bg-[#33fea6]/5' : 'border-[#084b49] bg-transparent'
           }`}
           onDragOver={handleDragOver}
