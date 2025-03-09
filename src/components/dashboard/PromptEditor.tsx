@@ -1,4 +1,3 @@
-
 import { List, ListOrdered } from "lucide-react";
 import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -222,19 +221,6 @@ export const PromptEditor = ({
           >
             <ListOrdered className="w-5 h-5" style={{ color: "#64bf95" }} />
           </button>
-        </div>
-        
-        <div className="flex space-x-2 absolute top-6 right-6">
-          {images.map(image => (
-            <div key={image.id} className="relative group">
-              <img 
-                src={image.url} 
-                alt="Uploaded" 
-                className="w-10 h-10 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
-                onClick={() => handleImageClick(image.id)}
-              />
-            </div>
-          ))}
         </div>
       </div>
       

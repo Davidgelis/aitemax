@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { UploadedImage } from '@/components/dashboard/ImageUploader';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
+import { X } from 'lucide-react';
 
 interface PromptInputProps {
   onSubmit: (prompt: string, images?: UploadedImage[]) => void;
@@ -55,6 +56,20 @@ const PromptInput = ({
     setSelectedImageId(imageId);
     setCarouselOpen(true);
   };
+  
+  const handleRemoveImage = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent carousel from opening when clicking delete
+    
+    if (!onImagesChange) return;
+    
+    const imageToRemove = images.find(img => img.id === id);
+    if (imageToRemove) {
+      URL.revokeObjectURL(imageToRemove.url);
+    }
+    
+    const updatedImages = images.filter(img => img.id !== id);
+    onImagesChange(updatedImages);
+  };
 
   return (
     <form onSubmit={handleSubmit} className={`w-full max-w-2xl mx-auto ${className}`}>
@@ -62,13 +77,20 @@ const PromptInput = ({
         {images && images.length > 0 && (
           <div className="absolute top-2 right-2 flex flex-wrap gap-2 z-10">
             {images.map(image => (
-              <div key={image.id} className="relative">
+              <div key={image.id} className="relative group">
                 <img 
                   src={image.url} 
                   alt="Uploaded" 
                   className="w-10 h-10 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
                   onClick={() => handleImageClick(image.id)}
                 />
+                <button
+                  onClick={(e) => handleRemoveImage(image.id, e)}
+                  className="absolute -top-2 -right-2 bg-[#041524] text-white rounded-full p-0.5 border border-[#33fea6]/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Remove image"
+                >
+                  <X className="w-3 h-3" />
+                </button>
               </div>
             ))}
           </div>
