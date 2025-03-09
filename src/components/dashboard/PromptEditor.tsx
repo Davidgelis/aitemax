@@ -250,8 +250,10 @@ export const PromptEditor = ({
           placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
         />
         
+        <div className="absolute inset-0 border border-muted rounded-lg pointer-events-none"></div>
+        
         {images && images.length > 0 && (
-          <div className="absolute top-0 right-0 flex flex-wrap gap-2 z-10 max-w-[60%] p-2 justify-end">
+          <div className="absolute top-0 right-0 flex flex-wrap gap-2 z-10 max-w-[80%] p-2 justify-end">
             {images.map(image => (
               <div key={image.id} className="relative group">
                 <img 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { UploadedImage } from '@/components/dashboard/ImageUploader';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
@@ -29,7 +28,6 @@ const PromptInput = ({
   const [carouselOpen, setCarouselOpen] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string | undefined>(undefined);
   
-  // Update internal state when external value changes
   useEffect(() => {
     if (value !== undefined) {
       setInputValue(value);
@@ -89,8 +87,10 @@ const PromptInput = ({
           }}
         />
         
+        <div className="absolute inset-0 rounded-xl pointer-events-none border border-transparent group-hover:border-accent/30 transition-all animate-aurora opacity-5"></div>
+        
         {images && images.length > 0 && (
-          <div className="absolute top-4 right-4 flex flex-wrap gap-2 z-10 max-w-[60%] justify-end">
+          <div className="absolute top-0 right-0 flex flex-wrap gap-2 z-10 max-w-[80%] p-2 justify-end">
             {images.map(image => (
               <div key={image.id} className="relative group">
                 <img 
@@ -110,8 +110,6 @@ const PromptInput = ({
             ))}
           </div>
         )}
-        
-        <div className="absolute inset-0 rounded-xl pointer-events-none border border-transparent group-hover:border-accent/30 transition-all animate-aurora opacity-5"></div>
       </div>
       
       <ImageCarousel 
