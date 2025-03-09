@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -112,14 +111,27 @@ async function fetchWebsiteContent(url: string) {
   }
 }
 
-// Function to encode image to base64
-function arrayBufferToBase64(buffer: ArrayBuffer) {
-  let binary = '';
-  const bytes = new Uint8Array(buffer);
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
+// Function to extract relevant keywords and terms from text or image analysis
+function extractKeyTerms(text: string): string[] {
+  // Extract potential keywords (nouns, technical terms, etc.)
+  const words = text.toLowerCase().split(/\s+/);
+  
+  // Filter common words and keep only potential keywords
+  const commonWords = new Set(['a', 'an', 'the', 'is', 'are', 'and', 'or', 'for', 'to', 'in', 'on', 'with', 'by', 'at', 'from']);
+  const keyTerms = words
+    .filter(word => word.length > 3)  // Skip short words
+    .filter(word => !commonWords.has(word))  // Skip common words
+    .filter(word => /^[a-z]+$/.test(word));  // Keep only alphabetic words
+  
+  // Return unique terms, sorted by frequency
+  const termCounts = {};
+  keyTerms.forEach(term => {
+    termCounts[term] = (termCounts[term] || 0) + 1;
+  });
+  
+  return Object.keys(termCounts)
+    .sort((a, b) => termCounts[b] - termCounts[a])
+    .slice(0, 20);  // Return top 20 terms
 }
 
 serve(async (req) => {
@@ -146,24 +158,27 @@ serve(async (req) => {
     
     // Add website content to context if provided
     let contextualData = "";
+    let websiteKeywords = [];
     if (websiteData && websiteData.url) {
       console.log(`Website provided for context: ${websiteData.url}`);
       const websiteContent = await fetchWebsiteContent(websiteData.url);
+      websiteKeywords = extractKeyTerms(websiteContent.text);
       
       contextualData += `\n\nWEBSITE CONTEXT:
 URL: ${websiteData.url}
 Title: ${websiteContent.title}
 User Instructions: ${websiteData.instructions || "No specific instructions provided"}
 Content Excerpt: ${websiteContent.text.substring(0, 2000)}...
+Key Terms: ${websiteKeywords.join(', ')}
       
-Please consider this website context when analyzing the prompt.`;
+Please analyze this website context when analyzing the prompt. Pre-fill answers to questions and variable values where possible based on this content.`;
     }
     
     // Add image context if provided
     let imageContext = "";
     if (imageData && imageData.base64) {
       console.log("Image provided for context");
-      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image and consider it when generating questions and variables. The image is provided as a base64 string in the message.`;
+      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image and consider it when generating questions and variables. The image is provided as a base64 string in the message. Extract relevant information from the image and use it to pre-fill answers to questions and values for variables where possible.`;
     }
     
     // Create a system message with better context about our purpose
@@ -224,6 +239,20 @@ Please consider this website context when analyzing the prompt.`;
       // Fallback to context-specific questions based on toggles
       let contextQuestions = generateContextQuestionsForPrompt(promptText);
       
+      // If we have website data, add some pre-filled answers
+      if (websiteData && websiteData.url && websiteKeywords.length > 0) {
+        contextQuestions = contextQuestions.map(q => {
+          // Try to pre-fill based on website context
+          if (q.text.toLowerCase().includes("topic") || q.text.toLowerCase().includes("subject")) {
+            return {...q, answer: `Based on the website, the main topic appears to be related to ${websiteKeywords.slice(0, 3).join(', ')}`};
+          }
+          if (q.text.toLowerCase().includes("tone") || q.text.toLowerCase().includes("style")) {
+            return {...q, answer: "The tone should match the website's professional presentation"};
+          }
+          return q;
+        });
+      }
+      
       // Filter out potentially irrelevant questions based on toggle type
       if (primaryToggle === "image") {
         contextQuestions = contextQuestions.filter(q => 
@@ -232,10 +261,26 @@ Please consider this website context when analyzing the prompt.`;
         );
       }
       
+      let contextVariables = generateContextualVariablesForPrompt(promptText);
+      
+      // If we have website data, pre-fill some variables
+      if (websiteData && websiteData.url && websiteKeywords.length > 0) {
+        contextVariables = contextVariables.map(v => {
+          // Try to pre-fill based on website keywords
+          if (v.name.toLowerCase().includes("topic") || v.name.toLowerCase().includes("subject")) {
+            return {...v, value: websiteKeywords.slice(0, 3).join(', ')};
+          }
+          if (v.name.toLowerCase().includes("keywords")) {
+            return {...v, value: websiteKeywords.slice(0, 5).join(', ')};
+          }
+          return v;
+        });
+      }
+      
       // Fallback to mock data but still return a 200 status code
       return new Response(JSON.stringify({
         questions: contextQuestions,
-        variables: generateContextualVariablesForPrompt(promptText),
+        variables: contextVariables,
         masterCommand: "Analyzed prompt: " + promptText.substring(0, 50) + "...",
         enhancedPrompt: "# Enhanced Prompt\n\n" + promptText,
         error: extractionError.message,

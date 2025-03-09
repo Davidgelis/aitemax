@@ -52,7 +52,7 @@ export function extractQuestions(analysis: string, promptText: string): any[] {
           text: q.text,
           category: q.category || getCategoryFromText(q.text),
           isRelevant: null,
-          answer: ""
+          answer: q.answer || ""
         }));
       }
     } catch (e) {
@@ -146,7 +146,8 @@ export function extractVariables(analysis: string, promptText: string): any[] {
   const variableRegexes = [
     /{{(\w+)}}/g,  // Double curly braces
     /{(\w+)}/g,    // Single curly braces
-    /\[(\w+)\]/g   // Square brackets
+    /\[(\w+)\]/g,  // Square brackets
+    /\$(\w+)/g     // Dollar sign prefix
   ];
   
   // Try all regex patterns to find variables
@@ -183,7 +184,9 @@ export function extractVariables(analysis: string, promptText: string): any[] {
   const variablePatterns = [
     /(?:Variable|Var|\*\*|-)(?:\s+\d+)?(?:\s*\(([^)]+)\))?:?\s*(?:{{)?(\w+)(?:}})?(?:\s*[:=]\s*(.+?))?(?=\n|$)/g,
     /\b(\w+)(?:\s+variable|\s+var)\b(?:\s*[:=]\s*(.+?))?(?=\n|$)/gi,
-    /\bvariable(?:\s+name)?:\s*(\w+)(?:\s*[:=]\s*(.+?))?(?=\n|$)/gi
+    /\bvariable(?:\s+name)?:\s*(\w+)(?:\s*[:=]\s*(.+?))?(?=\n|$)/gi,
+    /\b([\w]+)(?:\s*=\s*"([^"]+)"|'\s*=\s*'([^']+)'|\s*=\s*(\S+))/g,  // variable = value patterns
+    /\b([\w]+):\s*"([^"]+)"|'\s*:\s*'([^']+)'|\s*:\s*(\S+)/g    // variable: value patterns
   ];
   
   // Try all patterns to extract variables
@@ -199,6 +202,14 @@ export function extractVariables(analysis: string, promptText: string): any[] {
       } else if (pattern.toString().includes('\\w+.+variable')) {
         name = match[1];
         value = match[2] || "";
+        category = getCategoryFromVariableName(name);
+      } else if (pattern.toString().includes('=')) {
+        name = match[1];
+        value = match[2] || match[3] || match[4] || "";
+        category = getCategoryFromVariableName(name);
+      } else if (pattern.toString().includes(':')) {
+        name = match[1];
+        value = match[2] || match[3] || match[4] || "";
         category = getCategoryFromVariableName(name);
       } else {
         name = match[1];
@@ -219,6 +230,41 @@ export function extractVariables(analysis: string, promptText: string): any[] {
           value,
           isRelevant: null,
           category
+        });
+      }
+    }
+  }
+  
+  // Try to extract potential variables from the prompt text itself
+  const keyValuePatterns = [
+    /(\w+):\s*"([^"]+)"/g,   // key: "value"
+    /(\w+)=(\S+)/g,          // key=value
+    /(\w+):\s*(\S+)/g,       // key: value
+    /(\w+)\s+is\s+(\S+)/g,   // key is value
+    /set\s+(\w+)\s+to\s+(\S+)/gi, // set key to value
+    /(\w+)\s+should\s+be\s+(\S+)/g // key should be value
+  ];
+  
+  for (const pattern of keyValuePatterns) {
+    const matches = Array.from(promptText.matchAll(pattern));
+    for (const match of matches) {
+      const name = match[1];
+      const value = match[2];
+      
+      // Skip category names and invalid variable names
+      if (!name || name === 'Task' || name === 'Persona' || name === 'Conditions' || name === 'Instructions' ||
+          name.trim().length <= 1 || /^\*+$/.test(name) || /^[sS]$/.test(name) ||
+          name.toLowerCase() === 'it' || name.toLowerCase() === 'this' || name.toLowerCase() === 'that') {
+        continue;
+      }
+      
+      if (!variables.some((v: any) => v.name === name)) {
+        variables.push({
+          id: `v${variables.length + 1}`,
+          name,
+          value,
+          isRelevant: null,
+          category: getCategoryFromVariableName(name)
         });
       }
     }

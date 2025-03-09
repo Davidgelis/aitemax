@@ -182,7 +182,10 @@ export const usePromptAnalysis = (
           const aiQuestions = data.questions.map((q: any, index: number) => ({
             ...q,
             id: q.id || `q${index + 1}`,
-            answer: ""
+            // Keep pre-filled answers if they exist
+            answer: q.answer || "",
+            // Mark as relevant if it has an answer
+            isRelevant: q.answer && q.answer.trim() !== "" ? true : null
           }));
           
           setQuestions(aiQuestions);
@@ -205,7 +208,9 @@ export const usePromptAnalysis = (
             .map((v: any, index: number) => ({
               ...v,
               id: v.id || `v${index + 1}`,
-              value: v.value || ""
+              value: v.value || "",
+              // Mark as relevant if it has a value
+              isRelevant: v.value && v.value.trim() !== "" ? true : null
             }));
             
           // If we have valid variables after filtering, use them
