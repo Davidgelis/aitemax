@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { UploadedImage } from '@/components/dashboard/ImageUploader';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
 import { X } from 'lucide-react';
+import { ImageUploader } from '@/components/dashboard/ImageUploader';
 
 interface PromptInputProps {
   onSubmit: (prompt: string, images?: UploadedImage[]) => void;
@@ -73,7 +74,7 @@ const PromptInput = ({
   return (
     <form onSubmit={handleSubmit} className={`w-full max-w-2xl mx-auto ${className}`}>
       <div className="relative group">
-        {/* Images positioned above the textarea - moved higher */}
+        {/* Display uploaded images above the textarea */}
         {images && images.length > 0 && (
           <div className="absolute top-[-56px] right-0 flex flex-wrap gap-2 z-10 max-w-[80%] justify-end">
             {images.map(image => (
@@ -96,20 +97,32 @@ const PromptInput = ({
           </div>
         )}
         
-        <textarea
-          value={inputValue}
-          onChange={handleChange}
-          placeholder={placeholder}
-          autoFocus={autoFocus}
-          className="w-full h-32 p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all"
-          style={{ 
-            backgroundColor: "#041524",
-            color: "#33fea6", 
-            boxShadow: "0 0 20px rgba(51, 254, 166, 0.2)",
-            border: "1px solid rgba(51, 254, 166, 0.3)",
-            caretColor: "#33fea6"
-          }}
-        />
+        <div className="relative">
+          {/* Image upload button positioned inside the textarea at the top right */}
+          <div className="absolute top-2 right-2 z-10">
+            {onImagesChange && (
+              <ImageUploader 
+                onImagesChange={onImagesChange}
+                images={images || []}
+              />
+            )}
+          </div>
+          
+          <textarea
+            value={inputValue}
+            onChange={handleChange}
+            placeholder={placeholder}
+            autoFocus={autoFocus}
+            className="w-full h-32 p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all pt-10"
+            style={{ 
+              backgroundColor: "#041524",
+              color: "#33fea6", 
+              boxShadow: "0 0 20px rgba(51, 254, 166, 0.2)",
+              border: "1px solid rgba(51, 254, 166, 0.3)",
+              caretColor: "#33fea6"
+            }}
+          />
+        </div>
       </div>
       
       <ImageCarousel 

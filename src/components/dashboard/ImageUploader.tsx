@@ -28,20 +28,18 @@ export const ImageUploader = ({ onImagesChange, maxImages = 1, images }: ImageUp
   };
   
   return (
-    <div className="flex flex-col">
-      <div className="mb-2">
-        <Button
-          onClick={() => setDialogOpen(true)}
-          variant="slim"
-          size="xs"
-          className="group animate-aurora-border"
-          title="Upload image"
-          disabled={images.length >= maxImages}
-        >
-          <ImageUp className="w-3 h-3 text-[#33fea6] group-hover:text-[#64bf95] transition-colors" />
-          <span>Upload</span>
-        </Button>
-      </div>
+    <div>
+      <Button
+        onClick={() => setDialogOpen(true)}
+        variant="slim"
+        size="xs"
+        className="group animate-aurora-border rounded-md"
+        title="Upload image"
+        disabled={images.length >= maxImages}
+      >
+        <ImageUp className="w-3 h-3 text-[#33fea6] group-hover:text-[#64bf95] transition-colors" />
+        <span>Upload</span>
+      </Button>
       
       <ImageUploadDialog
         open={dialogOpen}
