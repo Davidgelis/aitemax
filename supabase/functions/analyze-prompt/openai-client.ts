@@ -57,7 +57,7 @@ PRE-FILL INSTRUCTIONS: You MUST pre-fill at least 3-5 variables and 2-4 question
 - If image has a sunset → TimeOfDay variable = "Sunset with golden hour lighting"
 - If image shows rain → Weather variable = "Rainy with wet surfaces"
 
-For each pre-filled variable or question, set isRelevant to true.
+For each pre-filled variable or question, set isRelevant to true. DO NOT FAIL TO SET THIS FLAG.
 
 ${additionalContext}`
         },
@@ -76,7 +76,7 @@ ${additionalContext}`
     let userPrompt = `Analyze this prompt for generating questions and variables: "${promptText}"`;
     
     if (additionalContext) {
-      userPrompt += `\n\n${additionalContext}\n\nIMPORTANT: Based on the provided website context, pre-fill variables and question answers with SPECIFIC values that you can directly observe in the content. You MUST pre-fill at least 3-5 variables and 2-4 questions with concrete values from the website content, not placeholders. For each pre-filled variable or question, set isRelevant to true.`;
+      userPrompt += `\n\n${additionalContext}\n\nIMPORTANT: Based on the provided website context, pre-fill variables and question answers with SPECIFIC values that you can directly observe in the content. You MUST pre-fill at least 3-5 variables and 2-4 questions with concrete values from the website content, not placeholders. For each pre-filled variable or question, set isRelevant to true. DO NOT FAIL TO SET THIS FLAG.`;
     }
     
     messages.push({

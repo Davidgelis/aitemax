@@ -152,18 +152,25 @@ serve(async (req) => {
       imageData 
     } = await req.json();
     
-    console.log(`Analyzing prompt: "${promptText}"\n`);
+    console.log(`Analyzing prompt: "${promptText.substring(0, 100)}${promptText.length > 100 ? '...' : ''}"\n`);
     console.log(`Primary toggle: ${primaryToggle || "None"}`);
     console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
-    console.log(`Creating prompt for AI platform with appropriate context`);
+    console.log(`Has image data: ${!!imageData?.base64}`);
+    console.log(`Has website data: ${!!websiteData?.url}`);
+    
+    // Check if we have additional context from image or website
+    const hasAdditionalContext = !!(
+      (imageData && imageData.base64) || 
+      (websiteData && websiteData.url)
+    );
+    
+    console.log(`Additional context detected: ${hasAdditionalContext ? "YES" : "NO"}`);
     
     // Add website content to context if provided
     let contextualData = "";
     let websiteKeywords = [];
-    let hasAdditionalContext = false;
     
     if (websiteData && websiteData.url) {
-      hasAdditionalContext = true;
       console.log(`Website provided for context: ${websiteData.url}`);
       const websiteContent = await fetchWebsiteContent(websiteData.url);
       websiteKeywords = extractKeyTerms(websiteContent.text);
@@ -181,7 +188,6 @@ Please analyze this website context THOROUGHLY. Extract ALL specific concrete de
     // Add image context if provided
     let imageContext = "";
     if (imageData && imageData.base64) {
-      hasAdditionalContext = true;
       console.log("Image provided for context - will use for pre-filling");
       imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Analyze this image THOROUGHLY and extract ALL visual details including:
 - Subject(s) in the image (people, objects, landscapes)
@@ -221,6 +227,7 @@ Extract ALL these specific details and use them to pre-fill relevant answers to 
     );
     
     const analysis = analysisResult.content;
+    console.log("Received analysis from OpenAI, extracting structured data...");
     
     // Record token usage for this step if userId is provided
     if (userId && analysisResult.usage) {
@@ -251,13 +258,29 @@ Extract ALL these specific details and use them to pre-fill relevant answers to 
       console.log(`Pre-filled answers: ${prefilledQuestions}/${questions.length} questions`);
       console.log(`Pre-filled values: ${prefilledVariables}/${variables.length} variables`);
       
-      // If no additional context was provided, verify that no pre-filling occurred
+      // If no additional context was provided but pre-filled values exist, log a warning
       if (!hasAdditionalContext && (prefilledQuestions > 0 || prefilledVariables > 0)) {
         console.warn("WARNING: Pre-filled values detected without additional context. Clearing pre-filled values.");
         
         // Clear any pre-filled answers when no context was provided
-        questions.forEach(q => { q.answer = ""; });
-        variables.forEach(v => { v.value = ""; });
+        questions.forEach(q => { q.answer = ""; q.isRelevant = null; });
+        variables.forEach(v => { v.value = ""; v.isRelevant = null; });
+      } else if (hasAdditionalContext) {
+        // Ensure all pre-filled items are properly marked as relevant
+        questions.forEach(q => {
+          if (q.answer && q.answer.trim() !== '') {
+            q.isRelevant = true;
+          }
+        });
+        
+        variables.forEach(v => {
+          if (v.value && v.value.trim() !== '') {
+            v.isRelevant = true;
+          }
+        });
+        
+        console.log("Extra check: Variables with pre-filled values:", 
+          variables.filter(v => v.value && v.value.trim() !== '').map(v => `${v.name}: "${v.value}" (isRelevant: ${v.isRelevant})`));
       }
       
       const result = {
@@ -330,6 +353,9 @@ Extract ALL these specific details and use them to pre-fill relevant answers to 
         // Ensure all values are empty when no additional context is provided
         contextVariables = contextVariables.map(v => ({...v, value: ""}));
       }
+      
+      console.log("Fallback: Returning context questions with pre-filled: ", 
+        contextQuestions.filter(q => q.answer && q.answer.trim() !== '').length);
       
       // Fallback to mock data but still return a 200 status code
       return new Response(JSON.stringify({

@@ -20,6 +20,7 @@ export function extractQuestions(analysis: string, promptText: string): any[] {
           const prefilledCount = parsed.questions.filter((q: any) => q.answer && q.answer.trim() !== "").length;
           if (prefilledCount > 0) {
             console.log(`Found ${prefilledCount} pre-filled question answers`);
+            console.log("First few pre-filled questions:", parsed.questions.filter((q: any) => q.answer && q.answer.trim() !== "").slice(0, 2));
           }
           
           // Ensure isRelevant is set to true for pre-filled questions
@@ -69,6 +70,7 @@ export function extractQuestions(analysis: string, promptText: string): any[] {
         if (answerMatch && answerMatch[1] && answerMatch[1].trim() !== "") {
           answer = answerMatch[1].trim();
           isRelevant = true; // Pre-filled answers are automatically relevant
+          console.log(`Found answer for question "${text}": "${answer}"`);
         }
         
         questions.push({
@@ -83,6 +85,13 @@ export function extractQuestions(analysis: string, promptText: string): any[] {
     }
     
     console.log(`Extracted ${questions.length} questions using regex fallback`);
+    // Log pre-filled questions
+    const prefilledQs = questions.filter(q => q.answer && q.answer.trim() !== "");
+    if (prefilledQs.length > 0) {
+      console.log(`Found ${prefilledQs.length} pre-filled questions in regex extraction:`, 
+        prefilledQs.map(q => `"${q.text}": "${q.answer}"`).join(", "));
+    }
+    
     return questions;
   } catch (error) {
     console.error("Error extracting questions:", error);
@@ -109,6 +118,7 @@ export function extractVariables(analysis: string, promptText: string): any[] {
           const prefilledCount = parsed.variables.filter((v: any) => v.value && v.value.trim() !== "").length;
           if (prefilledCount > 0) {
             console.log(`Found ${prefilledCount} pre-filled variable values`);
+            console.log("First few pre-filled variables:", parsed.variables.filter((v: any) => v.value && v.value.trim() !== "").slice(0, 2));
           }
           
           // Ensure all variables have necessary properties and pre-filled ones are marked relevant
@@ -169,6 +179,7 @@ export function extractVariables(analysis: string, promptText: string): any[] {
           if (valueMatch && valueMatch[1] && valueMatch[1].trim() !== "") {
             value = valueMatch[1].trim();
             isRelevant = true; // Pre-filled values are automatically relevant
+            console.log(`Found value for variable "${name}": "${value}"`);
             break;
           }
         }
@@ -219,6 +230,7 @@ export function extractVariables(analysis: string, promptText: string): any[] {
         if (valueMatch && valueMatch[1] && valueMatch[1].trim() !== "") {
           value = valueMatch[1].trim();
           isRelevant = true; // Pre-filled values are automatically relevant
+          console.log(`Found value for image variable "${varName}": "${value}"`);
         }
         
         let category = "General";
@@ -243,6 +255,13 @@ export function extractVariables(analysis: string, promptText: string): any[] {
     });
     
     console.log(`Extracted ${variables.length} variables using regex fallback`);
+    // Log pre-filled variables
+    const prefilledVars = variables.filter(v => v.value && v.value.trim() !== "");
+    if (prefilledVars.length > 0) {
+      console.log(`Found ${prefilledVars.length} pre-filled variables in regex extraction:`, 
+        prefilledVars.map(v => `${v.name}: "${v.value}"`).join(", "));
+    }
+    
     return variables;
   } catch (error) {
     console.error("Error extracting variables:", error);

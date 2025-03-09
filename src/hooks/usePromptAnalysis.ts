@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions } from "@/components/dashboard/constants";
@@ -160,7 +161,7 @@ export const usePromptAnalysis = (
         }
       }
       
-      console.log("Sending analysis request with toggles:", { 
+      console.log("Sending analysis request with context flags:", { 
         primaryToggle: selectedPrimary, 
         secondaryToggle: selectedSecondary,
         hasImage: !!(images && images.length > 0),
@@ -183,14 +184,25 @@ export const usePromptAnalysis = (
           // We still continue processing the fallback data provided
         }
         
+        // Extract and log if hasAdditionalContext flag is returned
+        const apiHasAdditionalContext = !!data.hasAdditionalContext;
+        console.log(`API returned hasAdditionalContext: ${apiHasAdditionalContext}`);
+        console.log(`Local hasAdditionalContext: ${hasAdditionalContext}`);
+        
+        // Check if we have pre-filled questions
+        const hasPrefilled = data.questions && data.questions.some((q: any) => q.answer && q.answer.trim() !== "") ||
+                             data.variables && data.variables.some((v: any) => v.value && v.value.trim() !== "");
+        
+        console.log(`Response contains pre-filled content: ${hasPrefilled ? "YES" : "NO"}`);
+        
         if (data.questions && data.questions.length > 0) {
           const aiQuestions = data.questions.map((q: any, index: number) => ({
             ...q,
             id: q.id || `q${index + 1}`,
-            // Keep pre-filled answers if they exist
+            // Ensure answer is preserved correctly
             answer: q.answer || "",
-            // Mark as relevant if it has an answer and is from additional context
-            isRelevant: q.answer && q.answer.trim() !== "" && hasAdditionalContext ? true : (q.isRelevant === true ? true : null)
+            // Mark as relevant if it has an answer
+            isRelevant: q.answer && q.answer.trim() !== "" ? true : q.isRelevant
           }));
           
           setQuestions(aiQuestions);
@@ -223,10 +235,10 @@ export const usePromptAnalysis = (
             .map((v: any, index: number) => ({
               ...v,
               id: v.id || `v${index + 1}`,
-              // Keep pre-filled values
+              // Ensure value is preserved correctly
               value: v.value || "",
-              // Mark as relevant if it has a value and is from additional context
-              isRelevant: v.value && v.value.trim() !== "" && hasAdditionalContext ? true : (v.isRelevant === true ? true : null),
+              // Mark as relevant if it has a value
+              isRelevant: v.value && v.value.trim() !== "" ? true : v.isRelevant,
               // Add code field if missing
               code: v.code || `VAR_${index + 1}`
             }));
@@ -265,7 +277,7 @@ export const usePromptAnalysis = (
         
         // If we received raw analysis, log it for debugging
         if (data.rawAnalysis) {
-          console.log("Raw AI analysis:", data.rawAnalysis);
+          console.log("Raw AI analysis:", data.rawAnalysis.substring(0, 200) + "...");
         }
         
         // Log token usage if available
