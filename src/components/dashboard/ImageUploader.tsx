@@ -3,12 +3,7 @@ import { useState } from 'react';
 import { ImageUp } from 'lucide-react';
 import { ImageUploadDialog } from './ImageUploadDialog';
 import { Button } from "@/components/ui/button";
-
-export interface UploadedImage {
-  id: string;
-  url: string;
-  file: File;
-}
+import { UploadedImage } from "./types";
 
 interface ImageUploaderProps {
   onImagesChange: (images: UploadedImage[]) => void;

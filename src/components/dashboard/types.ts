@@ -64,6 +64,12 @@ export interface Toggle {
   prompt?: string;
 }
 
+export interface UploadedImage {
+  id: string;
+  url: string;
+  file: File;
+}
+
 export const variablesToJson = (variables: Variable[]): Json => {
   return variables as unknown as Json;
 };

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { UploadedImage } from '@/components/dashboard/ImageUploader';
+import { UploadedImage } from '@/components/dashboard/types';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
 import { X } from 'lucide-react';
 import { ImageUploader } from '@/components/dashboard/ImageUploader';

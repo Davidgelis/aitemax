@@ -1,7 +1,7 @@
 
 import { useState, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { UploadedImage } from './ImageUploader';
+import { UploadedImage } from './types';
 import { Upload, ImagePlus } from 'lucide-react';
 
 interface ImageUploadDialogProps {

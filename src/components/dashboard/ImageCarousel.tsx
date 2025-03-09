@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { UploadedImage } from './ImageUploader';
+import { UploadedImage } from './types';
 
 interface ImageCarouselProps {
   images: UploadedImage[];

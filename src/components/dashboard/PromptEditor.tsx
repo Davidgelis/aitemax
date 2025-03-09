@@ -4,9 +4,10 @@ import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ImageUploader, UploadedImage } from "./ImageUploader";
+import { ImageUploader } from "./ImageUploader";
 import { ImageCarousel } from "./ImageCarousel";
 import { X } from "lucide-react";
+import { UploadedImage } from "./types";
 
 interface PromptEditorProps {
   promptText: string;
