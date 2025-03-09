@@ -1,9 +1,10 @@
+
 import { ToggleSection } from "./ToggleSection";
 import { PromptEditor } from "./PromptEditor";
 import { Separator } from "@/components/ui/separator";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { useState } from "react";
-import { UploadedImage, ImageUploader } from "./ImageUploader";
+import { UploadedImage } from "./ImageUploader";
 import { ImageCarousel } from "./ImageCarousel";
 import { WebScanner } from "./WebScanner";
 
@@ -104,13 +105,7 @@ export const StepOneContent = ({
         </div>
       </div>
       
-      <div className="flex items-center gap-4 absolute bottom-[-56px] left-6">
-        <ImageUploader 
-          onImagesChange={setUploadedImages}
-          images={uploadedImages}
-          maxImages={1}
-        />
-      </div>
+      {/* Removed the duplicated ImageUploader from here */}
       
       <ImageCarousel 
         images={uploadedImages}
