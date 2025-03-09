@@ -7,7 +7,9 @@
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
-  apiKey: string
+  apiKey: string,
+  additionalContext: string = "",
+  imageBase64?: string
 ): Promise<any> {
   if (!promptText || typeof promptText !== 'string') {
     console.error("Invalid prompt text:", promptText);
@@ -19,7 +21,34 @@ export async function analyzePromptWithAI(
     throw new Error("OpenAI API key is required");
   }
   
-  const userMessage = `Analyze this prompt: "${promptText}"`;
+  const messages = [
+    { role: 'system', content: systemMessage }
+  ];
+  
+  // If we have an image, create a message with content parts
+  if (imageBase64) {
+    messages.push({
+      role: 'user',
+      content: [
+        {
+          type: "text",
+          text: `Analyze this prompt: "${promptText}" ${additionalContext}`
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: `data:image/jpeg;base64,${imageBase64}`
+          }
+        }
+      ]
+    });
+  } else {
+    // No image, just use a simple text message
+    messages.push({
+      role: 'user',
+      content: `Analyze this prompt: "${promptText}" ${additionalContext}`
+    });
+  }
   
   try {
     console.log("Calling OpenAI API with GPT-4o for prompt analysis...");
@@ -32,10 +61,7 @@ export async function analyzePromptWithAI(
       },
       body: JSON.stringify({
         model: 'gpt-4o', // Continue using GPT-4o for analysis
-        messages: [
-          { role: 'system', content: systemMessage },
-          { role: 'user', content: userMessage }
-        ],
+        messages,
         temperature: 0.7,
       }),
     });

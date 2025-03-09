@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -8,7 +9,7 @@ import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
 import { usePromptAnalysis } from "@/hooks/usePromptAnalysis";
 import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
-import { AIModel } from "@/components/dashboard/types";
+import { AIModel, UploadedImage } from "@/components/dashboard/types";
 import { primaryToggles, secondaryToggles } from "./constants";
 
 interface StepControllerProps {
@@ -18,7 +19,7 @@ interface StepControllerProps {
   isInitializingModels?: boolean;
   selectedCognitive: string | null;
   handleCognitiveToggle: (id: string) => void;
-  promptState: any; // Add promptState prop to receive all state and functions
+  promptState: any;
 }
 
 export const StepController = ({ 
@@ -56,6 +57,8 @@ export const StepController = ({
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
   const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with GPT-4o...");
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
@@ -70,8 +73,8 @@ export const StepController = ({
     setCurrentStep,
     selectedPrimary,
     selectedSecondary,
-    user, // Pass user for token tracking
-    currentPromptId // Pass prompt ID for token tracking
+    user,
+    currentPromptId
   );
   
   const { isLoading: isAnalyzing, currentLoadingMessage, handleAnalyze } = promptAnalysis;
@@ -83,8 +86,8 @@ export const StepController = ({
     setVariables,
     variableToDelete,
     setVariableToDelete,
-    user, // Pass user for token tracking
-    currentPromptId // Pass prompt ID for token tracking
+    user,
+    currentPromptId
   );
   
   const {
@@ -108,7 +111,7 @@ export const StepController = ({
     setEditingPrompt,
     setShowEditPromptSheet,
     masterCommand,
-    editingPrompt // Pass editingPrompt parameter
+    editingPrompt
   );
   
   const {
@@ -133,6 +136,30 @@ export const StepController = ({
 
   const handleSecondaryToggle = (id: string) => {
     setSelectedSecondary(currentSelected => currentSelected === id ? null : id);
+  };
+
+  const handleWebsiteScan = (url: string, instructions: string) => {
+    setWebsiteContext({ url, instructions });
+    
+    toast({
+      title: "Website context added",
+      description: `Added ${url} as context for your prompt analysis`,
+    });
+  };
+
+  const handleImagesChange = (images: UploadedImage[]) => {
+    setUploadedImages(images);
+    
+    if (images.length > 0) {
+      toast({
+        title: "Image attached",
+        description: "Your image will be analyzed along with your prompt",
+      });
+    }
+  };
+
+  const handleAnalyzeWithContext = () => {
+    handleAnalyze(uploadedImages, websiteContext);
   };
 
   const handleStepChange = async (step: number, bypass: boolean = false) => {
@@ -241,7 +268,7 @@ export const StepController = ({
             selectedSecondary={selectedSecondary}
             handlePrimaryToggle={handlePrimaryToggle}
             handleSecondaryToggle={handleSecondaryToggle}
-            onAnalyze={handleAnalyze}
+            onAnalyze={handleAnalyzeWithContext}
             isLoading={isAnalyzing}
             selectedModel={selectedModel}
             setSelectedModel={setSelectedModel}

@@ -1,3 +1,4 @@
+
 import { List, ListOrdered } from "lucide-react";
 import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +17,7 @@ interface PromptEditorProps {
   isLoading: boolean;
   images?: UploadedImage[];
   onImagesChange?: (images: UploadedImage[]) => void;
+  websiteContext?: { url: string; instructions: string } | null;
 }
 
 export const PromptEditor = ({ 
@@ -26,7 +28,8 @@ export const PromptEditor = ({
   selectedSecondary,
   isLoading,
   images = [],
-  onImagesChange
+  onImagesChange,
+  websiteContext
 }: PromptEditorProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
@@ -108,6 +111,23 @@ export const PromptEditor = ({
     
     setError(null);
     setSubmittedPrompt(promptText);
+    
+    // Check if we have website context or images to include in the toast message
+    let contextMessage = "";
+    if (websiteContext && websiteContext.url) {
+      contextMessage += " with website context";
+    }
+    if (images && images.length > 0) {
+      contextMessage += contextMessage ? " and image data" : " with image data";
+    }
+    
+    // Show a more descriptive toast message
+    if (contextMessage) {
+      toast({
+        title: "Analyzing Prompt",
+        description: `Analyzing your prompt${contextMessage}...`,
+      });
+    }
     
     onAnalyze();
   };
@@ -237,6 +257,13 @@ export const PromptEditor = ({
             <ListOrdered className="w-5 h-5" style={{ color: "#64bf95" }} />
           </button>
         </div>
+        
+        {/* Show website context indicator if available */}
+        {websiteContext && websiteContext.url && (
+          <div className="text-xs text-[#33fea6] bg-[#041524] px-2 py-1 rounded-md animate-pulse">
+            Website context: {websiteContext.url}
+          </div>
+        )}
       </div>
       
       <div className="relative">

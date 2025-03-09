@@ -85,6 +85,43 @@ async function recordTokenUsage(
   }
 }
 
+// Helper function to fetch content from a URL
+async function fetchWebsiteContent(url: string) {
+  console.log(`Fetching content from website: ${url}`);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch website, status: ${response.status}`);
+    }
+    const html = await response.text();
+    
+    // Extract title
+    const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+    const title = titleMatch ? titleMatch[1] : "Unknown Title";
+    
+    // Simple extraction of text by removing HTML tags
+    let text = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ');
+    text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ');
+    text = text.replace(/<[^>]*>?/gm, ' ');
+    text = text.replace(/\s+/g, ' ').trim().substring(0, 8000); // Limit length
+    
+    return { title, text };
+  } catch (error) {
+    console.error(`Error fetching website content: ${error.message}`);
+    return { title: "Error", text: `Failed to fetch website content: ${error.message}` };
+  }
+}
+
+// Function to encode image to base64
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -92,18 +129,55 @@ serve(async (req) => {
   }
 
   try {
-    const { promptText, primaryToggle, secondaryToggle, userId, promptId } = await req.json();
+    const { 
+      promptText, 
+      primaryToggle, 
+      secondaryToggle, 
+      userId, 
+      promptId, 
+      websiteData, 
+      imageData 
+    } = await req.json();
     
     console.log(`Analyzing prompt: "${promptText}"\n`);
     console.log(`Primary toggle: ${primaryToggle || "None"}`);
     console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
     console.log(`Creating prompt for AI platform with appropriate context`);
     
+    // Add website content to context if provided
+    let contextualData = "";
+    if (websiteData && websiteData.url) {
+      console.log(`Website provided for context: ${websiteData.url}`);
+      const websiteContent = await fetchWebsiteContent(websiteData.url);
+      
+      contextualData += `\n\nWEBSITE CONTEXT:
+URL: ${websiteData.url}
+Title: ${websiteContent.title}
+User Instructions: ${websiteData.instructions || "No specific instructions provided"}
+Content Excerpt: ${websiteContent.text.substring(0, 2000)}...
+      
+Please consider this website context when analyzing the prompt.`;
+    }
+    
+    // Add image context if provided
+    let imageContext = "";
+    if (imageData && imageData.base64) {
+      console.log("Image provided for context");
+      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image and consider it when generating questions and variables. The image is provided as a base64 string in the message.`;
+    }
+    
     // Create a system message with better context about our purpose
     const systemMessage = createSystemPrompt(primaryToggle, secondaryToggle);
     
     // Get analysis from OpenAI
-    const analysisResult = await analyzePromptWithAI(promptText, systemMessage, openAIApiKey);
+    const analysisResult = await analyzePromptWithAI(
+      promptText, 
+      systemMessage, 
+      openAIApiKey, 
+      contextualData + imageContext, 
+      imageData?.base64
+    );
+    
     const analysis = analysisResult.content;
     
     // Record token usage for this step if userId is provided

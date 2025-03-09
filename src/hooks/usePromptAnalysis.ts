@@ -4,6 +4,7 @@ import { Question, Variable } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions, primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { UploadedImage } from "@/components/dashboard/ImageUploader";
 
 // Helper function to validate variable names
 const isValidVariableName = (name: string): boolean => {
@@ -11,6 +12,24 @@ const isValidVariableName = (name: string): boolean => {
   return name.trim().length > 1 && 
          !/^\*+$/.test(name) && 
          !/^[sS]$/.test(name);
+};
+
+// Helper function to convert image to base64
+const imageToBase64 = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
+        const base64 = reader.result.split(',')[1];
+        resolve(base64);
+      } else {
+        reject(new Error("Failed to convert image to base64"));
+      }
+    };
+    reader.onerror = error => reject(error);
+  });
 };
 
 export const usePromptAnalysis = (
@@ -51,7 +70,7 @@ export const usePromptAnalysis = (
     return () => clearTimeout(timeout);
   }, [isLoading, currentLoadingMessage]);
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = async (images?: UploadedImage[], websiteData?: { url: string; instructions: string } | null) => {
     if (!promptText.trim()) {
       toast({
         title: "Error",
@@ -66,6 +85,12 @@ export const usePromptAnalysis = (
     
     // Get toggle label for a more descriptive loading message
     let loadingMessageText = "Analyzing your prompt";
+    if (images && images.length > 0) {
+      loadingMessageText += " and image";
+    }
+    if (websiteData && websiteData.url) {
+      loadingMessageText += " and website content";
+    }
     if (selectedPrimary) {
       const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label;
       if (primaryLabel) {
@@ -99,9 +124,31 @@ export const usePromptAnalysis = (
         payload.promptId = promptId;
       }
       
+      // Add website data if available
+      if (websiteData && websiteData.url) {
+        payload.websiteData = websiteData;
+      }
+      
+      // Add image data if available
+      if (images && images.length > 0) {
+        const firstImage = images[0];
+        try {
+          const base64 = await imageToBase64(firstImage.file);
+          payload.imageData = { 
+            base64,
+            filename: firstImage.file.name,
+            type: firstImage.file.type
+          };
+        } catch (error) {
+          console.error("Error converting image to base64:", error);
+        }
+      }
+      
       console.log("Sending analysis request with toggles:", { 
         primaryToggle: selectedPrimary, 
-        secondaryToggle: selectedSecondary 
+        secondaryToggle: selectedSecondary,
+        hasImage: !!(images && images.length > 0),
+        hasWebsite: !!(websiteData && websiteData.url)
       });
       
       const { data, error } = await supabase.functions.invoke('analyze-prompt', {

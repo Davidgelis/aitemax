@@ -51,6 +51,12 @@ export const StepOneContent = ({
     setWebsiteContext({ url, instructions });
   };
   
+  const handleAnalyzeWithContext = () => {
+    // Call the parent's onAnalyze function with additional context
+    // This will trigger the process in the parent component that will use our enhanced handleAnalyze function
+    onAnalyze();
+  };
+  
   return (
     <div className="space-y-4 w-full relative">
       <div className="w-full">
@@ -95,17 +101,16 @@ export const StepOneContent = ({
           <PromptEditor 
             promptText={promptText}
             setPromptText={setPromptText}
-            onAnalyze={onAnalyze}
+            onAnalyze={handleAnalyzeWithContext}
             selectedPrimary={selectedPrimary}
             selectedSecondary={selectedSecondary}
             isLoading={isLoading}
             images={uploadedImages}
             onImagesChange={setUploadedImages}
+            websiteContext={websiteContext}
           />
         </div>
       </div>
-      
-      {/* Removed the duplicated ImageUploader from here */}
       
       <ImageCarousel 
         images={uploadedImages}
