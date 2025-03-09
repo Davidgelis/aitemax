@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { ImageUp, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { ImageUploadDialog } from './ImageUploadDialog';
 
 export interface UploadedImage {
   id: string;
@@ -16,17 +17,10 @@ interface ImageUploaderProps {
 }
 
 export const ImageUploader = ({ onImagesChange, maxImages = 5, images }: ImageUploaderProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   
-  const handleClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    if (images.length + files.length > maxImages) {
+  const handleImagesUploaded = (newImages: UploadedImage[]) => {
+    if (newImages.length > maxImages) {
       toast({
         title: "Upload limit reached",
         description: `You can only upload a maximum of ${maxImages} images.`,
@@ -35,32 +29,7 @@ export const ImageUploader = ({ onImagesChange, maxImages = 5, images }: ImageUp
       return;
     }
     
-    const newImages: UploadedImage[] = [...images];
-    
-    Array.from(files).forEach(file => {
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Invalid file type",
-          description: "Only image files are allowed.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const url = URL.createObjectURL(file);
-      newImages.push({
-        id: `image-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        url,
-        file
-      });
-    });
-    
     onImagesChange(newImages);
-    
-    // Reset the file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
   
   const handleRemoveImage = (id: string) => {
@@ -77,7 +46,7 @@ export const ImageUploader = ({ onImagesChange, maxImages = 5, images }: ImageUp
     <div className="flex flex-col">
       <div className="mb-2">
         <button
-          onClick={handleClick}
+          onClick={() => setDialogOpen(true)}
           className="p-2 rounded-md border-2 border-[#64bf95] text-[#64bf95] hover:bg-[#64bf95]/10 transition-colors flex items-center gap-1"
           title="Upload images"
           disabled={images.length >= maxImages}
@@ -85,14 +54,6 @@ export const ImageUploader = ({ onImagesChange, maxImages = 5, images }: ImageUp
           <ImageUp className="w-5 h-5" />
           <span className="text-sm">Upload Images</span>
         </button>
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          className="hidden" 
-          accept="image/*" 
-          multiple
-          onChange={handleChange}
-        />
       </div>
       
       {images.length > 0 && (
@@ -115,6 +76,14 @@ export const ImageUploader = ({ onImagesChange, maxImages = 5, images }: ImageUp
           ))}
         </div>
       )}
+      
+      <ImageUploadDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onImagesUploaded={handleImagesUploaded}
+        maxImages={maxImages}
+        currentImages={images}
+      />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+
 import { List, ListOrdered } from "lucide-react";
 import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +14,8 @@ interface PromptEditorProps {
   selectedPrimary: string | null;
   selectedSecondary: string | null;
   isLoading: boolean;
+  images?: UploadedImage[];
+  onImagesChange?: (images: UploadedImage[]) => void;
 }
 
 export const PromptEditor = ({ 
@@ -21,14 +24,15 @@ export const PromptEditor = ({
   onAnalyze, 
   selectedPrimary,
   selectedSecondary,
-  isLoading
+  isLoading,
+  images = [],
+  onImagesChange
 }: PromptEditorProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [showPromptDialog, setShowPromptDialog] = useState(false);
   const [submittedPrompt, setSubmittedPrompt] = useState("");
-  const [images, setImages] = useState<UploadedImage[]>([]);
   const [carouselOpen, setCarouselOpen] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string | undefined>(undefined);
 
@@ -190,7 +194,9 @@ export const PromptEditor = ({
   };
 
   const handleImagesChange = (newImages: UploadedImage[]) => {
-    setImages(newImages);
+    if (onImagesChange) {
+      onImagesChange(newImages);
+    }
   };
 
   const handleImageClick = (imageId: string) => {

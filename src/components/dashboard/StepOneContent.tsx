@@ -93,6 +93,8 @@ export const StepOneContent = ({
             selectedPrimary={selectedPrimary}
             selectedSecondary={selectedSecondary}
             isLoading={isLoading}
+            images={uploadedImages}
+            onImagesChange={setUploadedImages}
           />
         </div>
       </div>
