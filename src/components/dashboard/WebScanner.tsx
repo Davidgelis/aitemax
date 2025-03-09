@@ -16,9 +16,17 @@ export const WebScanner = ({
   className = '' 
 }: WebScannerProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [savedUrl, setSavedUrl] = useState('');
+  const [savedInstructions, setSavedInstructions] = useState('');
   
   const handleWebsiteScan = (url: string, instructions: string) => {
+    // Save the values for persistence
+    setSavedUrl(url);
+    setSavedInstructions(instructions);
+    
+    // Call the parent handler
     onWebsiteScan(url, instructions);
+    
     toast({
       title: "Website scan initiated",
       description: "The content from the website will be used as context",
@@ -43,6 +51,8 @@ export const WebScanner = ({
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           onWebsiteScan={handleWebsiteScan}
+          savedUrl={savedUrl}
+          savedInstructions={savedInstructions}
         />
       </div>
     );
@@ -66,6 +76,8 @@ export const WebScanner = ({
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onWebsiteScan={handleWebsiteScan}
+        savedUrl={savedUrl}
+        savedInstructions={savedInstructions}
       />
     </div>
   );

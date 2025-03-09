@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,24 +9,33 @@ interface WebScanDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onWebsiteScan: (url: string, instructions: string) => void;
+  savedUrl?: string;
+  savedInstructions?: string;
 }
 
 export const WebScanDialog = ({
   open,
   onOpenChange,
-  onWebsiteScan
+  onWebsiteScan,
+  savedUrl = '',
+  savedInstructions = ''
 }: WebScanDialogProps) => {
-  const [url, setUrl] = useState('');
-  const [instructions, setInstructions] = useState('');
+  const [url, setUrl] = useState(savedUrl);
+  const [instructions, setInstructions] = useState(savedInstructions);
+  
+  // Update state when props change
+  useEffect(() => {
+    if (open) {
+      setUrl(savedUrl);
+      setInstructions(savedInstructions);
+    }
+  }, [open, savedUrl, savedInstructions]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (url.trim()) {
       onWebsiteScan(url.trim(), instructions.trim());
       onOpenChange(false);
-      // Reset the form after submission
-      setUrl('');
-      setInstructions('');
     }
   };
   
