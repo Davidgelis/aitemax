@@ -37,8 +37,8 @@ export const ImageUploader = ({ onImagesChange, maxImages = 1, images }: ImageUp
         title="Upload image"
         disabled={images.length >= maxImages}
       >
-        <ImageUp className="w-3 h-3 text-[#33fea6] group-hover:text-[#64bf95] transition-colors" />
-        <span>Upload</span>
+        <ImageUp className="w-3 h-3 text-white group-hover:text-white transition-colors" />
+        <span className="text-white">Upload</span>
       </Button>
       
       <ImageUploadDialog
