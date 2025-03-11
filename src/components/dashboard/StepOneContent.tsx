@@ -169,10 +169,7 @@ export const StepOneContent = ({
           </Button>
         </div>
         
-        <div className="flex space-x-2">
-          <span className="text-[#545454] px-4 py-1 border rounded">2</span>
-          <span className="text-[#545454] px-4 py-1 border rounded">3</span>
-          
+        <div>
           <Button
             onClick={handleAnalyzeWithContext}
             disabled={isLoading || !promptText.trim()}
