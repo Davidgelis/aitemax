@@ -341,8 +341,7 @@ const PromptInput = ({
               color: "#545454", 
               border: "1px solid #e5e7eb",
               borderTop: "none",
-              fontSize: "1.2rem",
-              "::placeholder": { color: "#9ca3af" }
+              fontSize: "1.2rem"
             }}
             ref={textareaRef}
           />
