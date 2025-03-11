@@ -29,13 +29,13 @@ export function createSystemPrompt(primaryToggle: string | null, secondaryToggle
 For QUESTIONS:
 - Extract 5-8 specific questions that, if answered, would help clarify the intent and improve the prompt's effectiveness
 - Questions should be relevant to the prompt and ${contextDescription}
-- Return the questions in a structured JSON format with 'id', 'text', 'isRelevant', 'answer', and 'category' fields
+- Return the questions in a structured JSON format with 'id', 'text', 'isRelevant', and 'answer' fields
 - Initially leave 'answer' as an empty string unless specifically told to pre-fill it
 - Set 'isRelevant' to null initially, meaning it needs to be reviewed by the user
 
 For VARIABLES:
 - Extract specific parameters that could be modified or customized in the prompt
-- Each variable should have 'id', 'name', 'value', 'isRelevant', and 'category' fields
+- Each variable should have 'id', 'name', 'value', and 'isRelevant' fields
 - Variable names should be concise and descriptive
 - Initially leave 'value' as an empty string unless specifically told to pre-fill it
 - Set 'isRelevant' to null initially, meaning it needs to be reviewed by the user

@@ -68,6 +68,7 @@ export const StepOneContent = ({
     // Console log to verify what data is being passed to analysis
     console.log("Analyzing with context:", {
       hasImages: uploadedImages.length > 0,
+      images: uploadedImages,
       websiteContext: websiteContext,
       primaryToggle: selectedPrimary,
       secondaryToggle: selectedSecondary
