@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -166,7 +165,7 @@ serve(async (req) => {
     
     console.log("Image data provided:", imageData ? "Yes" : "No");
     if (imageData) {
-      console.log("Image type:", imageData.file ? imageData.file.type : "No file type");
+      console.log("Image type:", imageData.type || "No file type");
       console.log("Has image base64:", imageData.base64 ? "Yes" : "No");
     }
     

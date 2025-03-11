@@ -159,6 +159,11 @@ export const StepController = ({
   };
 
   const handleAnalyzeWithContext = () => {
+    console.log("StepController: Analyzing with context", {
+      images: uploadedImages,
+      websiteContext
+    });
+    
     handleAnalyze(uploadedImages, websiteContext);
   };
 
@@ -278,6 +283,8 @@ export const StepController = ({
             setSelectedModel={setSelectedModel}
             selectedCognitive={selectedCognitive}
             handleCognitiveToggle={handleCognitiveToggle}
+            onImagesChange={handleImagesChange}
+            onWebsiteScan={handleWebsiteScan}
           />
         );
 
