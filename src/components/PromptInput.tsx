@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, KeyboardEvent } from 'react';
 import { UploadedImage } from '@/components/dashboard/types';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
 import { X, ListOrdered, List } from 'lucide-react';
@@ -72,6 +72,88 @@ const PromptInput = ({
     
     const updatedImages = images.filter(img => img.id !== id);
     onImagesChange(updatedImages);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && textareaRef) {
+      const cursorPosition = textareaRef.selectionStart;
+      const text = inputValue;
+      
+      // Get the current line
+      const lineStart = text.lastIndexOf('\n', cursorPosition - 1) + 1;
+      const currentLine = text.substring(lineStart, cursorPosition);
+      
+      // Check if the current line starts with a bullet point
+      const bulletMatch = currentLine.match(/^(\s*)•\s/);
+      if (bulletMatch) {
+        e.preventDefault();
+        
+        // If the current line is empty except for the bullet, remove the bullet
+        if (currentLine.trim() === '•') {
+          const newText = text.substring(0, lineStart) + text.substring(cursorPosition);
+          setInputValue(newText);
+          if (onChange) onChange(newText);
+          
+          // Set cursor position
+          setTimeout(() => {
+            if (textareaRef) {
+              textareaRef.selectionStart = textareaRef.selectionEnd = lineStart;
+            }
+          }, 0);
+        } else {
+          // Add a new bullet point on the next line
+          const indentation = bulletMatch[1] || '';
+          const insertion = `\n${indentation}• `;
+          const newText = text.substring(0, cursorPosition) + insertion + text.substring(cursorPosition);
+          setInputValue(newText);
+          if (onChange) onChange(newText);
+          
+          // Set cursor position after the new bullet point
+          setTimeout(() => {
+            if (textareaRef) {
+              textareaRef.selectionStart = textareaRef.selectionEnd = cursorPosition + insertion.length;
+            }
+          }, 0);
+        }
+        return;
+      }
+      
+      // Check if the current line starts with a numbered item
+      const numberMatch = currentLine.match(/^(\s*)(\d+)\.\s/);
+      if (numberMatch) {
+        e.preventDefault();
+        
+        // If the current line is empty except for the number, remove the numbering
+        if (currentLine.trim() === `${numberMatch[2]}.`) {
+          const newText = text.substring(0, lineStart) + text.substring(cursorPosition);
+          setInputValue(newText);
+          if (onChange) onChange(newText);
+          
+          // Set cursor position
+          setTimeout(() => {
+            if (textareaRef) {
+              textareaRef.selectionStart = textareaRef.selectionEnd = lineStart;
+            }
+          }, 0);
+        } else {
+          // Add a new numbered item on the next line with incremented number
+          const indentation = numberMatch[1] || '';
+          const currentNumber = parseInt(numberMatch[2], 10);
+          const nextNumber = currentNumber + 1;
+          const insertion = `\n${indentation}${nextNumber}. `;
+          const newText = text.substring(0, cursorPosition) + insertion + text.substring(cursorPosition);
+          setInputValue(newText);
+          if (onChange) onChange(newText);
+          
+          // Set cursor position after the new numbered item
+          setTimeout(() => {
+            if (textareaRef) {
+              textareaRef.selectionStart = textareaRef.selectionEnd = cursorPosition + insertion.length;
+            }
+          }, 0);
+        }
+      }
+    }
   };
 
   const insertBulletList = () => {
@@ -195,7 +277,7 @@ const PromptInput = ({
           <div className="flex gap-2 mb-1 p-2 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
             <button 
               type="button" 
-              className="p-1 hover:bg-[#f0f0f0] rounded text-[#545454]"
+              className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
               onClick={insertBulletList}
               title="Insert bullet list"
             >
@@ -203,7 +285,7 @@ const PromptInput = ({
             </button>
             <button 
               type="button" 
-              className="p-1 hover:bg-[#f0f0f0] rounded text-[#545454]"
+              className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
               onClick={insertNumberedList}
               title="Insert numbered list"
             >
@@ -214,6 +296,7 @@ const PromptInput = ({
           <textarea
             value={inputValue}
             onChange={handleChange}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
             autoFocus={autoFocus}
             className="w-full h-[320px] p-4 rounded-b-xl resize-none outline-none transition-all"
