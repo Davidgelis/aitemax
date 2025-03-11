@@ -27,7 +27,6 @@ serve(async (req) => {
     }
 
     // Test connection to OpenAI API with a simple request
-    console.log("Sending test request to OpenAI API...");
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -44,47 +43,27 @@ serve(async (req) => {
       }),
     });
     
-    const responseStatus = response.status;
-    console.log(`OpenAI API responded with status: ${responseStatus}`);
-    
     if (!response.ok) {
       const errorText = await response.text();
       console.error("OpenAI API error:", errorText);
       
-      try {
-        // Try to parse error as JSON
-        const errorJson = JSON.parse(errorText);
-        return new Response(JSON.stringify({
-          success: false,
-          message: `Failed to connect to OpenAI API: ${response.status} ${response.statusText}`,
-          details: errorJson.error?.message || errorText
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      } catch {
-        // If not JSON, return as text
-        return new Response(JSON.stringify({
-          success: false,
-          message: `Failed to connect to OpenAI API: ${response.status} ${response.statusText}`,
-          details: errorText
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      return new Response(JSON.stringify({
+        success: false,
+        message: `Failed to connect to OpenAI API: ${response.status} ${response.statusText}`,
+        details: errorText
+      }), {
+        status: 200, // Return 200 even on error to avoid edge function errors
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     
     const data = await response.json();
-    console.log("OpenAI API response data:", data);
     
     return new Response(JSON.stringify({
       success: true,
       message: "Successfully connected to OpenAI API",
       model: data.model,
-      tokenCount: data.usage?.total_tokens || 0,
-      responseText: data.choices?.[0]?.message?.content || "",
-      complete: !!data.choices?.[0]?.finish_reason
+      tokenCount: data.usage?.total_tokens || 0
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -95,7 +74,6 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: false,
       message: `Error testing API connection: ${error.message}`,
-      stack: error.stack,
     }), {
       status: 200, // Return 200 even on error to avoid edge function errors
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

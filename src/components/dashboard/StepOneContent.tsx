@@ -1,12 +1,12 @@
 
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import PromptInput from "@/components/PromptInput"; // Fixed import
+import { PromptInput } from "@/components/PromptInput";
 import { ImageUploader } from "@/components/dashboard/ImageUploader";
 import { WebScanner } from "@/components/dashboard/WebScanner";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { AIModel, UploadedImage } from "./types";
-import { ModelSelector } from "./model-selector"; // Fixed import
+import { ModelSelectorDialog } from "./model-selector";
 
 interface StepOneContentProps {
   promptText: string;
@@ -93,23 +93,23 @@ export const StepOneContent = ({
           <PromptInput 
             value={promptText} 
             onChange={setPromptText} 
-            onSubmit={handleAnalyze}
             isLoading={isLoading}
+            onAnalyze={handleAnalyze}
           />
         </TabsContent>
         
         <TabsContent value="image" className="min-h-[400px]">
           <div className="space-y-6">
             <ImageUploader 
-              images={uploadedImages} // Fixed prop name
+              uploadedImages={uploadedImages} 
               onImagesChange={handleImagesChange}
             />
             
             <PromptInput 
               value={promptText} 
               onChange={setPromptText} 
-              onSubmit={handleAnalyze}
               isLoading={isLoading}
+              onAnalyze={handleAnalyze}
               placeholder="Describe what you want to generate using this image as reference..."
             />
           </div>
@@ -117,13 +117,13 @@ export const StepOneContent = ({
         
         <TabsContent value="website" className="min-h-[400px]">
           <div className="space-y-6">
-            <WebScanner onWebsiteScan={handleWebsiteScan} /> {/* Fixed prop name */}
+            <WebScanner onScan={handleWebsiteScan} />
             
             <PromptInput 
               value={promptText} 
               onChange={setPromptText} 
-              onSubmit={handleAnalyze}
               isLoading={isLoading}
+              onAnalyze={handleAnalyze}
               placeholder="Describe what you want to generate using the website content as reference..."
             />
           </div>
@@ -172,10 +172,11 @@ export const StepOneContent = ({
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <h3 className="text-[#545454] font-medium">AI Model</h3>
-            <ModelSelector
+            <ModelSelectorDialog
               selectedModel={selectedModel}
-              onSelect={setSelectedModel}
-              isInitializingModels={false}
+              setSelectedModel={setSelectedModel}
+              selectedCognitive={selectedCognitive}
+              handleCognitiveToggle={handleCognitiveToggle}
             />
           </div>
         </div>

@@ -1,6 +1,5 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
 
 export const ModelEnhancementService = {
   async enhanceModelsWithAI(): Promise<boolean> {
@@ -32,38 +31,13 @@ export const ModelEnhancementService = {
       
       if (response.error) {
         console.error('Error testing API connection:', response.error);
-        toast({
-          title: "API Connection Failed",
-          description: `Error: ${response.error.message || "Unknown error"}`,
-          variant: "destructive",
-        });
         return false;
       }
       
       console.log('API connection test result:', response.data);
-      
-      if (response.data?.success) {
-        toast({
-          title: "API Connection Successful",
-          description: `Connected to ${response.data.model || "OpenAI API"} (${response.data.tokenCount || 0} tokens used)`,
-          variant: "default",
-        });
-        return true;
-      } else {
-        toast({
-          title: "API Connection Failed",
-          description: response.data?.message || "Unknown error",
-          variant: "destructive",
-        });
-        return false;
-      }
+      return response.data.success;
     } catch (error) {
       console.error('Error testing API connection:', error);
-      toast({
-        title: "API Connection Error",
-        description: `Error: ${(error as Error).message || "Unknown error"}`,
-        variant: "destructive",
-      });
       return false;
     }
   }
