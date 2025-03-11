@@ -35,9 +35,9 @@ export async function analyzePromptWithAI(
           type: "text",
           text: `Analyze this prompt for generating questions and variables: "${promptText}" 
           
-IMPORTANT: Thoroughly analyze the image and extract SPECIFIC details to pre-fill questions and variables:
+CRITICAL INSTRUCTION - MUST FOLLOW: Thoroughly analyze the image and extract SPECIFIC details to pre-fill questions and variables:
 
-First, describe the image in EXTREME detail. Extract ALL specific visual elements like:
+First, describe the image in MAXIMUM detail. Extract ALL specific visual elements like:
 - Subject(s): What/who is in the image (people, objects, landscapes)
 - Viewpoint: How the scene is viewed (looking up, eye-level, aerial view)
 - Perspective: The position relative to the subject (close-up, distant, etc.)
@@ -52,14 +52,12 @@ First, describe the image in EXTREME detail. Extract ALL specific visual element
 - Textures: Smooth, rough, detailed, etc.
 - Style: If applicable (photorealistic, cartoon, painting style)
 
-CRITICAL: You MUST pre-fill at least 3-5 variables and 2-4 questions with SPECIFIC information from the image. DO NOT use generic placeholders - use exact details you can observe:
-
-For example:
-- If you see a forest → Setting variable = "Dense forest with tall pine trees"
+ABSOLUTELY CRITICAL: You MUST pre-fill at least 3-5 variables and 2-4 questions with VERY SPECIFIC information from the image:
+- For example, if you see a forest → Setting variable = "Dense forest with tall pine trees"
 - If image has a sunset → TimeOfDay variable = "Sunset with golden hour lighting"
 - If image shows rain → Weather variable = "Rainy with wet surfaces"
 
-For each pre-filled variable or question, you MUST set isRelevant to true. For example:
+For each pre-filled variable or question, you MUST explicitly set isRelevant to true, like this:
 {
   "id": "v1",
   "name": "Setting",
@@ -68,7 +66,14 @@ For each pre-filled variable or question, you MUST set isRelevant to true. For e
   "category": "Location"
 }
 
-DO NOT FAIL TO SET THE isRelevant FLAG TO TRUE for pre-filled items.
+{
+  "id": "q1",
+  "text": "What is the environment in the image?",
+  "answer": "A dense forest with tall pine trees and undergrowth",
+  "isRelevant": true
+}
+
+FAILURE TO PRE-FILL VARIABLES AND QUESTIONS WITH SPECIFIC CONTENT FROM THE IMAGE AND SET isRelevant TO TRUE WILL RESULT IN INCORRECT BEHAVIOR.
 
 ${additionalContext}`
         },
@@ -87,7 +92,7 @@ ${additionalContext}`
     let userPrompt = `Analyze this prompt for generating questions and variables: "${promptText}"`;
     
     if (additionalContext) {
-      userPrompt += `\n\n${additionalContext}\n\nIMPORTANT: Based on the provided website context, you MUST pre-fill variables and question answers with SPECIFIC values that you can directly observe in the content. Pre-fill at least 3-5 variables and 2-4 questions with concrete values from the website content, not placeholders. For each pre-filled variable or question, you MUST set isRelevant to true. For example:
+      userPrompt += `\n\n${additionalContext}\n\nCRITICAL INSTRUCTION - MUST FOLLOW: Based on the provided website content, you MUST pre-fill variables and question answers with SPECIFIC values that you can directly observe. Pre-fill at least 3-5 variables and 2-4 questions with concrete values from the website content, not placeholders or generic text. For each pre-filled variable or question, you MUST explicitly set isRelevant to true, like this:
 
 {
   "id": "q1",
@@ -100,10 +105,11 @@ ${additionalContext}`
   "id": "v1",
   "name": "Topic",
   "value": "AI-powered content creation tools",
-  "isRelevant": true
+  "isRelevant": true,
+  "category": "Subject"
 }
 
-DO NOT FAIL TO SET THE isRelevant FLAG TO TRUE for pre-filled items.`;
+FAILURE TO PRE-FILL VARIABLES AND QUESTIONS WITH SPECIFIC CONTENT FROM THE WEBSITE AND SET isRelevant TO TRUE WILL RESULT IN INCORRECT BEHAVIOR.`;
     }
     
     messages.push({
@@ -122,9 +128,9 @@ DO NOT FAIL TO SET THE isRelevant FLAG TO TRUE for pre-filled items.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // Continue using GPT-4o for analysis
+        model: 'gpt-4o', // Using GPT-4o for improved analysis
         messages,
-        temperature: 0.7,
+        temperature: 0.5, // Lower temperature for more consistent results
       }),
     });
     

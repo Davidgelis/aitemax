@@ -23,11 +23,22 @@ export function extractQuestions(analysis: string, promptText: string): any[] {
             console.log("First few pre-filled questions:", parsed.questions.filter((q: any) => q.answer && q.answer.trim() !== "").slice(0, 2).map((q: any) => ({ text: q.text, answer: q.answer })));
           }
           
-          // Ensure isRelevant is set to true for pre-filled questions
-          return parsed.questions.map((q: any) => ({
-            ...q,
-            isRelevant: q.answer && q.answer.trim() !== "" ? true : q.isRelevant
-          }));
+          // CRITICAL: Ensure isRelevant is set to true for pre-filled questions
+          const processedQuestions = parsed.questions.map((q: any) => {
+            // If question has an answer but isRelevant isn't explicitly set to true, set it
+            if (q.answer && q.answer.trim() !== "") {
+              if (q.isRelevant !== true) {
+                console.log(`Setting isRelevant to true for pre-filled question: "${q.text}" with answer "${q.answer}"`);
+              }
+              return {
+                ...q,
+                isRelevant: true // Always mark as relevant if it has an answer
+              };
+            }
+            return q;
+          });
+          
+          return processedQuestions;
         }
       } catch (e) {
         console.error("Error parsing JSON from analysis:", e);
@@ -69,7 +80,7 @@ export function extractQuestions(analysis: string, promptText: string): any[] {
         const answerMatch = analysis.match(answerPattern);
         if (answerMatch && answerMatch[1] && answerMatch[1].trim() !== "") {
           answer = answerMatch[1].trim();
-          isRelevant = true; // Pre-filled answers are automatically relevant
+          isRelevant = true; // CRITICAL: Pre-filled answers are automatically relevant
           console.log(`Found answer for question "${text}": "${answer}"`);
         }
         
@@ -121,16 +132,36 @@ export function extractVariables(analysis: string, promptText: string): any[] {
             console.log("First few pre-filled variables:", parsed.variables.filter((v: any) => v.value && v.value.trim() !== "").slice(0, 2).map((v: any) => ({ name: v.name, value: v.value })));
           }
           
-          // Ensure all variables have necessary properties and pre-filled ones are marked relevant
-          return parsed.variables.map((v: any, index: number) => ({
-            id: v.id || `v${index + 1}`,
-            name: v.name || "",
-            value: v.value || "",
-            isRelevant: v.value && v.value.trim() !== "" ? true : v.isRelevant,
-            category: v.category || "General",
-            occurrences: v.occurrences || [],
-            code: v.code || `VAR_${index + 1}`
-          }));
+          // CRITICAL: Ensure all variables have necessary properties and pre-filled ones are marked relevant
+          const processedVariables = parsed.variables.map((v: any, index: number) => {
+            const id = v.id || `v${index + 1}`;
+            const name = v.name || "";
+            const value = v.value || "";
+            const category = v.category || "General";
+            const code = v.code || `VAR_${index + 1}`;
+            const occurrences = v.occurrences || [];
+            
+            // CRITICAL: If variable has a value, ensure isRelevant is set to true
+            let isRelevant = v.isRelevant;
+            if (value && value.trim() !== "") {
+              if (isRelevant !== true) {
+                console.log(`Setting isRelevant to true for pre-filled variable: "${name}" with value "${value}"`);
+              }
+              isRelevant = true;
+            }
+            
+            return {
+              id,
+              name,
+              value,
+              isRelevant,
+              category,
+              occurrences,
+              code
+            };
+          });
+          
+          return processedVariables;
         }
       } catch (e) {
         console.error("Error parsing JSON from analysis:", e);
@@ -178,7 +209,7 @@ export function extractVariables(analysis: string, promptText: string): any[] {
           const valueMatch = analysis.match(pattern);
           if (valueMatch && valueMatch[1] && valueMatch[1].trim() !== "") {
             value = valueMatch[1].trim();
-            isRelevant = true; // Pre-filled values are automatically relevant
+            isRelevant = true; // CRITICAL: Pre-filled values are automatically relevant
             console.log(`Found value for variable "${name}": "${value}"`);
             break;
           }
@@ -229,7 +260,7 @@ export function extractVariables(analysis: string, promptText: string): any[] {
         
         if (valueMatch && valueMatch[1] && valueMatch[1].trim() !== "") {
           value = valueMatch[1].trim();
-          isRelevant = true; // Pre-filled values are automatically relevant
+          isRelevant = true; // CRITICAL: Pre-filled values are automatically relevant
           console.log(`Found value for image variable "${varName}": "${value}"`);
         }
         

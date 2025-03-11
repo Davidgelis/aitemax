@@ -182,14 +182,30 @@ User Instructions: ${websiteData.instructions || "No specific instructions provi
 Content Excerpt: ${websiteContent.text.substring(0, 3000)}...
 Key Terms: ${websiteKeywords.join(', ')}
       
-CRITICAL INSTRUCTIONS: Analyze this website context THOROUGHLY. Extract ALL specific concrete details like main topic, purpose, audience, tone, style, key terminology, content structure, and any other relevant information. You MUST use these SPECIFIC extracted details to pre-fill answers to questions and variable values where the information is EXPLICITLY present in this content. For each pre-filled question or variable, you MUST set isRelevant to true. DO NOT SKIP THIS STEP.`;
+PRE-FILLING INSTRUCTIONS: EXTREMELY IMPORTANT!
+You MUST analyze this website content THOROUGHLY and extract SPECIFIC concrete details like:
+- Main topic/subject
+- Purpose
+- Target audience
+- Tone and style
+- Key terminology
+- Content structure
+- Features or offerings mentioned
+
+For EACH detail you extract, you MUST use it to pre-fill relevant questions and variables with EXACT text from the content.
+You MUST pre-fill at least 3-5 variables and 2-4 questions.
+For each pre-filled item, you MUST explicitly set isRelevant to true.
+FAILURE TO PRE-FILL AND SET isRelevant=true WILL CAUSE CRITICAL SYSTEM ISSUES.`;
     }
     
     // Add image context if provided
     let imageContext = "";
     if (imageData && imageData.base64) {
       console.log("Image provided for context - will use for pre-filling");
-      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Analyze this image THOROUGHLY and extract ALL visual details including:
+      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. 
+
+PRE-FILLING INSTRUCTIONS: EXTREMELY IMPORTANT!
+You MUST analyze this image THOROUGHLY and extract ALL visual details including:
 - Subject(s) in the image (people, objects, landscapes)
 - Viewpoint (looking up, eye-level, aerial view, etc.)
 - Perspective (close-up, distance, angle, etc.)
@@ -203,9 +219,27 @@ CRITICAL INSTRUCTIONS: Analyze this website context THOROUGHLY. Extract ALL spec
 - Composition
 - Style
 - Textures
-- Any other observable details
 
-CRITICAL INSTRUCTIONS: You MUST extract all these specific details and use them to pre-fill relevant answers to questions and values for variables. For each pre-filled question or variable, you MUST set isRelevant to true. DO NOT SKIP THIS STEP. Use only information that is EXPLICITLY visible in the image.`;
+For EACH detail you extract, you MUST use it to pre-fill relevant questions and variables with SPECIFIC descriptions.
+You MUST pre-fill at least 3-5 variables and 2-4 questions.
+For each pre-filled item, you MUST explicitly set isRelevant to true.
+FAILURE TO PRE-FILL AND SET isRelevant=true WILL CAUSE CRITICAL SYSTEM ISSUES.
+
+Example of properly pre-filled items:
+{
+  "id": "v1",
+  "name": "Setting",
+  "value": "Dense forest with tall pine trees",
+  "isRelevant": true,
+  "category": "Location"
+}
+
+{
+  "id": "q1",
+  "text": "What is the environment in the image?",
+  "answer": "A dense forest with tall pine trees and undergrowth",
+  "isRelevant": true
+}`;
     }
     
     console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);
@@ -266,7 +300,7 @@ CRITICAL INSTRUCTIONS: You MUST extract all these specific details and use them 
         questions.forEach(q => { q.answer = ""; q.isRelevant = null; });
         variables.forEach(v => { v.value = ""; v.isRelevant = null; });
       } else if (hasAdditionalContext) {
-        // Ensure all pre-filled items are properly marked as relevant
+        // CRITICAL: Ensure all pre-filled items are properly marked as relevant
         questions.forEach(q => {
           if (q.answer && q.answer.trim() !== '') {
             q.isRelevant = true;

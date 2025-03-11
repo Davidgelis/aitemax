@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions } from "@/components/dashboard/constants";
@@ -95,32 +94,6 @@ export const usePromptAnalysis = (
     // Start loading immediately
     setIsLoading(true);
     
-    // Get toggle label for a more descriptive loading message
-    let loadingMessageText = "Analyzing your prompt";
-    if (images && images.length > 0) {
-      loadingMessageText += " and image";
-    }
-    if (websiteData && websiteData.url) {
-      loadingMessageText += " and website content";
-    }
-    if (selectedPrimary) {
-      const primaryToggles = (await import("@/components/dashboard/constants")).primaryToggles;
-      const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label;
-      if (primaryLabel) {
-        loadingMessageText += ` for ${primaryLabel}`;
-      }
-    }
-    if (selectedSecondary) {
-      const secondaryToggles = (await import("@/components/dashboard/constants")).secondaryToggles;
-      const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label;
-      if (secondaryLabel) {
-        loadingMessageText += ` with ${secondaryLabel} formatting`;
-      }
-    }
-    loadingMessageText += "...";
-    
-    setCurrentLoadingMessage(loadingMessageText);
-    
     try {
       // Include userId and promptId in the payload if available
       const payload: any = {
@@ -178,17 +151,6 @@ export const usePromptAnalysis = (
       if (data) {
         console.log("AI analysis response:", data);
         
-        // Check if there was an error in the edge function (which still returns 200)
-        if (data.error) {
-          console.warn("Edge function encountered an error:", data.error);
-          // We still continue processing the fallback data provided
-        }
-        
-        // Extract and log if hasAdditionalContext flag is returned
-        const apiHasAdditionalContext = !!data.hasAdditionalContext;
-        console.log(`API returned hasAdditionalContext: ${apiHasAdditionalContext}`);
-        console.log(`Local hasAdditionalContext: ${hasAdditionalContext}`);
-        
         // Check if we have pre-filled questions
         const hasPrefilled = data.questions && data.questions.some((q: any) => q.answer && q.answer.trim() !== "") ||
                              data.variables && data.variables.some((v: any) => v.value && v.value.trim() !== "");
@@ -196,12 +158,11 @@ export const usePromptAnalysis = (
         console.log(`Response contains pre-filled content: ${hasPrefilled ? "YES" : "NO"}`);
         
         if (data.questions && data.questions.length > 0) {
+          // Ensure pre-filled questions have isRelevant set to true
           const aiQuestions = data.questions.map((q: any, index: number) => ({
             ...q,
             id: q.id || `q${index + 1}`,
-            // Ensure answer is preserved correctly
-            answer: q.answer || "",
-            // Mark as relevant if it has an answer
+            // If question has an answer, make sure isRelevant is true
             isRelevant: q.answer && q.answer.trim() !== "" ? true : q.isRelevant
           }));
           
@@ -235,9 +196,7 @@ export const usePromptAnalysis = (
             .map((v: any, index: number) => ({
               ...v,
               id: v.id || `v${index + 1}`,
-              // Ensure value is preserved correctly
-              value: v.value || "",
-              // Mark as relevant if it has a value
+              // If variable has a value, make sure isRelevant is true
               isRelevant: v.value && v.value.trim() !== "" ? true : v.isRelevant,
               // Add code field if missing
               code: v.code || `VAR_${index + 1}`
@@ -273,17 +232,6 @@ export const usePromptAnalysis = (
         
         if (data.enhancedPrompt) {
           setFinalPrompt(data.enhancedPrompt);
-        }
-        
-        // If we received raw analysis, log it for debugging
-        if (data.rawAnalysis) {
-          console.log("Raw AI analysis:", data.rawAnalysis.substring(0, 200) + "...");
-        }
-        
-        // Log token usage if available
-        if (data.usage) {
-          console.log("Token usage:", data.usage);
-          console.log(`Prompt tokens: ${data.usage.prompt_tokens}, Completion tokens: ${data.usage.completion_tokens}`);
         }
       } else {
         console.warn("No data received from analysis function, using fallbacks");

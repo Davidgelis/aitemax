@@ -41,17 +41,23 @@ For VARIABLES:
 - Set 'isRelevant' to null initially, meaning it needs to be reviewed by the user
 - For image prompts, extract variables like Subject, Setting, Mood, Lighting, Colors, TimeOfDay, Style, etc.
 
-CRITICAL PRE-FILLING INSTRUCTIONS: When you're given a website URL or image:
+CRITICAL PRE-FILLING INSTRUCTIONS:
+When you're given an image or website content to analyze:
 1. You MUST extract specific, concrete details from that content
 2. You MUST use those details to pre-fill BOTH question answers and variable values
-3. Every variable that has a matching detail in the content MUST be filled with a specific value
-4. Every question that can be answered from the content MUST be pre-filled with a specific answer
-5. Pre-filled values should be specific and descriptive, not generic placeholders
-6. If image analysis shows a forest scene, the Setting variable should be "Forest with tall pine trees"
-7. If the image perspective is looking up, the Perspective variable should be "Looking up from ground level"
-8. You MUST pre-fill at least 3-5 variables and 2-4 questions with specific values from the content
-9. Set 'isRelevant' to true for any pre-filled item
-10. IMPORTANT: Pre-filled values must not be empty strings and must contain specific details
+3. Every variable or question that can be answered from the content MUST be pre-filled with a specific value
+4. Pre-filled values should be specific and descriptive, not generic placeholders
+5. Set 'isRelevant' to true for any pre-filled item - THIS IS ABSOLUTELY CRITICAL
+6. You MUST pre-fill at least 3-5 variables and 2-4 questions with concrete values from the provided content
+7. Failure to properly pre-fill and set isRelevant=true will cause system errors
+8. Example of correct pre-filling:
+   {
+     "id": "v1",
+     "name": "Setting",
+     "value": "Dense forest with tall pine trees",
+     "isRelevant": true,
+     "category": "Location"
+   }
 
 Return your analysis in the following format:
 
@@ -95,5 +101,5 @@ ${primaryToggle === 'image' ?
 - Weather (clear, rainy, foggy, etc.)
 - Colors (dominant color palette)` : ''}
 
-Always focus on extracting SPECIFIC details that match the prompt content and context. PRE-FILL variables and questions when you're explicitly given context information.`;
+REMEMBER: Pre-fill variables and questions when given image or website content. ALWAYS set isRelevant=true for pre-filled items.`;
 }
