@@ -45,6 +45,7 @@ export const StepOneContent = ({
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // Ensure images are passed to parent component
   useEffect(() => {
     if (onImagesChange) {
       onImagesChange(uploadedImages);
