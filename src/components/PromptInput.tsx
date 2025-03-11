@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { UploadedImage } from '@/components/dashboard/types';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
-import { X } from 'lucide-react';
+import { X, ListOrdered, List } from 'lucide-react';
 import { ImageUploader } from '@/components/dashboard/ImageUploader';
 
 interface PromptInputProps {
@@ -19,7 +19,7 @@ interface PromptInputProps {
 
 const PromptInput = ({ 
   onSubmit, 
-  placeholder = "Input your prompt...", 
+  placeholder = "Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'", 
   className = "",
   value,
   onChange,
@@ -74,7 +74,7 @@ const PromptInput = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className={`w-full max-w-2xl mx-auto ${className}`}>
+    <form onSubmit={handleSubmit} className={`w-full mx-auto ${className}`}>
       <div className="relative group">
         {/* Display uploaded images above the textarea */}
         {images && images.length > 0 && (
@@ -100,16 +100,27 @@ const PromptInput = ({
         )}
         
         <div className="relative">
+          {/* Formatting buttons */}
+          <div className="flex gap-2 mb-1 p-2 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
+            <button type="button" className="p-1 hover:bg-[#f0f0f0] rounded text-[#545454]">
+              <List className="w-5 h-5" />
+            </button>
+            <button type="button" className="p-1 hover:bg-[#f0f0f0] rounded text-[#545454]">
+              <ListOrdered className="w-5 h-5" />
+            </button>
+          </div>
+          
           <textarea
             value={inputValue}
             onChange={handleChange}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className="w-full h-[384px] p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all"
+            className="w-full h-[320px] p-4 rounded-b-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all"
             style={{ 
               backgroundColor: "#fafafa",
               color: "#545454", 
               border: "1px solid #e5e7eb",
+              borderTop: "none"
             }}
           />
           

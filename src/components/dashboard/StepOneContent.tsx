@@ -145,7 +145,6 @@ export const StepOneContent = ({
           value={promptText}
           onChange={setPromptText}
           onSubmit={handleAnalyzeWithContext}
-          placeholder="Generate a monet style image of trees"
           className="w-full"
           images={uploadedImages}
           onImagesChange={handleImagesChange}
@@ -157,14 +156,13 @@ export const StepOneContent = ({
       <div className="flex justify-between mt-8">
         <div>
           <Button
-            variant="analyze"
+            variant="aurora"
             size="sm"
             onClick={() => {
               // Open the upload dialog through the ImageUploader component
               const uploadButton = document.querySelector("[title='Upload image']") as HTMLButtonElement;
               if (uploadButton) uploadButton.click();
             }}
-            className="bg-[#33fea6] hover:bg-[#2be090] text-white"
             disabled={isLoading}
           >
             Upload
@@ -178,7 +176,8 @@ export const StepOneContent = ({
           <Button
             onClick={handleAnalyzeWithContext}
             disabled={isLoading || !promptText.trim()}
-            className="ml-2 bg-[#084b49] hover:bg-[#063b39] text-white"
+            variant="aurora"
+            className="ml-2"
           >
             {isLoading ? "Analyzing..." : "Analyze with AI"}
           </Button>
