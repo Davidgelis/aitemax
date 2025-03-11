@@ -282,7 +282,7 @@ const PromptInput = ({
       <div className="relative group">
         <div className="relative">
           <div className="flex flex-wrap items-start gap-4 mb-1 p-4 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
-            <div className="flex gap-4 items-start">
+            <div className="flex gap-4 items-start self-start">
               <button 
                 type="button" 
                 className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
@@ -312,14 +312,14 @@ const PromptInput = ({
                       alt="Uploaded" 
                       className="object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
                       onClick={() => handleImageClick(image.id)}
-                      style={{ width: '60px', height: '60px' }}
+                      style={{ width: '42px', height: '42px' }}
                     />
                     <button
                       onClick={(e) => handleRemoveImage(image.id, e)}
                       className="absolute -top-2 -right-2 bg-[#041524] text-white rounded-full p-1 border border-[#33fea6]/30 opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Remove image"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3" />
                     </button>
                   </div>
                 ))
@@ -335,12 +335,14 @@ const PromptInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className="w-full h-[320px] p-4 rounded-b-xl resize-none outline-none transition-all"
+            className="w-full h-[320px] p-4 rounded-b-xl resize-none outline-none transition-all text-lg"
             style={{ 
               backgroundColor: "#fafafa",
               color: "#545454", 
               border: "1px solid #e5e7eb",
-              borderTop: "none"
+              borderTop: "none",
+              fontSize: "1.2rem",
+              "::placeholder": { color: "#9ca3af" }
             }}
             ref={textareaRef}
           />

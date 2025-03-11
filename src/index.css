@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -74,6 +75,12 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Custom textarea placeholder color */
+textarea::placeholder {
+  color: #9ca3af !important;
+  opacity: 0.7;
 }
 
 /* Variable highlighting in prompts */
