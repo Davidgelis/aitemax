@@ -85,6 +85,8 @@ export const VariablesSection = ({
               <div className="space-y-3">
                 {categoryVariables.map((variable, variableIndex) => {
                   const globalIndex = categoryIndex + variableIndex + 1;
+                  const isPrefilled = variable.value && variable.value.trim() !== '';
+                  
                   return (
                     <div key={variable.id} className="flex gap-3 items-center">
                       <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
@@ -103,7 +105,7 @@ export const VariablesSection = ({
                           value={variable.value || ""}
                           onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
                           className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
-                            variable.value ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''
+                            isPrefilled ? 'bg-[#33fea6]/5 border-[#33fea6] ring-1 ring-[#33fea6]' : ''
                           }`}
                           autoComplete="off"
                           aria-label={`Value for ${variable.name || 'variable'} ${globalIndex}`}

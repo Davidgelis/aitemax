@@ -152,18 +152,25 @@ serve(async (req) => {
       imageData 
     } = await req.json();
     
-    console.log(`Analyzing prompt: "${promptText}"\n`);
+    console.log(`Analyzing prompt: "${promptText.substring(0, 100)}${promptText.length > 100 ? '...' : ''}"\n`);
     console.log(`Primary toggle: ${primaryToggle || "None"}`);
     console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
-    console.log(`Creating prompt for AI platform with appropriate context`);
+    console.log(`Has image data: ${!!imageData?.base64}`);
+    console.log(`Has website data: ${!!websiteData?.url}`);
+    
+    // Check if we have additional context from image or website
+    const hasAdditionalContext = !!(
+      (imageData && imageData.base64) || 
+      (websiteData && websiteData.url)
+    );
+    
+    console.log(`Additional context detected: ${hasAdditionalContext ? "YES" : "NO"}`);
     
     // Add website content to context if provided
     let contextualData = "";
     let websiteKeywords = [];
-    let hasAdditionalContext = false;
     
     if (websiteData && websiteData.url) {
-      hasAdditionalContext = true;
       console.log(`Website provided for context: ${websiteData.url}`);
       const websiteContent = await fetchWebsiteContent(websiteData.url);
       websiteKeywords = extractKeyTerms(websiteContent.text);
@@ -175,31 +182,65 @@ User Instructions: ${websiteData.instructions || "No specific instructions provi
 Content Excerpt: ${websiteContent.text.substring(0, 3000)}...
 Key Terms: ${websiteKeywords.join(', ')}
       
-Please analyze this website context thoroughly when analyzing the prompt. Extract specific concrete details like main topic, purpose, audience, tone, style, key terminology, content structure, and any other relevant information. Use these extracted details to pre-fill answers to questions and variable values where the information is EXPLICITLY present in this content.`;
+PRE-FILLING INSTRUCTIONS: EXTREMELY IMPORTANT!
+You MUST analyze this website content THOROUGHLY and extract SPECIFIC concrete details like:
+- Main topic/subject
+- Purpose
+- Target audience
+- Tone and style
+- Key terminology
+- Content structure
+- Features or offerings mentioned
+
+For EACH detail you extract, you MUST use it to pre-fill relevant questions and variables with EXACT text from the content.
+You MUST pre-fill at least 3-5 variables and 2-4 questions.
+For each pre-filled item, you MUST explicitly set isRelevant to true.
+FAILURE TO PRE-FILL AND SET isRelevant=true WILL CAUSE CRITICAL SYSTEM ISSUES.`;
     }
     
     // Add image context if provided
     let imageContext = "";
     if (imageData && imageData.base64) {
-      hasAdditionalContext = true;
-      console.log("Image provided for context");
-      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image thoroughly and extract all visual details including:
-- Subject(s) in the image
+      console.log("Image provided for context - will use for pre-filling");
+      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. 
+
+PRE-FILLING INSTRUCTIONS: EXTREMELY IMPORTANT!
+You MUST analyze this image THOROUGHLY and extract ALL visual details including:
+- Subject(s) in the image (people, objects, landscapes)
 - Viewpoint (looking up, eye-level, aerial view, etc.)
-- Perspective (distance, angle, etc.)
+- Perspective (close-up, distance, angle, etc.)
 - Setting/location/environment
-- Time of day (if determinable)
-- Season (if determinable)
-- Weather conditions (if shown)
+- Time of day
+- Season
+- Weather conditions
 - Lighting conditions
 - Color palette
 - Mood/atmosphere
 - Composition
 - Style
 - Textures
-- Any other observable details
 
-Extract these specific details and use them to pre-fill relevant answers to questions and values for variables. Only use information that is EXPLICITLY visible in the image.`;
+For EACH detail you extract, you MUST use it to pre-fill relevant questions and variables with SPECIFIC descriptions.
+You MUST pre-fill at least 3-5 variables and 2-4 questions.
+For each pre-filled item, you MUST explicitly set isRelevant to true.
+FAILURE TO PRE-FILL AND SET isRelevant=true WILL CAUSE CRITICAL SYSTEM ISSUES.
+
+Example of properly pre-filled items:
+{
+  "id": "v1",
+  "name": "Setting",
+  "value": "Dense forest with tall pine trees",
+  "isRelevant": true,
+  "category": "Location"
+}
+
+{
+  "id": "q1",
+  "text": "What is the environment in the image?",
+  "answer": "A dense forest with tall pine trees and undergrowth",
+  "isRelevant": true,
+  "category": "Location"
+}`;
     }
     
     console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);
@@ -221,6 +262,7 @@ Extract these specific details and use them to pre-fill relevant answers to ques
     );
     
     const analysis = analysisResult.content;
+    console.log("Received analysis from OpenAI, extracting structured data...");
     
     // Record token usage for this step if userId is provided
     if (userId && analysisResult.usage) {
@@ -251,13 +293,34 @@ Extract these specific details and use them to pre-fill relevant answers to ques
       console.log(`Pre-filled answers: ${prefilledQuestions}/${questions.length} questions`);
       console.log(`Pre-filled values: ${prefilledVariables}/${variables.length} variables`);
       
-      // If no additional context was provided, verify that no pre-filling occurred
+      // If no additional context was provided but pre-filled values exist, log a warning
       if (!hasAdditionalContext && (prefilledQuestions > 0 || prefilledVariables > 0)) {
         console.warn("WARNING: Pre-filled values detected without additional context. Clearing pre-filled values.");
         
         // Clear any pre-filled answers when no context was provided
-        questions.forEach(q => { q.answer = ""; });
-        variables.forEach(v => { v.value = ""; });
+        questions.forEach(q => { q.answer = ""; q.isRelevant = null; });
+        variables.forEach(v => { v.value = ""; v.isRelevant = null; });
+      } else if (hasAdditionalContext) {
+        // CRITICAL: Ensure all pre-filled items are properly marked as relevant
+        questions.forEach(q => {
+          if (q.answer && q.answer.trim() !== '') {
+            q.isRelevant = true;
+            console.log(`Marked question as relevant: "${q.text}" with answer "${q.answer}"`);
+          }
+        });
+        
+        variables.forEach(v => {
+          if (v.value && v.value.trim() !== '') {
+            v.isRelevant = true;
+            console.log(`Marked variable as relevant: "${v.name}" with value "${v.value}"`);
+          }
+        });
+        
+        console.log("Extra check: Pre-filled variables:", 
+          variables.filter(v => v.value && v.value.trim() !== '').map(v => `${v.name}: "${v.value}" (isRelevant: ${v.isRelevant})`));
+        
+        console.log("Extra check: Pre-filled questions:", 
+          questions.filter(q => q.answer && q.answer.trim() !== '').map(q => `"${q.text}": "${q.answer}" (isRelevant: ${q.isRelevant})`));
       }
       
       const result = {
@@ -268,7 +331,11 @@ Extract these specific details and use them to pre-fill relevant answers to ques
         rawAnalysis: analysis,
         usage: analysisResult.usage,
         primaryToggle,
-        secondaryToggle
+        secondaryToggle,
+        hasAdditionalContext,
+        contextType: imageData?.base64 ? "image" : (websiteData?.url ? "website" : "none"),
+        prefilledQuestions,
+        prefilledVariables
       };
       
       return new Response(JSON.stringify(result), {
@@ -286,13 +353,17 @@ Extract these specific details and use them to pre-fill relevant answers to ques
         contextQuestions = contextQuestions.map(q => {
           // Try to pre-fill based on website context
           if (q.text.toLowerCase().includes("topic") || q.text.toLowerCase().includes("subject")) {
-            return {...q, answer: `Based on the website, the main topic appears to be related to ${websiteKeywords.slice(0, 3).join(', ')}`};
+            return {...q, answer: `Based on the website, the main topic appears to be related to ${websiteKeywords.slice(0, 3).join(', ')}`, isRelevant: true};
           }
           if (q.text.toLowerCase().includes("tone") || q.text.toLowerCase().includes("style")) {
-            return {...q, answer: "The tone should match the website's professional presentation"};
+            return {...q, answer: "The tone should match the website's professional presentation", isRelevant: true};
           }
           return q;
         });
+      } else if (hasAdditionalContext && imageData && imageData.base64) {
+        // If we have image data, we shouldn't try to pre-fill here in the fallback
+        // as we don't have the analysis yet. Leave it to the client to handle.
+        console.log("Image provided but extraction failed - not pre-filling in fallback");
       } else {
         // Ensure all answers are empty when no additional context is provided
         contextQuestions = contextQuestions.map(q => ({...q, answer: ""}));
@@ -313,10 +384,10 @@ Extract these specific details and use them to pre-fill relevant answers to ques
         contextVariables = contextVariables.map(v => {
           // Try to pre-fill based on website keywords
           if (v.name.toLowerCase().includes("topic") || v.name.toLowerCase().includes("subject")) {
-            return {...v, value: websiteKeywords.slice(0, 3).join(', ')};
+            return {...v, value: websiteKeywords.slice(0, 3).join(', '), isRelevant: true};
           }
           if (v.name.toLowerCase().includes("keywords")) {
-            return {...v, value: websiteKeywords.slice(0, 5).join(', ')};
+            return {...v, value: websiteKeywords.slice(0, 5).join(', '), isRelevant: true};
           }
           return v;
         });
@@ -324,6 +395,12 @@ Extract these specific details and use them to pre-fill relevant answers to ques
         // Ensure all values are empty when no additional context is provided
         contextVariables = contextVariables.map(v => ({...v, value: ""}));
       }
+      
+      const prefilledQuestions = contextQuestions.filter(q => q.answer && q.answer.trim() !== '').length;
+      const prefilledVariables = contextVariables.filter(v => v.value && v.value.trim() !== '').length;
+      
+      console.log("Fallback: Returning context questions with pre-filled: ", prefilledQuestions);
+      console.log("Fallback: Returning context variables with pre-filled: ", prefilledVariables);
       
       // Fallback to mock data but still return a 200 status code
       return new Response(JSON.stringify({
@@ -335,7 +412,11 @@ Extract these specific details and use them to pre-fill relevant answers to ques
         rawAnalysis: analysis,
         usage: analysisResult.usage,
         primaryToggle,
-        secondaryToggle
+        secondaryToggle,
+        hasAdditionalContext,
+        contextType: imageData?.base64 ? "image" : (websiteData?.url ? "website" : "none"),
+        prefilledQuestions,
+        prefilledVariables
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -352,7 +433,11 @@ Extract these specific details and use them to pre-fill relevant answers to ques
       enhancedPrompt: "# Error\n\nThere was an error analyzing your prompt. Please try again.",
       error: error.message,
       primaryToggle: null,
-      secondaryToggle: null
+      secondaryToggle: null,
+      hasAdditionalContext: false,
+      contextType: "none",
+      prefilledQuestions: 0,
+      prefilledVariables: 0
     }), {
       status: 200, // Always return a 200 to avoid edge function errors
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

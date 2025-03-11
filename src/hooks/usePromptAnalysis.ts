@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
-import { loadingMessages, mockQuestions, primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
+import { loadingMessages, mockQuestions } from "@/components/dashboard/constants";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -94,30 +95,6 @@ export const usePromptAnalysis = (
     // Start loading immediately
     setIsLoading(true);
     
-    // Get toggle label for a more descriptive loading message
-    let loadingMessageText = "Analyzing your prompt";
-    if (images && images.length > 0) {
-      loadingMessageText += " and image";
-    }
-    if (websiteData && websiteData.url) {
-      loadingMessageText += " and website content";
-    }
-    if (selectedPrimary) {
-      const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label;
-      if (primaryLabel) {
-        loadingMessageText += ` for ${primaryLabel}`;
-      }
-    }
-    if (selectedSecondary) {
-      const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label;
-      if (secondaryLabel) {
-        loadingMessageText += ` with ${secondaryLabel} formatting`;
-      }
-    }
-    loadingMessageText += "...";
-    
-    setCurrentLoadingMessage(loadingMessageText);
-    
     try {
       // Include userId and promptId in the payload if available
       const payload: any = {
@@ -158,7 +135,7 @@ export const usePromptAnalysis = (
         }
       }
       
-      console.log("Sending analysis request with toggles:", { 
+      console.log("Sending analysis request with context flags:", { 
         primaryToggle: selectedPrimary, 
         secondaryToggle: selectedSecondary,
         hasImage: !!(images && images.length > 0),
@@ -175,25 +152,48 @@ export const usePromptAnalysis = (
       if (data) {
         console.log("AI analysis response:", data);
         
-        // Check if there was an error in the edge function (which still returns 200)
-        if (data.error) {
-          console.warn("Edge function encountered an error:", data.error);
-          // We still continue processing the fallback data provided
-        }
+        // Check if we have pre-filled questions
+        const hasPrefilled = data.questions && data.questions.some((q: any) => q.answer && q.answer.trim() !== "") ||
+                             data.variables && data.variables.some((v: any) => v.value && v.value.trim() !== "");
+        
+        console.log(`Response contains pre-filled content: ${hasPrefilled ? "YES" : "NO"}`);
         
         if (data.questions && data.questions.length > 0) {
-          const aiQuestions = data.questions.map((q: any, index: number) => ({
-            ...q,
-            id: q.id || `q${index + 1}`,
-            // Keep pre-filled answers if they exist and we have additional context
-            answer: hasAdditionalContext ? (q.answer || "") : "",
-            // Mark as relevant if it has an answer
-            isRelevant: q.answer && q.answer.trim() !== "" ? true : null
-          }));
+          // Ensure pre-filled questions have isRelevant set to true
+          const aiQuestions = data.questions.map((q: any, index: number) => {
+            // Create properly formatted question object
+            const questionObj = {
+              ...q,
+              id: q.id || `q${index + 1}`,
+              // If question has an answer, make sure isRelevant is true - this is CRITICAL
+              isRelevant: q.answer && q.answer.trim() !== "" ? true : q.isRelevant,
+              // Make sure answer is never undefined
+              answer: q.answer || ""
+            };
+            
+            // Verify isRelevant is properly set for pre-filled answers
+            if (questionObj.answer && questionObj.answer.trim() !== "" && questionObj.isRelevant !== true) {
+              console.warn(`Question "${questionObj.text}" has an answer but isRelevant is not true!`);
+              questionObj.isRelevant = true;
+            }
+            
+            return questionObj;
+          });
           
+          console.log("Setting questions with pre-filled answers:", aiQuestions);
           setQuestions(aiQuestions);
+          
+          // Log pre-filled question answers
+          const prefilledQuestions = aiQuestions.filter((q: Question) => q.answer && q.answer.trim() !== '');
+          if (prefilledQuestions.length > 0) {
+            console.log(`Received ${prefilledQuestions.length} pre-filled question answers from AI analysis`);
+            prefilledQuestions.forEach((q: Question) => {
+              console.log(`  - Question: "${q.text}", Answer: "${q.answer}", isRelevant: ${q.isRelevant}`);
+            });
+          }
         } else {
           console.warn("No questions received from analysis, using fallbacks");
+          const { mockQuestions } = await import("@/components/dashboard/constants");
           setQuestions(mockQuestions);
         }
         
@@ -208,23 +208,50 @@ export const usePromptAnalysis = (
               v.name !== 'Conditions' && 
               v.name !== 'Instructions'
             )
-            .map((v: any, index: number) => ({
-              ...v,
-              id: v.id || `v${index + 1}`,
-              // Only keep pre-filled values if we have additional context
-              value: hasAdditionalContext ? (v.value || "") : "",
-              // Mark as relevant if it has a value
-              isRelevant: v.value && v.value.trim() !== "" ? true : null
-            }));
+            .map((v: any, index: number) => {
+              // Create properly formatted variable object
+              const variableObj = {
+                ...v,
+                id: v.id || `v${index + 1}`,
+                // If variable has a value, make sure isRelevant is true - this is CRITICAL
+                isRelevant: v.value && v.value.trim() !== "" ? true : v.isRelevant,
+                // Add code field if missing
+                code: v.code || `VAR_${index + 1}`,
+                // Make sure value is never undefined
+                value: v.value || ""
+              };
+              
+              // Verify isRelevant is properly set for pre-filled values
+              if (variableObj.value && variableObj.value.trim() !== "" && variableObj.isRelevant !== true) {
+                console.warn(`Variable "${variableObj.name}" has a value but isRelevant is not true!`);
+                variableObj.isRelevant = true;
+              }
+              
+              return variableObj;
+            });
             
           // If we have valid variables after filtering, use them
           if (validVariables.length > 0) {
+            console.log("Setting variables with pre-filled values:", validVariables);
             setVariables(validVariables);
+            
+            // Log pre-filled variable values
+            const prefilledVariables = validVariables.filter((v: Variable) => v.value && v.value.trim() !== '');
+            if (prefilledVariables.length > 0) {
+              console.log(`Received ${prefilledVariables.length} pre-filled variable values from AI analysis`);
+              prefilledVariables.forEach((v: Variable) => {
+                console.log(`  - ${v.name}: "${v.value}", isRelevant: ${v.isRelevant}`);
+              });
+            }
           } else {
             // Otherwise use default variables from constants
             const { defaultVariables } = await import("@/components/dashboard/constants");
             setVariables(defaultVariables);
           }
+        } else {
+          console.warn("No variables received from analysis, using defaults");
+          const { defaultVariables } = await import("@/components/dashboard/constants");
+          setVariables(defaultVariables);
         }
         
         if (data.masterCommand) {
@@ -234,20 +261,11 @@ export const usePromptAnalysis = (
         if (data.enhancedPrompt) {
           setFinalPrompt(data.enhancedPrompt);
         }
-        
-        // If we received raw analysis, log it for debugging
-        if (data.rawAnalysis) {
-          console.log("Raw AI analysis:", data.rawAnalysis);
-        }
-        
-        // Log token usage if available
-        if (data.usage) {
-          console.log("Token usage:", data.usage);
-          console.log(`Prompt tokens: ${data.usage.prompt_tokens}, Completion tokens: ${data.usage.completion_tokens}`);
-        }
       } else {
         console.warn("No data received from analysis function, using fallbacks");
+        const { mockQuestions, defaultVariables } = await import("@/components/dashboard/constants");
         setQuestions(mockQuestions);
+        setVariables(defaultVariables);
       }
     } catch (error) {
       console.error("Error analyzing prompt with AI:", error);
@@ -256,14 +274,16 @@ export const usePromptAnalysis = (
         description: "There was an error analyzing your prompt. Using default questions instead.",
         variant: "destructive",
       });
+      const { mockQuestions, defaultVariables } = await import("@/components/dashboard/constants");
       setQuestions(mockQuestions);
+      setVariables(defaultVariables);
     } finally {
       // Keep loading state active for at least a few seconds to show the loading screen
       // This ensures a smoother transition even if the API is fast
       setTimeout(() => {
         setIsLoading(false);
         setCurrentStep(2);
-      }, 3000);
+      }, 1500);
     }
   };
 
@@ -276,14 +296,17 @@ export const usePromptAnalysis = (
       // Create a context-aware loading message based on toggles
       let message = "Enhancing your prompt";
       if (selectedPrimary) {
+        const primaryToggles = (await import("@/components/dashboard/constants")).primaryToggles;
         const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label || selectedPrimary;
         message += ` for ${primaryLabel}`;
         
         if (selectedSecondary) {
+          const secondaryToggles = (await import("@/components/dashboard/constants")).secondaryToggles;
           const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
           message += ` and to be ${secondaryLabel}`;
         }
       } else if (selectedSecondary) {
+        const secondaryToggles = (await import("@/components/dashboard/constants")).secondaryToggles;
         const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
         message += ` to be ${secondaryLabel}`;
       }

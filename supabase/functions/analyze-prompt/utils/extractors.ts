@@ -1,329 +1,378 @@
 
-// Helper functions to extract structured data from AI analysis
+// Utility functions to extract structured data from OpenAI analysis
 
 /**
- * Determine category based on question text
- */
-export function getCategoryFromText(text: string): string {
-  text = text.toLowerCase();
-  
-  if (text.includes("what") || text.includes("goal") || text.includes("objective") || text.includes("accomplish")) {
-    return "Task";
-  } else if (text.includes("who") || text.includes("audience") || text.includes("tone") || text.includes("persona")) {
-    return "Persona";
-  } else if (text.includes("limit") || text.includes("constraint") || text.includes("avoid") || text.includes("how long") || text.includes("word count")) {
-    return "Conditions";
-  } else {
-    return "Instructions";
-  }
-}
-
-/**
- * Determine category based on variable name
- */
-export function getCategoryFromVariableName(name: string): string {
-  name = name.toLowerCase();
-  
-  // More specific variable categorization
-  if (name.includes("recipient") || name.includes("audience") || name.includes("user") || name.includes("tone") || name.includes("voice")) {
-    return "Persona";
-  } else if (name.includes("count") || name.includes("limit") || name.includes("length") || name.includes("number") || name.includes("time")) {
-    return "Conditions";
-  } else if (name.includes("format") || name.includes("step") || name.includes("signature") || name.includes("style") || name.includes("method")) {
-    return "Instructions";
-  } else {
-    return "Task";
-  }
-}
-
-/**
- * Extract questions from AI analysis
+ * Extract the questions from the analysis
  */
 export function extractQuestions(analysis: string, promptText: string): any[] {
-  // Try to find a JSON block containing questions
-  const jsonMatch = analysis.match(/```json\s*({[\s\S]*?})\s*```/);
-  
-  if (jsonMatch && jsonMatch[1]) {
-    try {
-      const parsedJson = JSON.parse(jsonMatch[1]);
-      if (parsedJson.questions && Array.isArray(parsedJson.questions)) {
-        return parsedJson.questions.map((q: any, i: number) => ({
-          id: q.id || `q${i+1}`,
-          text: q.text,
-          category: q.category || getCategoryFromText(q.text),
-          isRelevant: null,
-          answer: q.answer || ""
-        }));
+  try {
+    // Try to find a JSON block in the analysis
+    const jsonMatch = analysis.match(/```json([\s\S]*?)```/);
+    
+    if (jsonMatch && jsonMatch[1]) {
+      // Try to parse the JSON
+      try {
+        const parsed = JSON.parse(jsonMatch[1].trim());
+        if (parsed && Array.isArray(parsed.questions)) {
+          console.log(`Extracted ${parsed.questions.length} questions from analysis JSON`);
+          
+          // Check for pre-filled questions
+          const prefilledCount = parsed.questions.filter((q: any) => q.answer && q.answer.trim() !== "").length;
+          if (prefilledCount > 0) {
+            console.log(`Found ${prefilledCount} pre-filled question answers`);
+            console.log("First few pre-filled questions:", parsed.questions.filter((q: any) => q.answer && q.answer.trim() !== "").slice(0, 2).map((q: any) => ({ text: q.text, answer: q.answer })));
+          }
+          
+          // CRITICAL: Ensure isRelevant is set to true for pre-filled questions
+          const processedQuestions = parsed.questions.map((q: any) => {
+            // If question has an answer but isRelevant isn't explicitly set to true, set it
+            if (q.answer && q.answer.trim() !== "") {
+              if (q.isRelevant !== true) {
+                console.log(`Setting isRelevant to true for pre-filled question: "${q.text}" with answer "${q.answer}"`);
+              }
+              return {
+                ...q,
+                isRelevant: true // Always mark as relevant if it has an answer
+              };
+            }
+            return q;
+          });
+          
+          return processedQuestions;
+        }
+      } catch (e) {
+        console.error("Error parsing JSON from analysis:", e);
       }
-    } catch (e) {
-      console.error("Error parsing JSON from analysis:", e);
     }
-  }
-  
-  // Fallback: Look for questions with regex
-  const questions = [];
-  const questionMatches = analysis.matchAll(/(?:Question|Q)(?:\s+\d+)?(?:\s*\(([^)]+)\))?:\s*(.+?)(?=\n|$)/g);
-  
-  for (const match of questionMatches) {
-    const category = match[1] || getCategoryFromText(match[2]);
-    const text = match[2].trim();
     
-    if (text) {
-      questions.push({
-        id: `q${questions.length + 1}`,
-        text,
-        category,
-        isRelevant: null,
-        answer: ""
-      });
+    // Fallback: Try to extract questions using regex patterns
+    const questionPattern = /(?:Question|Q):\s*(.+?)(?:\r?\n|$)|(?:"text":\s*"(.+?)",)/g;
+    const questions = [];
+    let match;
+    let index = 1;
+    
+    while ((match = questionPattern.exec(analysis)) !== null) {
+      const text = match[1] || match[2];
+      if (text) {
+        // Try to extract a potential category
+        let category = "General";
+        
+        // Look for category indicators in the question or nearby text
+        const lowerText = text.toLowerCase();
+        if (lowerText.includes("goal") || lowerText.includes("purpose") || lowerText.includes("objective")) {
+          category = "Goal";
+        } else if (lowerText.includes("audience") || lowerText.includes("user") || lowerText.includes("reader")) {
+          category = "Audience";
+        } else if (lowerText.includes("tone") || lowerText.includes("style") || lowerText.includes("voice")) {
+          category = "Style";
+        } else if (lowerText.includes("format") || lowerText.includes("structure") || lowerText.includes("output")) {
+          category = "Format";
+        } else if (lowerText.includes("background") || lowerText.includes("context") || lowerText.includes("history")) {
+          category = "Context";
+        }
+        
+        // Try to extract an answer for this question
+        let answer = "";
+        let isRelevant = null;
+        
+        // Look for an answer associated with this question
+        const answerPattern = new RegExp(`${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?Answer:\\s*(.+?)(?:\\r?\\n|$)`, 'i');
+        const answerMatch = analysis.match(answerPattern);
+        if (answerMatch && answerMatch[1] && answerMatch[1].trim() !== "") {
+          answer = answerMatch[1].trim();
+          isRelevant = true; // CRITICAL: Pre-filled answers are automatically relevant
+          console.log(`Found answer for question "${text}": "${answer}"`);
+        }
+        
+        questions.push({
+          id: `q${index}`,
+          text,
+          isRelevant,
+          answer,
+          category
+        });
+        index++;
+      }
     }
-  }
-  
-  if (questions.length > 0) {
+    
+    console.log(`Extracted ${questions.length} questions using regex fallback`);
+    // Log pre-filled questions
+    const prefilledQs = questions.filter(q => q.answer && q.answer.trim() !== "");
+    if (prefilledQs.length > 0) {
+      console.log(`Found ${prefilledQs.length} pre-filled questions in regex extraction:`, 
+        prefilledQs.map(q => `"${q.text}": "${q.answer}"`).join(", "));
+    }
+    
     return questions;
+  } catch (error) {
+    console.error("Error extracting questions:", error);
+    return [];
   }
-  
-  // If still no questions found, look for bullet points that end with question marks
-  const bulletQuestionMatches = analysis.matchAll(/(?:[-*•]\s*)(.+?\?)/g);
-  
-  for (const match of bulletQuestionMatches) {
-    const text = match[1].trim();
-    
-    if (text) {
-      questions.push({
-        id: `q${questions.length + 1}`,
-        text,
-        category: getCategoryFromText(text),
-        isRelevant: null,
-        answer: ""
-      });
-    }
-  }
-  
-  // Import the generator function to provide fallback questions if none found
-  const { generateContextQuestionsForPrompt } = require('./generators.ts');
-  return questions.length > 0 ? questions : generateContextQuestionsForPrompt(promptText);
 }
 
 /**
- * Extract variables from AI analysis
+ * Extract the variables from the analysis
  */
 export function extractVariables(analysis: string, promptText: string): any[] {
-  // Try to find a JSON block containing variables
-  const jsonMatch = analysis.match(/```json\s*({[\s\S]*?})\s*```/);
-  
-  if (jsonMatch && jsonMatch[1]) {
-    try {
-      const parsedJson = JSON.parse(jsonMatch[1]);
-      if (parsedJson.variables && Array.isArray(parsedJson.variables)) {
-        // Filter out any variables that match category names or have invalid names
-        return parsedJson.variables
-          .filter((v: any) => 
-            v.name && 
-            v.name.trim().length > 1 &&  // Must be more than a single character
-            !/^\*+$/.test(v.name) &&     // Must not be just asterisks
-            !/^[sS]$/.test(v.name) &&    // Must not be just 's' 
-            v.name !== 'Task' && 
-            v.name !== 'Persona' && 
-            v.name !== 'Conditions' && 
-            v.name !== 'Instructions')
-          .map((v: any, i: number) => ({
-            id: v.id || `v${i+1}`,
-            name: v.name,
-            value: v.value || "",
-            isRelevant: null,
-            category: v.category || getCategoryFromVariableName(v.name)
-          }));
+  try {
+    // Try to find a JSON block in the analysis
+    const jsonMatch = analysis.match(/```json([\s\S]*?)```/);
+    
+    if (jsonMatch && jsonMatch[1]) {
+      // Try to parse the JSON
+      try {
+        const parsed = JSON.parse(jsonMatch[1].trim());
+        if (parsed && Array.isArray(parsed.variables)) {
+          console.log(`Extracted ${parsed.variables.length} variables from analysis JSON`);
+          
+          // Check for pre-filled variables
+          const prefilledCount = parsed.variables.filter((v: any) => v.value && v.value.trim() !== "").length;
+          if (prefilledCount > 0) {
+            console.log(`Found ${prefilledCount} pre-filled variable values`);
+            console.log("First few pre-filled variables:", parsed.variables.filter((v: any) => v.value && v.value.trim() !== "").slice(0, 2).map((v: any) => ({ name: v.name, value: v.value })));
+          }
+          
+          // CRITICAL: Ensure all variables have necessary properties and pre-filled ones are marked relevant
+          const processedVariables = parsed.variables.map((v: any, index: number) => {
+            const id = v.id || `v${index + 1}`;
+            const name = v.name || "";
+            const value = v.value || "";
+            const category = v.category || "General";
+            const code = v.code || `VAR_${index + 1}`;
+            const occurrences = v.occurrences || [];
+            
+            // CRITICAL: If variable has a value, ensure isRelevant is set to true
+            let isRelevant = v.isRelevant;
+            if (value && value.trim() !== "") {
+              if (isRelevant !== true) {
+                console.log(`Setting isRelevant to true for pre-filled variable: "${name}" with value "${value}"`);
+              }
+              isRelevant = true;
+            }
+            
+            return {
+              id,
+              name,
+              value,
+              isRelevant,
+              category,
+              occurrences,
+              code
+            };
+          });
+          
+          return processedVariables;
+        }
+      } catch (e) {
+        console.error("Error parsing JSON from analysis:", e);
       }
-    } catch (e) {
-      console.error("Error parsing JSON from analysis:", e);
     }
-  }
-  
-  // Check for curly brace variables like {VariableName} or {{VariableName}}
-  const variables = [];
-  const enhancedPrompt = extractEnhancedPrompt(analysis);
-  const variableRegexes = [
-    /{{(\w+)}}/g,  // Double curly braces
-    /{(\w+)}/g,    // Single curly braces
-    /\[(\w+)\]/g,  // Square brackets
-    /\$(\w+)/g     // Dollar sign prefix
-  ];
-  
-  // Try all regex patterns to find variables
-  for (const regex of variableRegexes) {
+    
+    // Fallback: Try to extract variables using regex patterns
+    const variablePattern = /(?:Variable|Var):\s*(.+?)(?:\r?\n|$)|(?:"name":\s*"(.+?)",)/g;
+    const variables = [];
     let match;
-    while ((match = regex.exec(enhancedPrompt)) !== null) {
-      const name = match[1];
-      // Check if variable already exists, isn't a category name, and has a valid format
-      if (name && 
-          name.trim().length > 1 &&  // Must be more than a single character
-          !/^\*+$/.test(name) &&     // Must not be just asterisks
-          !/^[sS]$/.test(name) &&    // Must not be just 's'
-          name !== 'Task' && 
-          name !== 'Persona' && 
-          name !== 'Conditions' && 
-          name !== 'Instructions' && 
-          !variables.some((v: any) => v.name === name)) {
+    let index = 1;
+    
+    // Extract custom variables
+    while ((match = variablePattern.exec(analysis)) !== null) {
+      const name = match[1] || match[2];
+      if (name) {
+        // Try to extract a potential category
+        let category = "General";
+        const lowerName = name.toLowerCase();
+        
+        if (lowerName.includes("input") || lowerName.includes("data")) {
+          category = "Input";
+        } else if (lowerName.includes("setting") || lowerName.includes("context")) {
+          category = "Setting";
+        } else if (lowerName.includes("style") || lowerName.includes("tone")) {
+          category = "Style";
+        } else if (lowerName.includes("format") || lowerName.includes("output")) {
+          category = "Format";
+        } else if (lowerName.includes("subject") || lowerName.includes("topic")) {
+          category = "Subject";
+        }
+        
+        // Check for pre-filled values in the analysis
+        let value = "";
+        let isRelevant = null;
+        
+        // Try different pattern formats to extract values
+        const valuePatterns = [
+          new RegExp(`${name}\\s*:\\s*(.+?)(?:\\r?\\n|$)`),
+          new RegExp(`"${name}"\\s*:\\s*"(.+?)"`),
+          new RegExp(`Variable:\\s*${name}\\s*\\nValue:\\s*(.+?)(?:\\r?\\n|$)`)
+        ];
+        
+        for (const pattern of valuePatterns) {
+          const valueMatch = analysis.match(pattern);
+          if (valueMatch && valueMatch[1] && valueMatch[1].trim() !== "") {
+            value = valueMatch[1].trim();
+            isRelevant = true; // CRITICAL: Pre-filled values are automatically relevant
+            console.log(`Found value for variable "${name}": "${value}"`);
+            break;
+          }
+        }
+        
         variables.push({
-          id: `v${variables.length + 1}`,
+          id: `v${index}`,
+          name,
+          value,
+          isRelevant,
+          category,
+          occurrences: [],
+          code: `VAR_${index}`
+        });
+        index++;
+      }
+    }
+    
+    // Also look for templated variables in the original prompt
+    const templatePattern = /\{\{([^}]+)\}\}/g;
+    while ((match = templatePattern.exec(promptText)) !== null) {
+      const name = match[1].trim();
+      if (name && !variables.some(v => v.name.toLowerCase() === name.toLowerCase())) {
+        variables.push({
+          id: `v${index}`,
           name,
           value: "",
           isRelevant: null,
-          category: getCategoryFromVariableName(name)
+          category: "Template",
+          occurrences: [match[0]],
+          code: `VAR_${index}`
         });
+        index++;
       }
     }
-  }
-  
-  if (variables.length > 0) {
-    return variables;
-  }
-  
-  // Fallback: Look for variable patterns in text format
-  const variablePatterns = [
-    /(?:Variable|Var|\*\*|-)(?:\s+\d+)?(?:\s*\(([^)]+)\))?:?\s*(?:{{)?(\w+)(?:}})?(?:\s*[:=]\s*(.+?))?(?=\n|$)/g,
-    /\b(\w+)(?:\s+variable|\s+var)\b(?:\s*[:=]\s*(.+?))?(?=\n|$)/gi,
-    /\bvariable(?:\s+name)?:\s*(\w+)(?:\s*[:=]\s*(.+?))?(?=\n|$)/gi,
-    /\b([\w]+)(?:\s*=\s*"([^"]+)"|'\s*=\s*'([^']+)'|\s*=\s*(\S+))/g,  // variable = value patterns
-    /\b([\w]+):\s*"([^"]+)"|'\s*:\s*'([^']+)'|\s*:\s*(\S+)/g    // variable: value patterns
-  ];
-  
-  // Try all patterns to extract variables
-  for (const pattern of variablePatterns) {
-    const matches = Array.from(analysis.matchAll(pattern));
-    for (const match of matches) {
-      // Different patterns have different capture group positions
-      let category, name, value;
-      if (pattern.toString().includes('Variable|Var')) {
-        category = match[1] || 'Task';
-        name = match[2];
-        value = match[3] || "";
-      } else if (pattern.toString().includes('\\w+.+variable')) {
-        name = match[1];
-        value = match[2] || "";
-        category = getCategoryFromVariableName(name);
-      } else if (pattern.toString().includes('=')) {
-        name = match[1];
-        value = match[2] || match[3] || match[4] || "";
-        category = getCategoryFromVariableName(name);
-      } else if (pattern.toString().includes(':')) {
-        name = match[1];
-        value = match[2] || match[3] || match[4] || "";
-        category = getCategoryFromVariableName(name);
-      } else {
-        name = match[1];
-        value = match[2] || "";
-        category = getCategoryFromVariableName(name);
-      }
-      
-      // Skip category names and invalid variable names
-      if (!name || name === 'Task' || name === 'Persona' || name === 'Conditions' || name === 'Instructions' ||
-          name.trim().length <= 1 || /^\*+$/.test(name) || /^[sS]$/.test(name)) {
-        continue;
-      }
-      
-      if (!variables.some((v: any) => v.name === name)) {
+    
+    // Check for image-specific variables if they're not already found
+    const imageVariables = ["Subject", "Setting", "Lighting", "Mood", "Style", "Perspective", "TimeOfDay", "Season", "Weather", "Colors"];
+    
+    imageVariables.forEach(varName => {
+      if (!variables.some(v => v.name.toLowerCase() === varName.toLowerCase())) {
+        // Try to find values for these common image variables
+        const varPattern = new RegExp(`${varName}\\s*:\\s*(.+?)(?:\\r?\\n|$)`, 'i');
+        const valueMatch = analysis.match(varPattern);
+        
+        let value = "";
+        let isRelevant = null;
+        
+        if (valueMatch && valueMatch[1] && valueMatch[1].trim() !== "") {
+          value = valueMatch[1].trim();
+          isRelevant = true; // CRITICAL: Pre-filled values are automatically relevant
+          console.log(`Found value for image variable "${varName}": "${value}"`);
+        }
+        
+        let category = "General";
+        if (["Subject", "Style"].includes(varName)) category = "Content";
+        if (["Setting"].includes(varName)) category = "Location";
+        if (["Lighting", "Colors", "Perspective"].includes(varName)) category = "Visual";
+        if (["Mood"].includes(varName)) category = "Emotion";
+        if (["TimeOfDay", "Season"].includes(varName)) category = "Temporal";
+        if (["Weather"].includes(varName)) category = "Condition";
+        
         variables.push({
-          id: `v${variables.length + 1}`,
-          name,
+          id: `v${index}`,
+          name: varName,
           value,
-          isRelevant: null,
-          category
+          isRelevant,
+          category,
+          occurrences: [],
+          code: `VAR_${index}`
         });
+        index++;
       }
+    });
+    
+    console.log(`Extracted ${variables.length} variables using regex fallback`);
+    // Log pre-filled variables
+    const prefilledVars = variables.filter(v => v.value && v.value.trim() !== "");
+    if (prefilledVars.length > 0) {
+      console.log(`Found ${prefilledVars.length} pre-filled variables in regex extraction:`, 
+        prefilledVars.map(v => `${v.name}: "${v.value}"`).join(", "));
     }
-  }
-  
-  // Try to extract potential variables from the prompt text itself
-  const keyValuePatterns = [
-    /(\w+):\s*"([^"]+)"/g,   // key: "value"
-    /(\w+)=(\S+)/g,          // key=value
-    /(\w+):\s*(\S+)/g,       // key: value
-    /(\w+)\s+is\s+(\S+)/g,   // key is value
-    /set\s+(\w+)\s+to\s+(\S+)/gi, // set key to value
-    /(\w+)\s+should\s+be\s+(\S+)/g // key should be value
-  ];
-  
-  for (const pattern of keyValuePatterns) {
-    const matches = Array.from(promptText.matchAll(pattern));
-    for (const match of matches) {
-      const name = match[1];
-      const value = match[2];
-      
-      // Skip category names and invalid variable names
-      if (!name || name === 'Task' || name === 'Persona' || name === 'Conditions' || name === 'Instructions' ||
-          name.trim().length <= 1 || /^\*+$/.test(name) || /^[sS]$/.test(name) ||
-          name.toLowerCase() === 'it' || name.toLowerCase() === 'this' || name.toLowerCase() === 'that') {
-        continue;
-      }
-      
-      if (!variables.some((v: any) => v.name === name)) {
-        variables.push({
-          id: `v${variables.length + 1}`,
-          name,
-          value,
-          isRelevant: null,
-          category: getCategoryFromVariableName(name)
-        });
-      }
-    }
-  }
-  
-  // If we found some variables from the analysis
-  if (variables.length > 0) {
+    
     return variables;
+  } catch (error) {
+    console.error("Error extracting variables:", error);
+    return [];
   }
-  
-  // If no variables found, use the generator to create context-appropriate variables
-  const { generateContextualVariablesForPrompt } = require('./generators.ts');
-  return generateContextualVariablesForPrompt(promptText);
 }
 
 /**
- * Extract master command from AI analysis
+ * Extract the master command from the analysis
  */
 export function extractMasterCommand(analysis: string): string {
-  // Look for explicit "Master Command" section
-  const masterCommandMatch = analysis.match(/(?:Master Command|Command|Purpose)(?:\s*:|\n)\s*(.+?)(?=\n\n|\n#|$)/s);
-  
-  if (masterCommandMatch && masterCommandMatch[1]) {
-    return masterCommandMatch[1].trim();
+  try {
+    // Try to find a JSON block in the analysis
+    const jsonMatch = analysis.match(/```json([\s\S]*?)```/);
+    
+    if (jsonMatch && jsonMatch[1]) {
+      // Try to parse the JSON
+      try {
+        const parsed = JSON.parse(jsonMatch[1].trim());
+        if (parsed && parsed.masterCommand) {
+          return parsed.masterCommand;
+        }
+      } catch (e) {
+        console.error("Error parsing JSON from analysis:", e);
+      }
+    }
+    
+    // Fallback: Try to extract the master command using regex patterns
+    const commandPattern = /(?:Master Command|Summary|Core Intent):\s*(.+?)(?:\r?\n|$)/i;
+    const match = analysis.match(commandPattern);
+    
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+    
+    // If we can't find anything, create a generic one based on the first sentence
+    const firstSentenceMatch = analysis.match(/^(.+?[.!?])(?:\s|$)/);
+    if (firstSentenceMatch && firstSentenceMatch[1]) {
+      return firstSentenceMatch[1].trim();
+    }
+    
+    return "Analyzed prompt";
+  } catch (error) {
+    console.error("Error extracting master command:", error);
+    return "Analyzed prompt";
   }
-  
-  // Look for "Enhanced Prompt" title as a fallback
-  const titleMatch = analysis.match(/# (.+?)(?=\n|$)/);
-  if (titleMatch && titleMatch[1] && !titleMatch[1].toLowerCase().includes("enhanced prompt")) {
-    return titleMatch[1].trim();
-  }
-  
-  return "Create a well-structured prompt based on the input";
 }
 
 /**
- * Extract enhanced prompt from AI analysis
+ * Extract the enhanced prompt from the analysis
  */
 export function extractEnhancedPrompt(analysis: string): string {
-  // Look for a markdown code block
-  const codeBlockMatch = analysis.match(/```(?:markdown|md)?\s*([\s\S]*?)```/);
-  
-  if (codeBlockMatch && codeBlockMatch[1]) {
-    return codeBlockMatch[1].trim();
+  try {
+    // Try to find a JSON block in the analysis
+    const jsonMatch = analysis.match(/```json([\s\S]*?)```/);
+    
+    if (jsonMatch && jsonMatch[1]) {
+      // Try to parse the JSON
+      try {
+        const parsed = JSON.parse(jsonMatch[1].trim());
+        if (parsed && parsed.enhancedPrompt) {
+          return parsed.enhancedPrompt;
+        }
+      } catch (e) {
+        console.error("Error parsing JSON from analysis:", e);
+      }
+    }
+    
+    // Fallback: Try to extract the enhanced prompt using regex patterns
+    const enhancedPattern = /(?:Enhanced Prompt|Improved Prompt|Optimized Prompt):\s*(.+?)(?:\r?\n\r?\n|$)/is;
+    const match = analysis.match(enhancedPattern);
+    
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+    
+    // If nothing else works, just return a formatted version of the analysis
+    return "# Enhanced Prompt\n\n" + analysis.trim();
+  } catch (error) {
+    console.error("Error extracting enhanced prompt:", error);
+    return "# Enhanced Prompt\n\n" + analysis.trim();
   }
-  
-  // Look for a section labeled as "Enhanced Prompt"
-  const enhancedPromptMatch = analysis.match(/(?:# Enhanced Prompt|## Enhanced Prompt)(?:\s*:|\n)([\s\S]*?)(?=\n# |\n## |$)/s);
-  
-  if (enhancedPromptMatch && enhancedPromptMatch[1]) {
-    return enhancedPromptMatch[1].trim();
-  }
-  
-  // If all else fails, just return sections after "Task", "Persona", etc.
-  const structuredSections = analysis.match(/((?:# |## )(?:Task|Persona|Conditions|Instructions)(?:\s*:|\n)[\s\S]*?)(?=\n# |\n## |$)/g);
-  
-  if (structuredSections && structuredSections.length > 0) {
-    return `# Enhanced Prompt Template\n\n${structuredSections.join('\n\n')}`;
-  }
-  
-  return "# Enhanced Prompt\n\nYour enhanced prompt will appear here after answering the questions.";
 }

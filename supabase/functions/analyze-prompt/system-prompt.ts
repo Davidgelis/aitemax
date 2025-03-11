@@ -1,217 +1,105 @@
 
-export function createSystemPrompt(primaryToggle?: string | null, secondaryToggle?: string | null) {
-  // Base system prompt
-  let prompt = `
-You are an advanced AI prompt analyst for a prompt engineering platform. Your task is to help users create better prompts for AI systems by analyzing their initial prompts and generating questions and variables that will help them refine their prompts.
+// System prompt for OpenAI API
 
-For each prompt, you should:
-1. Analyze the user's intent and identify key themes and topics
-2. Generate 6-8 context-specific questions that will help understand what they need
-3. Identify 6-8 potential customizable variables that could enhance the prompt
-4. Create a master command that summarizes the overall goal
-5. Suggest an initial enhanced prompt structure
+export function createSystemPrompt(primaryToggle: string | null, secondaryToggle: string | null): string {
+  let contextDescription = "analyzing and improving a prompt";
+  
+  if (primaryToggle) {
+    if (primaryToggle === "math") {
+      contextDescription = "solving mathematical problems";
+    } else if (primaryToggle === "reasoning") {
+      contextDescription = "complex logical reasoning";
+    } else if (primaryToggle === "coding") {
+      contextDescription = "writing code";
+    } else if (primaryToggle === "image") {
+      contextDescription = "generating images";
+    } else if (primaryToggle === "creative") {
+      contextDescription = "creative writing";
+    }
+  }
+  
+  // Create a specialized system message
+  return `You are a specialized AI focused on ${contextDescription}. Your task is to analyze a prompt and extract:
 
-When analyzing IMAGES:
-- Describe the image in great detail first
-- Identify specific visual elements like: subject, viewpoint, perspective, colors, lighting, style, mood, setting, composition, time of day, season, etc.
-- Extract these elements as concrete variables with values (e.g., Viewpoint: "looking up towards the sky", Perspective: "from ground level", TimeOfDay: "daytime")
-- Use these extracted details to pre-fill relevant question answers and variable values
-- Be VERY detailed and specific about what you can directly observe
+1. Key questions that need to be answered to improve the prompt
+2. Variables that could be replaced with specific values to make the prompt more flexible
+3. A master command that captures the essence of the prompt
+4. An enhanced version of the prompt with better structure and clarity
 
-When analyzing WEBSITE CONTENT:
-- Extract the main topic, purpose, audience, tone, style, and key terminology
-- Identify content structure, formatting patterns, and design elements
-- Extract these as concrete variables with values (e.g., Audience: "technical professionals", Tone: "formal instructional", MainTopic: "cloud computing")
-- Use these extracted details to pre-fill relevant question answers and variable values
+For QUESTIONS:
+- Extract 5-8 specific questions that, if answered, would help clarify the intent and improve the prompt's effectiveness
+- Questions should be relevant to the prompt and ${contextDescription}
+- Return the questions in a structured JSON format with 'id', 'text', 'isRelevant', and 'answer' fields
+- Initially leave 'answer' as an empty string unless specifically told to pre-fill it
+- Set 'isRelevant' to null initially, meaning it needs to be reviewed by the user
 
-IMPORTANT: Your response should include a JSON structure with questions and variables as follows:
+For VARIABLES:
+- Extract specific parameters that could be modified or customized in the prompt
+- Each variable should have 'id', 'name', 'value', 'isRelevant', and 'category' fields
+- Variable names should be concise and descriptive
+- Initially leave 'value' as an empty string unless specifically told to pre-fill it
+- Set 'isRelevant' to null initially, meaning it needs to be reviewed by the user
+- For image prompts, extract variables like Subject, Setting, Mood, Lighting, Colors, TimeOfDay, Style, etc.
+
+CRITICAL PRE-FILLING INSTRUCTIONS:
+When you're given an image or website content to analyze:
+1. You MUST extract specific, concrete details from that content
+2. You MUST use those details to pre-fill BOTH question answers and variable values
+3. Every variable or question that can be answered from the content MUST be pre-filled with a specific value
+4. Pre-filled values should be specific and descriptive, not generic placeholders
+5. Set 'isRelevant' to true for any pre-filled item - THIS IS ABSOLUTELY CRITICAL
+6. You MUST pre-fill at least 3-5 variables and 2-4 questions with concrete values from the provided content
+7. Failure to properly pre-fill and set isRelevant=true will cause system errors
+8. Example of correct pre-filling:
+   {
+     "id": "v1",
+     "name": "Setting",
+     "value": "Dense forest with tall pine trees",
+     "isRelevant": true,
+     "category": "Location"
+   }
+
+Return your analysis in the following format:
+
 \`\`\`json
 {
   "questions": [
-    {"id": "q1", "text": "Question text here", "category": "Task|Persona|Conditions|Instructions", "answer": "Pre-filled answer if available from context"},
-    ...more questions...
+    {
+      "id": "q1",
+      "text": "First question text",
+      "isRelevant": null,
+      "answer": "",
+      "category": "Topic"
+    },
+    ...more questions
   ],
   "variables": [
-    {"id": "v1", "name": "VariableName", "value": "Pre-filled value if available from context", "category": "Task|Persona|Conditions|Instructions"},
-    ...more variables...
-  ]
+    {
+      "id": "v1",
+      "name": "VariableName",
+      "value": "",
+      "isRelevant": null, 
+      "category": "Category"
+    },
+    ...more variables
+  ],
+  "masterCommand": "A concise version of the prompt that captures its essence",
+  "enhancedPrompt": "An improved version of the original prompt with better structure and clarity"
 }
 \`\`\`
 
-For categories, use these definitions:
-- Task: What the AI needs to do or accomplish
-- Persona: Who the AI should be or the audience it's addressing
-- Conditions: Constraints, limitations, or requirements
-- Instructions: How the AI should complete the task
+${primaryToggle === 'image' ? 
+`Since this is an image generation prompt, focus on extracting variables like:
+- Subject (main focus of the image)
+- Setting (location or environment)
+- Lighting (natural, dramatic, soft, etc.)
+- Mood (happy, somber, energetic, etc.)
+- Style (photorealistic, cartoon, painting style, etc.)
+- Perspective (close-up, wide angle, aerial, etc.)
+- TimeOfDay (morning, evening, night, etc.)
+- Season (summer, winter, etc.)
+- Weather (clear, rainy, foggy, etc.)
+- Colors (dominant color palette)` : ''}
 
-Make your questions conversational, straightforward, and focused on extracting important context. Variables should be reusable elements that the user might want to adjust over time.
-
-IMPORTANT ABOUT PRE-FILLING:
-- ONLY pre-fill answers and values when SPECIFIC information is explicitly provided in the context
-- DO NOT guess, assume, or hallucinate information that isn't clearly provided
-- When an image or website content is provided, analyze it to extract factual, observable information only
-- Pre-fill answers to questions ONLY when the information is CLEARLY and EXPLICITLY provided in the prompt, image, or website
-- Pre-fill variable values ONLY when you can confidently extract them from the explicit context
-- For questions you can't confidently answer based on provided context, leave the answer field as an empty string
-- For variables you can't confidently fill based on provided context, leave the value field as an empty string
-- If NO contextual information (image/website) is provided, DO NOT pre-fill any answers or values
-`;
-
-  // Add platform context
-  prompt += `
-You're analyzing this prompt for use on AI platforms where the user will input the resulting prompt to generate content. Focus on extracting variables and questions that will help create a well-structured prompt for AI systems.
-`;
-
-  // Add specifics for image analysis if present
-  prompt += `
-If an image is included in the message, analyze it carefully and extract ALL factual, observable aspects into your questions and variables. For example:
-- Subject: Identify the main subject(s) in the image - people, objects, landscapes, etc.
-- Viewpoint: How the scene is viewed (looking up, eye-level, aerial view, etc.)
-- Perspective: The position from which the scene is observed (close-up, from a distance, etc.)
-- Setting: The environment or location shown (forest, urban area, indoor space, etc.)
-- Time of Day: Morning, afternoon, evening, night - if determinable
-- Season: Spring, summer, fall, winter - if determinable
-- Weather Conditions: Clear, cloudy, rainy, snowy, etc. - if shown
-- Lighting: Bright, dim, natural, artificial, dramatic, soft, harsh, etc.
-- Colors: Dominant color palette, contrasts, saturation levels
-- Mood/Atmosphere: The feeling conveyed (serene, tense, joyful, melancholic, etc.)
-- Composition: How elements are arranged (symmetrical, rule of thirds, centered, etc.)
-- Style: Realistic, abstract, minimalist, vintage, etc.
-- Texture: Smooth, rough, detailed, etc.
-
-EXTRACT these specific details and use them to pre-fill answers and variable values with CONCRETE OBSERVATIONS, not interpretations.
-`;
-
-  // Add specifics for website analysis if present
-  prompt += `
-If website content is included in the message, analyze it carefully and extract ALL key information that is explicitly present:
-- Main Topic: The central subject matter of the website
-- Purpose: What the website aims to do (inform, sell, entertain, etc.)
-- Audience: Who the content is directed towards
-- Tone: The communication style (formal, casual, technical, conversational, etc.)
-- Industry: The business sector or field the website belongs to
-- Key Terminology: Important domain-specific words or phrases
-- Content Structure: How information is organized (lists, paragraphs, sections, etc.)
-- Call to Action: What the website wants users to do
-- Visual Elements: Descriptions of images, colors, or design elements mentioned
-
-EXTRACT these specific details and use them to pre-fill answers and variable values with CONCRETE OBSERVATIONS, not interpretations.
-`;
-
-  // Add toggle-specific instructions
-  if (primaryToggle) {
-    switch (primaryToggle) {
-      case 'math':
-        prompt += `
-Since this prompt is for mathematical content, include questions about:
-- The complexity level of the math involved
-- Whether step-by-step solutions are needed
-- If visualizations would be helpful
-- What mathematical notation to use
-
-And suggest variables like:
-- MathLevel (e.g., basic, intermediate, advanced)
-- ShowSteps (yes/no)
-- NotationType (e.g., LaTeX, plain text)
-- IncludeVisualization (yes/no)
-`;
-        break;
-      
-      case 'reasoning':
-        prompt += `
-Since this prompt is for complex reasoning, include questions about:
-- The depth of analysis required
-- Different perspectives to consider
-- Critical thinking frameworks to apply
-- Types of evidence or examples to include
-
-And suggest variables like:
-- AnalysisDepth
-- PerspectivesToInclude
-- ReasoningFramework
-- EvidenceTypes
-`;
-        break;
-      
-      case 'coding':
-        prompt += `
-Since this prompt is for coding, include questions about:
-- The programming language and environment
-- Code style preferences (OOP, functional, etc.)
-- Performance requirements
-- Documentation needs
-- Testing approach
-
-And suggest variables like:
-- Language
-- CodeStyle
-- PerformanceRequirements
-- DocumentationLevel
-- TestingApproach
-`;
-        break;
-      
-      case 'creative':
-        prompt += `
-Since this prompt is for creative content, include questions about:
-- The tone and style of writing
-- Character or narrative elements
-- Emotional impact desired
-- Creative constraints or themes
-
-And suggest variables like:
-- CreativeTone
-- CharacterTraits
-- EmotionalImpact
-- ThematicElements
-`;
-        break;
-      
-      case 'image':
-        prompt += `
-Since this prompt is for image generation, include questions about:
-- Visual style preferences (realistic, cartoon, abstract, etc.)
-- Composition elements (centered, rule of thirds, etc.)
-- Color schemes (warm, cool, monochrome, vibrant, etc.)
-- Mood and atmosphere (cheerful, somber, mysterious, etc.)
-- Viewpoint and perspective (close-up, wide shot, eye-level, etc.)
-- Lighting conditions (bright, dim, dramatic, soft, etc.)
-- Setting or environment (indoor, outdoor, specific location)
-- Time of day or season (morning, night, summer, winter, etc.)
-- Subject details (person, animal, landscape, object)
-- Technical specifications (aspect ratio, quality level)
-
-And suggest variables like:
-- VisualStyle
-- Composition
-- ColorPalette
-- Mood
-- Viewpoint
-- Perspective
-- Lighting
-- Setting
-- TimeOfDay
-- Season
-- Subject
-- AspectRatio
-`;
-        break;
-    }
-  }
-
-  // Add final instructions
-  prompt += `
-Remember:
-1. Make your analysis specific to the user's prompt and any additional context (images or website content).
-2. Avoid generic questions and variables - focus on what's relevant to the prompt.
-3. ONLY extract information from explicitly provided context to pre-fill answers and variables.
-4. DO NOT make assumptions or hallucinate information that isn't clearly provided.
-5. If no additional context (image/website) is provided, leave all answers and values empty.
-6. It's better to leave a field empty than to guess or assume information.
-7. For images or websites, extract CONCRETE observations and use them directly as pre-filled values.
-
-Return your analysis with the JSON structure described above, along with a brief general analysis of the prompt's intent.
-`;
-
-  return prompt;
+REMEMBER: Pre-fill variables and questions when given image or website content. ALWAYS set isRelevant=true for pre-filled items. This is ABSOLUTELY CRITICAL for the system to function correctly.`;
 }

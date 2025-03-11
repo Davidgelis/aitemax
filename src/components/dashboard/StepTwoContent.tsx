@@ -1,9 +1,10 @@
 
 import { Question, Variable } from "./types";
-import { RefObject } from "react";
+import { RefObject, useEffect, useState } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
 import { Info } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface StepTwoContentProps {
   questions: Question[];
@@ -40,22 +41,49 @@ export const StepTwoContent = ({
   variablesContainerRef,
   originalPrompt
 }: StepTwoContentProps) => {
-  // Log prefilled content to verify it's being passed correctly
-  const prefilledQuestions = questions.filter(q => q.answer && q.answer.trim() !== "").length;
-  const prefilledVariables = variables.filter(v => v.value && v.value.trim() !== "").length;
+  const { toast } = useToast();
+  const [hasProcessedPrefill, setHasProcessedPrefill] = useState(false);
   
-  console.log("Pre-filled content check:", {
-    prefilledQuestions,
-    prefilledVariables
-  });
-  
-  // Log sample values from prefilled content
-  variables.forEach(v => {
-    if (v.value && v.value.trim() !== "") {
-      console.log(`Variable ${v.name} has pre-filled value: ${v.value}`);
+  // Check for pre-filled content and auto-mark as relevant
+  useEffect(() => {
+    if (!Array.isArray(questions) || !Array.isArray(variables)) {
+      console.error("Invalid questions or variables array:", { questions, variables });
+      return;
     }
-  });
-  
+    
+    // Count pre-filled content
+    const prefilledQuestions = questions.filter(q => q.answer && q.answer.trim() !== '').length;
+    const prefilledVariables = variables.filter(v => v.value && v.value.trim() !== '').length;
+    
+    console.log("Pre-filled content check:", { prefilledQuestions, prefilledVariables });
+    
+    if ((prefilledQuestions > 0 || prefilledVariables > 0) && !hasProcessedPrefill) {
+      // Show toast notification about pre-filled content
+      setHasProcessedPrefill(true);
+      
+      toast({
+        title: "Information extracted",
+        description: `Pre-filled ${prefilledQuestions} question${prefilledQuestions !== 1 ? 's' : ''} and ${prefilledVariables} variable${prefilledVariables !== 1 ? 's' : ''} based on provided context.`,
+        duration: 5000,
+      });
+      
+      // Auto-mark pre-filled questions and variables as relevant
+      questions.forEach(question => {
+        if (question.answer && question.answer.trim() !== '' && question.isRelevant !== true) {
+          console.log(`Auto-marking question as relevant due to pre-filled answer: ${question.text}`);
+          setTimeout(() => onQuestionRelevance(question.id, true), 0);
+        }
+      });
+      
+      variables.forEach(variable => {
+        if (variable.value && variable.value.trim() !== '' && variable.isRelevant !== true) {
+          console.log(`Auto-marking variable as relevant due to pre-filled value: ${variable.name} = ${variable.value}`);
+          setTimeout(() => onVariableRelevance(variable.id, true), 0);
+        }
+      });
+    }
+  }, [questions, variables, toast, onQuestionRelevance, onVariableRelevance, hasProcessedPrefill]);
+
   return (
     <div className="border rounded-xl p-6 bg-card">
       <div className="mb-6">
