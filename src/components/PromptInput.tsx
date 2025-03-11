@@ -1,4 +1,3 @@
-
 import { useState, useEffect, KeyboardEvent, useRef } from 'react';
 import { UploadedImage } from '@/components/dashboard/types';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
@@ -81,42 +80,35 @@ const PromptInput = ({
     onImagesChange(updatedImages);
   };
 
-  // Similar to Google Docs list handling
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && textareaRef.current) {
       const cursorPosition = textareaRef.current.selectionStart;
       const text = inputValue;
       
-      // Get the current line
       const lineStart = text.lastIndexOf('\n', cursorPosition - 1) + 1;
       const currentLine = text.substring(lineStart, cursorPosition);
       
-      // Check if the current line starts with a bullet point
       const bulletMatch = currentLine.match(/^(\s*)•\s/);
       if (bulletMatch) {
         e.preventDefault();
         
-        // If the current line is empty except for the bullet, remove the bullet (break out of list)
         if (currentLine.trim() === '•' || currentLine.trim() === '• ') {
           const newText = text.substring(0, lineStart) + text.substring(cursorPosition);
           setInputValue(newText);
           if (onChange) onChange(newText);
           
-          // Set cursor position
           setTimeout(() => {
             if (textareaRef.current) {
               textareaRef.current.selectionStart = textareaRef.current.selectionEnd = lineStart;
             }
           }, 0);
         } else {
-          // Add a new bullet point on the next line
           const indentation = bulletMatch[1] || '';
           const insertion = `\n${indentation}• `;
           const newText = text.substring(0, cursorPosition) + insertion + text.substring(cursorPosition);
           setInputValue(newText);
           if (onChange) onChange(newText);
           
-          // Set cursor position after the new bullet point
           setTimeout(() => {
             if (textareaRef.current) {
               textareaRef.current.selectionStart = textareaRef.current.selectionEnd = cursorPosition + insertion.length;
@@ -126,25 +118,21 @@ const PromptInput = ({
         return;
       }
       
-      // Check if the current line starts with a numbered item
       const numberMatch = currentLine.match(/^(\s*)(\d+)\.\s/);
       if (numberMatch) {
         e.preventDefault();
         
-        // If the current line is empty except for the number, remove the numbering (break out of list)
         if (currentLine.trim() === `${numberMatch[2]}.` || currentLine.trim() === `${numberMatch[2]}. `) {
           const newText = text.substring(0, lineStart) + text.substring(cursorPosition);
           setInputValue(newText);
           if (onChange) onChange(newText);
           
-          // Set cursor position
           setTimeout(() => {
             if (textareaRef.current) {
               textareaRef.current.selectionStart = textareaRef.current.selectionEnd = lineStart;
             }
           }, 0);
         } else {
-          // Add a new numbered item on the next line with incremented number
           const indentation = numberMatch[1] || '';
           const currentNumber = parseInt(numberMatch[2], 10);
           const nextNumber = currentNumber + 1;
@@ -153,7 +141,6 @@ const PromptInput = ({
           setInputValue(newText);
           if (onChange) onChange(newText);
           
-          // Set cursor position after the new numbered item
           setTimeout(() => {
             if (textareaRef.current) {
               textareaRef.current.selectionStart = textareaRef.current.selectionEnd = cursorPosition + insertion.length;
@@ -164,7 +151,6 @@ const PromptInput = ({
     }
   };
 
-  // Improved bullet list insertion with Google Docs-like behavior
   const insertBulletList = () => {
     if (!textareaRef.current) return;
 
@@ -172,7 +158,6 @@ const PromptInput = ({
     const end = textareaRef.current.selectionEnd;
     const text = inputValue;
     
-    // If text is selected, convert each line to bullet points
     if (start !== end) {
       const selectedText = text.substring(start, end);
       const lines = selectedText.split('\n');
@@ -182,51 +167,42 @@ const PromptInput = ({
       setInputValue(newText);
       if (onChange) onChange(newText);
       
-      // Position cursor at the end of the converted text
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + bulletLines.length;
         }
       }, 0);
     } else {
-      // If no text is selected, check if we're currently in a list
       const lineStart = text.lastIndexOf('\n', start - 1) + 1;
       const lineEnd = text.indexOf('\n', start);
       const currentLine = text.substring(lineStart, lineEnd > -1 ? lineEnd : text.length);
       
-      // Check if we're already in a list
       const bulletMatch = currentLine.match(/^(\s*)•\s/);
       const numberMatch = currentLine.match(/^(\s*)(\d+)\.\s/);
       
       if (bulletMatch || numberMatch) {
-        // Already in a list, don't add a bullet
         return;
       }
       
-      // Insert bullet at current position or beginning of line
       const indentation = '';
       const contentBeforeCursor = text.substring(lineStart, start);
       const contentAfterCursor = text.substring(start, lineEnd > -1 ? lineEnd : text.length);
       
-      // If at beginning of line or line just has whitespace before cursor
       if (contentBeforeCursor.trim() === '') {
         const newText = text.substring(0, lineStart) + `${indentation}• ${contentAfterCursor}` + text.substring(lineEnd > -1 ? lineEnd : text.length);
         setInputValue(newText);
         if (onChange) onChange(newText);
         
-        // Position cursor after the bullet
         setTimeout(() => {
           if (textareaRef.current) {
             textareaRef.current.selectionStart = textareaRef.current.selectionEnd = lineStart + indentation.length + 2;
           }
         }, 0);
       } else {
-        // Insert bullet at cursor position
         const newText = text.substring(0, start) + `\n${indentation}• ` + text.substring(start);
         setInputValue(newText);
         if (onChange) onChange(newText);
         
-        // Position cursor after the bullet
         setTimeout(() => {
           if (textareaRef.current) {
             textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + indentation.length + 3;
@@ -236,7 +212,6 @@ const PromptInput = ({
     }
   };
 
-  // Improved numbered list insertion with Google Docs-like behavior
   const insertNumberedList = () => {
     if (!textareaRef.current) return;
 
@@ -244,7 +219,6 @@ const PromptInput = ({
     const end = textareaRef.current.selectionEnd;
     const text = inputValue;
     
-    // If text is selected, convert each line to numbered points
     if (start !== end) {
       const selectedText = text.substring(start, end);
       const lines = selectedText.split('\n');
@@ -256,51 +230,42 @@ const PromptInput = ({
       setInputValue(newText);
       if (onChange) onChange(newText);
       
-      // Position cursor at the end of the converted text
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + numberedLines.length;
         }
       }, 0);
     } else {
-      // If no text is selected, check if we're currently in a list
       const lineStart = text.lastIndexOf('\n', start - 1) + 1;
       const lineEnd = text.indexOf('\n', start);
       const currentLine = text.substring(lineStart, lineEnd > -1 ? lineEnd : text.length);
       
-      // Check if we're already in a list
       const bulletMatch = currentLine.match(/^(\s*)•\s/);
       const numberMatch = currentLine.match(/^(\s*)(\d+)\.\s/);
       
       if (bulletMatch || numberMatch) {
-        // Already in a list, don't add a number
         return;
       }
       
-      // Insert number at current position
       const indentation = '';
       const contentBeforeCursor = text.substring(lineStart, start);
       const contentAfterCursor = text.substring(start, lineEnd > -1 ? lineEnd : text.length);
       
-      // If at beginning of line or line just has whitespace before cursor
       if (contentBeforeCursor.trim() === '') {
         const newText = text.substring(0, lineStart) + `${indentation}1. ${contentAfterCursor}` + text.substring(lineEnd > -1 ? lineEnd : text.length);
         setInputValue(newText);
         if (onChange) onChange(newText);
         
-        // Position cursor after the number
         setTimeout(() => {
           if (textareaRef.current) {
             textareaRef.current.selectionStart = textareaRef.current.selectionEnd = lineStart + indentation.length + 3;
           }
         }, 0);
       } else {
-        // Insert number at cursor position
         const newText = text.substring(0, start) + `\n${indentation}1. ` + text.substring(start);
         setInputValue(newText);
         if (onChange) onChange(newText);
         
-        // Position cursor after the number
         setTimeout(() => {
           if (textareaRef.current) {
             textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + indentation.length + 4;
@@ -310,19 +275,17 @@ const PromptInput = ({
     }
   };
 
-  // Define larger icon size (30% bigger)
-  const iconSize = 8.5; // Increasing size by another 30%
+  const iconSize = 8.5;
 
   return (
     <form onSubmit={handleSubmit} className={`w-full mx-auto ${className}`}>
       <div className="relative group">
         <div className="relative">
-          <div className="flex items-center gap-4 mb-1 p-6 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
-            {/* Formatting tools on the left */}
-            <div className="flex gap-4">
+          <div className="flex flex-wrap items-start gap-4 mb-1 p-4 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
+            <div className="flex gap-4 items-start">
               <button 
                 type="button" 
-                className="p-1.5 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
+                className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
                 onClick={insertBulletList}
                 title="Insert bullet list"
               >
@@ -330,7 +293,7 @@ const PromptInput = ({
               </button>
               <button 
                 type="button" 
-                className="p-1.5 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
+                className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
                 onClick={insertNumberedList}
                 title="Insert numbered list"
               >
@@ -338,27 +301,25 @@ const PromptInput = ({
               </button>
             </div>
             
-            {/* Divider */}
             <div className="h-6 w-px bg-gray-200 mx-2"></div>
             
-            {/* Image previews aligned to the right */}
-            <div className="flex flex-1 justify-end items-center gap-5 overflow-x-auto py-3 px-2">
+            <div className="flex-1 flex flex-wrap gap-4 items-start">
               {images && images.length > 0 ? (
                 images.map(image => (
-                  <div key={image.id} className="relative group" style={{ marginTop: '5px', marginBottom: '5px' }}>
+                  <div key={image.id} className="relative group">
                     <img 
                       src={image.url} 
                       alt="Uploaded" 
                       className="object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
                       onClick={() => handleImageClick(image.id)}
-                      style={{ width: '85px', height: '85px' }}
+                      style={{ width: '60px', height: '60px' }}
                     />
                     <button
                       onClick={(e) => handleRemoveImage(image.id, e)}
-                      className="absolute -top-5 -right-5 bg-[#041524] text-white rounded-full p-2 border border-[#33fea6]/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute -top-2 -right-2 bg-[#041524] text-white rounded-full p-1 border border-[#33fea6]/30 opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Remove image"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 ))
