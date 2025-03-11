@@ -65,15 +65,18 @@ export const WebScanDialog = ({
           
           <div className="mb-4">
             <label htmlFor="instructions" className="block text-sm font-medium text-[#545454] mb-2">
-              How to use the website as context
+              What to extract from this website
             </label>
             <Textarea 
               id="instructions"
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
-              placeholder="Type your instructions here..."
+              placeholder="E.g., 'Extract best practices for UI design' or 'Find information about pricing models'"
               className="w-full min-h-[120px] border-[#084b49]/30 resize-none"
             />
+            <p className="text-xs text-[#545454]/80 mt-1">
+              Be specific about what information you want extracted. The AI will focus on finding this information in the website content.
+            </p>
           </div>
           
           <div className="flex justify-end mt-4">

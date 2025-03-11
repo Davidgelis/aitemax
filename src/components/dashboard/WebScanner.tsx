@@ -37,6 +37,7 @@ export const WebScanner = ({
           <button 
             onClick={() => setDialogOpen(true)}
             className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
+            title="Extract specific information from a website to enhance your prompt"
           >
             <span className="truncate ml-1">Web Smart Scan</span>
             <Globe className="mr-1 h-4 w-4 text-[#084b49]" />
@@ -63,7 +64,7 @@ export const WebScanner = ({
           variant="slim"
           size="xs"
           className="group animate-aurora-border"
-          title="Scan website"
+          title="Extract specific information from a website to enhance your prompt"
         >
           <Globe className="w-3 h-3 text-[#64bf95] group-hover:text-[#33fea6] transition-colors" />
           <span>Web Scan</span>

@@ -53,8 +53,23 @@ ${additionalContext}`
     console.log("No image provided - using text-only OpenAI API request");
     console.log("Additional context provided:", additionalContext ? "Yes" : "No");
     
-    // If we have website context, make sure it's clear to the AI model
-    const messageText = `Analyze this prompt for generating questions and variables: "${promptText}" ${additionalContext}`;
+    // Enhance user prompt with more specific instructions for website analysis
+    let messageText = `Analyze this prompt for generating questions and variables: "${promptText}"`;
+    
+    if (additionalContext.includes("WEBSITE CONTEXT")) {
+      messageText += `
+
+${additionalContext}
+
+When creating and pre-filling questions:
+1. Extract DETAILED information from the website content
+2. Write 1-2 full sentences in each answer, directly quoting or closely paraphrasing the website
+3. Make questions that are specifically relevant to both the prompt and the website content
+4. Focus especially on any specific instructions the user provided for analyzing the website
+5. For each answer, include at least one concrete detail, fact, or quote from the website`;
+    } else {
+      messageText += ` ${additionalContext}`;
+    }
     
     messages.push({
       role: 'user',

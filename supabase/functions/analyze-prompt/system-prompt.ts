@@ -1,4 +1,3 @@
-
 export function createSystemPrompt(primaryToggle?: string | null, secondaryToggle?: string | null) {
   // Base system prompt
   let prompt = `
@@ -21,8 +20,11 @@ When analyzing IMAGES:
 When analyzing WEBSITE CONTENT:
 - Extract the main topic, purpose, audience, tone, style, and key terminology
 - Identify content structure, formatting patterns, and design elements
-- Extract these as concrete variables with values (e.g., Audience: "technical professionals", Tone: "formal instructional", MainTopic: "cloud computing")
-- Use these extracted details to pre-fill relevant question answers and variable values
+- Pay special attention to any topics mentioned in the user's instructions
+- For answers to questions, provide 1-2 DETAILED sentences with specific information from the website
+- For variables, keep values concise (5-10 words) but precise
+- Focus on extracting factual, concrete details from the website that match the user's instructions
+- Look for lists, steps, best practices, guidelines, or other structured information
 
 IMPORTANT: Your response should include a JSON structure with questions and variables as follows:
 \`\`\`json
@@ -94,6 +96,13 @@ If website content is included in the message, analyze it carefully and extract 
 - Content Structure: How information is organized (lists, paragraphs, sections, etc.)
 - Call to Action: What the website wants users to do
 - Visual Elements: Descriptions of images, colors, or design elements mentioned
+- Best Practices: Look for any guidelines, tips, or recommendations
+- Step-by-Step Processes: Identify any numbered or sequential instructions
+- Key Benefits: Extract explicit advantages or benefits mentioned
+
+EXAMINE the website content thoroughly, focusing especially on any specific topics mentioned in the user's instructions. When the user provides specific instructions like "find best practices", thoroughly extract ALL relevant information related to that topic.
+
+For question answers, provide 1-2 DETAILED sentences directly from the website content, including specific facts, figures, or direct quotes when available.
 
 EXTRACT these specific details and use them to pre-fill answers and variable values with CONCRETE OBSERVATIONS, not interpretations.
 `;

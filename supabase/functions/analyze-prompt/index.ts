@@ -98,20 +98,53 @@ async function fetchWebsiteContent(url: string) {
     const titleMatch = html.match(/<title>(.*?)<\/title>/i);
     const title = titleMatch ? titleMatch[1] : "Unknown Title";
     
-    // Simple extraction of text by removing HTML tags
-    let text = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ');
-    text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ');
-    text = text.replace(/<[^>]*>?/gm, ' ');
-    text = text.replace(/\s+/g, ' ').trim().substring(0, 8000); // Limit length
+    // Better content extraction with focus on paragraphs and headings
+    let mainContent = "";
     
-    return { title, text };
+    // Extract specific elements like headers, paragraphs, and list items
+    const headingMatches = html.match(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/gi);
+    if (headingMatches) {
+      mainContent += headingMatches.map(h => h.replace(/<[^>]*>/g, '')).join("\n\n") + "\n\n";
+    }
+    
+    const paragraphMatches = html.match(/<p[^>]*>(.*?)<\/p>/gi);
+    if (paragraphMatches) {
+      mainContent += paragraphMatches.map(p => p.replace(/<[^>]*>/g, '')).join("\n\n") + "\n\n";
+    }
+    
+    const listItemMatches = html.match(/<li[^>]*>(.*?)<\/li>/gi);
+    if (listItemMatches) {
+      mainContent += listItemMatches.map(li => "• " + li.replace(/<[^>]*>/g, '')).join("\n") + "\n\n";
+    }
+    
+    // If we couldn't extract structured content, fall back to removing all HTML tags
+    if (!mainContent.trim()) {
+      let text = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ');
+      text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ');
+      text = text.replace(/<[^>]*>?/gm, ' ');
+      text = text.replace(/\s+/g, ' ').trim();
+      mainContent = text;
+    }
+    
+    // Ensure we're not sending too much content (limit to 15,000 chars)
+    const limitedContent = mainContent.substring(0, 15000);
+    
+    // Extract meta description for additional context
+    const metaDescMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
+    const metaDescription = metaDescMatch ? metaDescMatch[1] : "";
+    
+    return { 
+      title, 
+      text: limitedContent,
+      metaDescription
+    };
   } catch (error) {
     console.error(`Error fetching website content: ${error.message}`);
-    return { title: "Error", text: `Failed to fetch website content: ${error.message}` };
+    return { title: "Error", text: `Failed to fetch website content: ${error.message}`, metaDescription: "" };
   }
 }
 
-// Function to extract relevant keywords and terms from text or image analysis
+// Helper function to extract relevant keywords and terms from text or image analysis
 function extractKeyTerms(text: string): string[] {
   // Extract potential keywords (nouns, technical terms, etc.)
   const words = text.toLowerCase().split(/\s+/);
@@ -177,17 +210,30 @@ serve(async (req) => {
     if (websiteData && websiteData.url) {
       hasAdditionalContext = true;
       console.log(`Website provided for context: ${websiteData.url}`);
+      console.log(`User instructions for website analysis: ${websiteData.instructions || "No specific instructions"}`);
+      
       const websiteContent = await fetchWebsiteContent(websiteData.url);
       websiteKeywords = extractKeyTerms(websiteContent.text);
       
       contextualData += `\n\nWEBSITE CONTEXT:
 URL: ${websiteData.url}
 Title: ${websiteContent.title}
+Meta Description: ${websiteContent.metaDescription || "None"}
 User Instructions: ${websiteData.instructions || "No specific instructions provided"}
-Content Excerpt: ${websiteContent.text.substring(0, 3000)}...
+
+Content Excerpt:
+${websiteContent.text}
+
 Key Terms: ${websiteKeywords.join(', ')}
       
-Please analyze this website context thoroughly when analyzing the prompt. Extract specific concrete details like main topic, purpose, audience, tone, style, key terminology, content structure, and any other relevant information. Use these extracted details to pre-fill answers to questions and variable values where the information is EXPLICITLY present in this content.`;
+YOUR TASK FOR WEBSITE ANALYSIS:
+1. Analyze this website content thoroughly
+2. Focus specifically on finding information related to: "${websiteData.instructions || "the main topic"}"
+3. Extract concrete, detailed information from the website content
+4. For question answers, provide 1-2 full sentences of DIRECT information from the website
+5. For variables, keep values concise (5-10 words)
+6. Only use information EXPLICITLY present in the content
+7. Do not generalize or make assumptions beyond what is directly stated`;
     }
     
     // Add image context if provided
