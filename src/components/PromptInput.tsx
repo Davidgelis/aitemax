@@ -2,9 +2,8 @@
 import { useState, useEffect, KeyboardEvent } from 'react';
 import { UploadedImage } from '@/components/dashboard/types';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
-import { X, ListOrdered, List, ImagePlus } from 'lucide-react';
+import { X, ListOrdered, List } from 'lucide-react';
 import { ImageUploader } from '@/components/dashboard/ImageUploader';
-import { Button } from "@/components/ui/button";
 
 interface PromptInputProps {
   onSubmit: (prompt: string, images?: UploadedImage[]) => void;
@@ -16,6 +15,9 @@ interface PromptInputProps {
   images?: UploadedImage[];
   onImagesChange?: (images: UploadedImage[]) => void;
   isLoading?: boolean;
+  onOpenUploadDialog?: () => void;
+  dialogOpen?: boolean;
+  setDialogOpen?: (open: boolean) => void;
 }
 
 const PromptInput = ({ 
@@ -27,7 +29,10 @@ const PromptInput = ({
   autoFocus = false,
   images = [],
   onImagesChange,
-  isLoading = false
+  isLoading = false,
+  onOpenUploadDialog,
+  dialogOpen = false,
+  setDialogOpen = () => {}
 }: PromptInputProps) => {
   const [inputValue, setInputValue] = useState(value || "");
   const [carouselOpen, setCarouselOpen] = useState(false);
@@ -247,20 +252,6 @@ const PromptInput = ({
     }
   };
 
-  const handleImageUpload = () => {
-    // Trigger the file input click through the ImageUploader
-    if (onImagesChange) {
-      const fileInput = document.querySelector('[accept="image/*"]') as HTMLInputElement;
-      if (fileInput) {
-        fileInput.click();
-      } else {
-        // If file input isn't found, try to open the dialog
-        const uploadButton = document.querySelector("[title='Upload image']") as HTMLButtonElement;
-        if (uploadButton) uploadButton.click();
-      }
-    }
-  };
-
   return (
     <form onSubmit={handleSubmit} className={`w-full mx-auto ${className}`}>
       <div className="relative group">
@@ -306,14 +297,6 @@ const PromptInput = ({
             >
               <ListOrdered className="w-5 h-5" />
             </button>
-            <button 
-              type="button" 
-              className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95] ml-auto"
-              onClick={handleImageUpload}
-              title="Upload image"
-            >
-              <ImagePlus className="w-5 h-5" />
-            </button>
           </div>
           
           <textarea
@@ -337,6 +320,8 @@ const PromptInput = ({
               <ImageUploader 
                 onImagesChange={onImagesChange}
                 images={images || []}
+                open={dialogOpen}
+                onOpenChange={setDialogOpen}
               />
             )}
           </div>

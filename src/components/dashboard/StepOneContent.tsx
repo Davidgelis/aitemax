@@ -5,7 +5,7 @@ import { WebScanner } from "@/components/dashboard/WebScanner";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { AIModel, UploadedImage } from "./types";
 import { Switch } from "@/components/ui/switch";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface StepOneContentProps {
@@ -43,6 +43,7 @@ export const StepOneContent = ({
 }: StepOneContentProps) => {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     if (onImagesChange) {
@@ -72,6 +73,10 @@ export const StepOneContent = ({
     });
     
     onAnalyze();
+  };
+
+  const handleOpenUploadDialog = () => {
+    setDialogOpen(true);
   };
 
   return (
@@ -147,13 +152,23 @@ export const StepOneContent = ({
           images={uploadedImages}
           onImagesChange={handleImagesChange}
           isLoading={isLoading}
+          onOpenUploadDialog={handleOpenUploadDialog}
+          dialogOpen={dialogOpen}
+          setDialogOpen={setDialogOpen}
         />
       </div>
 
       {/* Action buttons */}
       <div className="flex justify-between mt-8">
         <div>
-          {/* We'll remove this button since we now have an image upload button in the prompt input toolbar */}
+          <Button
+            onClick={handleOpenUploadDialog}
+            disabled={isLoading}
+            className="bg-[#33fea6] hover:bg-[#28d88c] text-white rounded-md flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            Upload
+          </Button>
         </div>
         
         <div>

@@ -101,7 +101,7 @@ export const ImageUploadDialog = ({
             <button
               onClick={handleBrowseClick}
               disabled={remainingSlots <= 0}
-              className="aurora-button flex items-center gap-2"
+              className="bg-[#33fea6] hover:bg-[#28d88c] text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors"
             >
               <Upload className="w-4 h-4" />
               Browse

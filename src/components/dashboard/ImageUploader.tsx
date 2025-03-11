@@ -9,11 +9,17 @@ interface ImageUploaderProps {
   onImagesChange: (images: UploadedImage[]) => void;
   maxImages?: number;
   images: UploadedImage[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export const ImageUploader = ({ onImagesChange, maxImages = 1, images }: ImageUploaderProps) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  
+export const ImageUploader = ({ 
+  onImagesChange, 
+  maxImages = 1, 
+  images,
+  open = false,
+  onOpenChange = () => {}
+}: ImageUploaderProps) => {
   const handleImagesUploaded = (newImages: UploadedImage[]) => {
     if (newImages.length > maxImages) {
       return;
@@ -25,7 +31,7 @@ export const ImageUploader = ({ onImagesChange, maxImages = 1, images }: ImageUp
   return (
     <div>
       <Button
-        onClick={() => setDialogOpen(true)}
+        onClick={() => onOpenChange(true)}
         variant="slim"
         size="xs"
         className="group animate-aurora-border rounded-md"
@@ -37,8 +43,8 @@ export const ImageUploader = ({ onImagesChange, maxImages = 1, images }: ImageUp
       </Button>
       
       <ImageUploadDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        open={open}
+        onOpenChange={onOpenChange}
         onImagesUploaded={handleImagesUploaded}
         maxImages={maxImages}
         currentImages={images}
