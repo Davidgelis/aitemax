@@ -8,7 +8,7 @@ import { UploadedImage } from "./types";
 interface ImageUploaderProps {
   onImagesChange: (images: UploadedImage[]) => void;
   maxImages?: number;
-  images: UploadedImage[];
+  images: UploadedImage[]; // This prop is now required
 }
 
 export const ImageUploader = ({ onImagesChange, maxImages = 1, images }: ImageUploaderProps) => {

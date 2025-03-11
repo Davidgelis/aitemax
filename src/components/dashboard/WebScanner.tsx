@@ -5,7 +5,7 @@ import { WebScanDialog } from './WebScanDialog';
 import { Button } from "@/components/ui/button";
 
 interface WebScannerProps {
-  onWebsiteScan: (url: string, instructions: string) => void;
+  onWebsiteScan: (url: string, instructions: string) => void; // Changed from onScan to onWebsiteScan
   variant?: 'default' | 'modelReplacement';
   className?: string;
 }
