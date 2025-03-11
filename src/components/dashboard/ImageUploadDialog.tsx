@@ -1,6 +1,6 @@
 
 import { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { UploadedImage } from './types';
 import { Upload, ImagePlus } from 'lucide-react';
 
@@ -78,10 +78,6 @@ export const ImageUploadDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-background/95 backdrop-blur-md border-0 shadow-none rounded-none">
-        <DialogTitle>Upload Image for Analysis</DialogTitle>
-        <DialogDescription>
-          Upload an image to analyze with your prompt. The image will be used to pre-fill questions and variables.
-        </DialogDescription>
         <div 
           className={`flex flex-col items-center justify-center p-10 border-0 transition-colors ${
             isDragging ? 'bg-[#33fea6]/5' : 'bg-transparent'

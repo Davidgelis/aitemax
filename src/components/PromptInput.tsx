@@ -4,7 +4,6 @@ import { UploadedImage } from '@/components/dashboard/types';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
 import { X } from 'lucide-react';
 import { ImageUploader } from '@/components/dashboard/ImageUploader';
-import { Button } from '@/components/ui/button';
 
 interface PromptInputProps {
   onSubmit: (prompt: string, images?: UploadedImage[]) => void;
@@ -15,7 +14,6 @@ interface PromptInputProps {
   autoFocus?: boolean;
   images?: UploadedImage[];
   onImagesChange?: (images: UploadedImage[]) => void;
-  isLoading?: boolean;
 }
 
 const PromptInput = ({ 
@@ -26,8 +24,7 @@ const PromptInput = ({
   onChange,
   autoFocus = false,
   images = [],
-  onImagesChange,
-  isLoading = false
+  onImagesChange
 }: PromptInputProps) => {
   const [inputValue, setInputValue] = useState(value || "");
   const [carouselOpen, setCarouselOpen] = useState(false);
@@ -116,21 +113,13 @@ const PromptInput = ({
             }}
           />
           
-          <div className="mt-2 flex justify-between">
+          <div className="mt-2">
             {onImagesChange && (
               <ImageUploader 
                 onImagesChange={onImagesChange}
                 images={images || []}
               />
             )}
-            
-            <Button
-              type="submit"
-              className="animate-aurora-border"
-              disabled={isLoading || !inputValue.trim()}
-            >
-              {isLoading ? "Analyzing..." : "Analyze"}
-            </Button>
           </div>
         </div>
       </div>

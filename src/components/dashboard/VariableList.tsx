@@ -1,4 +1,3 @@
-
 import { Plus, Trash } from "lucide-react";
 import { Variable } from "./types";
 import { RefObject, useState, useEffect } from "react";
@@ -35,7 +34,6 @@ export const VariableList = ({
   const [variableNames, setVariableNames] = useState<Record<string, string>>({});
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [variableCodes, setVariableCodes] = useState<Record<string, string>>({});
-  const [hasProcessedPrefill, setHasProcessedPrefill] = useState(false);
   const { toast } = useToast();
   
   // Filter out category names and empty names for display
@@ -57,45 +55,22 @@ export const VariableList = ({
   const hasValidVariables = categories.length > 0 && 
     categories.some(category => groupedVariables[category].length > 0);
 
-  // Initialize state from props and handle pre-filled values
+  // Initialize state from props
   useEffect(() => {
-    if (!Array.isArray(variables) || variables.length === 0) {
-      console.error("Invalid variables array or empty array:", variables);
-      return;
-    }
-    
-    console.log("Variables in VariableList:", variables);
-    
     const names: Record<string, string> = {};
     const values: Record<string, string> = {};
     const codes: Record<string, string> = {};
     const highlighted: Record<string, boolean> = {};
     
-    let prefilledCount = 0;
-    
     variables.forEach((variable, index) => {
-      if (!variable) {
-        console.error("Invalid variable at index", index);
-        return;
-      }
-      
       names[variable.id] = variable.name || '';
       values[variable.id] = variable.value || '';
       codes[variable.id] = variable.code || `VAR_${index + 1}`;
+      highlighted[variable.id] = variable.value && variable.value.trim() !== '';
       
-      // Mark as highlighted if it has a value
-      const hasValue = variable.value && variable.value.trim() !== '';
-      highlighted[variable.id] = hasValue;
-      
-      // Auto-set relevance based on value - this is critical for pre-filled values
-      if (hasValue) {
-        console.log(`Variable ${variable.name} has pre-filled value: ${variable.value}`);
-        prefilledCount++;
-        
-        if (variable.isRelevant !== true) {
-          console.log(`Auto-marking variable ${variable.name} as relevant due to pre-filled value`);
-          setTimeout(() => onVariableRelevance(variable.id, true), 0);
-        }
+      // Auto-set relevance based on value
+      if (variable.value && variable.value.trim() !== '' && variable.isRelevant === null) {
+        onVariableRelevance(variable.id, true);
       }
       
       // Ensure every variable has a code
@@ -108,19 +83,7 @@ export const VariableList = ({
     setVariableValues(values);
     setVariableCodes(codes);
     setHighlightedVariables(highlighted);
-    
-    // Show notification if we have pre-filled values and haven't processed them yet
-    if (prefilledCount > 0 && !hasProcessedPrefill) {
-      console.log(`Found ${prefilledCount} pre-filled variable values - showing notification`);
-      setHasProcessedPrefill(true);
-      
-      toast({
-        title: "Pre-filled values detected",
-        description: `${prefilledCount} variable ${prefilledCount === 1 ? 'value has' : 'values have'} been pre-filled based on the provided context.`,
-        duration: 5000,
-      });
-    }
-  }, [variables, onVariableRelevance, onVariableChange, toast, hasProcessedPrefill]);
+  }, [variables]);
 
   // Handle variable value change with highlighting
   const handleValueChange = (variableId: string, value: string) => {
@@ -206,69 +169,62 @@ export const VariableList = ({
         
         {variables.length > 0 && (
           <div className="space-y-3">
-            {variables.map((variable, index) => {
-              const isPrefilled = variableValues[variable.id] && variableValues[variable.id].trim() !== '';
-              
-              return (
-                <div key={variable.id} className="flex gap-3 items-center">
-                  <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Input
-                      type="text"
-                      placeholder="Variable name"
-                      value={variableNames[variable.id] || ""}
-                      onChange={(e) => handleNameChange(variable.id, e.target.value)}
-                      className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
-                        variable.name && variable.name.trim() !== '' ? 'border-[#33fea6]/50' : ''
-                      }`}
-                      autoComplete="off"
-                      aria-label={`Name for variable ${index + 1}`}
-                    />
-                    <Input
-                      type="text"
-                      placeholder="Value"
-                      value={variableValues[variable.id] || ""}
-                      onChange={(e) => handleValueChange(variable.id, e.target.value)}
-                      className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
-                        isPrefilled ? 'border-[#33fea6] ring-1 ring-[#33fea6] bg-[#33fea6]/5' : 
-                        (highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : '')
-                      }`}
-                      autoComplete="off"
-                      aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
-                    />
-                  </div>
-                  <div className="flex">
-                    <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
-                      <AlertDialogTrigger asChild>
-                        <button
-                          onClick={() => {
-                            setVariableToDelete(variable.id);
-                          }}
-                          className="p-2 rounded-full hover:bg-[#33fea6]/20"
-                          title="Delete variable"
-                        >
-                          <Trash className="w-4 h-4" />
-                        </button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete variable?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this variable? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(variable.id)}>Delete</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
+            {variables.map((variable, index) => (
+              <div key={variable.id} className="flex gap-3 items-center">
+                <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
+                  {index + 1}
                 </div>
-              );
-            })}
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Input
+                    type="text"
+                    placeholder="Variable name"
+                    value={variableNames[variable.id] || ""}
+                    onChange={(e) => handleNameChange(variable.id, e.target.value)}
+                    className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
+                    autoComplete="off"
+                    aria-label={`Name for variable ${index + 1}`}
+                  />
+                  <Input
+                    type="text"
+                    placeholder="Value"
+                    value={variableValues[variable.id] || ""}
+                    onChange={(e) => handleValueChange(variable.id, e.target.value)}
+                    className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
+                      highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''
+                    }`}
+                    autoComplete="off"
+                    aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
+                  />
+                </div>
+                <div className="flex">
+                  <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        onClick={() => {
+                          setVariableToDelete(variable.id);
+                        }}
+                        className="p-2 rounded-full hover:bg-[#33fea6]/20"
+                        title="Delete variable"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete variable?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this variable? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(variable.id)}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
