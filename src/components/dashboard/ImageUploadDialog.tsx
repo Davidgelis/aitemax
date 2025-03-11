@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { UploadedImage } from './types';
@@ -83,10 +84,10 @@ export const ImageUploadDialog = ({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-background/95 backdrop-blur-md border-0 shadow-none rounded-none">
+      <DialogContent className="sm:max-w-md bg-background/95 backdrop-blur-md border-0 shadow-lg rounded-lg mt-4">
         <div 
-          className={`flex flex-col items-center justify-center p-10 border-0 transition-colors ${
-            isDragging ? 'bg-[#33fea6]/5' : 'bg-transparent'
+          className={`flex flex-col items-center justify-center p-10 border-2 border-dashed rounded-lg transition-colors ${
+            isDragging ? 'border-[#33fea6] bg-[#33fea6]/5' : 'border-[#084b49]/30 bg-transparent'
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -98,7 +99,7 @@ export const ImageUploadDialog = ({
           
           <p className="text-center mb-6 text-[#545454]">
             {remainingSlots > 0 
-              ? `Drag and drop an image here`
+              ? `Drag and drop an image here or click browse`
               : "You already have the maximum number of images uploaded"
             }
           </p>
@@ -110,7 +111,7 @@ export const ImageUploadDialog = ({
               className="bg-[#33fea6] hover:bg-[#28d88c] text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors"
             >
               <Upload className="w-4 h-4" />
-              Browse
+              Browse Files
             </button>
             <input 
               type="file" 

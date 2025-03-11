@@ -256,7 +256,7 @@ const PromptInput = ({
     <form onSubmit={handleSubmit} className={`w-full mx-auto ${className}`}>
       <div className="relative group">
         <div className="relative">
-          <div className="flex items-center gap-2 mb-1 p-2 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
+          <div className="flex items-center gap-2 mb-1 p-3 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
             <div className="flex gap-2">
               <button 
                 type="button" 
@@ -278,14 +278,14 @@ const PromptInput = ({
             
             <div className="h-6 w-px bg-gray-200 mx-2"></div>
             
-            <div className="flex flex-1 items-center gap-2 overflow-x-auto">
+            <div className="flex flex-1 justify-end items-center gap-2 overflow-x-auto pr-2">
               {images && images.length > 0 ? (
                 images.map(image => (
                   <div key={image.id} className="relative group">
                     <img 
                       src={image.url} 
                       alt="Uploaded" 
-                      className="w-8 h-8 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
+                      className="w-10 h-10 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
                       onClick={() => handleImageClick(image.id)}
                     />
                     <button

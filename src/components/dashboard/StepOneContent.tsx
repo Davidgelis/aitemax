@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
@@ -166,7 +167,7 @@ export const StepOneContent = ({
             className="bg-[#33fea6] hover:bg-[#28d88c] text-white rounded-md flex items-center gap-2"
           >
             <Upload className="w-4 h-4" />
-            Upload
+            Upload Image
           </Button>
         </div>
         
