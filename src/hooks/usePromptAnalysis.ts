@@ -1,34 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
-import { loadingMessages, mockQuestions, primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
+import { mockQuestions } from "@/components/dashboard/constants";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-
-// Helper function to validate variable names
-const isValidVariableName = (name: string): boolean => {
-  // Check if name is longer than 1 character and not just asterisks or "s"
-  return name.trim().length > 1 && 
-         !/^\*+$/.test(name) && 
-         !/^[sS]$/.test(name);
-};
-
-// Helper function to convert image to base64
-const imageToBase64 = async (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
-        const base64 = reader.result.split(',')[1];
-        resolve(base64);
-      } else {
-        reject(new Error("Failed to convert image to base64"));
-      }
-    };
-    reader.onerror = error => reject(error);
-  });
-};
+import { useLoadingMessages } from "@/hooks/useLoadingMessages";
+import { isValidVariableName } from "@/utils/imageUtils";
+import { 
+  createAnalysisPayload, 
+  analyzePrompt, 
+  enhancePrompt 
+} from "@/services/promptAnalysisService";
 
 export const usePromptAnalysis = (
   promptText: string,
@@ -42,31 +22,13 @@ export const usePromptAnalysis = (
   user?: any,
   promptId?: string | null
 ) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentLoadingMessage, setCurrentLoadingMessage] = useState<number | string>(0);
   const { toast } = useToast();
-
-  // Show loading messages while isLoading is true
-  useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (isLoading) {
-      // Set up an interval to rotate through loading messages
-      timeout = setTimeout(() => {
-        if (typeof currentLoadingMessage === 'number' && currentLoadingMessage < loadingMessages.length - 1) {
-          setCurrentLoadingMessage(prev => {
-            if (typeof prev === 'number') {
-              return prev + 1;
-            }
-            return 0;
-          });
-        } else {
-          // Loop back to first message if we've reached the end
-          setCurrentLoadingMessage(0);
-        }
-      }, 3000);
-    }
-    return () => clearTimeout(timeout);
-  }, [isLoading, currentLoadingMessage]);
+  const { 
+    isLoading, 
+    setIsLoading, 
+    currentLoadingMessage, 
+    setCurrentLoadingMessage 
+  } = useLoadingMessages();
 
   const handleAnalyze = async (images?: UploadedImage[], websiteData?: { url: string; instructions: string } | null) => {
     if (!promptText.trim()) {
@@ -95,87 +57,23 @@ export const usePromptAnalysis = (
     // Start loading immediately
     setIsLoading(true);
     
-    // Get toggle label for a more descriptive loading message
-    let loadingMessageText = "Analyzing your prompt";
-    if (images && images.length > 0) {
-      loadingMessageText += " and image";
-    }
-    if (websiteData && websiteData.url) {
-      loadingMessageText += " and website content";
-    }
-    if (selectedPrimary) {
-      const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label;
-      if (primaryLabel) {
-        loadingMessageText += ` for ${primaryLabel}`;
-      }
-    }
-    if (selectedSecondary) {
-      const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label;
-      if (secondaryLabel) {
-        loadingMessageText += ` with ${secondaryLabel} formatting`;
-      }
-    }
-    loadingMessageText += "...";
-    
-    setCurrentLoadingMessage(loadingMessageText);
+    // Get descriptive loading message
+    setupLoadingMessage(images, websiteData);
     
     try {
-      // Include userId and promptId in the payload if available
-      const payload: any = {
+      // Create the payload for analysis
+      const payload = await createAnalysisPayload(
         promptText,
-        primaryToggle: selectedPrimary,
-        secondaryToggle: selectedSecondary
-      };
+        selectedPrimary,
+        selectedSecondary,
+        images,
+        websiteData,
+        user,
+        promptId
+      );
       
-      // Add user and prompt ID if available
-      if (user) {
-        payload.userId = user.id;
-      }
-      
-      if (promptId) {
-        payload.promptId = promptId;
-      }
-      
-      // Add website data if available - ensure it's properly formatted
-      if (websiteData && websiteData.url) {
-        console.log("Including website data in analysis payload:", websiteData);
-        payload.websiteData = {
-          url: websiteData.url,
-          instructions: websiteData.instructions || ""
-        };
-      }
-      
-      // Add image data if available
-      if (images && images.length > 0) {
-        const firstImage = images[0];
-        try {
-          console.log("Converting image to base64 for analysis:", firstImage.file.name);
-          const base64 = await imageToBase64(firstImage.file);
-          payload.imageData = { 
-            base64,
-            filename: firstImage.file.name,
-            type: firstImage.file.type
-          };
-          console.log("Image successfully converted and added to payload");
-        } catch (error) {
-          console.error("Error converting image to base64:", error);
-        }
-      }
-      
-      console.log("Sending analysis request with toggles:", { 
-        primaryToggle: selectedPrimary, 
-        secondaryToggle: selectedSecondary,
-        hasImage: !!(images && images.length > 0),
-        hasWebsite: !!(websiteData && websiteData.url),
-        hasAdditionalContext,
-        websiteDataInPayload: !!payload.websiteData
-      });
-      
-      const { data, error } = await supabase.functions.invoke('analyze-prompt', {
-        body: payload
-      });
-      
-      if (error) throw error;
+      // Send the analysis request
+      const data = await analyzePrompt(payload);
       
       if (data) {
         console.log("AI analysis response:", data);
@@ -186,51 +84,8 @@ export const usePromptAnalysis = (
           // We still continue processing the fallback data provided
         }
         
-        if (data.questions && data.questions.length > 0) {
-          const aiQuestions = data.questions.map((q: any, index: number) => ({
-            ...q,
-            id: q.id || `q${index + 1}`,
-            // Keep pre-filled answers if they exist and we have additional context
-            answer: data.hasAdditionalContext ? (q.answer || "") : "",
-            // Mark as relevant if it has an answer
-            isRelevant: q.answer && q.answer.trim() !== "" ? true : null
-          }));
-          
-          setQuestions(aiQuestions);
-        } else {
-          console.warn("No questions received from analysis, using fallbacks");
-          setQuestions(mockQuestions);
-        }
-        
-        if (data.variables && data.variables.length > 0) {
-          // Additional filtering to ensure no invalid variables get through
-          const validVariables = data.variables
-            .filter((v: any) => 
-              v.name && 
-              isValidVariableName(v.name) && 
-              v.name !== 'Task' && 
-              v.name !== 'Persona' && 
-              v.name !== 'Conditions' && 
-              v.name !== 'Instructions'
-            )
-            .map((v: any, index: number) => ({
-              ...v,
-              id: v.id || `v${index + 1}`,
-              // Only keep pre-filled values if we have additional context
-              value: data.hasAdditionalContext ? (v.value || "") : "",
-              // Mark as relevant if it has a value
-              isRelevant: v.value && v.value.trim() !== "" ? true : null
-            }));
-            
-          // If we have valid variables after filtering, use them
-          if (validVariables.length > 0) {
-            setVariables(validVariables);
-          } else {
-            // Otherwise use default variables from constants
-            const { defaultVariables } = await import("@/components/dashboard/constants");
-            setVariables(defaultVariables);
-          }
-        }
+        processQuestions(data);
+        processVariables(data);
         
         if (data.masterCommand) {
           setMasterCommand(data.masterCommand);
@@ -272,6 +127,86 @@ export const usePromptAnalysis = (
     }
   };
 
+  const setupLoadingMessage = (
+    images?: UploadedImage[],
+    websiteData?: { url: string; instructions: string } | null
+  ) => {
+    let loadingMessageText = "Analyzing your prompt";
+    if (images && images.length > 0) {
+      loadingMessageText += " and image";
+    }
+    if (websiteData && websiteData.url) {
+      loadingMessageText += " and website content";
+    }
+    if (selectedPrimary) {
+      const primaryToggles = require("@/components/dashboard/constants").primaryToggles;
+      const primaryLabel = primaryToggles.find((t: any) => t.id === selectedPrimary)?.label;
+      if (primaryLabel) {
+        loadingMessageText += ` for ${primaryLabel}`;
+      }
+    }
+    if (selectedSecondary) {
+      const secondaryToggles = require("@/components/dashboard/constants").secondaryToggles;
+      const secondaryLabel = secondaryToggles.find((t: any) => t.id === selectedSecondary)?.label;
+      if (secondaryLabel) {
+        loadingMessageText += ` with ${secondaryLabel} formatting`;
+      }
+    }
+    loadingMessageText += "...";
+    
+    setCurrentLoadingMessage(loadingMessageText);
+  };
+
+  const processQuestions = (data: any) => {
+    if (data.questions && data.questions.length > 0) {
+      const aiQuestions = data.questions.map((q: any, index: number) => ({
+        ...q,
+        id: q.id || `q${index + 1}`,
+        // Keep pre-filled answers if they exist and we have additional context
+        answer: data.hasAdditionalContext ? (q.answer || "") : "",
+        // Mark as relevant if it has an answer
+        isRelevant: q.answer && q.answer.trim() !== "" ? true : null
+      }));
+      
+      setQuestions(aiQuestions);
+    } else {
+      console.warn("No questions received from analysis, using fallbacks");
+      setQuestions(mockQuestions);
+    }
+  };
+
+  const processVariables = async (data: any) => {
+    if (data.variables && data.variables.length > 0) {
+      // Additional filtering to ensure no invalid variables get through
+      const validVariables = data.variables
+        .filter((v: any) => 
+          v.name && 
+          isValidVariableName(v.name) && 
+          v.name !== 'Task' && 
+          v.name !== 'Persona' && 
+          v.name !== 'Conditions' && 
+          v.name !== 'Instructions'
+        )
+        .map((v: any, index: number) => ({
+          ...v,
+          id: v.id || `v${index + 1}`,
+          // Only keep pre-filled values if we have additional context
+          value: data.hasAdditionalContext ? (v.value || "") : "",
+          // Mark as relevant if it has a value
+          isRelevant: v.value && v.value.trim() !== "" ? true : null
+        }));
+        
+      // If we have valid variables after filtering, use them
+      if (validVariables.length > 0) {
+        setVariables(validVariables);
+      } else {
+        // Otherwise use default variables from constants
+        const { defaultVariables } = await import("@/components/dashboard/constants");
+        setVariables(defaultVariables);
+      }
+    }
+  };
+
   const enhancePromptWithGPT = async (
     promptToEnhance: string,
     questions: Question[],
@@ -279,56 +214,22 @@ export const usePromptAnalysis = (
   ): Promise<string> => {
     try {
       // Create a context-aware loading message based on toggles
-      let message = "Enhancing your prompt";
-      if (selectedPrimary) {
-        const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label || selectedPrimary;
-        message += ` for ${primaryLabel}`;
-        
-        if (selectedSecondary) {
-          const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
-          message += ` and to be ${secondaryLabel}`;
-        }
-      } else if (selectedSecondary) {
-        const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
-        message += ` to be ${secondaryLabel}`;
-      }
-      message += "...";
-      
-      // Set the customized loading message
-      setCurrentLoadingMessage(message);
-      
-      // Filter out only answered and relevant questions
-      const answeredQuestions = questions.filter(
-        q => q.answer && q.answer.trim() !== "" && q.isRelevant !== false
+      const result = await enhancePrompt(
+        promptToEnhance, 
+        questions, 
+        variables, 
+        selectedPrimary, 
+        selectedSecondary, 
+        user, 
+        promptId
       );
-      
-      // Filter out only relevant variables
-      const relevantVariables = variables.filter(
-        v => v.isRelevant === true
-      );
-      
-      const { data, error } = await supabase.functions.invoke('enhance-prompt', {
-        body: {
-          originalPrompt: promptToEnhance,
-          answeredQuestions,
-          relevantVariables,
-          primaryToggle: selectedPrimary,
-          secondaryToggle: selectedSecondary,
-          userId: user?.id,
-          promptId
-        }
-      });
-      
-      if (error) {
-        throw error;
-      }
       
       // Update loading message if available from the edge function
-      if (data.loadingMessage) {
-        setCurrentLoadingMessage(data.loadingMessage);
+      if (result.loadingMessage) {
+        setCurrentLoadingMessage(result.loadingMessage);
       }
       
-      return data.enhancedPrompt;
+      return result.enhancedPrompt;
     } catch (error) {
       console.error("Error enhancing prompt with GPT:", error);
       toast({
