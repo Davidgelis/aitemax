@@ -1,5 +1,5 @@
 
-import { useState, useEffect, KeyboardEvent } from 'react';
+import { useState, useEffect, KeyboardEvent, useRef } from 'react';
 import { UploadedImage } from '@/components/dashboard/types';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
 import { X, ListOrdered, List, Upload } from 'lucide-react';
@@ -38,7 +38,7 @@ const PromptInput = ({
   const [inputValue, setInputValue] = useState(value || "");
   const [carouselOpen, setCarouselOpen] = useState(false);
   const [selectedImageId, setSelectedImageId] = useState<string | undefined>(undefined);
-  const [textareaRef, setTextareaRef] = useState<HTMLTextAreaElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   
   useEffect(() => {
     if (value !== undefined) {
@@ -82,8 +82,8 @@ const PromptInput = ({
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey && textareaRef) {
-      const cursorPosition = textareaRef.selectionStart;
+    if (e.key === 'Enter' && !e.shiftKey && textareaRef.current) {
+      const cursorPosition = textareaRef.current.selectionStart;
       const text = inputValue;
       
       // Get the current line
@@ -95,16 +95,16 @@ const PromptInput = ({
       if (bulletMatch) {
         e.preventDefault();
         
-        // If the current line is empty except for the bullet, remove the bullet
-        if (currentLine.trim() === '•') {
+        // If the current line is empty except for the bullet, remove the bullet (break out of list)
+        if (currentLine.trim() === '•' || currentLine.trim() === '• ') {
           const newText = text.substring(0, lineStart) + text.substring(cursorPosition);
           setInputValue(newText);
           if (onChange) onChange(newText);
           
           // Set cursor position
           setTimeout(() => {
-            if (textareaRef) {
-              textareaRef.selectionStart = textareaRef.selectionEnd = lineStart;
+            if (textareaRef.current) {
+              textareaRef.current.selectionStart = textareaRef.current.selectionEnd = lineStart;
             }
           }, 0);
         } else {
@@ -117,8 +117,8 @@ const PromptInput = ({
           
           // Set cursor position after the new bullet point
           setTimeout(() => {
-            if (textareaRef) {
-              textareaRef.selectionStart = textareaRef.selectionEnd = cursorPosition + insertion.length;
+            if (textareaRef.current) {
+              textareaRef.current.selectionStart = textareaRef.current.selectionEnd = cursorPosition + insertion.length;
             }
           }, 0);
         }
@@ -130,16 +130,16 @@ const PromptInput = ({
       if (numberMatch) {
         e.preventDefault();
         
-        // If the current line is empty except for the number, remove the numbering
-        if (currentLine.trim() === `${numberMatch[2]}.`) {
+        // If the current line is empty except for the number, remove the numbering (break out of list)
+        if (currentLine.trim() === `${numberMatch[2]}.` || currentLine.trim() === `${numberMatch[2]}. `) {
           const newText = text.substring(0, lineStart) + text.substring(cursorPosition);
           setInputValue(newText);
           if (onChange) onChange(newText);
           
           // Set cursor position
           setTimeout(() => {
-            if (textareaRef) {
-              textareaRef.selectionStart = textareaRef.selectionEnd = lineStart;
+            if (textareaRef.current) {
+              textareaRef.current.selectionStart = textareaRef.current.selectionEnd = lineStart;
             }
           }, 0);
         } else {
@@ -154,8 +154,8 @@ const PromptInput = ({
           
           // Set cursor position after the new numbered item
           setTimeout(() => {
-            if (textareaRef) {
-              textareaRef.selectionStart = textareaRef.selectionEnd = cursorPosition + insertion.length;
+            if (textareaRef.current) {
+              textareaRef.current.selectionStart = textareaRef.current.selectionEnd = cursorPosition + insertion.length;
             }
           }, 0);
         }
@@ -164,10 +164,10 @@ const PromptInput = ({
   };
 
   const insertBulletList = () => {
-    if (!textareaRef) return;
+    if (!textareaRef.current) return;
 
-    const start = textareaRef.selectionStart;
-    const end = textareaRef.selectionEnd;
+    const start = textareaRef.current.selectionStart;
+    const end = textareaRef.current.selectionEnd;
     const text = inputValue;
     
     // If text is selected, convert each line to bullet points
@@ -190,18 +190,18 @@ const PromptInput = ({
       
       // Position cursor after the bullet point
       setTimeout(() => {
-        if (textareaRef) {
-          textareaRef.selectionStart = textareaRef.selectionEnd = start + 2;
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + 2;
         }
       }, 0);
     }
   };
 
   const insertNumberedList = () => {
-    if (!textareaRef) return;
+    if (!textareaRef.current) return;
 
-    const start = textareaRef.selectionStart;
-    const end = textareaRef.selectionEnd;
+    const start = textareaRef.current.selectionStart;
+    const end = textareaRef.current.selectionEnd;
     const text = inputValue;
     
     // If text is selected, convert each line to numbered points
@@ -246,59 +246,62 @@ const PromptInput = ({
       
       // Position cursor after the numbered point
       setTimeout(() => {
-        if (textareaRef) {
-          textareaRef.selectionStart = textareaRef.selectionEnd = start + `${number}. `.length;
+        if (textareaRef.current) {
+          textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + `${number}. `.length;
         }
       }, 0);
     }
   };
 
+  // Define larger icon size (30% bigger)
+  const iconSize = 6.5; // Original was 5, increasing by 30%
+
   return (
     <form onSubmit={handleSubmit} className={`w-full mx-auto ${className}`}>
       <div className="relative group">
         <div className="relative">
-          <div className="flex items-center gap-4 mb-1 p-5 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
+          <div className="flex items-center gap-4 mb-1 p-6 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
             {/* Formatting tools on the left */}
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <button 
                 type="button" 
-                className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
+                className="p-1.5 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
                 onClick={insertBulletList}
                 title="Insert bullet list"
               >
-                <List className="w-5 h-5" />
+                <List className={`w-${iconSize} h-${iconSize}`} style={{ width: `${iconSize * 4}px`, height: `${iconSize * 4}px` }} />
               </button>
               <button 
                 type="button" 
-                className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
+                className="p-1.5 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
                 onClick={insertNumberedList}
                 title="Insert numbered list"
               >
-                <ListOrdered className="w-5 h-5" />
+                <ListOrdered className={`w-${iconSize} h-${iconSize}`} style={{ width: `${iconSize * 4}px`, height: `${iconSize * 4}px` }} />
               </button>
             </div>
             
             {/* Divider */}
-            <div className="h-6 w-px bg-gray-200 mx-1"></div>
+            <div className="h-6 w-px bg-gray-200 mx-2"></div>
             
             {/* Image previews aligned to the right */}
-            <div className="flex flex-1 justify-end items-center space-x-4">
+            <div className="flex flex-1 justify-end items-center space-x-5">
               {images && images.length > 0 ? (
                 images.map(image => (
-                  <div key={image.id} className="relative group" style={{ marginTop: '8px', marginBottom: '8px' }}>
+                  <div key={image.id} className="relative group" style={{ marginTop: '12px', marginBottom: '12px' }}>
                     <img 
                       src={image.url} 
                       alt="Uploaded" 
                       className="object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
                       onClick={() => handleImageClick(image.id)}
-                      style={{ width: '68px', height: '68px' }}
+                      style={{ width: '75px', height: '75px' }}
                     />
                     <button
                       onClick={(e) => handleRemoveImage(image.id, e)}
-                      className="absolute -top-3 -right-3 bg-[#041524] text-white rounded-full p-1 border border-[#33fea6]/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute -top-4 -right-4 bg-[#041524] text-white rounded-full p-1.5 border border-[#33fea6]/30 opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Remove image"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 ))
@@ -321,7 +324,7 @@ const PromptInput = ({
               border: "1px solid #e5e7eb",
               borderTop: "none"
             }}
-            ref={(textarea) => setTextareaRef(textarea)}
+            ref={textareaRef}
           />
           
           <div className="hidden">
