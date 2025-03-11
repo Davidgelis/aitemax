@@ -238,7 +238,8 @@ Example of properly pre-filled items:
   "id": "q1",
   "text": "What is the environment in the image?",
   "answer": "A dense forest with tall pine trees and undergrowth",
-  "isRelevant": true
+  "isRelevant": true,
+  "category": "Location"
 }`;
     }
     

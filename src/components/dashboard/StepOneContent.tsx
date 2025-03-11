@@ -3,7 +3,7 @@ import { ToggleSection } from "./ToggleSection";
 import { PromptEditor } from "./PromptEditor";
 import { Separator } from "@/components/ui/separator";
 import { primaryToggles, secondaryToggles } from "./constants";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UploadedImage } from "./types";
 import { ImageCarousel } from "./ImageCarousel";
 import { WebScanner } from "./WebScanner";
@@ -46,6 +46,16 @@ export const StepOneContent = ({
     "This button will conduct a final precision-driven refinement of the generated prompt as a second layer of refinment, ensuring you receive the best possible prompt by eliminating ambiguities, reinforcing clarity, and ensuring domain-specific accuracy for optimal task execution.";
   
   const cognitiveToggle = [{ label: "Cognitive Prompt Perfection Model", id: "cognitive" }];
+  
+  // Log the current state to help with debugging
+  useEffect(() => {
+    console.log("StepOneContent state:", {
+      hasImages: uploadedImages.length > 0,
+      websiteContext,
+      selectedPrimary,
+      selectedSecondary
+    });
+  }, [uploadedImages, websiteContext, selectedPrimary, selectedSecondary]);
   
   const handleWebsiteScan = (url: string, instructions: string) => {
     setWebsiteContext({ url, instructions });

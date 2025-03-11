@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions } from "@/components/dashboard/constants";
@@ -159,13 +160,27 @@ export const usePromptAnalysis = (
         
         if (data.questions && data.questions.length > 0) {
           // Ensure pre-filled questions have isRelevant set to true
-          const aiQuestions = data.questions.map((q: any, index: number) => ({
-            ...q,
-            id: q.id || `q${index + 1}`,
-            // If question has an answer, make sure isRelevant is true
-            isRelevant: q.answer && q.answer.trim() !== "" ? true : q.isRelevant
-          }));
+          const aiQuestions = data.questions.map((q: any, index: number) => {
+            // Create properly formatted question object
+            const questionObj = {
+              ...q,
+              id: q.id || `q${index + 1}`,
+              // If question has an answer, make sure isRelevant is true - this is CRITICAL
+              isRelevant: q.answer && q.answer.trim() !== "" ? true : q.isRelevant,
+              // Make sure answer is never undefined
+              answer: q.answer || ""
+            };
+            
+            // Verify isRelevant is properly set for pre-filled answers
+            if (questionObj.answer && questionObj.answer.trim() !== "" && questionObj.isRelevant !== true) {
+              console.warn(`Question "${questionObj.text}" has an answer but isRelevant is not true!`);
+              questionObj.isRelevant = true;
+            }
+            
+            return questionObj;
+          });
           
+          console.log("Setting questions with pre-filled answers:", aiQuestions);
           setQuestions(aiQuestions);
           
           // Log pre-filled question answers
@@ -173,7 +188,7 @@ export const usePromptAnalysis = (
           if (prefilledQuestions.length > 0) {
             console.log(`Received ${prefilledQuestions.length} pre-filled question answers from AI analysis`);
             prefilledQuestions.forEach((q: Question) => {
-              console.log(`  - Question: "${q.text}", Answer: "${q.answer}"`);
+              console.log(`  - Question: "${q.text}", Answer: "${q.answer}", isRelevant: ${q.isRelevant}`);
             });
           }
         } else {
@@ -193,14 +208,27 @@ export const usePromptAnalysis = (
               v.name !== 'Conditions' && 
               v.name !== 'Instructions'
             )
-            .map((v: any, index: number) => ({
-              ...v,
-              id: v.id || `v${index + 1}`,
-              // If variable has a value, make sure isRelevant is true
-              isRelevant: v.value && v.value.trim() !== "" ? true : v.isRelevant,
-              // Add code field if missing
-              code: v.code || `VAR_${index + 1}`
-            }));
+            .map((v: any, index: number) => {
+              // Create properly formatted variable object
+              const variableObj = {
+                ...v,
+                id: v.id || `v${index + 1}`,
+                // If variable has a value, make sure isRelevant is true - this is CRITICAL
+                isRelevant: v.value && v.value.trim() !== "" ? true : v.isRelevant,
+                // Add code field if missing
+                code: v.code || `VAR_${index + 1}`,
+                // Make sure value is never undefined
+                value: v.value || ""
+              };
+              
+              // Verify isRelevant is properly set for pre-filled values
+              if (variableObj.value && variableObj.value.trim() !== "" && variableObj.isRelevant !== true) {
+                console.warn(`Variable "${variableObj.name}" has a value but isRelevant is not true!`);
+                variableObj.isRelevant = true;
+              }
+              
+              return variableObj;
+            });
             
           // If we have valid variables after filtering, use them
           if (validVariables.length > 0) {
@@ -212,7 +240,7 @@ export const usePromptAnalysis = (
             if (prefilledVariables.length > 0) {
               console.log(`Received ${prefilledVariables.length} pre-filled variable values from AI analysis`);
               prefilledVariables.forEach((v: Variable) => {
-                console.log(`  - ${v.name}: "${v.value}"`);
+                console.log(`  - ${v.name}: "${v.value}", isRelevant: ${v.isRelevant}`);
               });
             }
           } else {

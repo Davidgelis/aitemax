@@ -70,7 +70,8 @@ For each pre-filled variable or question, you MUST explicitly set isRelevant to 
   "id": "q1",
   "text": "What is the environment in the image?",
   "answer": "A dense forest with tall pine trees and undergrowth",
-  "isRelevant": true
+  "isRelevant": true,
+  "category": "Location"
 }
 
 FAILURE TO PRE-FILL VARIABLES AND QUESTIONS WITH SPECIFIC CONTENT FROM THE IMAGE AND SET isRelevant TO TRUE WILL RESULT IN INCORRECT BEHAVIOR.
@@ -98,7 +99,8 @@ ${additionalContext}`
   "id": "q1",
   "text": "What is the main topic?",
   "answer": "AI-powered content creation tools",
-  "isRelevant": true
+  "isRelevant": true,
+  "category": "Topic"
 }
 
 {
@@ -131,6 +133,7 @@ FAILURE TO PRE-FILL VARIABLES AND QUESTIONS WITH SPECIFIC CONTENT FROM THE WEBSI
         model: 'gpt-4o', // Using GPT-4o for improved analysis
         messages,
         temperature: 0.5, // Lower temperature for more consistent results
+        response_format: { type: "text" }, // Enforce text response to get proper JSON
       }),
     });
     
