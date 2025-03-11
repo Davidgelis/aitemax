@@ -1,12 +1,11 @@
-
-import { ToggleSection } from "./ToggleSection";
-import { PromptEditor } from "./PromptEditor";
-import { Separator } from "@/components/ui/separator";
+import { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PromptInput from "@/components/PromptInput"; // Fixed import
+import { ImageUploader } from "@/components/dashboard/ImageUploader";
+import { WebScanner } from "@/components/dashboard/WebScanner";
 import { primaryToggles, secondaryToggles } from "./constants";
-import { useState } from "react";
-import { UploadedImage } from "./types";
-import { ImageCarousel } from "./ImageCarousel";
-import { WebScanner } from "./WebScanner";
+import { AIModel, UploadedImage } from "./types";
+import { ModelSelector } from "./model-selector"; // Fixed import
 
 interface StepOneContentProps {
   promptText: string;
@@ -17,10 +16,12 @@ interface StepOneContentProps {
   handleSecondaryToggle: (id: string) => void;
   onAnalyze: () => void;
   isLoading: boolean;
-  selectedModel: any | null;
-  setSelectedModel: (model: any | null) => void;
+  selectedModel: AIModel | null;
+  setSelectedModel: (model: AIModel | null) => void;
   selectedCognitive: string | null;
   handleCognitiveToggle: (id: string) => void;
+  onImagesChange?: (images: UploadedImage[]) => void;
+  onWebsiteScan?: (url: string, instructions: string) => void;
 }
 
 export const StepOneContent = ({
@@ -35,99 +36,122 @@ export const StepOneContent = ({
   selectedModel,
   setSelectedModel,
   selectedCognitive,
-  handleCognitiveToggle
+  handleCognitiveToggle,
+  onImagesChange = () => {},
+  onWebsiteScan = () => {}
 }: StepOneContentProps) => {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
-  const [carouselOpen, setCarouselOpen] = useState(false);
-  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
-  
-  const cognitiveTooltip = 
-    "This button will conduct a final precision-driven refinement of the generated prompt as a second layer of refinment, ensuring you receive the best possible prompt by eliminating ambiguities, reinforcing clarity, and ensuring domain-specific accuracy for optimal task execution.";
-  
-  const cognitiveToggle = [{ label: "Cognitive Prompt Perfection Model", id: "cognitive" }];
-  
-  const handleWebsiteScan = (url: string, instructions: string) => {
-    setWebsiteContext({ url, instructions });
-    
-    // Add a console log to verify the website context is being set
-    console.log("Website context set in StepOneContent:", { url, instructions });
+
+  useEffect(() => {
+    if (onImagesChange) {
+      onImagesChange(uploadedImages);
+    }
+  }, [uploadedImages, onImagesChange]);
+
+  const handleImagesChange = (images: UploadedImage[]) => {
+    setUploadedImages(images);
+    console.log("Images updated:", images);
   };
-  
+
+  const handleWebsiteScan = (url: string, instructions: string = "") => {
+    const contextData = { url, instructions };
+    setWebsiteContext(contextData);
+    onWebsiteScan(url, instructions);
+    console.log("Website context set:", contextData);
+  };
+
   const handleAnalyzeWithContext = () => {
-    // Console log to verify what data is being passed to analysis
-    console.log("Analyzing with context:", {
-      hasImages: uploadedImages.length > 0,
-      websiteContext: websiteContext,
-      primaryToggle: selectedPrimary,
-      secondaryToggle: selectedSecondary
+    console.log("Analyzing with full context:", {
+      promptText,
+      uploadedImages,
+      websiteContext,
+      selectedPrimary,
+      selectedSecondary
     });
     
-    // Call the parent's onAnalyze function with additional context
     onAnalyze();
   };
-  
+
+  const renderPromptInput = (placeholder?: string) => (
+    <div className="relative">
+      <PromptInput 
+        value={promptText}
+        onChange={setPromptText}
+        onSubmit={handleAnalyzeWithContext}
+        placeholder={placeholder}
+        className="w-full"
+        images={uploadedImages}
+        onImagesChange={handleImagesChange}
+      />
+    </div>
+  );
+
   return (
-    <div className="space-y-4 w-full relative">
-      <div className="w-full">
-        <div className="flex justify-between items-center">
-          <WebScanner 
-            onWebsiteScan={handleWebsiteScan} 
-            variant="modelReplacement" 
-          />
-          
-          <div className="flex items-center">
-            <ToggleSection 
-              toggles={cognitiveToggle} 
-              selectedToggle={selectedCognitive} 
-              onToggleChange={handleCognitiveToggle}
-              variant="aurora"
-              tooltipText={cognitiveTooltip}
-            />
+    <div className="border rounded-xl p-6 bg-card">
+      {/* Web Smart Scan button */}
+      <div className="mb-4">
+        <WebScanner 
+          onWebsiteScan={handleWebsiteScan}
+          variant="modelReplacement"
+        />
+      </div>
+
+      {/* Main content area */}
+      <div className="mb-8">
+        {renderPromptInput("Enter your prompt...")}
+      </div>
+
+      {/* Toggle sections */}
+      <div className="space-y-6">
+        {/* Prompt Type */}
+        <div className="space-y-3">
+          <h3 className="text-[#545454] font-medium mb-2">Prompt Type</h3>
+          <div className="flex flex-wrap gap-2">
+            {primaryToggles.map(toggle => (
+              <button
+                key={toggle.id}
+                className={`px-4 py-1.5 rounded-full text-sm transition-colors
+                  ${selectedPrimary === toggle.id 
+                    ? 'bg-[#084b49] text-white' 
+                    : 'border border-[#084b49] text-[#084b49]'}`}
+                onClick={() => handlePrimaryToggle(toggle.id)}
+              >
+                {toggle.label}
+              </button>
+            ))}
           </div>
         </div>
-        
-        <div className="mt-4">
-          <ToggleSection 
-            toggles={primaryToggles} 
-            selectedToggle={selectedPrimary} 
-            onToggleChange={handlePrimaryToggle} 
-            variant="primary"
-          />
+
+        {/* Response Style */}
+        <div className="space-y-3">
+          <h3 className="text-[#545454] font-medium mb-2">Response Style</h3>
+          <div className="flex flex-wrap gap-2">
+            {secondaryToggles.map(toggle => (
+              <button
+                key={toggle.id}
+                className={`px-4 py-1.5 rounded-full text-sm transition-colors
+                  ${selectedSecondary === toggle.id 
+                    ? 'bg-[#084b49] text-white' 
+                    : 'border border-[#084b49] text-[#084b49]'}`}
+                onClick={() => handleSecondaryToggle(toggle.id)}
+              >
+                {toggle.label}
+              </button>
+            ))}
+          </div>
         </div>
-        
-        <Separator className="my-4" />
-        
-        <div>
-          <ToggleSection 
-            toggles={secondaryToggles} 
-            selectedToggle={selectedSecondary} 
-            onToggleChange={handleSecondaryToggle} 
-            variant="secondary"
-          />
-        </div>
-        
-        <div className="mt-6">
-          <PromptEditor 
-            promptText={promptText}
-            setPromptText={setPromptText}
-            onAnalyze={handleAnalyzeWithContext}
-            selectedPrimary={selectedPrimary}
-            selectedSecondary={selectedSecondary}
-            isLoading={isLoading}
-            images={uploadedImages}
-            onImagesChange={setUploadedImages}
-            websiteContext={websiteContext}
+
+        {/* AI Model */}
+        <div className="flex justify-between items-center">
+          <h3 className="text-[#545454] font-medium">AI Model</h3>
+          <ModelSelector
+            selectedModel={selectedModel}
+            onSelect={setSelectedModel}
+            isInitializingModels={false}
           />
         </div>
       </div>
-      
-      <ImageCarousel 
-        images={uploadedImages}
-        open={carouselOpen}
-        onOpenChange={setCarouselOpen}
-        initialImageId={selectedImageId || undefined}
-      />
     </div>
   );
 };
