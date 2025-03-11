@@ -54,18 +54,20 @@ export const StepOneContent = ({
 
   const handleImagesChange = (images: UploadedImage[]) => {
     setUploadedImages(images);
-    console.log("Images updated:", images);
+    console.log("StepOneContent: Images updated:", images);
   };
 
   const handleWebsiteScan = (url: string, instructions: string = "") => {
     const contextData = { url, instructions };
     setWebsiteContext(contextData);
+    console.log("StepOneContent: Website context set:", contextData);
+    
+    // Important: Forward to parent component
     onWebsiteScan(url, instructions);
-    console.log("Website context set:", contextData);
   };
 
   const handleAnalyzeWithContext = () => {
-    console.log("Analyzing with full context:", {
+    console.log("StepOneContent: Analyzing with context:", {
       promptText,
       uploadedImages,
       websiteContext,

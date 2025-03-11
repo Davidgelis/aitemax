@@ -49,11 +49,16 @@ ${additionalContext}`
       ]
     });
   } else {
-    // No image, just use a simple text message
+    // No image, just use a simple text message with additional context
     console.log("No image provided - using text-only OpenAI API request");
+    console.log("Additional context provided:", additionalContext ? "Yes" : "No");
+    
+    // If we have website context, make sure it's clear to the AI model
+    const messageText = `Analyze this prompt for generating questions and variables: "${promptText}" ${additionalContext}`;
+    
     messages.push({
       role: 'user',
-      content: `Analyze this prompt for generating questions and variables: "${promptText}" ${additionalContext}`
+      content: messageText
     });
   }
   

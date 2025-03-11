@@ -25,6 +25,7 @@ export const WebScanner = ({
     setSavedInstructions(instructions);
     
     // Call the parent handler without modifying any text area
+    console.log("WebScanner: Sending website data to parent:", { url, instructions });
     onWebsiteScan(url, instructions);
   };
 

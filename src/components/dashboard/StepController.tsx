@@ -139,6 +139,7 @@ export const StepController = ({
   };
 
   const handleWebsiteScan = (url: string, instructions: string) => {
+    console.log("StepController: Website context set:", { url, instructions });
     setWebsiteContext({ url, instructions });
     
     toast({
@@ -148,6 +149,7 @@ export const StepController = ({
   };
 
   const handleImagesChange = (images: UploadedImage[]) => {
+    console.log("StepController: Images updated:", images);
     setUploadedImages(images);
     
     if (images.length > 0) {
@@ -161,7 +163,10 @@ export const StepController = ({
   const handleAnalyzeWithContext = () => {
     console.log("StepController: Analyzing with context", {
       images: uploadedImages,
-      websiteContext
+      websiteContext,
+      hasWebsiteContext: !!websiteContext,
+      websiteUrl: websiteContext?.url || "none",
+      websiteInstructions: websiteContext?.instructions || "none"
     });
     
     handleAnalyze(uploadedImages, websiteContext);

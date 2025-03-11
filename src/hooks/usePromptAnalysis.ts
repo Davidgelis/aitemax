@@ -86,7 +86,8 @@ export const usePromptAnalysis = (
       hasImages: images && images.length > 0,
       imageCount: images ? images.length : 0,
       hasWebsiteData: !!websiteData,
-      websiteUrl: websiteData ? websiteData.url : null
+      websiteUrl: websiteData ? websiteData.url : null,
+      websiteInstructions: websiteData ? websiteData.instructions : null
     });
     
     const hasAdditionalContext = (images && images.length > 0) || (websiteData && websiteData.url);
@@ -135,10 +136,13 @@ export const usePromptAnalysis = (
         payload.promptId = promptId;
       }
       
-      // Add website data if available
+      // Add website data if available - ensure it's properly formatted
       if (websiteData && websiteData.url) {
         console.log("Including website data in analysis payload:", websiteData);
-        payload.websiteData = websiteData;
+        payload.websiteData = {
+          url: websiteData.url,
+          instructions: websiteData.instructions || ""
+        };
       }
       
       // Add image data if available
@@ -163,7 +167,8 @@ export const usePromptAnalysis = (
         secondaryToggle: selectedSecondary,
         hasImage: !!(images && images.length > 0),
         hasWebsite: !!(websiteData && websiteData.url),
-        hasAdditionalContext
+        hasAdditionalContext,
+        websiteDataInPayload: !!payload.websiteData
       });
       
       const { data, error } = await supabase.functions.invoke('analyze-prompt', {
