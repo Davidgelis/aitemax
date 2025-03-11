@@ -45,7 +45,7 @@ export const WebScanDialog = ({
       <DialogContent className="sm:max-w-md bg-white border border-[#084b49]/30 p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="text-xl font-medium text-[#545454]">Web Smart Scan</DialogTitle>
-          <p className="text-sm text-[#545454] font-normal mt-1">Use website content as context for your prompt</p>
+          <p className="text-sm text-[#545454] font-normal mt-1">Use website content to enhance your original prompt</p>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="p-6 pt-2">
@@ -66,21 +66,21 @@ export const WebScanDialog = ({
           
           <div className="mb-4">
             <label htmlFor="instructions" className="block text-sm font-medium text-[#545454] mb-2">
-              What to extract from this website
+              What specific information do you want from this website?
             </label>
             <Textarea 
               id="instructions"
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
-              placeholder="E.g., 'Extract best practices for UI design' or 'Find information about pricing models'"
+              placeholder="E.g., 'Extract best practices for landing pages' or 'Find information about pricing models'"
               className="w-full min-h-[120px] border-[#084b49]/30 resize-none"
             />
             <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">
               <Info size={14} className="flex-shrink-0" />
               <p>
-                Be specific about what information you want extracted. For example:
-                "Find all best practices for SEO", "Extract the key features and benefits", 
-                or "Identify the pricing structure and options".
+                Be specific about what information you want extracted to enhance your prompt. For example:
+                "Find all best practices for landing page design", "Extract key features of successful SaaS websites", 
+                or "Identify pricing structure patterns used by competitors".
               </p>
             </div>
           </div>
@@ -90,7 +90,7 @@ export const WebScanDialog = ({
               type="submit"
               className="bg-[#084b49] hover:bg-[#084b49]/90 text-white px-4 py-2"
             >
-              Save Response
+              Use as Context
             </Button>
           </div>
         </form>

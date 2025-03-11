@@ -62,13 +62,14 @@ ${additionalContext}`
 ${additionalContext}
 
 When creating and pre-filling questions:
-1. Extract DETAILED information from the website content
-2. Write 1-2 full sentences in each answer, directly quoting or closely paraphrasing the website
-3. Make questions that are specifically relevant to both the prompt and the website content
-4. Focus especially on any specific instructions the user provided for analyzing the website
-5. For each answer, include at least one concrete detail, fact, or quote from the website
-6. For questions about "best practices" or similar terms that the user has instructed you to find, EXTRACT ALL relevant practices, recommendations, or guidelines from the website content
-7. If the user has asked for specific information (like "best practices", "guidelines", "steps", etc.), make sure to create questions that will elicit those specific items from the content`;
+1. FOCUS ON THE ORIGINAL PROMPT'S INTENT - the website content should enhance, not replace it
+2. Create questions that relate to the original prompt's purpose, not about the website itself
+3. If the prompt is about creating something (like a landing page), questions should be about that creation process
+4. Use the website content to provide detailed answers that support the original prompt's goals
+5. Extract 1-2 full sentences of detailed information from the website for question answers
+6. Include concrete facts, quotes or examples from the website that support the original prompt's purpose
+7. If the user asked to extract specific information (like "best practices"), focus on those items as they relate to the original prompt
+8. Remember: website content is supplementary research material for enhancing the original prompt, not the primary subject`;
     } else {
       messageText += ` ${additionalContext}`;
     }

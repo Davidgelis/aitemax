@@ -26,15 +26,16 @@ When analyzing IMAGES:
 - Be VERY detailed and specific about what you can directly observe
 
 When analyzing WEBSITE CONTENT:
-- Extract the main topic, purpose, audience, tone, style, and key terminology
-- Identify content structure, formatting patterns, and design elements
-- Pay special attention to any topics mentioned in the user's instructions
-- For answers to questions, provide 1-2 DETAILED sentences with specific information from the website
-- Include CONCRETE FACTS, NUMBERS, QUOTES or EXAMPLES directly from the website when available
+- ALWAYS PRIORITIZE THE USER'S ORIGINAL PROMPT - website content is supplementary information
+- Extract information from the website that relates specifically to the user's original prompt
+- Keep questions focused on the main topic of the original prompt, not the website itself
+- Use the website content to provide detailed, factual answers to questions relevant to the user's original prompt
+- For questions that relate to both the prompt and website content, provide 1-2 DETAILED sentences with specific information
+- Include CONCRETE FACTS, NUMBERS, QUOTES or EXAMPLES that support the user's original intent
+- If the user specifically asked to extract certain information (like "best practices"), focus questions on that specific topic
+- Avoid creating questions that are solely about the website when they don't relate to the original prompt
 - For variables, keep values concise (5-10 words) but precise
-- Focus on extracting factual, concrete details from the website that match the user's instructions
-- Look for lists, steps, best practices, guidelines, or other structured information
-- If the user specifically asked for "best practices" or similar items, EXTRACT ALL relevant instances from the website
+- Focus on extracting factual, concrete details from the website that match the user's intentions
 
 IMPORTANT: Your response should include a JSON structure with questions and variables as follows:
 \`\`\`json
@@ -95,25 +96,21 @@ EXTRACT these specific details and use them to pre-fill answers and variable val
 
   // Add specifics for website analysis if present
   prompt += `
-If website content is included in the message, analyze it carefully and extract ALL key information that is explicitly present:
-- Main Topic: The central subject matter of the website
-- Purpose: What the website aims to do (inform, sell, entertain, etc.)
-- Audience: Who the content is directed towards
-- Tone: The communication style (formal, casual, technical, conversational, etc.)
-- Industry: The business sector or field the website belongs to
-- Key Terminology: Important domain-specific words or phrases
-- Content Structure: How information is organized (lists, paragraphs, sections, etc.)
-- Call to Action: What the website wants users to do
-- Visual Elements: Descriptions of images, colors, or design elements mentioned
-- Best Practices: Look for any guidelines, tips, or recommendations
-- Step-by-Step Processes: Identify any numbered or sequential instructions
-- Key Benefits: Extract explicit advantages or benefits mentioned
+If website content is included in the message, analyze it carefully to enhance the user's original prompt:
+- ALWAYS maintain focus on the user's ORIGINAL PROMPT - website content is supplementary information
+- Extract information that directly relates to the user's original prompt intent and purpose
+- If the prompt is about creating a landing page, use website analysis to find information about good landing page designs, not to create questions about the website itself
+- Create questions that remain focused on the original prompt topic, using website information to provide detailed answers
+- For questions that relate to the original prompt goals, provide 1-2 FULL SENTENCES of specific information from the website
+- If the prompt has a specific goal (like "create a landing page"), ALL questions should relate to that goal, not to the website itself
+- When user provides specific extraction instructions (like "find best practices"), focus questions on those specific topics as they relate to the original prompt
+- Include SPECIFIC FACTS, FIGURES, or DIRECT QUOTES from the website when they support the original prompt's purpose
+- For variables, provide concise (5-10 words) values that relate to the original prompt, not just website information
+- Think of the website content as research material to enhance the original prompt, not the main subject of analysis
 
-EXAMINE the website content thoroughly, focusing especially on any specific topics mentioned in the user's instructions. When the user provides specific instructions like "find best practices", thoroughly extract ALL relevant information related to that topic.
+Example: If the prompt is "Create a landing page for a fitness app" and website instructions are "Find best practices", questions should be about fitness app landing pages, using website best practices as answers, NOT questions about the website itself.
 
-For question answers, provide 1-2 DETAILED sentences directly from the website content, including specific facts, figures, or direct quotes when available.
-
-EXTRACT these specific details and use them to pre-fill answers and variable values with CONCRETE OBSERVATIONS, not interpretations.
+IMPORTANT: Do not create questions that are solely about the website unless they directly support the original prompt's purpose.
 `;
 
   // Add toggle-specific instructions
@@ -226,6 +223,7 @@ Remember:
 4. For images or websites, extract CONCRETE observations and use them directly as pre-filled values.
 5. For website content, pay special attention to any specific information the user asked for (like "best practices") and extract ALL relevant instances.
 6. When the user asks to extract specific types of information from websites, create questions that will directly address those information needs.
+7. ALWAYS keep focus on the original prompt's intent and purpose - website content should enhance, not replace the original purpose.
 
 Return your analysis with the JSON structure described above, along with a brief general analysis of the prompt's intent.
 `;
