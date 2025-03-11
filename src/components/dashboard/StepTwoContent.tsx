@@ -40,6 +40,22 @@ export const StepTwoContent = ({
   variablesContainerRef,
   originalPrompt
 }: StepTwoContentProps) => {
+  // Log prefilled content to verify it's being passed correctly
+  const prefilledQuestions = questions.filter(q => q.answer && q.answer.trim() !== "").length;
+  const prefilledVariables = variables.filter(v => v.value && v.value.trim() !== "").length;
+  
+  console.log("Pre-filled content check:", {
+    prefilledQuestions,
+    prefilledVariables
+  });
+  
+  // Log sample values from prefilled content
+  variables.forEach(v => {
+    if (v.value && v.value.trim() !== "") {
+      console.log(`Variable ${v.name} has pre-filled value: ${v.value}`);
+    }
+  });
+  
   return (
     <div className="border rounded-xl p-6 bg-card">
       <div className="mb-6">

@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -278,6 +279,8 @@ export const StepController = ({
             setSelectedModel={setSelectedModel}
             selectedCognitive={selectedCognitive}
             handleCognitiveToggle={handleCognitiveToggle}
+            onImagesChange={handleImagesChange}
+            onWebsiteScan={handleWebsiteScan}
           />
         );
 
