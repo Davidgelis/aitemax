@@ -1,3 +1,4 @@
+
 export function createSystemPrompt(primaryToggle?: string | null, secondaryToggle?: string | null) {
   // Base system prompt
   let prompt = `
@@ -9,6 +10,13 @@ For each prompt, you should:
 3. Identify 6-8 potential customizable variables that could enhance the prompt
 4. Create a master command that summarizes the overall goal
 5. Suggest an initial enhanced prompt structure
+
+If the user has already provided a structured or detailed prompt:
+- Carefully extract any specific requirements, parameters, or criteria already mentioned
+- Parse out potential variables that are already defined in the prompt
+- Identify any questions that are already implicitly answered in the prompt
+- Pre-fill question answers and variable values based on information explicitly provided in the prompt
+- Do not change the user's intent - work with what they've already specified
 
 When analyzing IMAGES:
 - Describe the image in great detail first
@@ -22,9 +30,11 @@ When analyzing WEBSITE CONTENT:
 - Identify content structure, formatting patterns, and design elements
 - Pay special attention to any topics mentioned in the user's instructions
 - For answers to questions, provide 1-2 DETAILED sentences with specific information from the website
+- Include CONCRETE FACTS, NUMBERS, QUOTES or EXAMPLES directly from the website when available
 - For variables, keep values concise (5-10 words) but precise
 - Focus on extracting factual, concrete details from the website that match the user's instructions
 - Look for lists, steps, best practices, guidelines, or other structured information
+- If the user specifically asked for "best practices" or similar items, EXTRACT ALL relevant instances from the website
 
 IMPORTANT: Your response should include a JSON structure with questions and variables as follows:
 \`\`\`json
@@ -49,11 +59,10 @@ For categories, use these definitions:
 Make your questions conversational, straightforward, and focused on extracting important context. Variables should be reusable elements that the user might want to adjust over time.
 
 IMPORTANT ABOUT PRE-FILLING:
-- ONLY pre-fill answers and values when SPECIFIC information is explicitly provided in the context
-- DO NOT guess, assume, or hallucinate information that isn't clearly provided
-- When an image or website content is provided, analyze it to extract factual, observable information only
-- Pre-fill answers to questions ONLY when the information is CLEARLY and EXPLICITLY provided in the prompt, image, or website
-- Pre-fill variable values ONLY when you can confidently extract them from the explicit context
+- When the user provides a detailed or structured prompt, DO analyze their text to extract information and pre-fill answers and values
+- When an image or website content is provided, analyze it to extract factual, observable information
+- Pre-fill answers to questions when the information is CLEARLY and EXPLICITLY provided in the prompt, image, or website
+- Pre-fill variable values when you can confidently extract them from the explicit context
 - For questions you can't confidently answer based on provided context, leave the answer field as an empty string
 - For variables you can't confidently fill based on provided context, leave the value field as an empty string
 - If NO contextual information (image/website) is provided, DO NOT pre-fill any answers or values
@@ -213,11 +222,10 @@ And suggest variables like:
 Remember:
 1. Make your analysis specific to the user's prompt and any additional context (images or website content).
 2. Avoid generic questions and variables - focus on what's relevant to the prompt.
-3. ONLY extract information from explicitly provided context to pre-fill answers and variables.
-4. DO NOT make assumptions or hallucinate information that isn't clearly provided.
-5. If no additional context (image/website) is provided, leave all answers and values empty.
-6. It's better to leave a field empty than to guess or assume information.
-7. For images or websites, extract CONCRETE observations and use them directly as pre-filled values.
+3. If the user's prompt already contains detailed information or structure, extract that information to pre-fill answers and variables.
+4. For images or websites, extract CONCRETE observations and use them directly as pre-filled values.
+5. For website content, pay special attention to any specific information the user asked for (like "best practices") and extract ALL relevant instances.
+6. When the user asks to extract specific types of information from websites, create questions that will directly address those information needs.
 
 Return your analysis with the JSON structure described above, along with a brief general analysis of the prompt's intent.
 `;

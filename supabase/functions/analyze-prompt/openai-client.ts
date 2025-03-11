@@ -66,7 +66,9 @@ When creating and pre-filling questions:
 2. Write 1-2 full sentences in each answer, directly quoting or closely paraphrasing the website
 3. Make questions that are specifically relevant to both the prompt and the website content
 4. Focus especially on any specific instructions the user provided for analyzing the website
-5. For each answer, include at least one concrete detail, fact, or quote from the website`;
+5. For each answer, include at least one concrete detail, fact, or quote from the website
+6. For questions about "best practices" or similar terms that the user has instructed you to find, EXTRACT ALL relevant practices, recommendations, or guidelines from the website content
+7. If the user has asked for specific information (like "best practices", "guidelines", "steps", etc.), make sure to create questions that will elicit those specific items from the content`;
     } else {
       messageText += ` ${additionalContext}`;
     }

@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Info } from 'lucide-react';
 
 interface WebScanDialogProps {
   open: boolean;
@@ -74,9 +75,14 @@ export const WebScanDialog = ({
               placeholder="E.g., 'Extract best practices for UI design' or 'Find information about pricing models'"
               className="w-full min-h-[120px] border-[#084b49]/30 resize-none"
             />
-            <p className="text-xs text-[#545454]/80 mt-1">
-              Be specific about what information you want extracted. The AI will focus on finding this information in the website content.
-            </p>
+            <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">
+              <Info size={14} className="flex-shrink-0" />
+              <p>
+                Be specific about what information you want extracted. For example:
+                "Find all best practices for SEO", "Extract the key features and benefits", 
+                or "Identify the pricing structure and options".
+              </p>
+            </div>
           </div>
           
           <div className="flex justify-end mt-4">

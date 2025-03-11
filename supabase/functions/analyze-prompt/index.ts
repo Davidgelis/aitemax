@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -84,9 +85,11 @@ async function recordTokenUsage(
   }
 }
 
-// Helper function to fetch content from a URL
-async function fetchWebsiteContent(url: string) {
+// Enhanced helper function to fetch content from a URL with better extraction
+async function fetchWebsiteContent(url: string, userInstructions: string = "") {
   console.log(`Fetching content from website: ${url}`);
+  console.log(`User instructions for extraction: ${userInstructions || "None provided"}`);
+  
   try {
     const response = await fetch(url);
     if (!response.ok) {
@@ -98,23 +101,148 @@ async function fetchWebsiteContent(url: string) {
     const titleMatch = html.match(/<title>(.*?)<\/title>/i);
     const title = titleMatch ? titleMatch[1] : "Unknown Title";
     
-    // Better content extraction with focus on paragraphs and headings
+    // Extract meta description
+    const metaDescMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
+    const metaDescription = metaDescMatch ? metaDescMatch[1] : "";
+    
+    // Extract all relevant content with improved extraction
     let mainContent = "";
     
-    // Extract specific elements like headers, paragraphs, and list items
+    // Better extraction for headings (h1-h6)
     const headingMatches = html.match(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/gi);
     if (headingMatches) {
-      mainContent += headingMatches.map(h => h.replace(/<[^>]*>/g, '')).join("\n\n") + "\n\n";
+      const headings = headingMatches
+        .map(h => h.replace(/<[^>]*>/g, '').trim())
+        .filter(h => h.length > 0);
+      mainContent += "HEADINGS:\n" + headings.join("\n") + "\n\n";
     }
     
+    // Enhanced paragraph extraction
     const paragraphMatches = html.match(/<p[^>]*>(.*?)<\/p>/gi);
     if (paragraphMatches) {
-      mainContent += paragraphMatches.map(p => p.replace(/<[^>]*>/g, '')).join("\n\n") + "\n\n";
+      const paragraphs = paragraphMatches
+        .map(p => p.replace(/<[^>]*>/g, '').trim())
+        .filter(p => p.length > 5); // Ignore very short paragraphs
+      mainContent += "PARAGRAPHS:\n" + paragraphs.join("\n\n") + "\n\n";
     }
     
-    const listItemMatches = html.match(/<li[^>]*>(.*?)<\/li>/gi);
-    if (listItemMatches) {
-      mainContent += listItemMatches.map(li => "• " + li.replace(/<[^>]*>/g, '')).join("\n") + "\n\n";
+    // Better list extraction (finds both ordered and unordered lists)
+    const allListMatches = html.match(/<[ou]l[^>]*>(.*?)<\/[ou]l>/gis);
+    if (allListMatches) {
+      mainContent += "LISTS:\n";
+      allListMatches.forEach(list => {
+        const listItemMatches = list.match(/<li[^>]*>(.*?)<\/li>/gis);
+        if (listItemMatches) {
+          const items = listItemMatches
+            .map(li => "• " + li.replace(/<[^>]*>/g, '').trim())
+            .filter(li => li.length > 3);
+          mainContent += items.join("\n") + "\n\n";
+        }
+      });
+    }
+    
+    // Extract tables for structured data
+    const tableMatches = html.match(/<table[^>]*>(.*?)<\/table>/gis);
+    if (tableMatches) {
+      mainContent += "TABLES:\n";
+      tableMatches.forEach(table => {
+        // Extract table rows
+        const rowMatches = table.match(/<tr[^>]*>(.*?)<\/tr>/gis);
+        if (rowMatches) {
+          rowMatches.forEach(row => {
+            // Extract table cells (both th and td)
+            const cellMatches = row.match(/<t[hd][^>]*>(.*?)<\/t[hd]>/gis);
+            if (cellMatches) {
+              const cellContent = cellMatches
+                .map(cell => cell.replace(/<[^>]*>/g, '').trim())
+                .join(" | ");
+              mainContent += cellContent + "\n";
+            }
+          });
+          mainContent += "\n";
+        }
+      });
+    }
+    
+    // Extract content from divs with common content class names
+    const contentDivRegex = /<div[^>]*class=["'][^"']*(?:content|article|post|entry|main)[^"']*["'][^>]*>(.*?)<\/div>/gis;
+    const contentDivMatches = html.match(contentDivRegex);
+    if (contentDivMatches) {
+      const extractedDivContent = contentDivMatches
+        .map(div => {
+          // Remove nested divs to avoid duplication
+          let cleaned = div.replace(/<div[^>]*>.*?<\/div>/gis, ' ');
+          // Remove all remaining HTML tags
+          cleaned = cleaned.replace(/<[^>]*>/g, ' ');
+          // Clean up whitespace
+          cleaned = cleaned.replace(/\s+/g, ' ').trim();
+          return cleaned;
+        })
+        .filter(content => content.length > 50); // Only keep substantial content
+      
+      if (extractedDivContent.length > 0) {
+        mainContent += "CONTENT SECTIONS:\n" + extractedDivContent.join("\n\n") + "\n\n";
+      }
+    }
+    
+    // Special extraction for best practices, tips, guidelines based on user instructions
+    if (userInstructions) {
+      const instructionLower = userInstructions.toLowerCase();
+      const keyTerms = [
+        'best practice', 'tip', 'guide', 'how to', 'recommendation', 
+        'step', 'instruction', 'procedure', 'method', 'technique'
+      ];
+      
+      // Check if user is looking for any of these types of content
+      const isLookingForStructuredContent = keyTerms.some(term => instructionLower.includes(term));
+      
+      if (isLookingForStructuredContent) {
+        mainContent += "SPECIAL EXTRACTION (based on user instructions):\n";
+        
+        // Look for sections with these keywords in headings
+        const specialHeadingRegex = new RegExp(`<h[1-6][^>]*>(.*?(${keyTerms.join('|')}).*?)<\/h[1-6]>`, 'gi');
+        const specialHeadings = html.match(specialHeadingRegex);
+        
+        if (specialHeadings) {
+          specialHeadings.forEach(heading => {
+            const headingText = heading.replace(/<[^>]*>/g, '').trim();
+            mainContent += `SECTION: ${headingText}\n`;
+            
+            // Find the content that follows this heading until the next heading
+            const headingIndex = html.indexOf(heading) + heading.length;
+            const nextHeadingMatch = html.slice(headingIndex).match(/<h[1-6][^>]*>/i);
+            const endIndex = nextHeadingMatch 
+              ? headingIndex + nextHeadingMatch.index 
+              : Math.min(headingIndex + 5000, html.length); // Limit to 5000 chars if no next heading
+            
+            let sectionContent = html.slice(headingIndex, endIndex);
+            
+            // Extract paragraphs and list items from this section
+            const sectionParagraphs = sectionContent.match(/<p[^>]*>(.*?)<\/p>/gi);
+            if (sectionParagraphs) {
+              sectionParagraphs.forEach(p => {
+                const text = p.replace(/<[^>]*>/g, '').trim();
+                if (text.length > 10) {
+                  mainContent += `- ${text}\n`;
+                }
+              });
+            }
+            
+            // Extract list items specifically
+            const sectionListItems = sectionContent.match(/<li[^>]*>(.*?)<\/li>/gi);
+            if (sectionListItems) {
+              sectionListItems.forEach(li => {
+                const text = li.replace(/<[^>]*>/g, '').trim();
+                if (text.length > 5) {
+                  mainContent += `• ${text}\n`;
+                }
+              });
+            }
+            
+            mainContent += "\n";
+          });
+        }
+      }
     }
     
     // If we couldn't extract structured content, fall back to removing all HTML tags
@@ -126,12 +254,8 @@ async function fetchWebsiteContent(url: string) {
       mainContent = text;
     }
     
-    // Ensure we're not sending too much content (limit to 15,000 chars)
-    const limitedContent = mainContent.substring(0, 15000);
-    
-    // Extract meta description for additional context
-    const metaDescMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/i);
-    const metaDescription = metaDescMatch ? metaDescMatch[1] : "";
+    // Ensure we're not sending too much content (limit to 20,000 chars)
+    const limitedContent = mainContent.substring(0, 20000);
     
     return { 
       title, 
@@ -212,7 +336,7 @@ serve(async (req) => {
       console.log(`Website provided for context: ${websiteData.url}`);
       console.log(`User instructions for website analysis: ${websiteData.instructions || "No specific instructions"}`);
       
-      const websiteContent = await fetchWebsiteContent(websiteData.url);
+      const websiteContent = await fetchWebsiteContent(websiteData.url, websiteData.instructions);
       websiteKeywords = extractKeyTerms(websiteContent.text);
       
       contextualData += `\n\nWEBSITE CONTEXT:
@@ -228,12 +352,13 @@ Key Terms: ${websiteKeywords.join(', ')}
       
 YOUR TASK FOR WEBSITE ANALYSIS:
 1. Analyze this website content thoroughly
-2. Focus specifically on finding information related to: "${websiteData.instructions || "the main topic"}"
+2. Focus SPECIFICALLY on finding information related to: "${websiteData.instructions || "the main topic"}"
 3. Extract concrete, detailed information from the website content
-4. For question answers, provide 1-2 full sentences of DIRECT information from the website
-5. For variables, keep values concise (5-10 words)
-6. Only use information EXPLICITLY present in the content
-7. Do not generalize or make assumptions beyond what is directly stated`;
+4. IMPORTANT: For question answers, provide 1-2 FULL SENTENCES of DETAILED information from the website
+5. Include SPECIFIC FACTS, NUMBERS, QUOTES or EXAMPLES directly from the website when available
+6. For questions about "best practices" or similar instructions, EXTRACT ALL relevant best practices from the content
+7. For variables, keep values concise (5-10 words) but precise
+8. Only use information EXPLICITLY present in the content - do not generalize or make assumptions`;
     }
     
     // Add image context if provided
