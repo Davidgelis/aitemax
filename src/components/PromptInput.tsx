@@ -256,7 +256,7 @@ const PromptInput = ({
     <form onSubmit={handleSubmit} className={`w-full mx-auto ${className}`}>
       <div className="relative group">
         <div className="relative">
-          <div className="flex items-center gap-2 mb-1 p-3 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
+          <div className="flex items-center gap-2 mb-1 p-4 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
             <div className="flex gap-2">
               <button 
                 type="button" 
@@ -278,22 +278,23 @@ const PromptInput = ({
             
             <div className="h-6 w-px bg-gray-200 mx-2"></div>
             
-            <div className="flex flex-1 justify-end items-center gap-2 overflow-x-auto pr-2">
+            <div className="flex flex-1 justify-end items-center gap-3 overflow-x-auto pr-2">
               {images && images.length > 0 ? (
                 images.map(image => (
                   <div key={image.id} className="relative group">
                     <img 
                       src={image.url} 
                       alt="Uploaded" 
-                      className="w-10 h-10 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
+                      className="w-13 h-13 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
                       onClick={() => handleImageClick(image.id)}
+                      style={{ width: '52px', height: '52px' }}
                     />
                     <button
                       onClick={(e) => handleRemoveImage(image.id, e)}
-                      className="absolute -top-1 -right-1 bg-[#041524] text-white rounded-full p-0.5 border border-[#33fea6]/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute -top-3 -right-3 bg-[#041524] text-white rounded-full p-1 border border-[#33fea6]/30 opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Remove image"
                     >
-                      <X className="w-2 h-2" />
+                      <X className="w-3 h-3" />
                     </button>
                   </div>
                 ))
