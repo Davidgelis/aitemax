@@ -1,3 +1,4 @@
+
 import { useState, useEffect, KeyboardEvent, useRef } from 'react';
 import { UploadedImage } from '@/components/dashboard/types';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
@@ -335,7 +336,7 @@ const PromptInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className="w-full h-[320px] p-4 rounded-b-xl resize-none outline-none transition-all text-lg"
+            className="w-full h-[320px] p-4 rounded-b-xl resize-none outline-none transition-all text-lg placeholder:text-gray-400"
             style={{ 
               backgroundColor: "#fafafa",
               color: "#545454", 

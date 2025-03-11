@@ -186,7 +186,7 @@ export const usePromptAnalysis = (
             ...q,
             id: q.id || `q${index + 1}`,
             // Keep pre-filled answers if they exist and we have additional context
-            answer: hasAdditionalContext ? (q.answer || "") : "",
+            answer: data.hasAdditionalContext ? (q.answer || "") : "",
             // Mark as relevant if it has an answer
             isRelevant: q.answer && q.answer.trim() !== "" ? true : null
           }));
@@ -212,7 +212,7 @@ export const usePromptAnalysis = (
               ...v,
               id: v.id || `v${index + 1}`,
               // Only keep pre-filled values if we have additional context
-              value: hasAdditionalContext ? (v.value || "") : "",
+              value: data.hasAdditionalContext ? (v.value || "") : "",
               // Mark as relevant if it has a value
               isRelevant: v.value && v.value.trim() !== "" ? true : null
             }));

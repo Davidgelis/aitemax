@@ -27,7 +27,7 @@ export async function analyzePromptWithAI(
   
   // If we have an image, create a message with content parts
   if (imageBase64) {
-    console.log("Image provided for analysis - adding to OpenAI API request");
+    console.log("Image provided for analysis - adding to OpenAI API request with GPT-4o");
     messages.push({
       role: 'user',
       content: [
@@ -67,7 +67,7 @@ ${additionalContext}`
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // Continue using GPT-4o for analysis
+        model: 'gpt-4o', // Using GPT-4o for analysis
         messages,
         temperature: 0.7,
       }),

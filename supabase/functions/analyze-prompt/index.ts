@@ -157,6 +157,19 @@ serve(async (req) => {
     console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
     console.log(`Creating prompt for AI platform with appropriate context`);
     
+    // Improved logging for debugging context data
+    console.log("Website data provided:", websiteData ? "Yes" : "No");
+    if (websiteData) {
+      console.log(`Website URL: ${websiteData.url || "None"}`);
+      console.log(`Website instructions: ${websiteData.instructions ? "Provided" : "None"}`);
+    }
+    
+    console.log("Image data provided:", imageData ? "Yes" : "No");
+    if (imageData) {
+      console.log("Image type:", imageData.file ? imageData.file.type : "No file type");
+      console.log("Has image base64:", imageData.base64 ? "Yes" : "No");
+    }
+    
     // Add website content to context if provided
     let contextualData = "";
     let websiteKeywords = [];
@@ -182,7 +195,7 @@ Please analyze this website context thoroughly when analyzing the prompt. Extrac
     let imageContext = "";
     if (imageData && imageData.base64) {
       hasAdditionalContext = true;
-      console.log("Image provided for context");
+      console.log("Image provided for context - will be sent to OpenAI for analysis");
       imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image thoroughly and extract all visual details including:
 - Subject(s) in the image
 - Viewpoint (looking up, eye-level, aerial view, etc.)
@@ -268,7 +281,8 @@ Extract these specific details and use them to pre-fill relevant answers to ques
         rawAnalysis: analysis,
         usage: analysisResult.usage,
         primaryToggle,
-        secondaryToggle
+        secondaryToggle,
+        hasAdditionalContext  // Include flag in response
       };
       
       return new Response(JSON.stringify(result), {
@@ -335,7 +349,8 @@ Extract these specific details and use them to pre-fill relevant answers to ques
         rawAnalysis: analysis,
         usage: analysisResult.usage,
         primaryToggle,
-        secondaryToggle
+        secondaryToggle,
+        hasAdditionalContext  // Include flag in response
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -352,7 +367,8 @@ Extract these specific details and use them to pre-fill relevant answers to ques
       enhancedPrompt: "# Error\n\nThere was an error analyzing your prompt. Please try again.",
       error: error.message,
       primaryToggle: null,
-      secondaryToggle: null
+      secondaryToggle: null,
+      hasAdditionalContext: false
     }), {
       status: 200, // Always return a 200 to avoid edge function errors
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
