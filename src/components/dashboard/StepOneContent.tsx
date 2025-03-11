@@ -1,12 +1,12 @@
 
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import PromptInput from "@/components/PromptInput"; // Fixed import
+import PromptInput from "@/components/PromptInput"; 
 import { ImageUploader } from "@/components/dashboard/ImageUploader";
 import { WebScanner } from "@/components/dashboard/WebScanner";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { AIModel, UploadedImage } from "./types";
-import { ModelSelector } from "./model-selector"; // Fixed import
+import { ModelSelector } from "./model-selector"; 
 
 interface StepOneContentProps {
   promptText: string;
