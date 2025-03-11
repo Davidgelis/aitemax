@@ -20,7 +20,7 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         aurora: "aurora-button text-white",
-        analyze: "bg-gradient-to-r from-green-400 to-green-300 text-white hover:shadow-md transition-all duration-300",
+        analyze: "bg-[#084b49] hover:bg-[#063b39] text-white",
         slim: "bg-transparent text-[#545454] hover:bg-[#33fea6]/5 transition-colors [&_svg]:size-3",
       },
       size: {

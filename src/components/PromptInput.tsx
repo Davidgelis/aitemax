@@ -105,17 +105,15 @@ const PromptInput = ({
             onChange={handleChange}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className="w-full h-32 p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all"
+            className="w-full h-[384px] p-4 rounded-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all"
             style={{ 
-              backgroundColor: "#041524",
-              color: "#33fea6", 
-              boxShadow: "0 0 20px rgba(51, 254, 166, 0.2)",
-              border: "1px solid rgba(51, 254, 166, 0.3)",
-              caretColor: "#33fea6"
+              backgroundColor: "#fafafa",
+              color: "#545454", 
+              border: "1px solid #e5e7eb",
             }}
           />
           
-          <div className="mt-2">
+          <div className="hidden">
             {onImagesChange && (
               <ImageUploader 
                 onImagesChange={onImagesChange}

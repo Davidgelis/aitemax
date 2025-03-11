@@ -76,21 +76,6 @@ export const StepOneContent = ({
     onAnalyze();
   };
 
-  const renderPromptInput = (placeholder?: string) => (
-    <div className="relative">
-      <PromptInput 
-        value={promptText}
-        onChange={setPromptText}
-        onSubmit={handleAnalyzeWithContext}
-        placeholder={placeholder}
-        className="w-full"
-        images={uploadedImages}
-        onImagesChange={handleImagesChange}
-        isLoading={isLoading}
-      />
-    </div>
-  );
-
   return (
     <div className="border rounded-xl p-6 bg-card">
       {/* Web Smart Scan button */}
@@ -156,15 +141,30 @@ export const StepOneContent = ({
 
       {/* Main prompt input */}
       <div className="mb-6">
-        {renderPromptInput("Generate a monet style image of trees")}
+        <PromptInput 
+          value={promptText}
+          onChange={setPromptText}
+          onSubmit={handleAnalyzeWithContext}
+          placeholder="Generate a monet style image of trees"
+          className="w-full"
+          images={uploadedImages}
+          onImagesChange={handleImagesChange}
+          isLoading={isLoading}
+        />
       </div>
 
       {/* Action buttons */}
       <div className="flex justify-between mt-8">
         <div>
           <Button
-            variant="outline"
+            variant="analyze"
             size="sm"
+            onClick={() => {
+              // Open the upload dialog through the ImageUploader component
+              const uploadButton = document.querySelector("[title='Upload image']") as HTMLButtonElement;
+              if (uploadButton) uploadButton.click();
+            }}
+            className="bg-[#33fea6] hover:bg-[#2be090] text-white"
             disabled={isLoading}
           >
             Upload
