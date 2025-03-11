@@ -73,8 +73,11 @@ export const StepOneContent = ({
       secondaryToggle: selectedSecondary
     });
     
-    // Call the parent's onAnalyze function with additional context
-    onAnalyze();
+    // Call the parent's onAnalyze function with context passed through
+    if (onAnalyze) {
+      // The actual implementation will happen in StepController which passes the handler
+      onAnalyze();
+    }
   };
   
   return (

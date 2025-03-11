@@ -78,9 +78,9 @@ export const ImageUploadDialog = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-background/95 backdrop-blur-md border-0 shadow-none rounded-none">
-        <DialogTitle className="sr-only">Upload Image</DialogTitle>
-        <DialogDescription className="sr-only">
-          Upload an image to analyze with your prompt
+        <DialogTitle>Upload Image for Analysis</DialogTitle>
+        <DialogDescription>
+          Upload an image to analyze with your prompt. The image will be used to pre-fill questions and variables.
         </DialogDescription>
         <div 
           className={`flex flex-col items-center justify-center p-10 border-0 transition-colors ${

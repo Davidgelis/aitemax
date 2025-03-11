@@ -94,7 +94,7 @@ ${primaryToggle === 'image' ?
 - Setting (location or environment)
 - Lighting (natural, dramatic, soft, etc.)
 - Mood (happy, somber, energetic, etc.)
-- Style (photorealistic, cartoon, painting, etc.)
+- Style (photorealistic, cartoon, painting style, etc.)
 - Perspective (close-up, wide angle, aerial, etc.)
 - TimeOfDay (morning, evening, night, etc.)
 - Season (summer, winter, etc.)

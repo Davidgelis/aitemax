@@ -206,64 +206,69 @@ export const VariableList = ({
         
         {variables.length > 0 && (
           <div className="space-y-3">
-            {variables.map((variable, index) => (
-              <div key={variable.id} className="flex gap-3 items-center">
-                <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
-                  {index + 1}
+            {variables.map((variable, index) => {
+              const isPrefilled = variableValues[variable.id] && variableValues[variable.id].trim() !== '';
+              
+              return (
+                <div key={variable.id} className="flex gap-3 items-center">
+                  <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Input
+                      type="text"
+                      placeholder="Variable name"
+                      value={variableNames[variable.id] || ""}
+                      onChange={(e) => handleNameChange(variable.id, e.target.value)}
+                      className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
+                        variable.name && variable.name.trim() !== '' ? 'border-[#33fea6]/50' : ''
+                      }`}
+                      autoComplete="off"
+                      aria-label={`Name for variable ${index + 1}`}
+                    />
+                    <Input
+                      type="text"
+                      placeholder="Value"
+                      value={variableValues[variable.id] || ""}
+                      onChange={(e) => handleValueChange(variable.id, e.target.value)}
+                      className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
+                        isPrefilled ? 'border-[#33fea6] ring-1 ring-[#33fea6] bg-[#33fea6]/5' : 
+                        (highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : '')
+                      }`}
+                      autoComplete="off"
+                      aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
+                    />
+                  </div>
+                  <div className="flex">
+                    <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          onClick={() => {
+                            setVariableToDelete(variable.id);
+                          }}
+                          className="p-2 rounded-full hover:bg-[#33fea6]/20"
+                          title="Delete variable"
+                        >
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete variable?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this variable? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(variable.id)}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Input
-                    type="text"
-                    placeholder="Variable name"
-                    value={variableNames[variable.id] || ""}
-                    onChange={(e) => handleNameChange(variable.id, e.target.value)}
-                    className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
-                      variable.name && variable.name.trim() !== '' ? 'border-[#33fea6]/50' : ''
-                    }`}
-                    autoComplete="off"
-                    aria-label={`Name for variable ${index + 1}`}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="Value"
-                    value={variableValues[variable.id] || ""}
-                    onChange={(e) => handleValueChange(variable.id, e.target.value)}
-                    className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
-                      highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6] bg-[#33fea6]/5' : ''
-                    }`}
-                    autoComplete="off"
-                    aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
-                  />
-                </div>
-                <div className="flex">
-                  <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
-                    <AlertDialogTrigger asChild>
-                      <button
-                        onClick={() => {
-                          setVariableToDelete(variable.id);
-                        }}
-                        className="p-2 rounded-full hover:bg-[#33fea6]/20"
-                        title="Delete variable"
-                      >
-                        <Trash className="w-4 h-4" />
-                      </button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete variable?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this variable? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(variable.id)}>Delete</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
