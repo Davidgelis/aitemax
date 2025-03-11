@@ -20,5 +20,25 @@ export const ModelEnhancementService = {
       console.error('Error enhancing models with AI:', error);
       return false;
     }
+  },
+
+  async testApiConnection(): Promise<boolean> {
+    try {
+      console.log('Testing OpenAI API connection...');
+      const response = await supabase.functions.invoke('test-api-connection', {
+        method: 'POST'
+      });
+      
+      if (response.error) {
+        console.error('Error testing API connection:', response.error);
+        return false;
+      }
+      
+      console.log('API connection test result:', response.data);
+      return response.data.success;
+    } catch (error) {
+      console.error('Error testing API connection:', error);
+      return false;
+    }
   }
 };

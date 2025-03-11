@@ -286,6 +286,8 @@ export const StepController = ({
             setSelectedModel={setSelectedModel}
             selectedCognitive={selectedCognitive}
             handleCognitiveToggle={handleCognitiveToggle}
+            onImagesChange={handleImagesChange}
+            onWebsiteScan={handleWebsiteScan}
           />
         );
 

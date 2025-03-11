@@ -35,7 +35,7 @@ For QUESTIONS:
 
 For VARIABLES:
 - Extract specific parameters that could be modified or customized in the prompt
-- Each variable should have 'id', 'name', 'value', and 'isRelevant' fields
+- Each variable should have 'id', 'name', 'value', 'isRelevant', and 'category' fields
 - Variable names should be concise and descriptive
 - Initially leave 'value' as an empty string unless specifically told to pre-fill it
 - Set 'isRelevant' to null initially, meaning it needs to be reviewed by the user
@@ -101,5 +101,5 @@ ${primaryToggle === 'image' ?
 - Weather (clear, rainy, foggy, etc.)
 - Colors (dominant color palette)` : ''}
 
-REMEMBER: Pre-fill variables and questions when given image or website content. ALWAYS set isRelevant=true for pre-filled items.`;
+REMEMBER: Pre-fill variables and questions when given image or website content. ALWAYS set isRelevant=true for pre-filled items. This is ABSOLUTELY CRITICAL for the system to function correctly.`;
 }
