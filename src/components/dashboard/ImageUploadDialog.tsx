@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { UploadedImage } from './types';
@@ -55,9 +54,11 @@ export const ImageUploadDialog = ({
   const handleFiles = (files: FileList) => {
     const newImages: UploadedImage[] = [];
     
-    // Only process the first image
-    if (files.length > 0 && remainingSlots > 0) {
-      const file = files[0];
+    // Process up to the remaining slots
+    const processCount = Math.min(files.length, remainingSlots);
+    
+    for (let i = 0; i < processCount; i++) {
+      const file = files[i];
       if (file.type.startsWith('image/')) {
         const url = URL.createObjectURL(file);
         newImages.push({
@@ -69,9 +70,14 @@ export const ImageUploadDialog = ({
     }
     
     if (newImages.length > 0) {
-      // Replace existing images instead of adding to them
-      onImagesUploaded(newImages);
-      onOpenChange(false);
+      // Keep existing images and add new ones
+      const updatedImages = [...currentImages, ...newImages];
+      onImagesUploaded(updatedImages);
+      
+      // If we've reached the maximum, close the dialog
+      if (updatedImages.length >= maxImages) {
+        onOpenChange(false);
+      }
     }
   };
   
@@ -93,7 +99,7 @@ export const ImageUploadDialog = ({
           <p className="text-center mb-6 text-[#545454]">
             {remainingSlots > 0 
               ? `Drag and drop an image here`
-              : "You already have an image uploaded"
+              : "You already have the maximum number of images uploaded"
             }
           </p>
           
@@ -113,6 +119,7 @@ export const ImageUploadDialog = ({
               accept="image/*" 
               onChange={handleFileChange}
               disabled={remainingSlots <= 0}
+              multiple={remainingSlots > 1}
             />
           </div>
         </div>

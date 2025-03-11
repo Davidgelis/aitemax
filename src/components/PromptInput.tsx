@@ -1,9 +1,9 @@
-
 import { useState, useEffect, KeyboardEvent } from 'react';
 import { UploadedImage } from '@/components/dashboard/types';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
-import { X, ListOrdered, List } from 'lucide-react';
+import { X, ListOrdered, List, Upload } from 'lucide-react';
 import { ImageUploader } from '@/components/dashboard/ImageUploader';
+import { Button } from "@/components/ui/button";
 
 interface PromptInputProps {
   onSubmit: (prompt: string, images?: UploadedImage[]) => void;
@@ -255,48 +255,52 @@ const PromptInput = ({
   return (
     <form onSubmit={handleSubmit} className={`w-full mx-auto ${className}`}>
       <div className="relative group">
-        {/* Display uploaded images above the textarea */}
-        {images && images.length > 0 && (
-          <div className="absolute top-[-56px] right-0 flex flex-wrap gap-2 z-10 max-w-[80%] justify-end">
-            {images.map(image => (
-              <div key={image.id} className="relative group">
-                <img 
-                  src={image.url} 
-                  alt="Uploaded" 
-                  className="w-14 h-14 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
-                  onClick={() => handleImageClick(image.id)}
-                />
-                <button
-                  onClick={(e) => handleRemoveImage(image.id, e)}
-                  className="absolute -top-2 -right-2 bg-[#041524] text-white rounded-full p-0.5 border border-[#33fea6]/30 opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Remove image"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-        
         <div className="relative">
-          {/* Formatting buttons */}
-          <div className="flex gap-2 mb-1 p-2 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
-            <button 
-              type="button" 
-              className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
-              onClick={insertBulletList}
-              title="Insert bullet list"
-            >
-              <List className="w-5 h-5" />
-            </button>
-            <button 
-              type="button" 
-              className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
-              onClick={insertNumberedList}
-              title="Insert numbered list"
-            >
-              <ListOrdered className="w-5 h-5" />
-            </button>
+          <div className="flex items-center gap-2 mb-1 p-2 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
+            <div className="flex gap-2">
+              <button 
+                type="button" 
+                className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
+                onClick={insertBulletList}
+                title="Insert bullet list"
+              >
+                <List className="w-5 h-5" />
+              </button>
+              <button 
+                type="button" 
+                className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
+                onClick={insertNumberedList}
+                title="Insert numbered list"
+              >
+                <ListOrdered className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="h-6 w-px bg-gray-200 mx-2"></div>
+            
+            <div className="flex flex-1 items-center gap-2 overflow-x-auto">
+              {images && images.length > 0 ? (
+                images.map(image => (
+                  <div key={image.id} className="relative group">
+                    <img 
+                      src={image.url} 
+                      alt="Uploaded" 
+                      className="w-8 h-8 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
+                      onClick={() => handleImageClick(image.id)}
+                    />
+                    <button
+                      onClick={(e) => handleRemoveImage(image.id, e)}
+                      className="absolute -top-1 -right-1 bg-[#041524] text-white rounded-full p-0.5 border border-[#33fea6]/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Remove image"
+                    >
+                      <X className="w-2 h-2" />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <span className="text-gray-400 text-xs italic">No images uploaded</span>
+              )}
+            </div>
           </div>
           
           <textarea
