@@ -14,6 +14,7 @@ interface PromptInputProps {
   autoFocus?: boolean;
   images?: UploadedImage[];
   onImagesChange?: (images: UploadedImage[]) => void;
+  isLoading?: boolean;
 }
 
 const PromptInput = ({ 
@@ -24,7 +25,8 @@ const PromptInput = ({
   onChange,
   autoFocus = false,
   images = [],
-  onImagesChange
+  onImagesChange,
+  isLoading = false
 }: PromptInputProps) => {
   const [inputValue, setInputValue] = useState(value || "");
   const [carouselOpen, setCarouselOpen] = useState(false);

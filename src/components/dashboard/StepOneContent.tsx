@@ -1,11 +1,14 @@
+
 import { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import PromptInput from "@/components/PromptInput"; // Fixed import
+import PromptInput from "@/components/PromptInput";
 import { ImageUploader } from "@/components/dashboard/ImageUploader";
 import { WebScanner } from "@/components/dashboard/WebScanner";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { AIModel, UploadedImage } from "./types";
-import { ModelSelector } from "./model-selector"; // Fixed import
+import { ModelSelector } from "./model-selector";
+import { Switch } from "@/components/ui/switch";
+import { HelpCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface StepOneContentProps {
   promptText: string;
@@ -83,6 +86,7 @@ export const StepOneContent = ({
         className="w-full"
         images={uploadedImages}
         onImagesChange={handleImagesChange}
+        isLoading={isLoading}
       />
     </div>
   );
@@ -90,66 +94,94 @@ export const StepOneContent = ({
   return (
     <div className="border rounded-xl p-6 bg-card">
       {/* Web Smart Scan button */}
-      <div className="mb-4">
+      <div className="mb-4 flex justify-between items-center">
         <WebScanner 
           onWebsiteScan={handleWebsiteScan}
           variant="modelReplacement"
         />
-      </div>
-
-      {/* Main content area */}
-      <div className="mb-8">
-        {renderPromptInput("Enter your prompt...")}
-      </div>
-
-      {/* Toggle sections */}
-      <div className="space-y-6">
-        {/* Prompt Type */}
-        <div className="space-y-3">
-          <h3 className="text-[#545454] font-medium mb-2">Prompt Type</h3>
-          <div className="flex flex-wrap gap-2">
-            {primaryToggles.map(toggle => (
-              <button
-                key={toggle.id}
-                className={`px-4 py-1.5 rounded-full text-sm transition-colors
-                  ${selectedPrimary === toggle.id 
-                    ? 'bg-[#084b49] text-white' 
-                    : 'border border-[#084b49] text-[#084b49]'}`}
-                onClick={() => handlePrimaryToggle(toggle.id)}
-              >
-                {toggle.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Response Style */}
-        <div className="space-y-3">
-          <h3 className="text-[#545454] font-medium mb-2">Response Style</h3>
-          <div className="flex flex-wrap gap-2">
-            {secondaryToggles.map(toggle => (
-              <button
-                key={toggle.id}
-                className={`px-4 py-1.5 rounded-full text-sm transition-colors
-                  ${selectedSecondary === toggle.id 
-                    ? 'bg-[#084b49] text-white' 
-                    : 'border border-[#084b49] text-[#084b49]'}`}
-                onClick={() => handleSecondaryToggle(toggle.id)}
-              >
-                {toggle.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* AI Model */}
-        <div className="flex justify-between items-center">
-          <h3 className="text-[#545454] font-medium">AI Model</h3>
-          <ModelSelector
-            selectedModel={selectedModel}
-            onSelect={setSelectedModel}
-            isInitializingModels={false}
+        
+        <div className="flex items-center space-x-2">
+          <span className="text-[#545454] text-sm">Cognitive Prompt Perfection Model</span>
+          <Switch 
+            checked={selectedCognitive !== null}
+            onCheckedChange={() => handleCognitiveToggle('cognitive')}
+            variant="aurora"
           />
+        </div>
+      </div>
+
+      {/* Toggle sections for prompt types */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {primaryToggles.map(toggle => (
+          <div 
+            key={toggle.id}
+            className="border rounded-lg p-3 flex justify-between items-center"
+          >
+            <div className="text-[#545454] text-sm">
+              {toggle.label}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch 
+                checked={selectedPrimary === toggle.id}
+                onCheckedChange={() => handlePrimaryToggle(toggle.id)}
+                variant={toggle.id === "image" ? "primary" : "aurora"}
+              />
+              <HelpCircle className="h-4 w-4 text-[#545454] opacity-70" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Toggle sections for response styles */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {secondaryToggles.map(toggle => (
+          <div 
+            key={toggle.id}
+            className="border rounded-lg p-3 flex justify-between items-center"
+          >
+            <div className="text-[#545454] text-sm">
+              {toggle.label}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch 
+                checked={selectedSecondary === toggle.id}
+                onCheckedChange={() => handleSecondaryToggle(toggle.id)}
+                variant={toggle.id === "strict" ? "secondary" : "aurora"}
+              />
+              <HelpCircle className="h-4 w-4 text-[#545454] opacity-70" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Main prompt input */}
+      <div className="mb-6">
+        {renderPromptInput("Generate a monet style image of trees")}
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex justify-between mt-8">
+        <div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+          >
+            Upload
+          </Button>
+        </div>
+        
+        <div className="flex space-x-2">
+          <span className="text-[#545454] px-4 py-1 border rounded">2</span>
+          <span className="text-[#545454] px-4 py-1 border rounded">3</span>
+          
+          <Button
+            onClick={handleAnalyzeWithContext}
+            disabled={isLoading || !promptText.trim()}
+            className="ml-2 bg-[#084b49] hover:bg-[#063b39] text-white"
+          >
+            {isLoading ? "Analyzing..." : "Analyze with AI"}
+          </Button>
         </div>
       </div>
     </div>
