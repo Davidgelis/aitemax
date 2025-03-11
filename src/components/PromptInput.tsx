@@ -115,7 +115,7 @@ const PromptInput = ({
             onChange={handleChange}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className="w-full h-[320px] p-4 rounded-b-xl resize-none outline-none focus:ring-2 focus:ring-accent/50 transition-all"
+            className="w-full h-[320px] p-4 rounded-b-xl resize-none outline-none transition-all"
             style={{ 
               backgroundColor: "#fafafa",
               color: "#545454", 
