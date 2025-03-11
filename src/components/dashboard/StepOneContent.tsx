@@ -1,11 +1,9 @@
 
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
-import { ImageUploader } from "@/components/dashboard/ImageUploader";
 import { WebScanner } from "@/components/dashboard/WebScanner";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { AIModel, UploadedImage } from "./types";
-import { ModelSelector } from "./model-selector";
 import { Switch } from "@/components/ui/switch";
 import { HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -155,18 +153,7 @@ export const StepOneContent = ({
       {/* Action buttons */}
       <div className="flex justify-between mt-8">
         <div>
-          <Button
-            variant="aurora"
-            size="sm"
-            onClick={() => {
-              // Open the upload dialog through the ImageUploader component
-              const uploadButton = document.querySelector("[title='Upload image']") as HTMLButtonElement;
-              if (uploadButton) uploadButton.click();
-            }}
-            disabled={isLoading}
-          >
-            Upload
-          </Button>
+          {/* We'll remove this button since we now have an image upload button in the prompt input toolbar */}
         </div>
         
         <div>
