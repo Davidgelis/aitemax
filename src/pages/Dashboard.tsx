@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -64,7 +63,6 @@ const Dashboard = () => {
     (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm.toLowerCase())
   );
   
-  // Save draft when navigating away
   useEffect(() => {
     const saveDraftBeforeNavigate = (nextPath: string) => {
       if (nextPath !== location.pathname && promptState.promptText && !promptState.isViewingSavedPrompt) {
@@ -72,7 +70,6 @@ const Dashboard = () => {
       }
     };
 
-    // For regular navigation
     const handleRouteChange = (e: PopStateEvent) => {
       const nextPath = window.location.pathname;
       if (nextPath !== location.pathname) {
@@ -80,10 +77,8 @@ const Dashboard = () => {
       }
     };
 
-    // Add event listeners
     window.addEventListener('popstate', handleRouteChange);
 
-    // Intercept Link navigation
     const originalPushState = window.history.pushState;
     window.history.pushState = function() {
       const nextPath = arguments[2] as string;
