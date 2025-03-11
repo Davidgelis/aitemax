@@ -35,47 +35,9 @@ export async function analyzePromptWithAI(
           type: "text",
           text: `Analyze this prompt for generating questions and variables: "${promptText}" 
           
-CRITICAL INSTRUCTION - MUST FOLLOW: Thoroughly analyze the image and extract SPECIFIC details to pre-fill questions and variables:
+First, describe the image in great detail. Extract all specific visual elements like subject, viewpoint, perspective, setting, lighting, colors, mood, composition, time of day, season, etc.
 
-First, describe the image in MAXIMUM detail. Extract ALL specific visual elements like:
-- Subject(s): What/who is in the image (people, objects, landscapes)
-- Viewpoint: How the scene is viewed (looking up, eye-level, aerial view)
-- Perspective: The position relative to the subject (close-up, distant, etc.)
-- Setting/Location: The environment where the scene takes place
-- Lighting: Quality, direction, and color of light
-- Colors: Dominant palette, contrasts, saturation
-- Mood/Atmosphere: The feeling conveyed by the image
-- Composition: How elements are arranged in the frame
-- Time of day: Morning, afternoon, evening, night
-- Season: Spring, summer, fall, winter
-- Weather: Clear, cloudy, rainy, etc.
-- Textures: Smooth, rough, detailed, etc.
-- Style: If applicable (photorealistic, cartoon, painting style)
-
-ABSOLUTELY CRITICAL: You MUST pre-fill at least 3-5 variables and 2-4 questions with VERY SPECIFIC information from the image:
-- For example, if you see a forest → Setting variable = "Dense forest with tall pine trees"
-- If image has a sunset → TimeOfDay variable = "Sunset with golden hour lighting"
-- If image shows rain → Weather variable = "Rainy with wet surfaces"
-
-For each pre-filled variable or question, you MUST explicitly set isRelevant to true, like this:
-{
-  "id": "v1",
-  "name": "Setting",
-  "value": "Dense forest with tall pine trees",
-  "isRelevant": true,
-  "category": "Location"
-}
-
-{
-  "id": "q1",
-  "text": "What is the environment in the image?",
-  "answer": "A dense forest with tall pine trees and undergrowth",
-  "isRelevant": true,
-  "category": "Location"
-}
-
-FAILURE TO PRE-FILL VARIABLES AND QUESTIONS WITH SPECIFIC CONTENT FROM THE IMAGE AND SET isRelevant TO TRUE WILL RESULT IN INCORRECT BEHAVIOR.
-
+Then use these details to generate relevant questions and variables with pre-filled values based on what you directly observe in the image.
 ${additionalContext}`
         },
         {
@@ -87,36 +49,11 @@ ${additionalContext}`
       ]
     });
   } else {
-    // No image, just use a simple text message with appropriate context
+    // No image, just use a simple text message
     console.log("No image provided - using text-only OpenAI API request");
-    
-    let userPrompt = `Analyze this prompt for generating questions and variables: "${promptText}"`;
-    
-    if (additionalContext) {
-      userPrompt += `\n\n${additionalContext}\n\nCRITICAL INSTRUCTION - MUST FOLLOW: Based on the provided website content, you MUST pre-fill variables and question answers with SPECIFIC values that you can directly observe. Pre-fill at least 3-5 variables and 2-4 questions with concrete values from the website content, not placeholders or generic text. For each pre-filled variable or question, you MUST explicitly set isRelevant to true, like this:
-
-{
-  "id": "q1",
-  "text": "What is the main topic?",
-  "answer": "AI-powered content creation tools",
-  "isRelevant": true,
-  "category": "Topic"
-}
-
-{
-  "id": "v1",
-  "name": "Topic",
-  "value": "AI-powered content creation tools",
-  "isRelevant": true,
-  "category": "Subject"
-}
-
-FAILURE TO PRE-FILL VARIABLES AND QUESTIONS WITH SPECIFIC CONTENT FROM THE WEBSITE AND SET isRelevant TO TRUE WILL RESULT IN INCORRECT BEHAVIOR.`;
-    }
-    
     messages.push({
       role: 'user',
-      content: userPrompt
+      content: `Analyze this prompt for generating questions and variables: "${promptText}" ${additionalContext}`
     });
   }
   
@@ -130,10 +67,9 @@ FAILURE TO PRE-FILL VARIABLES AND QUESTIONS WITH SPECIFIC CONTENT FROM THE WEBSI
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // Using GPT-4o for improved analysis
+        model: 'gpt-4o', // Continue using GPT-4o for analysis
         messages,
-        temperature: 0.5, // Lower temperature for more consistent results
-        response_format: { type: "text" }, // Enforce text response to get proper JSON
+        temperature: 0.7,
       }),
     });
     

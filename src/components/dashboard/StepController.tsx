@@ -155,18 +155,10 @@ export const StepController = ({
         title: "Image attached",
         description: "Your image will be analyzed along with your prompt",
       });
-    } else {
-      // Clear images
-      setUploadedImages([]);
     }
   };
 
   const handleAnalyzeWithContext = () => {
-    console.log("StepController - handleAnalyzeWithContext", {
-      uploadedImages,
-      websiteContext
-    });
-    
     handleAnalyze(uploadedImages, websiteContext);
   };
 
@@ -286,8 +278,6 @@ export const StepController = ({
             setSelectedModel={setSelectedModel}
             selectedCognitive={selectedCognitive}
             handleCognitiveToggle={handleCognitiveToggle}
-            onImagesChange={handleImagesChange}
-            onWebsiteScan={handleWebsiteScan}
           />
         );
 
