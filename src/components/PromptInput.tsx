@@ -1,3 +1,4 @@
+
 import { useState, useEffect, KeyboardEvent } from 'react';
 import { UploadedImage } from '@/components/dashboard/types';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
@@ -256,8 +257,9 @@ const PromptInput = ({
     <form onSubmit={handleSubmit} className={`w-full mx-auto ${className}`}>
       <div className="relative group">
         <div className="relative">
-          <div className="flex items-center gap-2 mb-1 p-4 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
-            <div className="flex gap-2">
+          <div className="flex items-center gap-4 mb-1 p-5 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
+            {/* Formatting tools on the left */}
+            <div className="flex gap-3">
               <button 
                 type="button" 
                 className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
@@ -276,18 +278,20 @@ const PromptInput = ({
               </button>
             </div>
             
-            <div className="h-6 w-px bg-gray-200 mx-2"></div>
+            {/* Divider */}
+            <div className="h-6 w-px bg-gray-200 mx-1"></div>
             
-            <div className="flex flex-1 justify-end items-center gap-3 overflow-x-auto pr-2">
+            {/* Image previews aligned to the right */}
+            <div className="flex flex-1 justify-end items-center space-x-4">
               {images && images.length > 0 ? (
                 images.map(image => (
-                  <div key={image.id} className="relative group">
+                  <div key={image.id} className="relative group" style={{ marginTop: '8px', marginBottom: '8px' }}>
                     <img 
                       src={image.url} 
                       alt="Uploaded" 
-                      className="w-13 h-13 object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
+                      className="object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
                       onClick={() => handleImageClick(image.id)}
-                      style={{ width: '52px', height: '52px' }}
+                      style={{ width: '68px', height: '68px' }}
                     />
                     <button
                       onClick={(e) => handleRemoveImage(image.id, e)}
