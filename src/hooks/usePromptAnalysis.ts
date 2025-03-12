@@ -30,8 +30,6 @@ export const usePromptAnalysis = (
     setCurrentLoadingMessage 
   } = useLoadingMessages();
 
-  const [analysisTimeout, setAnalysisTimeout] = useState<NodeJS.Timeout | null>(null);
-
   const handleAnalyze = async (images?: UploadedImage[], websiteData?: { url: string; instructions: string } | null) => {
     if (!promptText.trim()) {
       toast({
@@ -62,24 +60,6 @@ export const usePromptAnalysis = (
     // Get descriptive loading message
     setupLoadingMessage(images, websiteData);
     
-    // Set a timeout to prevent infinite loading
-    if (analysisTimeout) {
-      clearTimeout(analysisTimeout);
-    }
-    
-    const timeout = setTimeout(() => {
-      if (isLoading) {
-        setIsLoading(false);
-        toast({
-          title: "Analysis Timeout",
-          description: "The analysis is taking longer than expected. Please try again with simpler inputs.",
-          variant: "destructive",
-        });
-      }
-    }, 120000); // 2 minute timeout
-    
-    setAnalysisTimeout(timeout);
-    
     try {
       // Create the payload for analysis
       const payload = await createAnalysisPayload(
@@ -91,17 +71,6 @@ export const usePromptAnalysis = (
         user,
         promptId
       );
-      
-      // Verify payload contents before sending
-      console.log("Payload prepared for analysis:", {
-        hasPromptText: !!payload.promptText,
-        promptTextLength: payload.promptText?.length,
-        hasImageData: !!payload.imageData,
-        hasWebsiteData: !!payload.websiteData,
-        websiteUrl: payload.websiteData?.url,
-        primaryToggle: payload.primaryToggle,
-        secondaryToggle: payload.secondaryToggle
-      });
       
       // Send the analysis request
       const data = await analyzePrompt(payload);
@@ -128,7 +97,7 @@ export const usePromptAnalysis = (
         
         // If we received raw analysis, log it for debugging
         if (data.rawAnalysis) {
-          console.log("Raw AI analysis:", data.rawAnalysis.substring(0, 200) + "...");
+          console.log("Raw AI analysis:", data.rawAnalysis);
         }
         
         // Log token usage if available
@@ -149,11 +118,6 @@ export const usePromptAnalysis = (
       });
       setQuestions(mockQuestions);
     } finally {
-      // Clear the timeout
-      if (analysisTimeout) {
-        clearTimeout(analysisTimeout);
-      }
-      
       // Keep loading state active for at least a few seconds to show the loading screen
       // This ensures a smoother transition even if the API is fast
       setTimeout(() => {

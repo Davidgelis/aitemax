@@ -68,42 +68,13 @@ export const analyzePrompt = async (payload: any) => {
     websiteDataInPayload: !!payload.websiteData
   });
   
-  try {
-    // Setup timeout to handle long-running requests
-    let timeoutId: any = null;
-    
-    // Create a promise wrapper that tracks the timeout
-    const requestWithTimeout = new Promise<any>((resolve, reject) => {
-      // Set a timeout to reject the promise after 60 seconds
-      timeoutId = setTimeout(() => {
-        reject(new Error('Analysis request timed out after 60 seconds'));
-      }, 60000);
-      
-      // Call the edge function
-      supabase.functions.invoke('analyze-prompt', {
-        body: payload
-      })
-      .then(response => {
-        clearTimeout(timeoutId);
-        if (response.error) {
-          reject(response.error);
-        } else {
-          resolve(response.data);
-        }
-      })
-      .catch(error => {
-        clearTimeout(timeoutId);
-        reject(error);
-      });
-    });
-    
-    // Wait for the function to complete or timeout
-    const data = await requestWithTimeout;
-    return data;
-  } catch (error) {
-    console.error("Error invoking analyze-prompt function:", error);
-    throw error;
-  }
+  const { data, error } = await supabase.functions.invoke('analyze-prompt', {
+    body: payload
+  });
+  
+  if (error) throw error;
+  
+  return data;
 };
 
 export const enhancePrompt = async (
@@ -141,65 +112,24 @@ export const enhancePrompt = async (
     v => v.isRelevant === true
   );
   
-  // Log the data being sent to the enhance-prompt function
-  console.log("Sending to enhance-prompt function:", {
-    answeredQuestions: answeredQuestions.length,
-    relevantVariables: relevantVariables.length,
-    primaryToggle: selectedPrimary,
-    secondaryToggle: selectedSecondary
+  const { data, error } = await supabase.functions.invoke('enhance-prompt', {
+    body: {
+      originalPrompt: promptToEnhance,
+      answeredQuestions,
+      relevantVariables,
+      primaryToggle: selectedPrimary,
+      secondaryToggle: selectedSecondary,
+      userId: user?.id,
+      promptId
+    }
   });
   
-  try {
-    // Setup timeout to handle long-running requests
-    let timeoutId: any = null;
-    
-    // Create a promise wrapper that tracks the timeout
-    const requestWithTimeout = new Promise<any>((resolve, reject) => {
-      // Set a timeout to reject the promise after 60 seconds
-      timeoutId = setTimeout(() => {
-        reject(new Error('Enhance prompt request timed out after 60 seconds'));
-      }, 60000);
-      
-      // Call the edge function
-      supabase.functions.invoke('enhance-prompt', {
-        body: {
-          originalPrompt: promptToEnhance,
-          answeredQuestions,
-          relevantVariables,
-          primaryToggle: selectedPrimary,
-          secondaryToggle: selectedSecondary,
-          userId: user?.id,
-          promptId
-        }
-      })
-      .then(response => {
-        clearTimeout(timeoutId);
-        if (response.error) {
-          console.error("Error enhancing prompt:", response.error);
-          reject(response.error);
-        } else {
-          console.log("Prompt enhanced successfully:", {
-            loadingMessage: response.data.loadingMessage,
-            usage: response.data.usage
-          });
-          
-          resolve({
-            enhancedPrompt: response.data.enhancedPrompt,
-            loadingMessage: response.data.loadingMessage
-          });
-        }
-      })
-      .catch(error => {
-        clearTimeout(timeoutId);
-        reject(error);
-      });
-    });
-    
-    // Wait for the function to complete or timeout
-    const result = await requestWithTimeout;
-    return result;
-  } catch (error) {
-    console.error("Error enhancing prompt:", error);
+  if (error) {
     throw error;
   }
+  
+  return {
+    enhancedPrompt: data.enhancedPrompt,
+    loadingMessage: data.loadingMessage
+  };
 };

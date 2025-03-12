@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
@@ -75,11 +74,6 @@ export const StepOneContent = ({
       selectedPrimary,
       selectedSecondary
     });
-    
-    // Check if image toggle is selected but no images are uploaded
-    if (selectedPrimary === 'image' && (!uploadedImages || uploadedImages.length === 0)) {
-      console.warn("Image toggle selected but no images uploaded");
-    }
     
     onAnalyze();
   };
@@ -200,25 +194,6 @@ export const StepOneContent = ({
           setDialogOpen={setDialogOpen}
         />
       </div>
-
-      {/* Status indicators for website and image context */}
-      {(websiteContext || (uploadedImages && uploadedImages.length > 0)) && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {websiteContext && (
-            <div className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-medium flex items-center">
-              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-              Website: {websiteContext.url.substring(0, 30)}{websiteContext.url.length > 30 ? '...' : ''}
-            </div>
-          )}
-          
-          {uploadedImages && uploadedImages.length > 0 && (
-            <div className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium flex items-center">
-              <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-              Image: {uploadedImages[0].file.name.substring(0, 20)}{uploadedImages[0].file.name.length > 20 ? '...' : ''}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Action buttons */}
       <div className="flex justify-between mt-8">

@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -323,7 +324,6 @@ serve(async (req) => {
     if (imageData) {
       console.log("Image type:", imageData.type || "No file type");
       console.log("Has image base64:", imageData.base64 ? "Yes" : "No");
-      console.log("Base64 length:", imageData.base64 ? imageData.base64.length : 0);
     }
     
     // Add website content to context if provided
@@ -336,11 +336,10 @@ serve(async (req) => {
       console.log(`Website provided for context: ${websiteData.url}`);
       console.log(`User instructions for website analysis: ${websiteData.instructions || "No specific instructions"}`);
       
-      try {
-        const websiteContent = await fetchWebsiteContent(websiteData.url, websiteData.instructions);
-        websiteKeywords = extractKeyTerms(websiteContent.text);
-        
-        contextualData += `\n\nWEBSITE CONTEXT:
+      const websiteContent = await fetchWebsiteContent(websiteData.url, websiteData.instructions);
+      websiteKeywords = extractKeyTerms(websiteContent.text);
+      
+      contextualData += `\n\nWEBSITE CONTEXT:
 URL: ${websiteData.url}
 Title: ${websiteContent.title}
 Meta Description: ${websiteContent.metaDescription || "None"}
@@ -360,10 +359,6 @@ YOUR TASK FOR WEBSITE ANALYSIS:
 6. For questions about "best practices" or similar instructions, EXTRACT ALL relevant best practices from the content
 7. For variables, keep values concise (5-10 words) but precise
 8. Only use information EXPLICITLY present in the content - do not generalize or make assumptions`;
-      } catch (websiteError) {
-        console.error("Error fetching website content:", websiteError);
-        contextualData += `\n\nWEBSITE CONTEXT ERROR: Failed to fetch content from ${websiteData.url}: ${websiteError.message}`;
-      }
     }
     
     // Add image context if provided
@@ -371,17 +366,23 @@ YOUR TASK FOR WEBSITE ANALYSIS:
     if (imageData && imageData.base64) {
       hasAdditionalContext = true;
       console.log("Image provided for context - will be sent to OpenAI for analysis");
-      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image thoroughly and extract key visual details including:
+      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image thoroughly and extract all visual details including:
 - Subject(s) in the image
-- Viewpoint and perspective 
+- Viewpoint (looking up, eye-level, aerial view, etc.)
+- Perspective (distance, angle, etc.)
 - Setting/location/environment
+- Time of day (if determinable)
+- Season (if determinable)
+- Weather conditions (if shown)
 - Lighting conditions
 - Color palette
 - Mood/atmosphere
-- Composition style
+- Composition
+- Style
+- Textures
+- Any other observable details
 
-KEEP YOUR IMAGE ANALYSIS CONCISE - 1-2 paragraphs maximum.
-Then use these visual details to pre-fill relevant answers to questions and values for variables. Only use information that is EXPLICITLY visible in the image.`;
+Extract these specific details and use them to pre-fill relevant answers to questions and values for variables. Only use information that is EXPLICITLY visible in the image.`;
     }
     
     console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);

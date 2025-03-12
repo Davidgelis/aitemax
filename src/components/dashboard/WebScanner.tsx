@@ -20,30 +20,18 @@ export const WebScanner = ({
   const [savedInstructions, setSavedInstructions] = useState('');
   
   const handleWebsiteScan = (url: string, instructions: string) => {
-    // Validate input
-    if (!url || !url.trim()) {
-      console.error("WebScanner: Invalid URL provided");
-      return;
-    }
-    
-    // Ensure URL has protocol
-    let validUrl = url.trim();
-    if (!validUrl.startsWith('http://') && !validUrl.startsWith('https://')) {
-      validUrl = 'https://' + validUrl;
-    }
-    
     // Save the values for persistence
-    setSavedUrl(validUrl);
+    setSavedUrl(url);
     setSavedInstructions(instructions);
     
     // Add additional logging to debug data flow
     console.log("WebScanner: Preparing to send website data to parent");
-    console.log("URL:", validUrl);
+    console.log("URL:", url);
     console.log("Instructions:", instructions || "No specific instructions provided");
     
     // Call the parent handler without modifying any text area
     console.log("WebScanner: Sending website data to parent");
-    onWebsiteScan(validUrl, instructions);
+    onWebsiteScan(url, instructions);
   };
 
   // Model replacement style button

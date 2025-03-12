@@ -1,4 +1,3 @@
-
 export function createSystemPrompt(primaryToggle?: string | null, secondaryToggle?: string | null) {
   // Base system prompt
   let prompt = `
