@@ -12,8 +12,11 @@ import {
 export function Toaster() {
   const { toasts } = useToast()
   
-  // Filter out all "Image attached" toasts completely
-  const filteredToasts = toasts.filter(toast => toast.title !== "Image attached");
+  // Filter out "Website context added" toasts completely, as well as "Image attached" toasts
+  const filteredToasts = toasts.filter(toast => 
+    toast.title !== "Image attached" && 
+    toast.title !== "Website context added"
+  );
 
   return (
     <ToastProvider>

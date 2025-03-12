@@ -61,7 +61,6 @@ export const StepController = ({
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   
-  
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
     : null;
@@ -143,21 +142,13 @@ export const StepController = ({
   const handleWebsiteScan = (url: string, instructions: string) => {
     console.log("StepController: Website context set:", { url, instructions });
     setWebsiteContext({ url, instructions });
-    
-    toast({
-      title: "Website context added",
-      description: `Added ${url} as context for your prompt analysis`,
-    });
   };
 
   const handleImagesChange = (images: UploadedImage[]) => {
     console.log("StepController: Images updated:", images);
     setUploadedImages(images);
-    
-    // Removed the toast notification for image attachments
   };
 
-  
   const handleAnalyzeWithContext = () => {
     console.log("StepController: Analyzing with context", {
       images: uploadedImages,
@@ -251,7 +242,6 @@ export const StepController = ({
     handleStepChange(step, true);
   };
 
-  
   const filteredPrompts = savedPrompts.filter(prompt => 
     searchTerm === "" || 
     prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
