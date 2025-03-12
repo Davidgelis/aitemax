@@ -18,11 +18,13 @@ export const WebScanner = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [savedUrl, setSavedUrl] = useState('');
   const [savedInstructions, setSavedInstructions] = useState('');
+  const [hasContext, setHasContext] = useState(false);
   
   const handleWebsiteScan = (url: string, instructions: string) => {
     // Save the values for persistence
     setSavedUrl(url);
     setSavedInstructions(instructions);
+    setHasContext(true);
     
     // Add additional logging to debug data flow
     console.log("WebScanner: Preparing to send website data to parent");
@@ -41,11 +43,15 @@ export const WebScanner = ({
         <div className="flex items-center">
           <button 
             onClick={() => setDialogOpen(true)}
-            className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
+            className={`w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center text-sm rounded-md px-4 transition-all duration-300 ${
+              hasContext 
+                ? 'shadow-[0_0_5px_0_#33fea6]' 
+                : 'shadow-sm'
+            }`}
             title="Extract specific information from a website to enhance your prompt"
           >
             <span className="truncate ml-1">Web Smart Scan</span>
-            <Globe className="mr-1 h-4 w-4 text-[#084b49]" />
+            <Globe className={`mr-1 h-4 w-4 ${hasContext ? 'text-[#33fea6]' : 'text-[#084b49]'}`} />
           </button>
         </div>
         
@@ -68,10 +74,14 @@ export const WebScanner = ({
           onClick={() => setDialogOpen(true)}
           variant="slim"
           size="xs"
-          className="group animate-aurora-border"
+          className={`group animate-aurora-border ${
+            hasContext 
+              ? 'shadow-[0_0_5px_0_#33fea6]' 
+              : ''
+          }`}
           title="Extract specific information from a website to enhance your prompt"
         >
-          <Globe className="w-3 h-3 text-[#64bf95] group-hover:text-[#33fea6] transition-colors" />
+          <Globe className={`w-3 h-3 ${hasContext ? 'text-[#33fea6]' : 'text-[#64bf95] group-hover:text-[#33fea6]'} transition-colors`} />
           <span>Web Scan</span>
         </Button>
       </div>

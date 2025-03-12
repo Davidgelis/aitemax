@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Info } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 interface WebScanDialogProps {
   open: boolean;
@@ -23,6 +24,7 @@ export const WebScanDialog = ({
 }: WebScanDialogProps) => {
   const [url, setUrl] = useState(savedUrl);
   const [instructions, setInstructions] = useState(savedInstructions);
+  const { toast } = useToast();
   
   // Update state when props change
   useEffect(() => {
@@ -34,14 +36,45 @@ export const WebScanDialog = ({
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (url.trim()) {
-      onWebsiteScan(url.trim(), instructions.trim());
-      onOpenChange(false);
+    
+    // Validate inputs
+    if (!url.trim()) {
+      toast({
+        title: "URL required",
+        description: "Please provide a website URL.",
+        variant: "destructive"
+      });
+      return;
     }
+    
+    if (!instructions.trim()) {
+      toast({
+        title: "Context required",
+        description: "Please provide specific instructions for what information to extract from this website.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    onWebsiteScan(url.trim(), instructions.trim());
+    onOpenChange(false);
+  };
+  
+  const handleDialogClose = (open: boolean) => {
+    // If closing and fields are filled, prompt user
+    if (!open && (url.trim() || instructions.trim())) {
+      if (!savedUrl && !savedInstructions) {
+        toast({
+          title: "Discard changes?",
+          description: "You have unsaved changes that will be lost.",
+        });
+      }
+    }
+    onOpenChange(open);
   };
   
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-md bg-white border border-[#084b49]/30 p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="text-xl font-medium text-[#545454]">Web Smart Scan</DialogTitle>
@@ -51,7 +84,7 @@ export const WebScanDialog = ({
         <form onSubmit={handleSubmit} className="p-6 pt-2">
           <div className="mb-4">
             <label htmlFor="website-url" className="block text-sm font-medium text-[#545454] mb-2">
-              Website URL
+              Website URL <span className="text-red-500">*</span>
             </label>
             <Input 
               id="website-url"
@@ -59,21 +92,22 @@ export const WebScanDialog = ({
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://example.com"
-              className="w-full border-[#084b49]/30"
+              className={`w-full ${!url.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
               required
             />
           </div>
           
           <div className="mb-4">
             <label htmlFor="instructions" className="block text-sm font-medium text-[#545454] mb-2">
-              What specific information do you want from this website?
+              What specific information do you want from this website? <span className="text-red-500">*</span>
             </label>
             <Textarea 
               id="instructions"
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
               placeholder="E.g., 'Extract best practices for landing pages' or 'Find information about pricing models'"
-              className="w-full min-h-[120px] border-[#084b49]/30 resize-none"
+              className={`w-full min-h-[120px] resize-none ${!instructions.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
+              required
             />
             <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">
               <Info size={14} className="flex-shrink-0" />
@@ -88,7 +122,7 @@ export const WebScanDialog = ({
           <div className="flex justify-end mt-4">
             <Button
               type="submit"
-              className="bg-[#084b49] hover:bg-[#084b49]/90 text-white px-4 py-2"
+              className="bg-[#084b49] hover:bg-[#084b49]/90 text-white px-4 py-2 shadow-[0_0_0_0_#33fea6] transition-all duration-300 hover:shadow-[0_0_10px_0_#33fea6]"
             >
               Use as Context
             </Button>
