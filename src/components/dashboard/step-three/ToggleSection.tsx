@@ -32,13 +32,13 @@ export const ToggleSection = ({
                 {item.definition && (
                   <div className="ml-1">
                     <TooltipProvider>
-                      <Tooltip>
+                      <Tooltip delayDuration={0}>
                         <TooltipTrigger asChild>
-                          <button className="text-[#e5e7eb] hover:text-[#084b49] transition-colors">
+                          <button className="text-[#b4b4b4] hover:text-[#084b49] transition-colors">
                             <HelpCircle size={14} />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom" className="max-w-xs text-xs bg-white">
+                        <TooltipContent side="bottom" className="max-w-xs text-xs bg-white text-justify">
                           {item.definition}
                         </TooltipContent>
                       </Tooltip>
@@ -64,13 +64,13 @@ export const ToggleSection = ({
                 {item.definition && (
                   <div className="ml-1">
                     <TooltipProvider>
-                      <Tooltip>
+                      <Tooltip delayDuration={0}>
                         <TooltipTrigger asChild>
-                          <button className="text-[#e5e7eb] hover:text-[#084b49] transition-colors">
+                          <button className="text-[#b4b4b4] hover:text-[#084b49] transition-colors">
                             <HelpCircle size={14} />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom" className="max-w-xs text-xs bg-white">
+                        <TooltipContent side="bottom" className="max-w-xs text-xs bg-white text-justify">
                           {item.definition}
                         </TooltipContent>
                       </Tooltip>
