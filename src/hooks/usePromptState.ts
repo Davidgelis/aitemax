@@ -1,432 +1,492 @@
-
-import { useState, useCallback, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Variable, jsonToVariables, variablesToJson } from "@/components/dashboard/types";
+import { useState, useEffect } from "react";
+import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
+import { defaultVariables, mockQuestions, sampleFinalPrompt } from "@/components/dashboard/constants";
+import { supabase } from "@/integrations/supabase/client";
+import { usePromptDrafts } from "@/hooks/usePromptDrafts";
 
 export const usePromptState = (user: any) => {
-  const [promptText, setPromptText] = useState<string>("");
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [variables, setVariables] = useState<Variable[]>([]);
-  const [showJson, setShowJson] = useState<boolean>(false);
-  const [finalPrompt, setFinalPrompt] = useState<string>("");
-  const [editingPrompt, setEditingPrompt] = useState<string>("");
-  const [showEditPromptSheet, setShowEditPromptSheet] = useState<boolean>(false);
-  const [masterCommand, setMasterCommand] = useState<string>("");
-  const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
-  const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState<number>(1);
-  const [savedPrompts, setSavedPrompts] = useState<any[]>([]);
-  const [isLoadingPrompts, setIsLoadingPrompts] = useState<boolean>(false);
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [promptText, setPromptText] = useState("");
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [currentQuestionPage, setCurrentQuestionPage] = useState(0);
+  const [variables, setVariables] = useState<Variable[]>(defaultVariables);
+  const [showJson, setShowJson] = useState(false);
+  const [finalPrompt, setFinalPrompt] = useState(sampleFinalPrompt);
+  const [editingPrompt, setEditingPrompt] = useState("");
+  const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
+  const [masterCommand, setMasterCommand] = useState("");
+  const [selectedPrimary, setSelectedPrimary] = useState<string | null>("coding");
+  const [selectedSecondary, setSelectedSecondary] = useState<string | null>("strict");
+  const [currentStep, setCurrentStep] = useState(1);
+  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
-  const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState<boolean>(false);
-  const [drafts, setDrafts] = useState<any[]>([]);
-  const [isLoadingDrafts, setIsLoadingDrafts] = useState<boolean>(false);
-  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
-  
+  const [sliderPosition, setSliderPosition] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
+  const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState(false);
+  const [promptJsonStructure, setPromptJsonStructure] = useState<PromptJsonStructure | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
   const { toast } = useToast();
 
-  const fetchSavedPrompts = useCallback(async () => {
-    if (!user) return;
-    
-    setIsLoadingPrompts(true);
-    
-    try {
-      const { data, error } = await supabase
-        .from('prompts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-        
-      if (error) throw error;
-      
-      setSavedPrompts(data || []);
-    } catch (error) {
-      console.error('Error fetching saved prompts:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch saved prompts",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingPrompts(false);
-    }
-  }, [user, toast]);
+  const {
+    saveDraft,
+    loadDraft,
+    clearDraft,
+    drafts,
+    isLoadingDrafts,
+    fetchDrafts,
+    deleteDraft,
+    loadSelectedDraft,
+    currentDraftId
+  } = usePromptDrafts(
+    promptText,
+    masterCommand,
+    variables,
+    selectedPrimary,
+    selectedSecondary,
+    currentStep,
+    user
+  );
 
-  const handleNewPrompt = useCallback(() => {
+  useEffect(() => {
+    if (user && !draftLoaded) {
+      loadDraft().then(draft => {
+        if (draft) {
+          setDraftLoaded(true);
+          
+          // Only load drafts for steps 2 and 3
+          if (draft.currentStep && draft.currentStep > 1) {
+            toast({
+              title: "Draft Loaded",
+              description: "Your previous work has been restored.",
+            });
+            
+            if (draft.promptText) setPromptText(draft.promptText);
+            if (draft.masterCommand) setMasterCommand(draft.masterCommand);
+            if (draft.variables) setVariables(draft.variables);
+            if (draft.selectedPrimary) setSelectedPrimary(draft.selectedPrimary);
+            if (draft.selectedSecondary) setSelectedSecondary(draft.selectedSecondary);
+            if (draft.currentStep) setCurrentStep(draft.currentStep);
+          }
+        }
+      });
+    }
+  }, [user, draftLoaded]);
+
+  const loadSelectedDraftState = (draft: any) => {
+    const draftData = loadSelectedDraft(draft);
+    
+    // Only load if not for step 1
+    if (draftData.currentStep && draftData.currentStep > 1) {
+      if (draftData.promptText) setPromptText(draftData.promptText);
+      if (draftData.masterCommand) setMasterCommand(draftData.masterCommand);
+      if (draftData.variables) setVariables(draftData.variables);
+      if (draftData.selectedPrimary) setSelectedPrimary(draftData.selectedPrimary);
+      if (draftData.secondaryToggle) setSelectedSecondary(draftData.secondaryToggle);
+      if (draftData.currentStep) setCurrentStep(draftData.currentStep);
+      
+      setFinalPrompt(draftData.promptText || "");
+      
+      toast({
+        title: "Draft Loaded",
+        description: "Your draft has been restored.",
+      });
+    }
+  };
+
+  const handleNewPrompt = () => {
+    // Only save if it's a step 2 or 3 draft that hasn't been explicitly deleted
+    if (promptText && !isViewingSavedPrompt && currentStep > 1) {
+      saveDraft();
+      toast({
+        title: "Draft Saved",
+        description: "Your work has been saved as a draft.",
+      });
+    }
+    
     setPromptText("");
     setQuestions([]);
-    setVariables([]);
+    setVariables(defaultVariables.map(v => ({ ...v, value: "", isRelevant: null })));
     setFinalPrompt("");
-    setEditingPrompt("");
-    setShowEditPromptSheet(false);
     setMasterCommand("");
     setSelectedPrimary(null);
     setSelectedSecondary(null);
     setCurrentStep(1);
     setIsViewingSavedPrompt(false);
-    setCurrentDraftId(null);
-  }, []);
+    
+    toast({
+      title: "New Prompt",
+      description: "Started a new prompt creation process",
+    });
+  };
 
-  const handleSavePrompt = useCallback(async (title: string) => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "You need to be logged in to save prompts",
-        variant: "destructive",
-      });
-      return;
+  const handleDeleteDraft = async (draftId: string) => {
+    if (deleteDraft) {
+      await deleteDraft(draftId);
+      
+      // If the deleted draft was the current one, reset the state only if we're not on step 1
+      if (draftId === currentDraftId && currentStep > 1) {
+        setPromptText("");
+        setMasterCommand("");
+        setVariables(defaultVariables.map(v => ({ ...v, value: "", isRelevant: null })));
+        setFinalPrompt("");
+        setSelectedPrimary(null);
+        setSelectedSecondary(null);
+        setCurrentStep(1);
+      }
     }
+  };
+
+  const fetchSavedPrompts = async () => {
+    if (!user) return;
     
-    if (!title) {
-      toast({
-        title: "Error",
-        description: "Please provide a title for your prompt",
-        variant: "destructive",
-      });
-      return;
-    }
-    
+    setIsLoadingPrompts(true);
     try {
       const { data, error } = await supabase
         .from('prompts')
-        .insert({
-          title,
-          prompt_text: promptText,
-          master_command: masterCommand,
-          primary_toggle: selectedPrimary,
-          secondary_toggle: selectedSecondary,
-          variables: variablesToJson(variables),
-          user_id: user.id
-        })
-        .select();
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      const formattedPrompts: SavedPrompt[] = data?.map(item => {
+        const prompt: SavedPrompt = {
+          id: item.id,
+          title: item.title || 'Untitled Prompt',
+          date: new Date(item.created_at || '').toLocaleString(),
+          promptText: item.prompt_text || '',
+          masterCommand: item.master_command || '',
+          primaryToggle: item.primary_toggle,
+          secondaryToggle: item.secondary_toggle,
+          variables: jsonToVariables(item.variables),
+        };
         
-      if (error) throw error;
+        return prompt;
+      }) || [];
+      
+      setSavedPrompts(formattedPrompts);
+    } catch (error: any) {
+      console.error("Error fetching prompts:", error.message);
+      toast({
+        title: "Error fetching prompts",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPrompts(false);
+    }
+  };
+
+  const handleSavePrompt = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save your prompts",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      let jsonStructure = promptJsonStructure;
+      
+      if (!jsonStructure && finalPrompt) {
+        setIsLoadingPrompts(true);
+        try {
+          const { data, error } = await supabase.functions.invoke('prompt-to-json', {
+            body: {
+              prompt: finalPrompt,
+              masterCommand,
+              userId: user.id
+            }
+          });
+          
+          if (error) throw error;
+          
+          if (data && data.jsonStructure) {
+            jsonStructure = data.jsonStructure;
+            setPromptJsonStructure(data.jsonStructure);
+          }
+        } catch (jsonError) {
+          console.error("Error generating JSON for saving:", jsonError);
+          // Continue saving without JSON structure
+        } finally {
+          setIsLoadingPrompts(false);
+        }
+      }
+      
+      const relevantVariables = variables.filter(v => v.isRelevant === true);
+      const promptData = {
+        user_id: user.id,
+        title: finalPrompt.split('\n')[0] || 'Untitled Prompt',
+        prompt_text: finalPrompt,
+        master_command: masterCommand,
+        primary_toggle: selectedPrimary,
+        secondary_toggle: selectedSecondary,
+        variables: variablesToJson(relevantVariables),
+        current_step: currentStep,
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('prompts')
+        .insert(promptData)
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        const newPrompt: SavedPrompt = {
+          id: data[0].id,
+          title: data[0].title || 'Untitled Prompt',
+          date: new Date(data[0].created_at || '').toLocaleString(),
+          promptText: data[0].prompt_text || '',
+          masterCommand: data[0].master_command || '',
+          primaryToggle: data[0].primary_toggle,
+          secondaryToggle: data[0].secondary_toggle,
+          variables: jsonToVariables(data[0].variables),
+        };
+        
+        if (jsonStructure) {
+          newPrompt.jsonStructure = jsonStructure;
+        }
+        
+        setSavedPrompts(prevPrompts => [newPrompt, ...prevPrompts]);
+      }
+
+      await clearDraft();
+      setIsViewingSavedPrompt(true);
       
       toast({
         title: "Success",
-        description: "Prompt saved successfully!",
+        description: "Prompt saved successfully",
       });
-      
-      fetchSavedPrompts();
-      setIsViewingSavedPrompt(true);
-      
-      // Return the newly created prompt ID
-      return data?.[0]?.id;
-    } catch (error) {
-      console.error('Error saving prompt:', error);
+    } catch (error: any) {
+      console.error("Error saving prompt:", error.message);
       toast({
-        title: "Error",
-        description: "Failed to save prompt",
+        title: "Error saving prompt",
+        description: error.message,
         variant: "destructive",
       });
-      return null;
     }
-  }, [promptText, masterCommand, selectedPrimary, selectedSecondary, variables, user, toast, fetchSavedPrompts]);
+  };
 
-  const handleDeletePrompt = useCallback(async (id: string) => {
-    if (!user) return;
-    
+  const handleDeletePrompt = async (id: string) => {
     try {
       const { error } = await supabase
         .from('prompts')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-        
-      if (error) throw error;
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      const updatedPrompts = savedPrompts.filter(prompt => prompt.id !== id);
+      setSavedPrompts(updatedPrompts);
       
       toast({
         title: "Success",
-        description: "Prompt deleted successfully!",
+        description: "Prompt deleted successfully",
       });
-      
-      fetchSavedPrompts();
-    } catch (error) {
-      console.error('Error deleting prompt:', error);
+    } catch (error: any) {
+      console.error("Error deleting prompt:", error.message);
       toast({
-        title: "Error",
-        description: "Failed to delete prompt",
+        title: "Error deleting prompt",
+        description: error.message,
         variant: "destructive",
       });
     }
-  }, [user, toast, fetchSavedPrompts]);
+  };
 
-  const handleDuplicatePrompt = useCallback(async (id: string) => {
-    if (!user) return;
-    
+  const handleDuplicatePrompt = async (prompt: SavedPrompt) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to duplicate prompts",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // First fetch the prompt to duplicate
-      const { data: promptData, error: fetchError } = await supabase
+      const duplicateData = {
+        user_id: user.id,
+        title: `${prompt.title} (Copy)`,
+        prompt_text: prompt.promptText,
+        master_command: prompt.masterCommand,
+        primary_toggle: prompt.primaryToggle,
+        secondary_toggle: prompt.secondaryToggle,
+        variables: variablesToJson(prompt.variables),
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
         .from('prompts')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single();
+        .insert(duplicateData)
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        const newPrompt: SavedPrompt = {
+          id: data[0].id,
+          title: data[0].title,
+          date: new Date(data[0].created_at || '').toLocaleString(),
+          promptText: data[0].prompt_text || '',
+          masterCommand: data[0].master_command || '',
+          primaryToggle: data[0].primary_toggle,
+          secondaryToggle: data[0].secondary_toggle,
+          variables: jsonToVariables(data[0].variables),
+        };
         
-      if (fetchError) throw fetchError;
-      
-      // Create a new prompt with the same data
-      const { error: insertError } = await supabase
-        .from('prompts')
-        .insert({
-          title: `${promptData.title} (Copy)`,
-          prompt_text: promptData.prompt_text,
-          master_command: promptData.master_command,
-          primary_toggle: promptData.primary_toggle,
-          secondary_toggle: promptData.secondary_toggle,
-          variables: promptData.variables,
-          user_id: user.id
-        });
+        if (prompt.jsonStructure) {
+          newPrompt.jsonStructure = prompt.jsonStructure;
+        }
         
-      if (insertError) throw insertError;
+        setSavedPrompts([newPrompt, ...savedPrompts]);
+      }
       
       toast({
         title: "Success",
-        description: "Prompt duplicated successfully!",
+        description: "Prompt duplicated successfully",
       });
-      
-      fetchSavedPrompts();
-    } catch (error) {
-      console.error('Error duplicating prompt:', error);
+    } catch (error: any) {
+      console.error("Error duplicating prompt:", error.message);
       toast({
-        title: "Error",
-        description: "Failed to duplicate prompt",
+        title: "Error duplicating prompt",
+        description: error.message,
         variant: "destructive",
       });
     }
-  }, [user, toast, fetchSavedPrompts]);
+  };
 
-  const handleRenamePrompt = useCallback(async (id: string, newTitle: string) => {
-    if (!user || !newTitle) return;
-    
+  const handleRenamePrompt = async (id: string, newTitle: string) => {
     try {
       const { error } = await supabase
         .from('prompts')
-        .update({ title: newTitle })
-        .eq('id', id)
-        .eq('user_id', user.id);
-        
-      if (error) throw error;
+        .update({ title: newTitle, updated_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      const updatedPrompts = savedPrompts.map(prompt =>
+        prompt.id === id ? { ...prompt, title: newTitle } : prompt
+      );
+      setSavedPrompts(updatedPrompts);
       
       toast({
         title: "Success",
-        description: "Prompt renamed successfully!",
+        description: "Prompt renamed successfully",
       });
-      
-      fetchSavedPrompts();
-    } catch (error) {
-      console.error('Error renaming prompt:', error);
+    } catch (error: any) {
+      console.error("Error renaming prompt:", error.message);
       toast({
-        title: "Error",
-        description: "Failed to rename prompt",
+        title: "Error renaming prompt",
+        description: error.message,
         variant: "destructive",
       });
     }
-  }, [user, toast, fetchSavedPrompts]);
+  };
 
-  const loadSavedPrompt = useCallback((prompt: any) => {
-    setPromptText(prompt.prompt_text);
-    setMasterCommand(prompt.master_command);
-    setVariables(jsonToVariables(prompt.variables));
-    setSelectedPrimary(prompt.primary_toggle);
-    setSelectedSecondary(prompt.secondary_toggle);
-    setFinalPrompt(prompt.prompt_text || "");
-    setCurrentStep(3); // Go directly to step 3 when loading a saved prompt
+  const loadSavedPrompt = (prompt: SavedPrompt) => {
+    if (promptText && !isViewingSavedPrompt) {
+      saveDraft();
+    }
+    
+    console.log("Loading saved prompt:", prompt);
+    setPromptText(prompt.promptText || "");
+    setFinalPrompt(prompt.promptText || "");
+    setMasterCommand(prompt.masterCommand || "");
+    setSelectedPrimary(prompt.primaryToggle);
+    setSelectedSecondary(prompt.secondaryToggle);
+    
+    if (prompt.jsonStructure) {
+      setPromptJsonStructure(prompt.jsonStructure);
+    } else {
+      setPromptJsonStructure(null);
+    }
+    
+    if (prompt.variables && prompt.variables.length > 0) {
+      setVariables(prompt.variables);
+    } else {
+      setVariables(defaultVariables.map(v => ({ ...v, isRelevant: true })));
+    }
+    
+    setCurrentStep(3);
     setIsViewingSavedPrompt(true);
     
     toast({
       title: "Prompt Loaded",
-      description: "Your saved prompt has been loaded.",
+      description: `Loaded prompt: ${prompt.title}`,
     });
-  }, [toast]);
+  };
 
-  const fetchDrafts = useCallback(async () => {
-    if (!user) return;
-    
-    setIsLoadingDrafts(true);
-    try {
-      const { data, error } = await supabase
-        .from('prompt_drafts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      if (data) {
-        setDrafts(data.map(draft => ({
-          id: draft.id,
-          title: draft.title || 'Untitled Draft',
-          promptText: draft.prompt_text || '',
-          masterCommand: draft.master_command || '',
-          primaryToggle: draft.primary_toggle,
-          secondaryToggle: draft.secondary_toggle,
-          variables: jsonToVariables(draft.variables),
-          currentStep: draft.current_step || 1,
-          updated_at: draft.updated_at
-        })));
-      }
-    } catch (error) {
-      console.error('Error fetching drafts:', error);
-    } finally {
-      setIsLoadingDrafts(false);
+  useEffect(() => {
+    if (user) {
+      fetchSavedPrompts();
     }
   }, [user]);
 
-  const saveDraft = useCallback(async () => {
-    if (!user || !promptText.trim()) return;
-
-    try {
-      const title = promptText.split('\n')[0] || 'Untitled Draft';
-      
-      let draftId = currentDraftId;
-      
-      if (!draftId) {
-        const { data: existingDrafts, error: searchError } = await supabase
-          .from('prompt_drafts')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('title', title)
-          .limit(1);
-          
-        if (searchError) throw searchError;
-        
-        if (existingDrafts && existingDrafts.length > 0) {
-          draftId = existingDrafts[0].id;
-          setCurrentDraftId(draftId);
-        }
-      }
-      
-      const draft = {
-        user_id: user.id,
-        title: title,
-        prompt_text: promptText,
-        master_command: masterCommand,
-        primary_toggle: selectedPrimary,
-        secondary_toggle: selectedSecondary,
-        variables: variablesToJson(variables),
-        current_step: currentStep,
-      };
-
-      if (draftId) {
-        const { error } = await supabase
-          .from('prompt_drafts')
-          .update(draft)
-          .eq('id', draftId);
-          
-        if (error) throw error;
-        console.log("Draft updated successfully");
-      } else {
-        const { data, error } = await supabase
-          .from('prompt_drafts')
-          .insert(draft)
-          .select();
-          
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          setCurrentDraftId(data[0].id);
-          console.log("New draft created successfully");
-        }
-      }
-
-      fetchDrafts();
-      
-      toast({
-        title: "Draft Saved",
-        description: "Your progress has been saved as a draft.",
-      });
-    } catch (error) {
-      console.error('Error saving draft:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save draft",
-        variant: "destructive",
-      });
-    }
-  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, user, currentDraftId, fetchDrafts, toast]);
-
-  const loadSelectedDraft = useCallback((draft: any) => {
-    if (!draft) return;
-    
-    setPromptText(draft.promptText || "");
-    setMasterCommand(draft.masterCommand || "");
-    setVariables(draft.variables || []);
-    setSelectedPrimary(draft.primaryToggle || null);
-    setSelectedSecondary(draft.secondaryToggle || null);
-    setCurrentStep(draft.currentStep || 1);
-    setFinalPrompt(draft.promptText || "");
-    
-    if (draft.id) {
-      setCurrentDraftId(draft.id);
-    }
-    
-    toast({
-      title: "Draft Loaded",
-      description: "Your draft has been restored.",
-    });
-  }, [toast]);
-
-  const handleDeleteDraft = useCallback(async (id: string) => {
-    if (!user || !id) return;
-    
-    try {
-      const { error } = await supabase
-        .from('prompt_drafts')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-        
-      if (error) throw error;
-      
-      if (id === currentDraftId) {
-        setCurrentDraftId(null);
-      }
-      
-      fetchDrafts();
-      
-      toast({
-        title: "Draft Deleted",
-        description: "Your draft has been deleted.",
-      });
-    } catch (error) {
-      console.error('Error deleting draft:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete draft",
-        variant: "destructive",
-      });
-    }
-  }, [user, currentDraftId, fetchDrafts, toast]);
-
-  // Load drafts when user changes
-  useEffect(() => {
-    if (user) {
-      fetchDrafts();
-      fetchSavedPrompts();
-    }
-  }, [user, fetchDrafts, fetchSavedPrompts]);
-
   return {
-    promptText, setPromptText,
-    questions, setQuestions,
-    variables, setVariables,
-    showJson, setShowJson,
-    finalPrompt, setFinalPrompt,
-    editingPrompt, setEditingPrompt,
-    showEditPromptSheet, setShowEditPromptSheet,
-    masterCommand, setMasterCommand,
-    selectedPrimary, setSelectedPrimary,
-    selectedSecondary, setSelectedSecondary,
-    currentStep, setCurrentStep,
-    savedPrompts, isLoadingPrompts, searchTerm, setSearchTerm,
-    variableToDelete, setVariableToDelete,
-    fetchSavedPrompts, handleNewPrompt, handleSavePrompt,
-    handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt,
-    loadSavedPrompt, isViewingSavedPrompt, setIsViewingSavedPrompt,
-    saveDraft, drafts, isLoadingDrafts, currentDraftId,
-    loadSelectedDraft, handleDeleteDraft
+    promptText,
+    setPromptText,
+    questions,
+    setQuestions,
+    currentQuestionPage,
+    setCurrentQuestionPage,
+    variables,
+    setVariables,
+    showJson,
+    setShowJson,
+    finalPrompt,
+    setFinalPrompt,
+    editingPrompt,
+    setEditingPrompt,
+    showEditPromptSheet,
+    setShowEditPromptSheet,
+    masterCommand,
+    setMasterCommand,
+    selectedPrimary,
+    setSelectedPrimary,
+    selectedSecondary,
+    setSelectedSecondary,
+    currentStep,
+    setCurrentStep,
+    savedPrompts,
+    setSavedPrompts,
+    variableToDelete,
+    setVariableToDelete,
+    sliderPosition,
+    setSliderPosition,
+    searchTerm,
+    setSearchTerm,
+    isLoadingPrompts,
+    isViewingSavedPrompt,
+    setIsViewingSavedPrompt,
+    promptJsonStructure,
+    setPromptJsonStructure,
+    fetchSavedPrompts,
+    handleNewPrompt,
+    handleSavePrompt,
+    handleDeletePrompt,
+    handleDuplicatePrompt,
+    handleRenamePrompt,
+    loadSavedPrompt,
+    drafts,
+    isLoadingDrafts,
+    loadSelectedDraft: loadSelectedDraftState,
+    deleteDraft,
+    currentDraftId,
+    handleDeleteDraft,
+    saveDraft
   };
 };

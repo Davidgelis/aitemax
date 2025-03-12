@@ -64,6 +64,7 @@ const Dashboard = () => {
     (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm.toLowerCase())
   );
   
+  // Save draft when navigating away
   useEffect(() => {
     const saveDraftBeforeNavigate = (nextPath: string) => {
       if (nextPath !== location.pathname && promptState.promptText && !promptState.isViewingSavedPrompt) {
@@ -71,6 +72,7 @@ const Dashboard = () => {
       }
     };
 
+    // For regular navigation
     const handleRouteChange = (e: PopStateEvent) => {
       const nextPath = window.location.pathname;
       if (nextPath !== location.pathname) {
@@ -78,8 +80,10 @@ const Dashboard = () => {
       }
     };
 
+    // Add event listeners
     window.addEventListener('popstate', handleRouteChange);
 
+    // Intercept Link navigation
     const originalPushState = window.history.pushState;
     window.history.pushState = function() {
       const nextPath = arguments[2] as string;
@@ -186,12 +190,7 @@ const Dashboard = () => {
     if (user) {
       promptState.fetchSavedPrompts();
     }
-  }, [user, promptState.fetchSavedPrompts]);
-
-  // Wrapper function to adapt handleDuplicatePrompt to take SavedPrompt instead of just ID
-  const handleDuplicatePromptAdapter = (prompt) => {
-    return promptState.handleDuplicatePrompt(prompt.id);
-  };
+  }, [user]);
 
   return (
     <SidebarProvider>
@@ -219,7 +218,7 @@ const Dashboard = () => {
           isLoadingPrompts={promptState.isLoadingPrompts}
           handleNewPrompt={promptState.handleNewPrompt}
           handleDeletePrompt={promptState.handleDeletePrompt}
-          handleDuplicatePrompt={handleDuplicatePromptAdapter}
+          handleDuplicatePrompt={promptState.handleDuplicatePrompt}
           handleRenamePrompt={promptState.handleRenamePrompt}
           loadSavedPrompt={promptState.loadSavedPrompt}
           drafts={promptState.drafts}

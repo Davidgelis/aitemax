@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useState } from "react";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -142,6 +143,7 @@ export const usePromptDrafts = (
       fetchDrafts();
     } catch (error) {
       console.error('Error saving draft:', error);
+      // Still save to localStorage as a backup
       localStorage.setItem('promptDraft', JSON.stringify({
         promptText,
         masterCommand,
@@ -170,6 +172,11 @@ export const usePromptDrafts = (
       if (error) throw error;
 
       if (drafts && drafts.length > 0) {
+        // If the draft is for step 1, don't load it since we only want to load drafts for steps 2 and 3
+        if (drafts[0].current_step === 1) {
+          return null;
+        }
+        
         setCurrentDraftId(drafts[0].id);
         return {
           promptText: drafts[0].prompt_text,
@@ -181,11 +188,18 @@ export const usePromptDrafts = (
         };
       }
 
+      // Only check local storage if no drafts found in the database
       const localDraft = localStorage.getItem('promptDraft');
       if (localDraft) {
         const parsed = JSON.parse(localDraft);
         
+        // If the draft is for step 1, don't load it
+        if (parsed.currentStep === 1) {
+          return null;
+        }
+        
         if (parsed.id) {
+          // Verify that the draft actually exists in the database
           const { data: draftExists, error: checkError } = await supabase
             .from('prompt_drafts')
             .select('id')
@@ -193,6 +207,7 @@ export const usePromptDrafts = (
             .limit(1);
             
           if (checkError || !draftExists || draftExists.length === 0) {
+            // If the draft doesn't exist in the database, clear local storage
             localStorage.removeItem('promptDraft');
             setCurrentDraftId(null);
             return null;
@@ -206,11 +221,18 @@ export const usePromptDrafts = (
     } catch (error) {
       console.error('Error loading draft:', error);
       
+      // Check if local draft exists and verify it
       const localDraft = localStorage.getItem('promptDraft');
       if (localDraft) {
         const parsed = JSON.parse(localDraft);
         
+        // If the draft is for step 1, don't load it
+        if (parsed.currentStep === 1) {
+          return null;
+        }
+        
         if (parsed.id) {
+          // Verify that the draft exists in the database
           try {
             const { data: draftExists, error: checkError } = await supabase
               .from('prompt_drafts')
@@ -219,6 +241,7 @@ export const usePromptDrafts = (
               .limit(1);
               
             if (checkError || !draftExists || draftExists.length === 0) {
+              // If the draft doesn't exist, clear local storage
               localStorage.removeItem('promptDraft');
               setCurrentDraftId(null);
               return null;
@@ -226,6 +249,7 @@ export const usePromptDrafts = (
             
             setCurrentDraftId(parsed.id);
           } catch (verifyError) {
+            // If verification fails, clear local storage
             localStorage.removeItem('promptDraft');
             setCurrentDraftId(null);
             return null;
@@ -265,6 +289,7 @@ export const usePromptDrafts = (
     if (!user) return;
 
     try {
+      // Delete from database
       const { error } = await supabase
         .from('prompt_drafts')
         .delete()
@@ -272,13 +297,16 @@ export const usePromptDrafts = (
 
       if (error) throw error;
 
+      // Remove from local state
       setDrafts(prevDrafts => prevDrafts.filter(draft => draft.id !== draftId));
       
+      // If the deleted draft is the current draft, clear local storage and currentDraftId
       if (draftId === currentDraftId) {
         localStorage.removeItem('promptDraft');
         setCurrentDraftId(null);
       }
       
+      // Also check local storage to make sure the draft is removed if it exists there
       const localDraft = localStorage.getItem('promptDraft');
       if (localDraft) {
         const parsedDraft = JSON.parse(localDraft);
@@ -305,6 +333,7 @@ export const usePromptDrafts = (
     if (draft.id) {
       setCurrentDraftId(draft.id);
       
+      // Update local storage with the selected draft
       localStorage.setItem('promptDraft', JSON.stringify({
         id: draft.id,
         promptText: draft.promptText,
@@ -327,6 +356,7 @@ export const usePromptDrafts = (
     };
   }, []);
 
+  // Window visibility event handler to save drafts when the user leaves the page
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && currentStep > 1) {
@@ -334,8 +364,10 @@ export const usePromptDrafts = (
       }
     };
 
+    // Add event listener for visibility change
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // Cleanup
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };

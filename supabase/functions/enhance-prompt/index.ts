@@ -74,7 +74,7 @@ async function recordTokenUsage(
 
 // Toggle prompts map
 const togglePrompts = {
-  video: "You are an AI that refines prompts for video production. The prompt is strong, so only introduce minimal changes to specify the desired format or style (e.g., live action, animation), include clear length or resolution guidelines, and address key editing or post-production requirements. Retain the original focus and structure while adding these essential video-related details.",
+  math: "You are an AI specializing in enhancing math-focused prompts. The current prompt is already clear and well-structured. Please revise it only as needed to emphasize step-by-step reasoning (chain-of-thought) and a brief self-review for logical or arithmetic mistakes. Integrate any final clarifications or disclaimers that ensure accurate problem-solving, but retain the prompt's overall structure, tone, and clarity.",
   
   reasoning: "You are an AI that handles multi-layered, abstract problems. The existing prompt is strong; please refine it to ensure thorough examination of diverse angles, potential hidden assumptions, and any conflicting viewpoints. Integrate a methodical breakdown of complex concepts referencing known logical frameworks, while preserving the prompt's original tone and focus.",
   
@@ -93,7 +93,7 @@ const togglePrompts = {
 
 // Toggle labels map for loading message
 const toggleLabels = {
-  video: "Video Creation",
+  math: "Mathematical Problem-Solving",
   reasoning: "Complex Reasoning",
   coding: "Coding",
   copilot: "Copilot",
