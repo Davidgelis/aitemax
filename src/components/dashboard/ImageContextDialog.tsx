@@ -99,14 +99,14 @@ export const ImageContextDialog = ({
               id="instructions"
               value={context}
               onChange={(e) => setContext(e.target.value)}
-              placeholder="E.g., 'Focus on the lighting techniques' or 'Analyze the composition style'"
+              placeholder="E.g., 'Analyze the lighting techniques' or 'Focus on the composition style'"
               className={`w-full min-h-[120px] resize-none ${required && !context.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
               required={required}
             />
             <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">
               <Info size={14} className="flex-shrink-0" />
               <p>
-                Your prompt will be combined with this context. Be specific about what aspects you want analyzed in this image, as this will guide the AI's focus.
+                Your prompt will be combined with this context. Be specific about what aspects you want analyzed in this image, as this will guide the AI's focus and help generate better context-specific questions.
               </p>
             </div>
           </div>

@@ -47,6 +47,12 @@ export async function analyzePromptWithAI(
 First, provide a BRIEF description of the image (max 2 paragraphs). Focus ONLY on what's directly visible and ONLY mention aspects that are relevant to the prompt.${imageInstructionsText}
 
 Then generate focused questions and variables with pre-filled values based on what you directly observe in the image that's MOST RELEVANT to the prompt.
+
+IMPORTANT: After analyzing the image, identify what ADDITIONAL context is still needed from the user that is NOT visible in the image and create questions to gather that missing information. For example, if the image shows lighting but doesn't indicate purpose, ask questions about the intended use.
+
+SPLIT YOUR QUESTIONS INTO:
+1. Questions answerable directly from the image (pre-fill these)
+2. Questions that need user input (leave these blank)
 ${additionalContext}`
         },
         {
@@ -78,7 +84,9 @@ When creating and pre-filling questions:
 5. Extract 1-2 full sentences of detailed information from the website for question answers
 6. Include concrete facts, quotes or examples from the website that support the original prompt's purpose
 7. If the user asked to extract specific information (like "best practices"), focus on those items as they relate to the original prompt
-8. Remember: website content is supplementary research material for enhancing the original prompt, not the primary subject`;
+8. Remember: website content is supplementary research material for enhancing the original prompt, not the primary subject
+9. CLEARLY IDENTIFY what additional context is still needed from the user that is NOT present in the website content
+10. Create additional questions to gather the missing context from the user (leave these blank)`;
     } else {
       messageText += ` ${additionalContext}`;
     }
