@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from 'react';
-import { ImageUp, Info } from 'lucide-react';
+import { ImageUp, Info, X } from 'lucide-react';
 import { ImageUploadDialog } from './ImageUploadDialog';
 import { Button } from "@/components/ui/button";
 import { UploadedImage } from "./types";
@@ -23,6 +24,7 @@ export const ImageUploader = ({
 }: ImageUploaderProps) => {
   const [contextDialogOpen, setContextDialogOpen] = useState(false);
   const [currentImage, setCurrentImage] = useState<UploadedImage | null>(null);
+  const [hoveredImageId, setHoveredImageId] = useState<string | null>(null);
   
   // When upload dialog opens, we should check if we have any images
   // If not, open the upload dialog directly
@@ -78,33 +80,39 @@ export const ImageUploader = ({
     setContextDialogOpen(true);
   };
   
+  // Function to remove an image
+  const handleRemoveImage = (imageId: string) => {
+    const updatedImages = images.filter(img => img.id !== imageId);
+    onImagesChange(updatedImages);
+  };
+  
   return (
     <div>
-      <Button
-        onClick={() => onOpenChange(true)}
-        variant="slim"
-        size="xs"
-        className="group animate-aurora-border rounded-md flex items-center gap-2"
-        title="Upload image"
-        disabled={images.length >= maxImages}
-      >
-        <ImageUp className="w-3 h-3 text-white group-hover:text-white transition-colors" />
-        <span className="text-white">Upload</span>
-      </Button>
-      
       {/* Display existing images with context info */}
       {images.length > 0 && (
         <div className="mt-3 space-y-2">
           {images.map(image => (
             <div 
               key={image.id} 
-              className="flex items-center gap-2 p-2 border border-[#e5e7eb] rounded-md bg-[#fafafa]"
+              className="flex items-center gap-2 p-2 border border-[#e5e7eb] rounded-md bg-[#fafafa] relative"
+              onMouseEnter={() => setHoveredImageId(image.id)}
+              onMouseLeave={() => setHoveredImageId(null)}
             >
-              <img 
-                src={image.url} 
-                alt={image.file.name} 
-                className="w-10 h-10 object-cover rounded-md"
-              />
+              <div className="relative">
+                <img 
+                  src={image.url} 
+                  alt={image.file.name} 
+                  className="w-10 h-10 object-cover rounded-md"
+                />
+                {hoveredImageId === image.id && (
+                  <button
+                    onClick={() => handleRemoveImage(image.id)}
+                    className="absolute -top-2 -right-2 bg-white rounded-full p-0.5 shadow-sm hover:bg-gray-100"
+                  >
+                    <X className="w-3 h-3 text-gray-500" />
+                  </button>
+                )}
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-[#545454] truncate">{image.file.name}</p>
                 <div className="flex items-center gap-1">
