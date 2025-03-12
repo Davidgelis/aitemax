@@ -92,7 +92,7 @@ export const enhancePrompt = async (
     const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label || selectedPrimary;
     message += ` for ${primaryLabel}`;
     
-    if (selectedSecondary) {
+    if (secondaryToggle) {
       const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
       message += ` and to be ${secondaryLabel}`;
     }
@@ -112,6 +112,14 @@ export const enhancePrompt = async (
     v => v.isRelevant === true
   );
   
+  // Log the data being sent to the enhance-prompt function
+  console.log("Sending to enhance-prompt function:", {
+    answeredQuestions: answeredQuestions.length,
+    relevantVariables: relevantVariables.length,
+    primaryToggle: selectedPrimary,
+    secondaryToggle
+  });
+  
   const { data, error } = await supabase.functions.invoke('enhance-prompt', {
     body: {
       originalPrompt: promptToEnhance,
@@ -125,8 +133,14 @@ export const enhancePrompt = async (
   });
   
   if (error) {
+    console.error("Error enhancing prompt:", error);
     throw error;
   }
+  
+  console.log("Prompt enhanced successfully:", {
+    loadingMessage: data.loadingMessage,
+    usage: data.usage
+  });
   
   return {
     enhancedPrompt: data.enhancedPrompt,

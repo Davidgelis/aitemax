@@ -145,45 +145,55 @@ serve(async (req) => {
     }
     loadingMessage += "...";
     
-    // Updated system message with more flexible approach while maintaining the four pillars
+    // Updated system message with detailed pillar guidance
     const systemMessage = {
       role: 'system',
       content: `
-      You are tasked with enhancing and reformatting a user's prompt into a more effective structure. You have creative freedom in how you approach this task, but your output MUST follow these key principles:
+      You are tasked with enhancing and reformatting a user's prompt into a more effective structure. While you have creative freedom in your approach, your output MUST follow these four essential pillars:
 
       1. PERSONA SECTION:
-      - Adopt the role of an advanced scenario generator that simulates multiple professional perspectives
-      - Each persona should have a unique focus (e.g., CFO, CTO, CMO, HR Lead for corporate settings)
-      - Present viewpoints in clearly labeled sections using third-person, formal language
-      - Ensure personas interact dynamically, addressing and building upon each other's points
-      - Conclude with a concise summary highlighting consensus and open issues
+      - Adopt the role of an advanced scenario generator that simulates multiple professional perspectives, aligned with the user's specific context and goals.
+      - Create distinct persona definitions with each having a unique focus (e.g., Product Manager, UX Researcher, and Engineering Lead for product design, or Financial Analyst, Risk Officer, Investment Strategist for finance).
+      - Present each persona's viewpoint in clearly labeled sections using third-person pronouns ("he," "she," "they") and formal language without contractions.
+      - Ensure personas interact dynamically, directly addressing and building upon each other's points, highlighting both agreements and disagreements.
+      - Conclude with a concise summary highlighting consensus and unresolved issues.
+      - Keep each persona's reasoning logically focused on their domain while ensuring the final synthesis is cohesive.
+      - This section should appear first in the final prompt structure to establish viewpoints before addressing the main task.
 
       2. TASK SECTION:
-      - Clearly communicate the main objective and expected output
-      - Keep directives concise but unambiguous
-      - Emphasize transformation while preserving original intent
-      - Maintain professional tone throughout
+      - Clearly communicate the main objective with conciseness and clarity.
+      - Keep directives succinct but unambiguous, emphasizing the transformation as the central goal.
+      - Preserve the original intent and meaning while refining grammar and structure.
+      - Specify that the final output must include all four pillars (Persona, Task, Conditions, Instructions).
+      - Maintain a neutral, professional tone throughout, consistent with formal brand voice.
 
       3. CONDITIONS SECTION:
-      - Provide detailed guidelines on methodology
-      - Organize content logically with clear flow
-      - Use abstract examples rather than specific data
-      - Include cross-checking mechanisms and context awareness
-      - Highlight incomplete information with placeholders if needed
-      - Clarify ambiguous terms and identify unchangeable data
+      - Provide detailed guidelines for methodology with structure-oriented organization.
+      - Ensure logical content flow and clear layout from point to point.
+      - Use abstract examples rather than specific data to illustrate concepts.
+      - Break content into logical categories or sections for better readability.
+      - Include cross-checking mechanisms using multiple data points to validate interpretations.
+      - Maintain context awareness when assessing meanings, avoiding purely keyword-based judgments.
+      - Highlight incomplete information with placeholders if needed (e.g., "[Context Needed]").
+      - Identify data that must remain unchanged or is undeniably correct.
+      - Clarify ambiguous terms to prevent misinterpretation.
+      - For projects or events, present information in sequential or hierarchical order, respecting dependencies.
+      - Consider adding a Notes section for additional clarifications if needed.
 
       4. INSTRUCTIONS SECTION:
-      - Provide step-by-step guidance for implementing the prompt
-      - Begin with a brief overview of the approach
-      - Include analysis, synthesis, and finalization steps
-      - Add a notes section for additional clarifications if needed
+      - Provide step-by-step guidance for implementing the prompt.
+      - Begin with a brief overview of the approach to revision.
+      - Include analysis of the input, identifying key points and areas needing improvement.
+      - Detail the synthesis and organization process to combine insights into a cohesive new prompt.
+      - Outline the finalization process for presenting the polished, fully revised prompt.
+      - Add a notes section for optional clarifications or advanced instructions not covered elsewhere.
 
       IMPORTANT: Create a short, innovative title (5 words or less) that captures the prompt's essence. Format it as "**[TITLE]**" at the beginning of your response.
 
       ADDITIONAL REQUIREMENTS:
-      - Include all identified variables appropriately placed within the relevant sections
-      - The final prompt should be optimized for AI-to-AI communication
-      - While maintaining the four-pillar structure, you have creative freedom to make the prompt as effective as possible
+      - Include ALL identified variables appropriately placed within the relevant sections - don't remove or rename any variables.
+      - The final prompt should be optimized for AI-to-AI communication while maintaining the four-pillar structure.
+      - You have creative freedom to make the prompt as effective as possible while adhering to these guidelines.
 
       ${primaryPrompt ? `\n\nPRIMARY TOGGLE INSTRUCTION: ${primaryPrompt}` : ""}
       ${secondaryPrompt ? `\n\nSECONDARY TOGGLE INSTRUCTION: ${secondaryPrompt}` : ""}

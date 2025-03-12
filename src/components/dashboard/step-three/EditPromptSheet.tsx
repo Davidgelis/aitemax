@@ -45,6 +45,15 @@ export const EditPromptSheet = ({
           <SheetTitle>Edit Prompt</SheetTitle>
           <SheetDescription>
             Make changes to your prompt. Use <code>{'{{variableName}}'}</code> syntax to create dynamic variables.
+            <div className="mt-2 text-sm text-muted-foreground">
+              <p>Your prompt should ideally follow the four-pillar structure:</p>
+              <ol className="list-decimal ml-5 mt-1 space-y-1">
+                <li><strong>Persona:</strong> Who the AI should be or the audience it's addressing</li>
+                <li><strong>Task:</strong> What the AI needs to do or accomplish</li>
+                <li><strong>Conditions:</strong> Constraints, limitations, or requirements</li>
+                <li><strong>Instructions:</strong> How the AI should complete the task</li>
+              </ol>
+            </div>
           </SheetDescription>
         </SheetHeader>
         <div className="py-4">
