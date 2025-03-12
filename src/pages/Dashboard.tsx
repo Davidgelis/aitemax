@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -187,6 +188,11 @@ const Dashboard = () => {
     }
   }, [user, promptState.fetchSavedPrompts]);
 
+  // Wrapper function to adapt handleDuplicatePrompt to take SavedPrompt instead of just ID
+  const handleDuplicatePromptAdapter = (prompt) => {
+    return promptState.handleDuplicatePrompt(prompt.id);
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -213,7 +219,7 @@ const Dashboard = () => {
           isLoadingPrompts={promptState.isLoadingPrompts}
           handleNewPrompt={promptState.handleNewPrompt}
           handleDeletePrompt={promptState.handleDeletePrompt}
-          handleDuplicatePrompt={promptState.handleDuplicatePrompt}
+          handleDuplicatePrompt={handleDuplicatePromptAdapter}
           handleRenamePrompt={promptState.handleRenamePrompt}
           loadSavedPrompt={promptState.loadSavedPrompt}
           drafts={promptState.drafts}
