@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
@@ -125,7 +124,7 @@ export const StepOneContent = ({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button className="text-card-foreground hover:text-[#084b49] transition-colors">
+                        <button className="text-[#e5e7eb] hover:text-[#084b49] transition-colors">
                           <HelpCircle className="h-4 w-4" />
                         </button>
                       </TooltipTrigger>
@@ -164,7 +163,7 @@ export const StepOneContent = ({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button className="text-card-foreground hover:text-[#084b49] transition-colors">
+                        <button className="text-[#e5e7eb] hover:text-[#084b49] transition-colors">
                           <HelpCircle className="h-4 w-4" />
                         </button>
                       </TooltipTrigger>

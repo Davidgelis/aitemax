@@ -34,7 +34,7 @@ export const ToggleSection = ({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <button className="text-card-foreground hover:text-[#084b49] transition-colors">
+                          <button className="text-[#e5e7eb] hover:text-[#084b49] transition-colors">
                             <HelpCircle size={14} />
                           </button>
                         </TooltipTrigger>
@@ -66,7 +66,7 @@ export const ToggleSection = ({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <button className="text-card-foreground hover:text-[#084b49] transition-colors">
+                          <button className="text-[#e5e7eb] hover:text-[#084b49] transition-colors">
                             <HelpCircle size={14} />
                           </button>
                         </TooltipTrigger>
