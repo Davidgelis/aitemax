@@ -149,7 +149,7 @@ export const WebScanDialog = ({
                 type="submit"
                 className="bg-[#084b49] hover:bg-[#084b49]/90 text-white px-4 py-2 shadow-[0_0_0_0_#33fea6] transition-all duration-300 hover:shadow-[0_0_10px_0_#33fea6]"
               >
-                Use as Context
+                {hasContext ? "Update Context" : "Use as Context"}
               </Button>
             </div>
           </div>
