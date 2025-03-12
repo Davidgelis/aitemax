@@ -1,7 +1,7 @@
 import { useState, useEffect, KeyboardEvent, useRef } from 'react';
 import { UploadedImage } from '@/components/dashboard/types';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
-import { X, ListOrdered, List, Upload, Info } from 'lucide-react';
+import { ListOrdered, List } from 'lucide-react';
 import { ImageUploader } from '@/components/dashboard/ImageUploader';
 import { Button } from "@/components/ui/button";
 
@@ -59,25 +59,6 @@ const PromptInput = ({
     if (onChange) {
       onChange(newValue);
     }
-  };
-
-  const handleImageClick = (imageId: string) => {
-    setSelectedImageId(imageId);
-    setCarouselOpen(true);
-  };
-  
-  const handleRemoveImage = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent carousel from opening when clicking delete
-    
-    if (!onImagesChange) return;
-    
-    const imageToRemove = images.find(img => img.id === id);
-    if (imageToRemove) {
-      URL.revokeObjectURL(imageToRemove.url);
-    }
-    
-    const updatedImages = images.filter(img => img.id !== id);
-    onImagesChange(updatedImages);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -275,7 +256,8 @@ const PromptInput = ({
     }
   };
 
-  const iconSize = 8.5;
+  // Reduce icon size by 20%
+  const iconSize = 6.8; // Reduced from 8.5 (20% smaller)
 
   return (
     <form onSubmit={handleSubmit} className={`w-full mx-auto ${className}`}>
@@ -299,43 +281,6 @@ const PromptInput = ({
               >
                 <ListOrdered style={{ width: `${iconSize * 4}px`, height: `${iconSize * 4}px` }} />
               </button>
-            </div>
-            
-            <div className="h-6 w-px bg-gray-200 mx-2"></div>
-            
-            <div className="flex-1 flex flex-wrap gap-4 items-start">
-              {images && images.length > 0 ? (
-                images.map(image => (
-                  <div key={image.id} className="relative group">
-                    <div className="flex flex-col">
-                      <img 
-                        src={image.url} 
-                        alt="Uploaded" 
-                        className="object-cover rounded-md border border-[#33fea6]/30 cursor-pointer"
-                        onClick={() => handleImageClick(image.id)}
-                        style={{ width: '42px', height: '42px' }}
-                      />
-                      {image.context && (
-                        <div className="mt-1 flex items-center">
-                          <Info className="w-3 h-3 text-[#084b49]" />
-                          <span className="text-xs text-[#545454] ml-1 truncate max-w-[60px]" title={image.context}>
-                            Has context
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      onClick={(e) => handleRemoveImage(image.id, e)}
-                      className="absolute -top-2 -right-2 bg-[#041524] text-white rounded-full p-1 border border-[#33fea6]/30 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove image"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <span className="text-gray-400 text-xs italic">No images uploaded</span>
-              )}
             </div>
           </div>
           
