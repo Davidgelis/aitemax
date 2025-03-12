@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ImageUp, Info } from 'lucide-react';
 import { ImageUploadDialog } from './ImageUploadDialog';
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,23 @@ export const ImageUploader = ({
 }: ImageUploaderProps) => {
   const [contextDialogOpen, setContextDialogOpen] = useState(false);
   const [currentImage, setCurrentImage] = useState<UploadedImage | null>(null);
+  
+  // When upload dialog opens, we should check if we have any images
+  // If not, open the upload dialog directly
+  useEffect(() => {
+    if (open && images.length === 0) {
+      // Keep the dialog open
+    } else if (open && images.length > 0) {
+      // If we have images but the user clicked "Image Smart Scan", 
+      // we assume they want to add context to the first image
+      const firstImageWithoutContext = images.find(img => !img.context);
+      if (firstImageWithoutContext) {
+        setCurrentImage(firstImageWithoutContext);
+        setContextDialogOpen(true);
+        onOpenChange(false); // Close the upload dialog since we're opening context dialog
+      }
+    }
+  }, [open, images, onOpenChange]);
   
   const handleImagesUploaded = (newImages: UploadedImage[]) => {
     if (newImages.length > maxImages) {

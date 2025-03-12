@@ -5,7 +5,7 @@ import { WebScanner } from "@/components/dashboard/WebScanner";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { AIModel, UploadedImage } from "./types";
 import { Switch } from "@/components/ui/switch";
-import { HelpCircle, Upload, ImageUp } from "lucide-react";
+import { HelpCircle, ImageUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "./ImageUploader";
 
@@ -191,29 +191,16 @@ export const StepOneContent = ({
         />
       </div>
 
-      {/* Action buttons */}
-      <div className="flex justify-between mt-8">
-        <div>
-          <Button
-            onClick={handleOpenUploadDialog}
-            disabled={isLoading}
-            className="bg-[#33fea6] hover:bg-[#28d88c] text-white rounded-md flex items-center gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            Upload Image
-          </Button>
-        </div>
-        
-        <div>
-          <Button
-            onClick={handleAnalyzeWithContext}
-            disabled={isLoading || !promptText.trim()}
-            variant="aurora"
-            className="ml-2"
-          >
-            {isLoading ? "Analyzing..." : "Analyze with AI"}
-          </Button>
-        </div>
+      {/* Action button */}
+      <div className="flex justify-end mt-8">
+        <Button
+          onClick={handleAnalyzeWithContext}
+          disabled={isLoading || !promptText.trim()}
+          variant="aurora"
+          className="ml-2"
+        >
+          {isLoading ? "Analyzing..." : "Analyze with AI"}
+        </Button>
       </div>
     </div>
   );
