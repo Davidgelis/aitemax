@@ -5,8 +5,9 @@ import { WebScanner } from "@/components/dashboard/WebScanner";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { AIModel, UploadedImage } from "./types";
 import { Switch } from "@/components/ui/switch";
-import { HelpCircle, Upload } from "lucide-react";
+import { HelpCircle, Upload, ImageUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ImageUploader } from "./ImageUploader";
 
 interface StepOneContentProps {
   promptText: string;
@@ -84,12 +85,28 @@ export const StepOneContent = ({
 
   return (
     <div className="border rounded-xl p-6 bg-card">
-      {/* Web Smart Scan button */}
+      {/* Web Smart Scan and Image Upload buttons */}
       <div className="mb-4 flex justify-between items-center">
-        <WebScanner 
-          onWebsiteScan={handleWebsiteScan}
-          variant="modelReplacement"
-        />
+        <div className="flex items-center gap-4">
+          <WebScanner 
+            onWebsiteScan={handleWebsiteScan}
+            variant="modelReplacement"
+          />
+          
+          {/* Image Upload button styled similar to Web Smart Scan */}
+          <div className="w-full">
+            <div className="flex items-center">
+              <button 
+                onClick={handleOpenUploadDialog}
+                className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
+                title="Upload and analyze images with specific context"
+              >
+                <span className="truncate ml-1">Image Smart Scan</span>
+                <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
+              </button>
+            </div>
+          </div>
+        </div>
         
         <div className="flex items-center space-x-2">
           <span className="text-[#545454] text-sm">Cognitive Prompt Perfection Model</span>
@@ -100,6 +117,19 @@ export const StepOneContent = ({
           />
         </div>
       </div>
+
+      {/* Display any uploaded images with their context */}
+      {uploadedImages.length > 0 && (
+        <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
+          <h3 className="text-sm font-medium text-[#545454] mb-2">Uploaded Images</h3>
+          <ImageUploader
+            images={uploadedImages}
+            onImagesChange={handleImagesChange}
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+          />
+        </div>
+      )}
 
       {/* Toggle sections for prompt types */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

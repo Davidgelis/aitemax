@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Info } from 'lucide-react';
+import { Info, Image } from 'lucide-react';
 
 interface ImageContextDialogProps {
   open: boolean;
@@ -39,7 +39,10 @@ export const ImageContextDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-white border border-[#084b49]/30 p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2">
-          <DialogTitle className="text-xl font-medium text-[#545454]">Image Context</DialogTitle>
+          <DialogTitle className="text-xl font-medium text-[#545454] flex items-center gap-2">
+            <Image className="w-5 h-5 text-[#084b49]" />
+            Image Context
+          </DialogTitle>
           <p className="text-sm text-[#545454] font-normal mt-1">
             Add specific instructions on how to analyze this image
           </p>
@@ -78,10 +81,17 @@ export const ImageContextDialog = ({
           
           <div className="flex justify-end mt-4">
             <Button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="mr-2 bg-transparent hover:bg-gray-100 text-[#545454]"
+            >
+              Cancel
+            </Button>
+            <Button
               type="submit"
               className="bg-[#084b49] hover:bg-[#084b49]/90 text-white px-4 py-2"
             >
-              Use as Context
+              {savedContext ? 'Update Context' : 'Add Context'}
             </Button>
           </div>
         </form>
