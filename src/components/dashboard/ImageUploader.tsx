@@ -5,6 +5,7 @@ import { ImageUploadDialog } from './ImageUploadDialog';
 import { Button } from "@/components/ui/button";
 import { UploadedImage } from "./types";
 import { ImageContextDialog } from './ImageContextDialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ImageUploaderProps {
   onImagesChange: (images: UploadedImage[]) => void;
@@ -95,7 +96,18 @@ export const ImageUploader = ({
                     {image.context ? 'Context added' : 'No context added'}
                   </span>
                   {image.context && (
-                    <Info className="w-3 h-3 text-[#084b49]" title={image.context} />
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <Info className="w-3 h-3 text-[#084b49]" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{image.context}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                 </div>
               </div>
