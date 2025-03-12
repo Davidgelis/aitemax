@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { ImageUp, Info, X } from 'lucide-react';
 import { ImageUploadDialog } from './ImageUploadDialog';
@@ -158,10 +157,18 @@ export const ImageUploader = ({
       
       <ImageContextDialog
         open={contextDialogOpen}
-        onOpenChange={setContextDialogOpen}
+        onOpenChange={(isOpen) => {
+          // If dialog is closing and we still don't have context, don't allow it to close
+          if (!isOpen && currentImage && !currentImage.context) {
+            // Keep the dialog open
+            return;
+          }
+          setContextDialogOpen(isOpen);
+        }}
         onConfirm={handleAddContext}
         imageName={currentImage?.file.name}
         savedContext={currentImage?.context || ''}
+        required={true}
       />
     </div>
   );
