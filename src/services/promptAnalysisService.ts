@@ -69,25 +69,37 @@ export const analyzePrompt = async (payload: any) => {
   });
   
   try {
-    // Create a promise that will be rejected after the timeout
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Analysis request timed out after 60 seconds')), 60000);
+    // Setup timeout to handle long-running requests
+    let timeoutId: any = null;
+    
+    // Create a promise wrapper that tracks the timeout
+    const requestWithTimeout = new Promise<any>((resolve, reject) => {
+      // Set a timeout to reject the promise after 60 seconds
+      timeoutId = setTimeout(() => {
+        reject(new Error('Analysis request timed out after 60 seconds'));
+      }, 60000);
+      
+      // Call the edge function
+      supabase.functions.invoke('analyze-prompt', {
+        body: payload
+      })
+      .then(response => {
+        clearTimeout(timeoutId);
+        if (response.error) {
+          reject(response.error);
+        } else {
+          resolve(response.data);
+        }
+      })
+      .catch(error => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
     });
     
-    // Create the actual function invoke promise with proper typing
-    const functionPromise = supabase.functions.invoke('analyze-prompt', {
-      body: payload
-    });
-    
-    // Use Promise.race to implement the timeout
-    const response = await Promise.race([functionPromise, timeoutPromise]);
-    
-    // Type assertion for the response
-    const typedResponse = response as { data: any, error: any };
-    
-    if (typedResponse.error) throw typedResponse.error;
-    
-    return typedResponse.data;
+    // Wait for the function to complete or timeout
+    const data = await requestWithTimeout;
+    return data;
   } catch (error) {
     console.error("Error invoking analyze-prompt function:", error);
     throw error;
@@ -138,44 +150,54 @@ export const enhancePrompt = async (
   });
   
   try {
-    // Create a promise that will be rejected after the timeout
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Enhance prompt request timed out after 60 seconds')), 60000);
+    // Setup timeout to handle long-running requests
+    let timeoutId: any = null;
+    
+    // Create a promise wrapper that tracks the timeout
+    const requestWithTimeout = new Promise<any>((resolve, reject) => {
+      // Set a timeout to reject the promise after 60 seconds
+      timeoutId = setTimeout(() => {
+        reject(new Error('Enhance prompt request timed out after 60 seconds'));
+      }, 60000);
+      
+      // Call the edge function
+      supabase.functions.invoke('enhance-prompt', {
+        body: {
+          originalPrompt: promptToEnhance,
+          answeredQuestions,
+          relevantVariables,
+          primaryToggle: selectedPrimary,
+          secondaryToggle: selectedSecondary,
+          userId: user?.id,
+          promptId
+        }
+      })
+      .then(response => {
+        clearTimeout(timeoutId);
+        if (response.error) {
+          console.error("Error enhancing prompt:", response.error);
+          reject(response.error);
+        } else {
+          console.log("Prompt enhanced successfully:", {
+            loadingMessage: response.data.loadingMessage,
+            usage: response.data.usage
+          });
+          
+          resolve({
+            enhancedPrompt: response.data.enhancedPrompt,
+            loadingMessage: response.data.loadingMessage
+          });
+        }
+      })
+      .catch(error => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
     });
     
-    // Create the actual function invoke promise with proper typing
-    const functionPromise = supabase.functions.invoke('enhance-prompt', {
-      body: {
-        originalPrompt: promptToEnhance,
-        answeredQuestions,
-        relevantVariables,
-        primaryToggle: selectedPrimary,
-        secondaryToggle: selectedSecondary,
-        userId: user?.id,
-        promptId
-      }
-    });
-    
-    // Use Promise.race to implement the timeout
-    const response = await Promise.race([functionPromise, timeoutPromise]);
-    
-    // Type assertion for the response
-    const typedResponse = response as { data: any, error: any };
-    
-    if (typedResponse.error) {
-      console.error("Error enhancing prompt:", typedResponse.error);
-      throw typedResponse.error;
-    }
-    
-    console.log("Prompt enhanced successfully:", {
-      loadingMessage: typedResponse.data.loadingMessage,
-      usage: typedResponse.data.usage
-    });
-    
-    return {
-      enhancedPrompt: typedResponse.data.enhancedPrompt,
-      loadingMessage: typedResponse.data.loadingMessage
-    };
+    // Wait for the function to complete or timeout
+    const result = await requestWithTimeout;
+    return result;
   } catch (error) {
     console.error("Error enhancing prompt:", error);
     throw error;
