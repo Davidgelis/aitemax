@@ -28,6 +28,16 @@ export async function analyzePromptWithAI(
   // If we have an image, create a message with content parts
   if (imageBase64) {
     console.log("Image provided for analysis - adding to OpenAI API request with GPT-4o");
+    
+    // Format the additional context to be concise
+    let formattedContext = additionalContext;
+    if (additionalContext.includes("WEBSITE CONTEXT")) {
+      // Extract just the website URL for better context inclusion with image
+      const urlMatch = additionalContext.match(/URL: ([^\n]+)/);
+      const websiteUrl = urlMatch ? urlMatch[1] : "website";
+      formattedContext = `Analysis should consider both the image and content from ${websiteUrl}. ${additionalContext.split("WEBSITE CONTEXT")[1].split("YOUR TASK FOR WEBSITE ANALYSIS")[0].substring(0, 500)}...`;
+    }
+    
     messages.push({
       role: 'user',
       content: [
@@ -38,7 +48,7 @@ export async function analyzePromptWithAI(
 Provide a CONCISE image analysis in 1-2 paragraphs only. Describe the key visual elements like subject, setting, colors, composition, and mood.
 
 Then use these details to generate relevant questions and variables with pre-filled values based on what you directly observe in the image.
-${additionalContext}`
+${formattedContext}`
         },
         {
           type: "image_url",
@@ -82,6 +92,9 @@ When creating and pre-filling questions:
   
   try {
     console.log("Calling OpenAI API with GPT-4o for prompt analysis...");
+    console.log(`Total message count: ${messages.length}`);
+    console.log(`Message with image: ${!!imageBase64}`);
+    console.log(`Additional context length: ${additionalContext.length} characters`);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -93,6 +106,7 @@ When creating and pre-filling questions:
         model: 'gpt-4o', // Using GPT-4o for analysis
         messages,
         temperature: 0.7,
+        timeout: 180, // 3 minute timeout
       }),
     });
     

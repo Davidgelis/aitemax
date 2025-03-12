@@ -68,13 +68,19 @@ export const analyzePrompt = async (payload: any) => {
     websiteDataInPayload: !!payload.websiteData
   });
   
-  const { data, error } = await supabase.functions.invoke('analyze-prompt', {
-    body: payload
-  });
-  
-  if (error) throw error;
-  
-  return data;
+  try {
+    const { data, error } = await supabase.functions.invoke('analyze-prompt', {
+      body: payload,
+      timeout: 60000 // 60 second timeout
+    });
+    
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error("Error invoking analyze-prompt function:", error);
+    throw error;
+  }
 };
 
 export const enhancePrompt = async (
@@ -120,30 +126,36 @@ export const enhancePrompt = async (
     secondaryToggle: selectedSecondary
   });
   
-  const { data, error } = await supabase.functions.invoke('enhance-prompt', {
-    body: {
-      originalPrompt: promptToEnhance,
-      answeredQuestions,
-      relevantVariables,
-      primaryToggle: selectedPrimary,
-      secondaryToggle: selectedSecondary,
-      userId: user?.id,
-      promptId
+  try {
+    const { data, error } = await supabase.functions.invoke('enhance-prompt', {
+      body: {
+        originalPrompt: promptToEnhance,
+        answeredQuestions,
+        relevantVariables,
+        primaryToggle: selectedPrimary,
+        secondaryToggle: selectedSecondary,
+        userId: user?.id,
+        promptId
+      },
+      timeout: 60000 // 60 second timeout
+    });
+    
+    if (error) {
+      console.error("Error enhancing prompt:", error);
+      throw error;
     }
-  });
-  
-  if (error) {
+    
+    console.log("Prompt enhanced successfully:", {
+      loadingMessage: data.loadingMessage,
+      usage: data.usage
+    });
+    
+    return {
+      enhancedPrompt: data.enhancedPrompt,
+      loadingMessage: data.loadingMessage
+    };
+  } catch (error) {
     console.error("Error enhancing prompt:", error);
     throw error;
   }
-  
-  console.log("Prompt enhanced successfully:", {
-    loadingMessage: data.loadingMessage,
-    usage: data.usage
-  });
-  
-  return {
-    enhancedPrompt: data.enhancedPrompt,
-    loadingMessage: data.loadingMessage
-  };
 };
