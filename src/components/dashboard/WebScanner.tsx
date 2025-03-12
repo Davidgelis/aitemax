@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Globe } from 'lucide-react';
+import { Globe, Trash2 } from 'lucide-react';
 import { WebScanDialog } from './WebScanDialog';
 import { Button } from "@/components/ui/button";
 
@@ -36,6 +36,16 @@ export const WebScanner = ({
     onWebsiteScan(url, instructions);
   };
 
+  const handleDeleteScan = () => {
+    setSavedUrl('');
+    setSavedInstructions('');
+    setHasContext(false);
+    
+    // Call the parent handler with empty values to clear the context
+    console.log("WebScanner: Deleting website context");
+    onWebsiteScan('', '');
+  };
+
   // Model replacement style button
   if (variant === 'modelReplacement') {
     return (
@@ -53,14 +63,26 @@ export const WebScanner = ({
             <span className="truncate ml-1">Web Smart Scan</span>
             <Globe className={`mr-1 h-4 w-4 ${hasContext ? 'text-[#33fea6]' : 'text-[#084b49]'}`} />
           </button>
+          
+          {hasContext && (
+            <button
+              onClick={handleDeleteScan}
+              className="h-10 ml-2 px-2 bg-white border border-[#e5e7eb] text-red-500 hover:bg-red-50 flex items-center text-sm rounded-md transition-all"
+              title="Delete web scan data"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
         
         <WebScanDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           onWebsiteScan={handleWebsiteScan}
+          onDeleteScan={handleDeleteScan}
           savedUrl={savedUrl}
           savedInstructions={savedInstructions}
+          hasContext={hasContext}
         />
       </div>
     );
@@ -69,7 +91,7 @@ export const WebScanner = ({
   // Default button style (using the new Button component)
   return (
     <div className={`flex flex-col ${className}`}>
-      <div className="mb-2">
+      <div className="mb-2 flex items-center">
         <Button
           onClick={() => setDialogOpen(true)}
           variant="slim"
@@ -84,14 +106,28 @@ export const WebScanner = ({
           <Globe className={`w-3 h-3 ${hasContext ? 'text-[#33fea6]' : 'text-[#64bf95] group-hover:text-[#33fea6]'} transition-colors`} />
           <span>Web Scan</span>
         </Button>
+        
+        {hasContext && (
+          <Button
+            onClick={handleDeleteScan}
+            variant="slim"
+            size="xs"
+            className="ml-2 text-red-500 hover:bg-red-50 group"
+            title="Delete web scan data"
+          >
+            <Trash2 className="w-3 h-3" />
+          </Button>
+        )}
       </div>
       
       <WebScanDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onWebsiteScan={handleWebsiteScan}
+        onDeleteScan={handleDeleteScan}
         savedUrl={savedUrl}
         savedInstructions={savedInstructions}
+        hasContext={hasContext}
       />
     </div>
   );

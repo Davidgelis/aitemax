@@ -4,23 +4,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Info } from 'lucide-react';
+import { Info, Trash2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface WebScanDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onWebsiteScan: (url: string, instructions: string) => void;
+  onDeleteScan?: () => void;
   savedUrl?: string;
   savedInstructions?: string;
+  hasContext?: boolean;
 }
 
 export const WebScanDialog = ({
   open,
   onOpenChange,
   onWebsiteScan,
+  onDeleteScan,
   savedUrl = '',
-  savedInstructions = ''
+  savedInstructions = '',
+  hasContext = false
 }: WebScanDialogProps) => {
   const [url, setUrl] = useState(savedUrl);
   const [instructions, setInstructions] = useState(savedInstructions);
@@ -56,6 +60,7 @@ export const WebScanDialog = ({
       return;
     }
     
+    // Process the data and close the dialog
     onWebsiteScan(url.trim(), instructions.trim());
     onOpenChange(false);
   };
@@ -71,6 +76,13 @@ export const WebScanDialog = ({
       }
     }
     onOpenChange(open);
+  };
+  
+  const handleDelete = () => {
+    if (onDeleteScan) {
+      onDeleteScan();
+      onOpenChange(false);
+    }
   };
   
   return (
@@ -119,13 +131,27 @@ export const WebScanDialog = ({
             </div>
           </div>
           
-          <div className="flex justify-end mt-4">
-            <Button
-              type="submit"
-              className="bg-[#084b49] hover:bg-[#084b49]/90 text-white px-4 py-2 shadow-[0_0_0_0_#33fea6] transition-all duration-300 hover:shadow-[0_0_10px_0_#33fea6]"
-            >
-              Use as Context
-            </Button>
+          <div className="flex justify-between mt-4">
+            {hasContext && (
+              <Button
+                type="button"
+                onClick={handleDelete}
+                className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/50 text-red-600"
+                size="sm"
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Delete
+              </Button>
+            )}
+            
+            <div className={`flex ml-auto ${hasContext ? 'gap-2' : ''}`}>
+              <Button
+                type="submit"
+                className="bg-[#084b49] hover:bg-[#084b49]/90 text-white px-4 py-2 shadow-[0_0_0_0_#33fea6] transition-all duration-300 hover:shadow-[0_0_10px_0_#33fea6]"
+              >
+                Use as Context
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
