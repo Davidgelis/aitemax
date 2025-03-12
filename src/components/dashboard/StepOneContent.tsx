@@ -7,6 +7,7 @@ import { AIModel, UploadedImage } from "./types";
 import { Switch } from "@/components/ui/switch";
 import { HelpCircle, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface StepOneContentProps {
   promptText: string;
@@ -103,46 +104,80 @@ export const StepOneContent = ({
 
       {/* Toggle sections for prompt types */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {primaryToggles.map(toggle => (
-          <div 
-            key={toggle.id}
-            className="border rounded-lg p-3 flex justify-between items-center"
-          >
-            <div className="text-[#545454] text-sm">
-              {toggle.label}
+        {primaryToggles.map(toggle => {
+          const definition = toggle.definition || "";
+          
+          return (
+            <div 
+              key={toggle.id}
+              className="border rounded-lg p-3 flex justify-between items-center"
+            >
+              <div className="text-[#545454] text-sm">
+                {toggle.label}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  checked={selectedPrimary === toggle.id}
+                  onCheckedChange={() => handlePrimaryToggle(toggle.id)}
+                  variant={toggle.id === "image" ? "primary" : "aurora"}
+                />
+                {definition && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-card-foreground hover:text-[#084b49] transition-colors">
+                          <HelpCircle className="h-4 w-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs text-xs bg-white">
+                        {definition}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Switch 
-                checked={selectedPrimary === toggle.id}
-                onCheckedChange={() => handlePrimaryToggle(toggle.id)}
-                variant={toggle.id === "image" ? "primary" : "aurora"}
-              />
-              <HelpCircle className="h-4 w-4 text-[#545454] opacity-70" />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Toggle sections for response styles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {secondaryToggles.map(toggle => (
-          <div 
-            key={toggle.id}
-            className="border rounded-lg p-3 flex justify-between items-center"
-          >
-            <div className="text-[#545454] text-sm">
-              {toggle.label}
+        {secondaryToggles.map(toggle => {
+          const definition = toggle.definition || "";
+          
+          return (
+            <div 
+              key={toggle.id}
+              className="border rounded-lg p-3 flex justify-between items-center"
+            >
+              <div className="text-[#545454] text-sm">
+                {toggle.label}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  checked={selectedSecondary === toggle.id}
+                  onCheckedChange={() => handleSecondaryToggle(toggle.id)}
+                  variant={toggle.id === "strict" ? "secondary" : "aurora"}
+                />
+                {definition && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-card-foreground hover:text-[#084b49] transition-colors">
+                          <HelpCircle className="h-4 w-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs text-xs bg-white">
+                        {definition}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Switch 
-                checked={selectedSecondary === toggle.id}
-                onCheckedChange={() => handleSecondaryToggle(toggle.id)}
-                variant={toggle.id === "strict" ? "secondary" : "aurora"}
-              />
-              <HelpCircle className="h-4 w-4 text-[#545454] opacity-70" />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Main prompt input */}

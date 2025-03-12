@@ -38,7 +38,7 @@ export const ToggleSection = ({
                             <HelpCircle size={14} />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom" className="max-w-xs text-xs">
+                        <TooltipContent side="bottom" className="max-w-xs text-xs bg-white">
                           {item.definition}
                         </TooltipContent>
                       </Tooltip>
@@ -70,7 +70,7 @@ export const ToggleSection = ({
                             <HelpCircle size={14} />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom" className="max-w-xs text-xs">
+                        <TooltipContent side="bottom" className="max-w-xs text-xs bg-white">
                           {item.definition}
                         </TooltipContent>
                       </Tooltip>
