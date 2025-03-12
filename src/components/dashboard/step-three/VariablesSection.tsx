@@ -1,4 +1,3 @@
-
 import { Variable } from "../types";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";

@@ -75,7 +75,7 @@ export const VariableList = ({
       
       // Ensure every variable has a code
       if (!variable.code) {
-        onVariableChange(variable.id, 'code', `VAR_${index + 1}`);
+        onVariableChange(variable.id, 'code' as keyof Variable, `VAR_${index + 1}`);
       }
     });
     
@@ -132,7 +132,7 @@ export const VariableList = ({
     }));
     
     // Call the original change handler
-    onVariableChange(variableId, 'code', code);
+    onVariableChange(variableId, 'code' as keyof Variable, code);
   };
 
   // Handle delete (marking as not relevant)

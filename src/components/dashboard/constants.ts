@@ -1,7 +1,6 @@
+import { Toggle, Variable } from "./types";
 
-import { Toggle } from "./types";
-
-export const defaultVariables = [
+export const defaultVariables: Variable[] = [
   {
     id: "v-1",
     name: "Input",
