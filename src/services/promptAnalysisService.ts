@@ -92,7 +92,7 @@ export const enhancePrompt = async (
     const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label || selectedPrimary;
     message += ` for ${primaryLabel}`;
     
-    if (secondaryToggle) {
+    if (selectedSecondary) {
       const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
       message += ` and to be ${secondaryLabel}`;
     }
@@ -117,7 +117,7 @@ export const enhancePrompt = async (
     answeredQuestions: answeredQuestions.length,
     relevantVariables: relevantVariables.length,
     primaryToggle: selectedPrimary,
-    secondaryToggle
+    secondaryToggle: selectedSecondary
   });
   
   const { data, error } = await supabase.functions.invoke('enhance-prompt', {
