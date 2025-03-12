@@ -69,14 +69,22 @@ export const analyzePrompt = async (payload: any) => {
   });
   
   try {
-    const { data, error } = await supabase.functions.invoke('analyze-prompt', {
-      body: payload,
-      timeout: 60000 // 60 second timeout
+    // Create a promise that will be rejected after the timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Analysis request timed out after 60 seconds')), 60000);
     });
     
-    if (error) throw error;
+    // Create the actual function invoke promise
+    const functionPromise = supabase.functions.invoke('analyze-prompt', {
+      body: payload
+    });
     
-    return data;
+    // Use Promise.race to implement the timeout
+    const data = await Promise.race([functionPromise, timeoutPromise]);
+    
+    if (data.error) throw data.error;
+    
+    return data.data;
   } catch (error) {
     console.error("Error invoking analyze-prompt function:", error);
     throw error;
@@ -127,7 +135,13 @@ export const enhancePrompt = async (
   });
   
   try {
-    const { data, error } = await supabase.functions.invoke('enhance-prompt', {
+    // Create a promise that will be rejected after the timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Enhance prompt request timed out after 60 seconds')), 60000);
+    });
+    
+    // Create the actual function invoke promise
+    const functionPromise = supabase.functions.invoke('enhance-prompt', {
       body: {
         originalPrompt: promptToEnhance,
         answeredQuestions,
@@ -136,23 +150,25 @@ export const enhancePrompt = async (
         secondaryToggle: selectedSecondary,
         userId: user?.id,
         promptId
-      },
-      timeout: 60000 // 60 second timeout
+      }
     });
     
-    if (error) {
-      console.error("Error enhancing prompt:", error);
-      throw error;
+    // Use Promise.race to implement the timeout
+    const result = await Promise.race([functionPromise, timeoutPromise]);
+    
+    if (result.error) {
+      console.error("Error enhancing prompt:", result.error);
+      throw result.error;
     }
     
     console.log("Prompt enhanced successfully:", {
-      loadingMessage: data.loadingMessage,
-      usage: data.usage
+      loadingMessage: result.data.loadingMessage,
+      usage: result.data.usage
     });
     
     return {
-      enhancedPrompt: data.enhancedPrompt,
-      loadingMessage: data.loadingMessage
+      enhancedPrompt: result.data.enhancedPrompt,
+      loadingMessage: result.data.loadingMessage
     };
   } catch (error) {
     console.error("Error enhancing prompt:", error);
