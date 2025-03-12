@@ -1,3 +1,4 @@
+
 // OpenAI API client for prompt analysis
 
 /**
@@ -32,7 +33,7 @@ export async function analyzePromptWithAI(
     let imageInstructionsText = "";
     const imageContextMatch = additionalContext.match(/SPECIFIC IMAGE ANALYSIS INSTRUCTIONS: (.*?)(\n\n|$)/s);
     if (imageContextMatch && imageContextMatch[1]) {
-      imageInstructionsText = `\n\nUSER PROVIDED SPECIFIC IMAGE INSTRUCTIONS: ${imageContextMatch[1].trim()}`;
+      imageInstructionsText = `\n\nFOCUS SPECIFICALLY ON THESE USER INSTRUCTIONS: ${imageContextMatch[1].trim()}`;
       console.log("Found specific image analysis instructions:", imageInstructionsText);
     }
     
@@ -43,9 +44,9 @@ export async function analyzePromptWithAI(
           type: "text",
           text: `Analyze this prompt for generating questions and variables: "${promptText}" 
           
-First, describe the image in great detail. Extract all specific visual elements like subject, viewpoint, perspective, setting, lighting, colors, mood, composition, time of day, season, etc.${imageInstructionsText}
+First, provide a BRIEF description of the image (max 2 paragraphs). Focus ONLY on what's directly visible and ONLY mention aspects that are relevant to the prompt.${imageInstructionsText}
 
-Then use these details to generate relevant questions and variables with pre-filled values based on what you directly observe in the image.
+Then generate focused questions and variables with pre-filled values based on what you directly observe in the image that's MOST RELEVANT to the prompt.
 ${additionalContext}`
         },
         {

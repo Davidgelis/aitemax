@@ -354,14 +354,13 @@ ${websiteContent.text}
 Key Terms: ${websiteKeywords.join(', ')}
       
 YOUR TASK FOR WEBSITE ANALYSIS:
-1. Analyze this website content thoroughly
-2. Focus SPECIFICALLY on finding information related to: "${websiteData.instructions || "the main topic"}"
-3. Extract concrete, detailed information from the website content
-4. IMPORTANT: For question answers, provide 1-2 FULL SENTENCES of DETAILED information from the website
-5. Include SPECIFIC FACTS, NUMBERS, QUOTES or EXAMPLES directly from the website when available
-6. For questions about "best practices" or similar instructions, EXTRACT ALL relevant best practices from the content
-7. For variables, keep values concise (5-10 words) but precise
-8. Only use information EXPLICITLY present in the content - do not generalize or make assumptions`;
+1. The user's primary task is defined by their prompt: "${promptText}"
+2. The website is a SUPPLEMENTARY source of information to enhance the prompt
+3. Focus SPECIFICALLY on finding information related to: "${websiteData.instructions || "the main topic"}"
+4. Extract concrete, detailed information from the website content that directly supports the primary prompt
+5. For question answers, provide 1-2 FULL SENTENCES of DETAILED information from the website
+6. Include SPECIFIC FACTS, NUMBERS, QUOTES or EXAMPLES directly from the website when available
+7. Only use information EXPLICITLY present in the content - do not generalize or make assumptions`;
     }
     
     // Add image context if provided
@@ -375,23 +374,16 @@ YOUR TASK FOR WEBSITE ANALYSIS:
         ? `\n\nSPECIFIC IMAGE ANALYSIS INSTRUCTIONS: ${imageData.context}\n\n` 
         : "";
       
-      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image thoroughly and extract all visual details including:
-- Subject(s) in the image
-- Viewpoint (looking up, eye-level, aerial view, etc.)
-- Perspective (distance, angle, etc.)
-- Setting/location/environment
-- Time of day (if determinable)
-- Season (if determinable)
-- Weather conditions (if shown)
-- Lighting conditions
-- Color palette
-- Mood/atmosphere
-- Composition
-- Style
-- Textures
-- Any other observable details${specificInstructions}
+      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image briefly (max 2 paragraphs) with a focus on:
+- The user's main prompt: "${promptText}"
+${specificInstructions}
 
-Extract these specific details and use them to pre-fill relevant answers to questions and values for variables. Only use information that is EXPLICITLY visible in the image.`;
+IMPORTANT INSTRUCTIONS:
+1. The user's primary task is defined by their prompt text above - this is the MAIN FOCUS
+2. The image is SUPPLEMENTARY material to enhance understanding of the prompt
+3. Only analyze aspects of the image that are directly relevant to the primary prompt
+4. Keep the image description brief and focused on relevant details
+5. If user provided specific instructions, PRIORITIZE analyzing those aspects of the image`;
     }
     
     console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);
@@ -426,7 +418,6 @@ Extract these specific details and use them to pre-fill relevant answers to ques
       );
     }
     
-    // Try to extract structured data from the analysis
     try {
       // Process the analysis to extract questions, variables, etc.
       const questions = extractQuestions(analysis, promptText);
