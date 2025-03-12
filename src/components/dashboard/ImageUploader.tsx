@@ -72,6 +72,7 @@ export const ImageUploader = ({
     );
     
     onImagesChange(updatedImages);
+    
     // Just close the dialog without triggering any analyze action
     setContextDialogOpen(false);
   };
