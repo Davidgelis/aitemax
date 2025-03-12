@@ -35,7 +35,7 @@ export async function analyzePromptWithAI(
           type: "text",
           text: `Analyze this prompt for generating questions and variables: "${promptText}" 
           
-First, describe the image in great detail. Extract all specific visual elements like subject, viewpoint, perspective, setting, lighting, colors, mood, composition, time of day, season, etc.
+Provide a CONCISE image analysis in 1-2 paragraphs only. Describe the key visual elements like subject, setting, colors, composition, and mood.
 
 Then use these details to generate relevant questions and variables with pre-filled values based on what you directly observe in the image.
 ${additionalContext}`

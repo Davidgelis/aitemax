@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
 import { mockQuestions } from "@/components/dashboard/constants";
@@ -71,6 +72,17 @@ export const usePromptAnalysis = (
         user,
         promptId
       );
+      
+      // Verify payload contents before sending
+      console.log("Payload prepared for analysis:", {
+        hasPromptText: !!payload.promptText,
+        promptTextLength: payload.promptText?.length,
+        hasImageData: !!payload.imageData,
+        hasWebsiteData: !!payload.websiteData,
+        websiteUrl: payload.websiteData?.url,
+        primaryToggle: payload.primaryToggle,
+        secondaryToggle: payload.secondaryToggle
+      });
       
       // Send the analysis request
       const data = await analyzePrompt(payload);
