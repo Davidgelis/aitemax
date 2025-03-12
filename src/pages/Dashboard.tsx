@@ -185,7 +185,7 @@ const Dashboard = () => {
     if (user) {
       promptState.fetchSavedPrompts();
     }
-  }, [user]);
+  }, [user, promptState.fetchSavedPrompts]);
 
   return (
     <SidebarProvider>

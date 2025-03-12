@@ -1,9 +1,8 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Variable, jsonToVariables, variablesToJson } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
-import { usePromptDrafts } from "./usePromptDrafts";
 
 export const usePromptState = (user: any) => {
   const [promptText, setPromptText] = useState<string>("");
@@ -22,18 +21,11 @@ export const usePromptState = (user: any) => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
   const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState<boolean>(false);
+  const [drafts, setDrafts] = useState<any[]>([]);
+  const [isLoadingDrafts, setIsLoadingDrafts] = useState<boolean>(false);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
   
   const { toast } = useToast();
-  const { 
-    drafts, 
-    isLoadingDrafts, 
-    currentDraftId, 
-    setCurrentDraftId,
-    saveDraftToStorage,
-    loadDraftFromStorage,
-    deleteDraftFromStorage,
-    fetchDrafts 
-  } = usePromptDrafts(user);
 
   const fetchSavedPrompts = useCallback(async () => {
     if (!user) return;
@@ -42,7 +34,7 @@ export const usePromptState = (user: any) => {
     
     try {
       const { data, error } = await supabase
-        .from('saved_prompts')
+        .from('prompts')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
@@ -75,7 +67,7 @@ export const usePromptState = (user: any) => {
     setCurrentStep(1);
     setIsViewingSavedPrompt(false);
     setCurrentDraftId(null);
-  }, [setCurrentDraftId]);
+  }, []);
 
   const handleSavePrompt = useCallback(async (title: string) => {
     if (!user) {
@@ -98,7 +90,7 @@ export const usePromptState = (user: any) => {
     
     try {
       const { data, error } = await supabase
-        .from('saved_prompts')
+        .from('prompts')
         .insert({
           title,
           prompt_text: promptText,
@@ -138,7 +130,7 @@ export const usePromptState = (user: any) => {
     
     try {
       const { error } = await supabase
-        .from('saved_prompts')
+        .from('prompts')
         .delete()
         .eq('id', id)
         .eq('user_id', user.id);
@@ -167,7 +159,7 @@ export const usePromptState = (user: any) => {
     try {
       // First fetch the prompt to duplicate
       const { data: promptData, error: fetchError } = await supabase
-        .from('saved_prompts')
+        .from('prompts')
         .select('*')
         .eq('id', id)
         .eq('user_id', user.id)
@@ -177,7 +169,7 @@ export const usePromptState = (user: any) => {
       
       // Create a new prompt with the same data
       const { error: insertError } = await supabase
-        .from('saved_prompts')
+        .from('prompts')
         .insert({
           title: `${promptData.title} (Copy)`,
           prompt_text: promptData.prompt_text,
@@ -211,7 +203,7 @@ export const usePromptState = (user: any) => {
     
     try {
       const { error } = await supabase
-        .from('saved_prompts')
+        .from('prompts')
         .update({ title: newTitle })
         .eq('id', id)
         .eq('user_id', user.id);
@@ -250,29 +242,102 @@ export const usePromptState = (user: any) => {
     });
   }, [toast]);
 
-  const saveDraft = useCallback(() => {
+  const fetchDrafts = useCallback(async () => {
     if (!user) return;
     
+    setIsLoadingDrafts(true);
     try {
-      const draftData = {
-        promptText,
-        questions,
-        variables,
-        masterCommand,
-        selectedPrimary,
-        selectedSecondary,
-        currentStep,
-        timestamp: new Date().toISOString()
-      };
+      const { data, error } = await supabase
+        .from('prompt_drafts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
       
-      saveDraftToStorage(draftData);
+      if (error) throw error;
+      
+      if (data) {
+        setDrafts(data.map(draft => ({
+          id: draft.id,
+          title: draft.title || 'Untitled Draft',
+          promptText: draft.prompt_text || '',
+          masterCommand: draft.master_command || '',
+          primaryToggle: draft.primary_toggle,
+          secondaryToggle: draft.secondary_toggle,
+          variables: jsonToVariables(draft.variables),
+          currentStep: draft.current_step || 1,
+          updated_at: draft.updated_at
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching drafts:', error);
+    } finally {
+      setIsLoadingDrafts(false);
+    }
+  }, [user]);
+
+  const saveDraft = useCallback(async () => {
+    if (!user || !promptText.trim()) return;
+
+    try {
+      const title = promptText.split('\n')[0] || 'Untitled Draft';
+      
+      let draftId = currentDraftId;
+      
+      if (!draftId) {
+        const { data: existingDrafts, error: searchError } = await supabase
+          .from('prompt_drafts')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('title', title)
+          .limit(1);
+          
+        if (searchError) throw searchError;
+        
+        if (existingDrafts && existingDrafts.length > 0) {
+          draftId = existingDrafts[0].id;
+          setCurrentDraftId(draftId);
+        }
+      }
+      
+      const draft = {
+        user_id: user.id,
+        title: title,
+        prompt_text: promptText,
+        master_command: masterCommand,
+        primary_toggle: selectedPrimary,
+        secondary_toggle: selectedSecondary,
+        variables: variablesToJson(variables),
+        current_step: currentStep,
+      };
+
+      if (draftId) {
+        const { error } = await supabase
+          .from('prompt_drafts')
+          .update(draft)
+          .eq('id', draftId);
+          
+        if (error) throw error;
+        console.log("Draft updated successfully");
+      } else {
+        const { data, error } = await supabase
+          .from('prompt_drafts')
+          .insert(draft)
+          .select();
+          
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          setCurrentDraftId(data[0].id);
+          console.log("New draft created successfully");
+        }
+      }
+
+      fetchDrafts();
       
       toast({
         title: "Draft Saved",
         description: "Your progress has been saved as a draft.",
       });
-      
-      fetchDrafts();
     } catch (error) {
       console.error('Error saving draft:', error);
       toast({
@@ -281,41 +346,68 @@ export const usePromptState = (user: any) => {
         variant: "destructive",
       });
     }
-  }, [
-    user, promptText, questions, variables, masterCommand, 
-    selectedPrimary, selectedSecondary, currentStep,
-    saveDraftToStorage, toast, fetchDrafts
-  ]);
+  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, user, currentDraftId, fetchDrafts, toast]);
 
-  const loadSelectedDraftState = useCallback((draft: any) => {
-    const draftData = loadDraftFromStorage(draft.id);
+  const loadSelectedDraft = useCallback((draft: any) => {
+    if (!draft) return;
     
-    // Load draft regardless of step
-    if (draftData.promptText) setPromptText(draftData.promptText);
-    if (draftData.masterCommand) setMasterCommand(draftData.masterCommand);
-    if (draftData.variables) setVariables(draftData.variables);
-    if (draftData.selectedPrimary) setSelectedPrimary(draftData.selectedPrimary);
-    if (draftData.selectedSecondary) setSelectedSecondary(draftData.selectedSecondary);
-    if (draftData.currentStep) setCurrentStep(draftData.currentStep);
+    setPromptText(draft.promptText || "");
+    setMasterCommand(draft.masterCommand || "");
+    setVariables(draft.variables || []);
+    setSelectedPrimary(draft.primaryToggle || null);
+    setSelectedSecondary(draft.secondaryToggle || null);
+    setCurrentStep(draft.currentStep || 1);
+    setFinalPrompt(draft.promptText || "");
     
-    setFinalPrompt(draftData.promptText || "");
-    setCurrentDraftId(draft.id);
+    if (draft.id) {
+      setCurrentDraftId(draft.id);
+    }
     
     toast({
       title: "Draft Loaded",
       description: "Your draft has been restored.",
     });
-  }, [loadDraftFromStorage, setCurrentDraftId, toast]);
+  }, [toast]);
 
-  const handleDeleteDraft = useCallback((id: string) => {
-    deleteDraftFromStorage(id);
-    fetchDrafts();
+  const handleDeleteDraft = useCallback(async (id: string) => {
+    if (!user || !id) return;
     
-    toast({
-      title: "Draft Deleted",
-      description: "Your draft has been deleted.",
-    });
-  }, [deleteDraftFromStorage, fetchDrafts, toast]);
+    try {
+      const { error } = await supabase
+        .from('prompt_drafts')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      
+      if (id === currentDraftId) {
+        setCurrentDraftId(null);
+      }
+      
+      fetchDrafts();
+      
+      toast({
+        title: "Draft Deleted",
+        description: "Your draft has been deleted.",
+      });
+    } catch (error) {
+      console.error('Error deleting draft:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete draft",
+        variant: "destructive",
+      });
+    }
+  }, [user, currentDraftId, fetchDrafts, toast]);
+
+  // Load drafts when user changes
+  useEffect(() => {
+    if (user) {
+      fetchDrafts();
+      fetchSavedPrompts();
+    }
+  }, [user, fetchDrafts, fetchSavedPrompts]);
 
   return {
     promptText, setPromptText,
@@ -335,6 +427,6 @@ export const usePromptState = (user: any) => {
     handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt,
     loadSavedPrompt, isViewingSavedPrompt, setIsViewingSavedPrompt,
     saveDraft, drafts, isLoadingDrafts, currentDraftId,
-    loadSelectedDraft: loadSelectedDraftState, handleDeleteDraft
+    loadSelectedDraft, handleDeleteDraft
   };
 };
