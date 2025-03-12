@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { defaultVariables, mockQuestions, sampleFinalPrompt } from "@/components/dashboard/constants";
 import { supabase } from "@/integrations/supabase/client";
 import { usePromptDrafts } from "@/hooks/usePromptDrafts";
+import { Json } from "@/integrations/supabase/types";
 
 export const usePromptState = (user: any) => {
   const [promptText, setPromptText] = useState("");
@@ -160,7 +162,7 @@ export const usePromptState = (user: any) => {
           masterCommand: item.master_command || '',
           primaryToggle: item.primary_toggle,
           secondaryToggle: item.secondary_toggle,
-          variables: jsonToVariables(item.variables),
+          variables: jsonToVariables(item.variables as Json),
         };
         
         return prompt;
@@ -248,7 +250,7 @@ export const usePromptState = (user: any) => {
           masterCommand: data[0].master_command || '',
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
-          variables: jsonToVariables(data[0].variables),
+          variables: jsonToVariables(data[0].variables as Json),
         };
         
         if (jsonStructure) {
@@ -343,7 +345,7 @@ export const usePromptState = (user: any) => {
           masterCommand: data[0].master_command || '',
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
-          variables: jsonToVariables(data[0].variables),
+          variables: jsonToVariables(data[0].variables as Json),
         };
         
         if (prompt.jsonStructure) {

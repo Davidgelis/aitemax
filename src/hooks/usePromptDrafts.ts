@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Json } from "@/integrations/supabase/types";
 
 interface PromptDraft {
   id?: string;
@@ -58,7 +59,7 @@ export const usePromptDrafts = (
           masterCommand: draft.master_command || '',
           primaryToggle: draft.primary_toggle,
           secondaryToggle: draft.secondary_toggle,
-          variables: jsonToVariables(draft.variables),
+          variables: jsonToVariables(draft.variables as Json),
           currentStep: draft.current_step || 1,
           updated_at: draft.updated_at
         }));
@@ -181,7 +182,7 @@ export const usePromptDrafts = (
         return {
           promptText: drafts[0].prompt_text,
           masterCommand: drafts[0].master_command,
-          variables: drafts[0].variables ? jsonToVariables(drafts[0].variables) : [],
+          variables: drafts[0].variables ? jsonToVariables(drafts[0].variables as Json) : [],
           selectedPrimary: drafts[0].primary_toggle,
           selectedSecondary: drafts[0].secondary_toggle,
           currentStep: drafts[0].current_step,

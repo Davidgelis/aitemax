@@ -1,4 +1,6 @@
 
+import { Json } from "@/integrations/supabase/types";
+
 export interface AIModel {
   id?: string;
   name: string;
@@ -61,7 +63,7 @@ export interface PromptJsonStructure {
   [key: string]: string | undefined;
 }
 
-// Helper functions for variable serialization/deserialization
+// Helper functions for variable serialization/deserialization with updated types
 export const variablesToJson = (variables: Variable[]): Record<string, any> => {
   if (!variables || !Array.isArray(variables)) return {};
   
@@ -81,13 +83,14 @@ export const variablesToJson = (variables: Variable[]): Record<string, any> => {
   return result;
 };
 
-export const jsonToVariables = (json: Record<string, any> | null): Variable[] => {
-  if (!json) return [];
+// Update jsonToVariables to handle Json type from Supabase
+export const jsonToVariables = (json: Json | Record<string, any> | null): Variable[] => {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return [];
   
   const variables: Variable[] = [];
   Object.keys(json).forEach(id => {
     const varData = json[id];
-    if (varData) {
+    if (varData && typeof varData === 'object' && !Array.isArray(varData)) {
       variables.push({
         id,
         name: varData.name || '',
