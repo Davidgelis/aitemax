@@ -154,9 +154,10 @@ export const usePromptAnalysis = (
           payload.imageData = { 
             base64,
             filename: firstImage.file.name,
-            type: firstImage.file.type
+            type: firstImage.file.type,
+            context: firstImage.context || "" // Add image context if available
           };
-          console.log("Image successfully converted and added to payload");
+          console.log("Image successfully converted and added to payload with context:", !!firstImage.context);
         } catch (error) {
           console.error("Error converting image to base64:", error);
         }

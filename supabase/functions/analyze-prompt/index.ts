@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -324,6 +323,10 @@ serve(async (req) => {
     if (imageData) {
       console.log("Image type:", imageData.type || "No file type");
       console.log("Has image base64:", imageData.base64 ? "Yes" : "No");
+      console.log("Image context provided:", imageData.context ? "Yes" : "No");
+      if (imageData.context) {
+        console.log("Image context:", imageData.context);
+      }
     }
     
     // Add website content to context if provided
@@ -366,6 +369,12 @@ YOUR TASK FOR WEBSITE ANALYSIS:
     if (imageData && imageData.base64) {
       hasAdditionalContext = true;
       console.log("Image provided for context - will be sent to OpenAI for analysis");
+      
+      // Add specific instructions for image analysis if provided
+      const specificInstructions = imageData.context 
+        ? `\n\nSPECIFIC IMAGE ANALYSIS INSTRUCTIONS: ${imageData.context}\n\n` 
+        : "";
+      
       imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image thoroughly and extract all visual details including:
 - Subject(s) in the image
 - Viewpoint (looking up, eye-level, aerial view, etc.)
@@ -380,7 +389,7 @@ YOUR TASK FOR WEBSITE ANALYSIS:
 - Composition
 - Style
 - Textures
-- Any other observable details
+- Any other observable details${specificInstructions}
 
 Extract these specific details and use them to pre-fill relevant answers to questions and values for variables. Only use information that is EXPLICITLY visible in the image.`;
     }

@@ -1,4 +1,3 @@
-
 // OpenAI API client for prompt analysis
 
 /**
@@ -28,6 +27,15 @@ export async function analyzePromptWithAI(
   // If we have an image, create a message with content parts
   if (imageBase64) {
     console.log("Image provided for analysis - adding to OpenAI API request with GPT-4o");
+    
+    // Extract image context instructions if present in additionalContext
+    let imageInstructionsText = "";
+    const imageContextMatch = additionalContext.match(/SPECIFIC IMAGE ANALYSIS INSTRUCTIONS: (.*?)(\n\n|$)/s);
+    if (imageContextMatch && imageContextMatch[1]) {
+      imageInstructionsText = `\n\nUSER PROVIDED SPECIFIC IMAGE INSTRUCTIONS: ${imageContextMatch[1].trim()}`;
+      console.log("Found specific image analysis instructions:", imageInstructionsText);
+    }
+    
     messages.push({
       role: 'user',
       content: [
@@ -35,7 +43,7 @@ export async function analyzePromptWithAI(
           type: "text",
           text: `Analyze this prompt for generating questions and variables: "${promptText}" 
           
-First, describe the image in great detail. Extract all specific visual elements like subject, viewpoint, perspective, setting, lighting, colors, mood, composition, time of day, season, etc.
+First, describe the image in great detail. Extract all specific visual elements like subject, viewpoint, perspective, setting, lighting, colors, mood, composition, time of day, season, etc.${imageInstructionsText}
 
 Then use these details to generate relevant questions and variables with pre-filled values based on what you directly observe in the image.
 ${additionalContext}`

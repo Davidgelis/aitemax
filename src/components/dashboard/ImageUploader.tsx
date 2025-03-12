@@ -4,6 +4,7 @@ import { ImageUp } from 'lucide-react';
 import { ImageUploadDialog } from './ImageUploadDialog';
 import { Button } from "@/components/ui/button";
 import { UploadedImage } from "./types";
+import { ImageContextDialog } from './ImageContextDialog';
 
 interface ImageUploaderProps {
   onImagesChange: (images: UploadedImage[]) => void;
@@ -20,12 +21,38 @@ export const ImageUploader = ({
   open = false,
   onOpenChange = () => {}
 }: ImageUploaderProps) => {
+  const [contextDialogOpen, setContextDialogOpen] = useState(false);
+  const [currentImage, setCurrentImage] = useState<UploadedImage | null>(null);
+  
   const handleImagesUploaded = (newImages: UploadedImage[]) => {
     if (newImages.length > maxImages) {
       return;
     }
     
+    // If we have a new image that wasn't there before, open the context dialog
+    const newlyAddedImages = newImages.filter(
+      newImg => !images.some(existingImg => existingImg.id === newImg.id)
+    );
+    
+    if (newlyAddedImages.length > 0) {
+      setCurrentImage(newlyAddedImages[0]);
+      setContextDialogOpen(true);
+    }
+    
     onImagesChange(newImages);
+  };
+  
+  const handleAddContext = (context: string) => {
+    if (!currentImage) return;
+    
+    // Update the image with context
+    const updatedImages = images.map(img => 
+      img.id === currentImage.id 
+        ? { ...img, context } 
+        : img
+    );
+    
+    onImagesChange(updatedImages);
   };
   
   return (
@@ -48,6 +75,14 @@ export const ImageUploader = ({
         onImagesUploaded={handleImagesUploaded}
         maxImages={maxImages}
         currentImages={images}
+      />
+      
+      <ImageContextDialog
+        open={contextDialogOpen}
+        onOpenChange={setContextDialogOpen}
+        onConfirm={handleAddContext}
+        imageName={currentImage?.file.name}
+        savedContext={currentImage?.context || ''}
       />
     </div>
   );
