@@ -30,6 +30,7 @@ export const StepController = ({
   handleCognitiveToggle,
   promptState
 }: StepControllerProps) => {
+  
   const questionsContainerRef = useRef<HTMLDivElement>(null);
   const variablesContainerRef = useRef<HTMLDivElement>(null);
   
@@ -59,6 +60,7 @@ export const StepController = ({
   const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with GPT-4o...");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
+  
   
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
@@ -152,14 +154,10 @@ export const StepController = ({
     console.log("StepController: Images updated:", images);
     setUploadedImages(images);
     
-    if (images.length > 0) {
-      toast({
-        title: "Image attached",
-        description: "Your image will be analyzed along with your prompt",
-      });
-    }
+    // Removed the toast notification for image attachments
   };
 
+  
   const handleAnalyzeWithContext = () => {
     console.log("StepController: Analyzing with context", {
       images: uploadedImages,
@@ -253,6 +251,7 @@ export const StepController = ({
     handleStepChange(step, true);
   };
 
+  
   const filteredPrompts = savedPrompts.filter(prompt => 
     searchTerm === "" || 
     prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { ImageUp, Info, X } from 'lucide-react';
 import { ImageUploadDialog } from './ImageUploadDialog';
@@ -71,6 +72,8 @@ export const ImageUploader = ({
     );
     
     onImagesChange(updatedImages);
+    // Just close the dialog without triggering any analyze action
+    setContextDialogOpen(false);
   };
 
   // Function to handle opening context dialog for an existing image
