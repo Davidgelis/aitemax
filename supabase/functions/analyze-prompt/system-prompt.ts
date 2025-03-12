@@ -1,4 +1,3 @@
-
 export function createSystemPrompt(primaryToggle?: string | null, secondaryToggle?: string | null) {
   // Base system prompt
   let prompt = `
@@ -116,19 +115,28 @@ IMPORTANT: Do not create questions that are solely about the website unless they
   // Add toggle-specific instructions
   if (primaryToggle) {
     switch (primaryToggle) {
-      case 'math':
+      case 'video':
         prompt += `
-Since this prompt is for mathematical content, include questions about:
-- The complexity level of the math involved
-- Whether step-by-step solutions are needed
-- If visualizations would be helpful
-- What mathematical notation to use
+Since this prompt is for video content creation, include questions about:
+- The desired video format (live action, animation, motion graphics, screencast, etc.)
+- Video length or duration requirements
+- Resolution and aspect ratio preferences
+- Editing style (fast-paced, minimal cuts, etc.)
+- Music, sound effects, or voiceover needs
+- Special visual effects or transitions
+- Target platform (YouTube, TikTok, Instagram, professional presentation, etc.)
+- Color grading or visual tone
 
 And suggest variables like:
-- MathLevel (e.g., basic, intermediate, advanced)
-- ShowSteps (yes/no)
-- NotationType (e.g., LaTeX, plain text)
-- IncludeVisualization (yes/no)
+- VideoFormat
+- Duration
+- Resolution
+- AspectRatio
+- EditingStyle
+- AudioRequirements
+- VisualEffects
+- TargetPlatform
+- ColorGrading
 `;
         break;
       

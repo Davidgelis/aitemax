@@ -96,10 +96,10 @@ Instructions: Craft a narrative that captivates the reader from start to finish.
 
 export const primaryToggles: Toggle[] = [
   { 
-    id: "math", 
-    label: "Mathematical Problem-Solving",
-    definition: "This reinforces step-by-step reasoning (chain-of-thought) and ensures logical accuracy while maintaining the original structure and tone for mathematical problem-solving.",
-    prompt: "You are an AI specializing in enhancing math-focused prompts. The current prompt is already clear and well-structured. Please revise it only as needed to emphasize step-by-step reasoning (chain-of-thought) and a brief self-review for logical or arithmetic mistakes. Integrate any final clarifications or disclaimers that ensure accurate problem-solving, but retain the prompt's overall structure, tone, and clarity."
+    id: "video", 
+    label: "Video Creation",
+    definition: "This reinforces clarity for video production by specifying format, style, length, resolution, and key editing elements while preserving the prompt's original structure and coherence.",
+    prompt: "You are an AI that refines prompts for video production. The prompt is strong, so only introduce minimal changes to specify the desired format or style (e.g., live action, animation), include clear length or resolution guidelines, and address key editing or post-production requirements. Retain the original focus and structure while adding these essential video-related details."
   },
   { 
     id: "image", 
