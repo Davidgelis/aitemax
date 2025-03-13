@@ -27,13 +27,16 @@ serve(async (req) => {
 
     console.log(`Fetching transcript for video ID: ${videoId}`);
     console.log(`User instructions: ${userInstructions}`);
+    console.log(`Using API key: ${YOUTUBE_API_KEY.substring(0, 5)}...`); // Log partial key for debugging
 
     // First, fetch the video details to get the title and metadata
     const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`;
     
     let videoResponse;
     try {
+      console.log(`Requesting video details from: ${videoDetailsUrl}`);
       videoResponse = await fetch(videoDetailsUrl);
+      console.log(`Video details response status: ${videoResponse.status}`);
     } catch (error) {
       console.error("Network error fetching video details:", error);
       throw new Error('Network error: Unable to connect to YouTube API');
@@ -64,7 +67,9 @@ serve(async (req) => {
     
     let captionsInfoResponse;
     try {
+      console.log(`Requesting captions info from: ${captionsInfoUrl}`);
       captionsInfoResponse = await fetch(captionsInfoUrl);
+      console.log(`Captions info response status: ${captionsInfoResponse.status}`);
     } catch (error) {
       console.error("Network error fetching captions info:", error);
       // Just log this error but don't throw - we'll continue with what we have
