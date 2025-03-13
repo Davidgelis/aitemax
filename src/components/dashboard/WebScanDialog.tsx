@@ -146,8 +146,15 @@ export const WebScanDialog = ({
             
             <div className={`flex ml-auto ${hasContext ? 'gap-2' : ''}`}>
               <Button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="mr-2 bg-transparent hover:bg-gray-100 text-[#545454]"
+              >
+                Cancel
+              </Button>
+              <Button
                 type="submit"
-                className="bg-[#084b49] hover:bg-[#084b49]/90 text-white px-4 py-2 shadow-[0_0_0_0_#33fea6] transition-all duration-300 hover:shadow-[0_0_10px_0_#33fea6]"
+                className="bg-[#084b49] hover:bg-[#084b49]/90 text-white px-4 py-2"
               >
                 {hasContext ? "Update Context" : "Use as Context"}
               </Button>

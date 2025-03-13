@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Globe, Trash2 } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import { WebScanDialog } from './WebScanDialog';
 import { Button } from "@/components/ui/button";
 
@@ -63,16 +63,6 @@ export const WebScanner = ({
             <span className="truncate ml-1">Web Smart Scan</span>
             <Globe className={`mr-1 h-4 w-4 ${hasContext ? 'text-[#33fea6]' : 'text-[#084b49]'}`} />
           </button>
-          
-          {hasContext && (
-            <button
-              onClick={handleDeleteScan}
-              className="h-10 ml-2 px-2 bg-white border border-[#e5e7eb] text-red-500 hover:bg-red-50 flex items-center text-sm rounded-md transition-all"
-              title="Delete web scan data"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
         </div>
         
         <WebScanDialog
@@ -106,18 +96,6 @@ export const WebScanner = ({
           <Globe className={`w-3 h-3 ${hasContext ? 'text-[#33fea6]' : 'text-[#64bf95] group-hover:text-[#33fea6]'} transition-colors`} />
           <span>Web Scan</span>
         </Button>
-        
-        {hasContext && (
-          <Button
-            onClick={handleDeleteScan}
-            variant="slim"
-            size="xs"
-            className="ml-2 text-red-500 hover:bg-red-50 group"
-            title="Delete web scan data"
-          >
-            <Trash2 className="w-3 h-3" />
-          </Button>
-        )}
       </div>
       
       <WebScanDialog
