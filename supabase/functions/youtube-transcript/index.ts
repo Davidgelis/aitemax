@@ -1,8 +1,9 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const YOUTUBE_API_KEY = 'AIzaSyDu2EpNEIdcyVu4MFl4pL7lRCeP0Daou_w';
+const OAUTH_CLIENT_ID = '903657507924-g41pgokn1tng24brsdurnkamo5oumnei.apps.googleusercontent.com';
+const OAUTH_CLIENT_SECRET = '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';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -113,30 +114,99 @@ serve(async (req) => {
     const captionLanguage = captionsInfo.items[0].snippet?.language || 'Unknown';
     console.log(`Selected caption ID: ${captionId} (Language: ${captionLanguage})`);
     
-    // Download the actual caption content
-    const captionUrl = `https://www.googleapis.com/youtube/v3/captions/${captionId}?tfmt=srt&key=${YOUTUBE_API_KEY}`;
+    // Due to YouTube API limitations with direct caption access, we need to use OAuth
+    // First, try to get an OAuth token using client credentials
+    console.log("Attempting to get OAuth token for caption access");
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: OAUTH_CLIENT_ID,
+        client_secret: OAUTH_CLIENT_SECRET,
+        grant_type: 'client_credentials',
+        scope: 'https://www.googleapis.com/auth/youtube.force-ssl'
+      })
+    });
+    
+    if (!tokenResponse.ok) {
+      const tokenError = await tokenResponse.text();
+      console.error("OAuth token error:", tokenError);
+      
+      // Since we can't actually get captions due to API limitations even with OAuth credentials,
+      // we'll send back the available metadata with explanation
+      const transcriptData = {
+        title: videoDetails.title,
+        channelTitle: videoDetails.channelTitle,
+        publishedAt: videoDetails.publishedAt,
+        description: videoDetails.description,
+        userInstructions: userInstructions,
+        tags: videoDetails.tags || [],
+        transcript: `Video Title: ${videoDetails.title}\n\nChannel: ${videoDetails.channelTitle}\n\nDescription: ${videoDetails.description}\n\nNote: Due to YouTube API limitations, full caption text cannot be retrieved without user authorization. Only metadata is available.`,
+        hasCaptions: true,
+        captionLanguage: captionLanguage,
+        limitationInfo: "Full transcript access requires user-level OAuth 2.0 authorization which cannot be implemented in an edge function.",
+        success: true
+      };
+      
+      console.log("Returning metadata with OAuth limitation info");
+      return new Response(JSON.stringify(transcriptData), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    const tokenData = await tokenResponse.json();
+    console.log("Successfully obtained OAuth token");
+    
+    // Now try to download the caption content with the OAuth token
+    const captionUrl = `https://www.googleapis.com/youtube/v3/captions/${captionId}?tfmt=srt`;
     
     let captionResponse;
     try {
       console.log(`Downloading caption content from: ${captionUrl}`);
       
-      // The caption endpoint requires OAuth 2.0 authentication, which we can't use in this context
-      // This will unfortunately fail with a 401 error due to API limitations
-      captionResponse = await fetch(captionUrl);
+      captionResponse = await fetch(captionUrl, {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`
+        }
+      });
       console.log(`Caption content response status: ${captionResponse.status}`);
       
       if (!captionResponse.ok) {
         const errorText = await captionResponse.text();
         console.error(`YouTube Caption Download API error (${captionResponse.status}):`, errorText);
         
-        // The YouTube Data API doesn't allow downloading captions with just an API key
-        // We need to inform the user about this limitation
-        throw new Error('Cannot download captions: YouTube API requires OAuth 2.0 authentication.');
+        // Fall back to metadata
+        const transcriptData = {
+          title: videoDetails.title,
+          channelTitle: videoDetails.channelTitle,
+          publishedAt: videoDetails.publishedAt,
+          description: videoDetails.description,
+          userInstructions: userInstructions,
+          tags: videoDetails.tags || [],
+          transcript: `Video Title: ${videoDetails.title}\n\nChannel: ${videoDetails.channelTitle}\n\nDescription: ${videoDetails.description}\n\nNote: Caption download failed: ${captionResponse.status} ${captionResponse.statusText}`,
+          hasCaptions: true,
+          captionLanguage: captionLanguage,
+          limitationInfo: "Caption download failed even with OAuth authentication.",
+          success: true
+        };
+        
+        return new Response(JSON.stringify(transcriptData), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
     } catch (error) {
       console.error("Error downloading captions:", error);
-      throw new Error('Unable to download captions: YouTube API restriction');
+      throw new Error('Unable to download captions: Network error');
     }
+    
+    // If we get here, we have successfully downloaded the captions
+    const captionText = await captionResponse.text();
+    console.log("Successfully downloaded captions, processing...");
+    
+    // Process SRT format to extract just the text
+    const processedText = processSrtToPlainText(captionText);
     
     // Extract relevant information from description based on user instructions
     let relevantInfo = "";
@@ -172,8 +242,7 @@ serve(async (req) => {
       console.log(`Extracted ${videoDetails.tags.length} tags from video`);
     }
     
-    // Since we can't actually get the captions due to API limitations,
-    // we'll send back available metadata with explanation
+    // Return full transcript data
     const transcriptData = {
       title: videoDetails.title,
       channelTitle: videoDetails.channelTitle,
@@ -181,14 +250,13 @@ serve(async (req) => {
       description: videoDetails.description,
       userInstructions: userInstructions,
       tags: videoDetails.tags || [],
-      transcript: `Video Title: ${videoDetails.title}\n\nChannel: ${videoDetails.channelTitle}\n\nDescription: ${videoDetails.description}${relevantInfo}${keywordsInfo}\n\nNote: Due to YouTube API limitations, caption text cannot be retrieved directly. Only metadata is available.`,
+      transcript: `Video Title: ${videoDetails.title}\n\nChannel: ${videoDetails.channelTitle}\n\nTranscript:\n${processedText}${relevantInfo}${keywordsInfo}`,
       hasCaptions: true,
       captionLanguage: captionLanguage,
-      limitationInfo: "YouTube API restrictions prevent direct caption download without OAuth 2.0 authentication.",
       success: true
     };
 
-    console.log("Successfully processed YouTube metadata with targeted extraction based on user instructions");
+    console.log("Successfully processed YouTube transcript with full caption text");
     
     return new Response(JSON.stringify(transcriptData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -213,3 +281,35 @@ serve(async (req) => {
     });
   }
 });
+
+// Helper function to convert SRT format to plain text
+function processSrtToPlainText(srtText) {
+  // SRT format has timestamp lines and text lines
+  // We only want to keep the text lines
+  const lines = srtText.split('\n');
+  let plainText = '';
+  let isTextLine = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Skip empty lines and numeric lines (subtitle numbers)
+    if (line === '' || /^\d+$/.test(line)) {
+      isTextLine = false;
+      continue;
+    }
+    
+    // Skip timestamp lines (they contain --> )
+    if (line.includes('-->')) {
+      isTextLine = true;
+      continue;
+    }
+    
+    // If it's a text line, add it to our result
+    if (isTextLine) {
+      plainText += line + ' ';
+    }
+  }
+  
+  return plainText.trim();
+}
