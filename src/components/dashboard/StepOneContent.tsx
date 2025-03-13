@@ -130,7 +130,7 @@ export const StepOneContent = ({
         </div>
       )}
 
-      {/* Toggle sections for prompt types */}
+      {/* Toggle sections for prompt types - using primary variant for top toggles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {primaryToggles.map(toggle => (
           <div 
@@ -144,7 +144,7 @@ export const StepOneContent = ({
               <Switch 
                 checked={selectedPrimary === toggle.id}
                 onCheckedChange={() => handlePrimaryToggle(toggle.id)}
-                variant={toggle.id === "image" ? "primary" : "aurora"}
+                variant="primary"  
               />
               <HelpCircle className="h-4 w-4 text-[#545454] opacity-70" />
             </div>
@@ -152,7 +152,7 @@ export const StepOneContent = ({
         ))}
       </div>
 
-      {/* Toggle sections for response styles */}
+      {/* Toggle sections for response styles - using secondary variant for bottom toggles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {secondaryToggles.map(toggle => (
           <div 
@@ -166,7 +166,7 @@ export const StepOneContent = ({
               <Switch 
                 checked={selectedSecondary === toggle.id}
                 onCheckedChange={() => handleSecondaryToggle(toggle.id)}
-                variant={toggle.id === "strict" ? "secondary" : "aurora"}
+                variant="secondary"
               />
               <HelpCircle className="h-4 w-4 text-[#545454] opacity-70" />
             </div>

@@ -93,6 +93,7 @@ export const ToggleSection = ({
           checked={showJson}
           onCheckedChange={setShowJson}
           className="scale-75"
+          variant="primary"
         />
       </div>
     </>

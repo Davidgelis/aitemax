@@ -13,7 +13,7 @@ const Switch = React.forwardRef<
   const getVariantClasses = (variant: string, checked: boolean) => {
     switch(variant) {
       case "primary":
-        return checked ? "bg-[#33fea6]" : "bg-gray-200";
+        return checked ? "bg-[#64bf95]" : "bg-gray-200";
       case "secondary":
         return checked ? "bg-[#084b49]" : "bg-gray-200";
       case "aurora":
