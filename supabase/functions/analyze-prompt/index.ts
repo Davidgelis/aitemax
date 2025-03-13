@@ -293,7 +293,7 @@ function extractYouTubeVideoId(url: string): string | null {
 
 // New function to fetch YouTube video captions
 async function fetchYouTubeVideoInfo(url: string, userInstructions: string = "") {
-  console.log(`Fetching captions from YouTube video: ${url}`);
+  console.log(`Fetching information from YouTube video: ${url}`);
   console.log(`User instructions for extraction: ${userInstructions || "None provided"}`);
   
   try {
@@ -305,79 +305,42 @@ async function fetchYouTubeVideoInfo(url: string, userInstructions: string = "")
     
     console.log(`Attempting to fetch video information for video ID: ${videoId}`);
     
-    // Fetch video info (title, description)
-    const infoResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
-    if (!infoResponse.ok) {
-      throw new Error(`Failed to fetch video info, status: ${infoResponse.status}`);
+    // Call our own edge function to get information
+    const encodedInstructions = encodeURIComponent(userInstructions);
+    const response = await fetch(`https://zsvfxzbcfdxqhblcgptd.supabase.co/functions/v1/youtube-transcript?videoId=${videoId}&instructions=${encodedInstructions}`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch video info, status: ${response.status}`);
     }
     
-    const html = await infoResponse.text();
+    const data = await response.json();
     
-    // Extract title
-    const titleMatch = html.match(/<title>(.*?)<\/title>/i);
-    let title = titleMatch ? titleMatch[1].replace(' - YouTube', '') : "Unknown YouTube Video";
+    if (data.error) {
+      throw new Error(data.error);
+    }
     
-    // Extract description (simplified approach)
-    const descriptionMatch = html.match(/"description":{"simpleText":"(.*?)"},"lengthSeconds"/);
-    let description = descriptionMatch ? descriptionMatch[1] : "No description available";
+    // Format the relevant info for OpenAI
+    let enhancedText = data.transcript;
     
-    console.log(`Successfully extracted video title: "${title}"`);
-    
-    // Fetch transcript/captions using a third-party service or API
-    // For demonstration purposes, we'll attempt to get captions from the HTML
-    console.log(`Attempting to extract captions from video HTML`);
-    
-    // Note: YouTube doesn't provide captions directly in the HTML, this is a simplified approach
-    // In a production environment, you would use YouTube Data API or a specialized library
-    
-    // Look for caption tracks in the HTML
-    const captionTracksMatch = html.match(/"captionTracks":\[(.*?)\]/);
-    let captions = "Captions could not be extracted automatically. Please try a different video or provide specific instructions.";
-    
-    if (captionTracksMatch) {
-      // Extract the first English caption track URL if available
-      const captionData = captionTracksMatch[1];
-      const baseUrlMatch = captionData.match(/"baseUrl":"(.*?)"/);
+    // If we have specific instructions, highlight them
+    if (userInstructions) {
+      enhancedText += `\n\nUSER REQUESTED SPECIFIC INFORMATION: "${userInstructions}"\n\n`;
       
-      if (baseUrlMatch && baseUrlMatch[1]) {
-        const captionUrl = baseUrlMatch[1].replace(/\\u0026/g, '&');
-        console.log(`Found caption URL: ${captionUrl}`);
-        
-        // Fetch the captions
-        try {
-          const captionResponse = await fetch(captionUrl);
-          if (captionResponse.ok) {
-            const captionText = await captionResponse.text();
-            
-            // Simple XML parsing
-            const captionLines = captionText.match(/<text.*?>(.*?)<\/text>/g) || [];
-            const extractedText = captionLines
-              .map(line => {
-                const textMatch = line.match(/<text.*?>(.*?)<\/text>/);
-                return textMatch ? textMatch[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>') : '';
-              })
-              .join(' ');
-            
-            captions = extractedText || "No captions found in this video.";
-            console.log(`Successfully extracted ${captionLines.length} caption lines`);
-          }
-        } catch (captionError) {
-          console.error(`Error fetching captions: ${captionError.message}`);
-        }
+      // Extract keywords from instructions to emphasize
+      const keywords = userInstructions.toLowerCase()
+        .split(/\s+/)
+        .filter(word => word.length > 3)
+        .filter(word => !['what', 'which', 'when', 'where', 'who', 'how', 'from', 'about', 'this', 'that', 'these', 'those', 'with'].includes(word));
+      
+      if (keywords.length > 0) {
+        enhancedText += `FOCUS KEYWORDS: ${keywords.join(', ')}\n\n`;
       }
     }
     
-    // If we couldn't extract captions from the HTML
-    if (captions.includes("could not be extracted")) {
-      captions += "\n\nHowever, based on the video title and description, here's what we know:\n" +
-                  `Title: ${title}\n` +
-                  `Description: ${description}`;
-    }
-    
     return { 
-      title, 
-      text: captions.substring(0, 20000), // Limit to 20,000 chars
-      metaDescription: description,
+      title: data.title, 
+      text: enhancedText.substring(0, 20000), // Limit to 20,000 chars
+      metaDescription: data.description,
       isYouTubeVideo: true
     };
   } catch (error) {
@@ -468,7 +431,7 @@ serve(async (req) => {
       
       let contentData;
       if (isYouTubeUrl) {
-        console.log("Detected YouTube URL, fetching video captions");
+        console.log("Detected YouTube URL, fetching video information");
         contentData = await fetchYouTubeVideoInfo(websiteData.url, websiteData.instructions);
         
         contextualData += `\n\nYOUTUBE VIDEO CONTEXT:
@@ -476,17 +439,18 @@ URL: ${websiteData.url}
 Title: ${contentData.title}
 User Instructions: ${websiteData.instructions || "No specific instructions provided"}
 
-Video Caption Content:
+Video Content:
 ${contentData.text}
 
 YOUR TASK FOR YOUTUBE VIDEO ANALYSIS:
 1. The user's primary task is defined by their prompt: "${promptText}"
 2. The YouTube video content is a SUPPLEMENTARY source of information to enhance the prompt
-3. Focus SPECIFICALLY on finding information in the captions related to: "${websiteData.instructions || "the main topic"}"
-4. Extract concrete, detailed information from the video captions that directly supports the primary prompt
-5. For question answers, provide 1-2 FULL SENTENCES of DETAILED information from the video content
-6. Include SPECIFIC FACTS, QUOTES or EXAMPLES directly from the video captions when available
-7. Only use information EXPLICITLY present in the captions - do not generalize or make assumptions`;
+3. Focus SPECIFICALLY on finding information related to: "${websiteData.instructions || "the main topic"}"
+4. The user has asked to extract: "${websiteData.instructions}"
+5. Extract ONLY the specific information requested by the user - ignore everything else in the video
+6. For question answers, provide DETAILED information from the video content that DIRECTLY addresses the user's specific request
+7. Include SPECIFIC FACTS, QUOTES or EXAMPLES from the video that match the user's request
+8. Prefill ONLY variables and questions that are directly relevant to the user's specific extraction request`;
       } else {
         console.log("Standard website URL detected, fetching website content");
         contentData = await fetchWebsiteContent(websiteData.url, websiteData.instructions);

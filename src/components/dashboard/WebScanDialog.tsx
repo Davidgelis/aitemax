@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -91,7 +90,9 @@ export const WebScanDialog = ({
         }
         
         try {
-          const response = await fetch(`https://zsvfxzbcfdxqhblcgptd.supabase.co/functions/v1/youtube-transcript?videoId=${videoId}`);
+          // Pass user instructions as a query parameter
+          const encodedInstructions = encodeURIComponent(instructions);
+          const response = await fetch(`https://zsvfxzbcfdxqhblcgptd.supabase.co/functions/v1/youtube-transcript?videoId=${videoId}&instructions=${encodedInstructions}`);
           
           if (!response.ok) {
             throw new Error(`Failed to fetch transcript: ${response.statusText}`);
@@ -104,11 +105,17 @@ export const WebScanDialog = ({
           }
           
           // Use the transcript as the context (the onWebsiteScan function will handle this)
-          console.log("Successfully fetched YouTube transcript");
+          console.log("Successfully fetched YouTube data with targeted extraction");
+          
+          // Success toast to inform the user
+          toast({
+            title: "YouTube data extracted",
+            description: `Successfully extracted information from "${data.title}" using your specific instructions.`,
+          });
         } catch (error) {
           console.error("YouTube transcript fetch error:", error);
           toast({
-            title: "Failed to fetch YouTube transcript",
+            title: "Failed to fetch YouTube data",
             description: error instanceof Error ? error.message : "An unexpected error occurred",
             variant: "destructive"
           });
@@ -220,7 +227,7 @@ export const WebScanDialog = ({
               <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">
                 <Info size={14} className="flex-shrink-0" />
                 <p>
-                  Provide a YouTube video URL to extract and analyze captions/subtitles from the video.
+                  Provide a YouTube video URL to extract and analyze information from the video.
                 </p>
               </div>
             </div>
@@ -236,7 +243,7 @@ export const WebScanDialog = ({
               onChange={(e) => setInstructions(e.target.value)}
               placeholder={activeTab === 'website' 
                 ? "E.g., 'Extract best practices for landing pages' or 'Find information about pricing models'" 
-                : "E.g., 'Summarize the main points' or 'Extract technical details mentioned in the video'"
+                : "E.g., 'Extract colors mentioned by the artist' or 'List all tools used in the tutorial'"
               }
               className={`w-full min-h-[120px] resize-none ${!instructions.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
               required
@@ -252,9 +259,9 @@ export const WebScanDialog = ({
                   </>
                 ) : (
                   <>
-                    Be specific about what information you want extracted from the video captions. For example:
-                    "Extract key points about machine learning", "Find all technical terms mentioned", 
-                    or "Summarize the presenter's main arguments".
+                    Be very specific about what information you want extracted from the video. For example:
+                    "Extract all paint colors mentioned by the artist", "List all cooking ingredients used", 
+                    or "Find all programming libraries mentioned in the tutorial".
                   </>
                 )}
               </p>

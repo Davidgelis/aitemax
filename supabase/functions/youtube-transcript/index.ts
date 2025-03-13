@@ -19,28 +19,16 @@ serve(async (req) => {
     // Extract the videoId from the request URL
     const url = new URL(req.url);
     const videoId = url.searchParams.get('videoId');
+    const userInstructions = url.searchParams.get('instructions') || '';
 
     if (!videoId) {
       throw new Error('No video ID provided');
     }
 
     console.log(`Fetching transcript for video ID: ${videoId}`);
+    console.log(`User instructions: ${userInstructions}`);
 
-    // First, fetch the captions track info
-    const captionsInfoUrl = `https://www.googleapis.com/youtube/v3/captions?part=snippet&videoId=${videoId}&key=${YOUTUBE_API_KEY}`;
-    
-    const captionsInfoResponse = await fetch(captionsInfoUrl);
-    
-    if (!captionsInfoResponse.ok) {
-      const errorData = await captionsInfoResponse.text();
-      console.error("YouTube API error:", errorData);
-      throw new Error(`Failed to fetch captions info: ${captionsInfoResponse.status}`);
-    }
-    
-    const captionsInfo = await captionsInfoResponse.json();
-    
-    // If we can't get captions from the API (which is common due to access restrictions),
-    // we'll fetch the video details to at least get some context
+    // First, fetch the video details to get the title and metadata
     const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`;
     
     const videoResponse = await fetch(videoDetailsUrl);
@@ -56,21 +44,62 @@ serve(async (req) => {
     }
     
     const videoDetails = videoData.items[0].snippet;
+
+    // Next, try to get captions info
+    const captionsInfoUrl = `https://www.googleapis.com/youtube/v3/captions?part=snippet&videoId=${videoId}&key=${YOUTUBE_API_KEY}`;
+    const captionsInfoResponse = await fetch(captionsInfoUrl);
     
-    // Instead of actual transcript (which requires authentication), 
-    // we'll return video metadata that can be used as context
+    let captionsInfo = { items: [] };
+    if (captionsInfoResponse.ok) {
+      captionsInfo = await captionsInfoResponse.json();
+    }
+    
+    // Get more detailed information from the video description
+    let relevantInfo = "";
+    if (userInstructions) {
+      // Extract keywords from user instructions to look for in description
+      const keywords = userInstructions.toLowerCase()
+        .split(/\s+/)
+        .filter(word => word.length > 3)
+        .filter(word => !['what', 'which', 'when', 'where', 'who', 'how', 'from', 'about', 'this', 'that', 'these', 'those', 'with'].includes(word));
+      
+      if (keywords.length > 0) {
+        console.log(`Looking for keywords in video description: ${keywords.join(', ')}`);
+        
+        // Search for sentences in description that contain the keywords
+        const sentences = videoDetails.description.split(/[.!?]+/).filter(s => s.trim().length > 0);
+        
+        const relevantSentences = sentences.filter(sentence => {
+          const lowerSentence = sentence.toLowerCase();
+          return keywords.some(keyword => lowerSentence.includes(keyword));
+        });
+        
+        if (relevantSentences.length > 0) {
+          relevantInfo = `\n\nRelevant information from video description:\n${relevantSentences.join('. ')}`;
+          console.log(`Found ${relevantSentences.length} relevant sentences in description`);
+        }
+      }
+    }
+    
+    // Try to extract keywords from video tags as well
+    let keywordsInfo = "";
+    if (videoDetails.tags && videoDetails.tags.length > 0) {
+      keywordsInfo = `\n\nVideo keywords: ${videoDetails.tags.join(', ')}`;
+    }
+    
+    // Response with available information
     const transcriptData = {
       title: videoDetails.title,
-      description: videoDetails.description,
       channelTitle: videoDetails.channelTitle,
       publishedAt: videoDetails.publishedAt,
+      description: videoDetails.description,
+      userInstructions: userInstructions,
       tags: videoDetails.tags || [],
-      transcript: "Due to YouTube API limitations, full transcript extraction requires authentication. " +
-                  "Using video metadata as context instead.",
+      transcript: `Video Title: ${videoDetails.title}\n\nChannel: ${videoDetails.channelTitle}\n\nDescription: ${videoDetails.description}${relevantInfo}${keywordsInfo}\n\nNote: Due to YouTube API limitations, only metadata is available without direct caption access.`,
       hasCaptions: captionsInfo.items && captionsInfo.items.length > 0,
     };
 
-    console.log("Successfully processed video metadata");
+    console.log("Successfully processed YouTube metadata with targeted extraction based on user instructions");
     
     return new Response(JSON.stringify(transcriptData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
