@@ -23,10 +23,6 @@ export const SmartContext = ({
     setSavedContext(context);
     setHasContext(true);
     
-    // Add additional logging to debug data flow
-    console.log("SmartContext: Preparing to send context data to parent");
-    console.log("Context:", context);
-    
     // Call the parent handler
     console.log("SmartContext: Sending context data to parent");
     onSmartContext(context);
@@ -74,6 +70,7 @@ export const SmartContext = ({
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           onSmartContext={handleSmartContext}
+          onDeleteContext={handleDeleteContext}
           savedContext={savedContext}
           hasContext={hasContext}
         />
@@ -109,6 +106,7 @@ export const SmartContext = ({
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onSmartContext={handleSmartContext}
+        onDeleteContext={handleDeleteContext}
         savedContext={savedContext}
         hasContext={hasContext}
       />
