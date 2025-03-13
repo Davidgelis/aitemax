@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -587,6 +588,19 @@ Based on this combination, follow these guidelines:
           }
           return q;
         });
+      } else if (hasAdditionalContext && smartContextData && smartContextData.context) {
+        // Try to pre-fill based on smart context data
+        contextQuestions = contextQuestions.map(q => {
+          if (q.text.toLowerCase().includes("topic") || q.text.toLowerCase().includes("subject")) {
+            const firstSentence = smartContextData.context.split('.')[0];
+            return {
+              ...q,
+              answer: `Based on the provided context: ${firstSentence}.`,
+              prefillSource: "smartcontext"
+            };
+          }
+          return q;
+        });
       } else {
         // Ensure all answers are empty when no additional context is provided
         contextQuestions = contextQuestions.map(q => ({...q, answer: ""}));
@@ -618,6 +632,19 @@ Based on this combination, follow these guidelines:
               ...v, 
               value: websiteKeywords.slice(0, 5).join(', '),
               prefillSource: "webscan"
+            };
+          }
+          return v;
+        });
+      } else if (hasAdditionalContext && smartContextData && smartContextData.context) {
+        // Try to pre-fill based on smart context data
+        contextVariables = contextVariables.map(v => {
+          if (v.name.toLowerCase().includes("topic") || v.name.toLowerCase().includes("subject")) {
+            const words = smartContextData.context.split(' ').slice(0, 5).join(' ');
+            return {
+              ...v,
+              value: words,
+              prefillSource: "smartcontext"
             };
           }
           return v;

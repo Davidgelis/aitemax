@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -60,6 +61,7 @@ export const StepController = ({
   const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with GPT-4o...");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
+  const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
   
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
@@ -149,16 +151,26 @@ export const StepController = ({
     setUploadedImages(images);
   };
 
+  const handleSmartContext = (context: string, usageInstructions: string) => {
+    console.log("StepController: Smart context set:", { 
+      context: context.substring(0, 100) + (context.length > 100 ? "..." : ""),
+      usageInstructions: usageInstructions.substring(0, 100) + (usageInstructions.length > 100 ? "..." : "")
+    });
+    setSmartContext({ context, usageInstructions });
+  };
+
   const handleAnalyzeWithContext = () => {
     console.log("StepController: Analyzing with context", {
       images: uploadedImages,
       websiteContext,
+      smartContext,
       hasWebsiteContext: !!websiteContext,
+      hasSmartContext: !!smartContext,
       websiteUrl: websiteContext?.url || "none",
       websiteInstructions: websiteContext?.instructions || "none"
     });
     
-    handleAnalyze(uploadedImages, websiteContext);
+    handleAnalyze(uploadedImages, websiteContext, smartContext);
   };
 
   const handleStepChange = async (step: number, bypass: boolean = false) => {
@@ -279,6 +291,7 @@ export const StepController = ({
             handleCognitiveToggle={handleCognitiveToggle}
             onImagesChange={handleImagesChange}
             onWebsiteScan={handleWebsiteScan}
+            onSmartContext={handleSmartContext}
           />
         );
 

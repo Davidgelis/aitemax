@@ -69,7 +69,11 @@ export const usePromptAnalysis = (
     return () => clearTimeout(timeout);
   }, [isLoading, currentLoadingMessage]);
 
-  const handleAnalyze = async (images?: UploadedImage[], websiteData?: { url: string; instructions: string } | null) => {
+  const handleAnalyze = async (
+    images?: UploadedImage[], 
+    websiteData?: { url: string; instructions: string } | null,
+    smartContextData?: { context: string; usageInstructions: string } | null
+  ) => {
     if (!promptText.trim()) {
       toast({
         title: "Error",
@@ -83,9 +87,10 @@ export const usePromptAnalysis = (
     console.log("Analysis initiated with the following inputs:");
     console.log(`- Text input: ${promptText.length > 0 ? "Available" : "Not available"}`);
     console.log(`- Primary toggle: ${selectedPrimary || "None selected"}`);
-    console.log(`- Secondary toggle: ${selectedSecondary || "None selected"}`);
+    console.log(`- Secondary toggle: ${secondaryToggle || "None selected"}`);
     console.log(`- WebSmart scan: ${websiteData && websiteData.url ? "Active" : "Not active"}`);
     console.log(`- Image Smart scan: ${images && images.length > 0 ? "Active" : "Not active"}`);
+    console.log(`- Smart Context: ${smartContextData && smartContextData.context ? "Active" : "Not active"}`);
     
     if (websiteData && websiteData.url) {
       console.log(`  WebSmart URL: ${websiteData.url}`);
@@ -99,6 +104,11 @@ export const usePromptAnalysis = (
       });
     }
     
+    if (smartContextData && smartContextData.context) {
+      console.log(`  Smart Context provided: ${smartContextData.context.substring(0, 50)}...`);
+      console.log(`  Smart Context usage instructions: ${smartContextData.usageInstructions || "None provided"}`);
+    }
+    
     // Start loading immediately
     setIsLoading(true);
     
@@ -109,6 +119,7 @@ export const usePromptAnalysis = (
     const activeInputs = [];
     if (images && images.length > 0) activeInputs.push("image");
     if (websiteData && websiteData.url) activeInputs.push("website content");
+    if (smartContextData && smartContextData.context) activeInputs.push("smart context");
     if (selectedPrimary) activeInputs.push(primaryToggles.find(t => t.id === selectedPrimary)?.label?.toLowerCase() || "selected context");
     if (selectedSecondary) activeInputs.push(secondaryToggles.find(t => t.id === selectedSecondary)?.label?.toLowerCase() || "format options");
     
@@ -140,7 +151,8 @@ export const usePromptAnalysis = (
           hasText: promptText.trim().length > 0,
           hasToggles: !!(selectedPrimary || selectedSecondary),
           hasWebscan: !!(websiteData && websiteData.url),
-          hasImageScan: !!(images && images.length > 0)
+          hasImageScan: !!(images && images.length > 0),
+          hasSmartContext: !!(smartContextData && smartContextData.context)
         }
       };
       
@@ -159,6 +171,15 @@ export const usePromptAnalysis = (
         payload.websiteData = {
           url: websiteData.url,
           instructions: websiteData.instructions || ""
+        };
+      }
+      
+      // Add smart context data if available
+      if (smartContextData && smartContextData.context) {
+        console.log("Including smart context data in analysis payload");
+        payload.smartContextData = {
+          context: smartContextData.context,
+          usageInstructions: smartContextData.usageInstructions || ""
         };
       }
       
@@ -215,10 +236,13 @@ export const usePromptAnalysis = (
               // Only prefill if the source input is available
               (q.prefillSource === 'webscan' && websiteData && websiteData.url) ||
               (q.prefillSource === 'imagescan' && images && images.length > 0) ||
+              (q.prefillSource === 'smartcontext' && smartContextData && smartContextData.context) ||
               (q.prefillSource === 'toggle' && (selectedPrimary || selectedSecondary)) ||
               // If source is combined or not specified, check if we have additional context
               ((q.prefillSource === 'combined' || !q.prefillSource) && 
-               ((websiteData && websiteData.url) || (images && images.length > 0)))
+               ((websiteData && websiteData.url) || 
+                (images && images.length > 0) || 
+                (smartContextData && smartContextData.context)))
               : false;
             
             return {
@@ -257,9 +281,12 @@ export const usePromptAnalysis = (
               const shouldPrefill = v.prefillSource ? 
                 (v.prefillSource === 'webscan' && websiteData && websiteData.url) ||
                 (v.prefillSource === 'imagescan' && images && images.length > 0) ||
+                (v.prefillSource === 'smartcontext' && smartContextData && smartContextData.context) ||
                 (v.prefillSource === 'toggle' && (selectedPrimary || selectedSecondary)) ||
                 ((v.prefillSource === 'combined' || !v.prefillSource) && 
-                 ((websiteData && websiteData.url) || (images && images.length > 0)))
+                 ((websiteData && websiteData.url) || 
+                  (images && images.length > 0) ||
+                  (smartContextData && smartContextData.context)))
                 : false;
               
               return {
