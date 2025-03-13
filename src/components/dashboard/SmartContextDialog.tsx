@@ -9,9 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 interface SmartContextDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSmartContext: (context: string) => void;
+  onSmartContext: (context: string, usageInstructions: string) => void;
   onDeleteContext?: () => void;
   savedContext?: string;
+  savedUsageInstructions?: string;
   hasContext?: boolean;
 }
 
@@ -21,17 +22,20 @@ export const SmartContextDialog = ({
   onSmartContext,
   onDeleteContext,
   savedContext = '',
+  savedUsageInstructions = '',
   hasContext = false
 }: SmartContextDialogProps) => {
   const [context, setContext] = useState(savedContext);
+  const [usageInstructions, setUsageInstructions] = useState(savedUsageInstructions);
   const { toast } = useToast();
   
   // Update local state when props change
   useEffect(() => {
     if (open) {
       setContext(savedContext);
+      setUsageInstructions(savedUsageInstructions);
     }
-  }, [open, savedContext]);
+  }, [open, savedContext, savedUsageInstructions]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,13 +51,13 @@ export const SmartContextDialog = ({
     }
     
     // Process the data and close the dialog
-    onSmartContext(context.trim());
+    onSmartContext(context.trim(), usageInstructions.trim());
     onOpenChange(false);
   };
   
   const handleDialogClose = (open: boolean) => {
     // If closing and fields are filled, prompt user
-    if (!open && context.trim() && !savedContext) {
+    if (!open && (context.trim() || usageInstructions.trim()) && !savedContext) {
       toast({
         title: "Discard changes?",
         description: "You have unsaved changes that will be lost.",
@@ -86,7 +90,7 @@ export const SmartContextDialog = ({
               id="context"
               value={context}
               onChange={(e) => setContext(e.target.value)}
-              placeholder="E.g., 'This is for a technical audience' or 'The tone should be professional'."
+              placeholder="E.g., 'This is for a technical audience' or 'The tone should be professional'. You can paste articles, explanations, descriptions, or even video transcripts to provide as much context as possible."
               className={`w-full min-h-[200px] resize-none ${!context.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
               required
             />
@@ -98,6 +102,19 @@ export const SmartContextDialog = ({
                 or "Focus on highlighting environmental benefits".
               </p>
             </div>
+          </div>
+          
+          <div className="mb-4">
+            <label htmlFor="usageInstructions" className="block text-sm font-medium text-[#545454] mb-2">
+              How to use it as context and what part of data should be extracted
+            </label>
+            <Textarea 
+              id="usageInstructions"
+              value={usageInstructions}
+              onChange={(e) => setUsageInstructions(e.target.value)}
+              placeholder="Explain how this context should be used and specify if all the data should be considered or only certain parts should be extracted."
+              className="w-full min-h-[100px] resize-none border-[#084b49]/30"
+            />
           </div>
           
           <div className="flex justify-between mt-4">

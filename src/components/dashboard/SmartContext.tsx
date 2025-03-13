@@ -4,7 +4,7 @@ import { MessageSquareText, Trash2 } from 'lucide-react';
 import { SmartContextDialog } from './SmartContextDialog';
 
 interface SmartContextProps {
-  onSmartContext: (context: string) => void;
+  onSmartContext: (context: string, usageInstructions: string) => void;
   variant?: 'default' | 'modelReplacement';
   className?: string;
 }
@@ -16,25 +16,28 @@ export const SmartContext = ({
 }: SmartContextProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [savedContext, setSavedContext] = useState('');
+  const [savedUsageInstructions, setSavedUsageInstructions] = useState('');
   const [hasContext, setHasContext] = useState(false);
   
-  const handleSmartContext = (context: string) => {
+  const handleSmartContext = (context: string, usageInstructions: string) => {
     // Save the values for persistence
     setSavedContext(context);
+    setSavedUsageInstructions(usageInstructions);
     setHasContext(true);
     
     // Call the parent handler
     console.log("SmartContext: Sending context data to parent");
-    onSmartContext(context);
+    onSmartContext(context, usageInstructions);
   };
 
   const handleDeleteContext = () => {
     setSavedContext('');
+    setSavedUsageInstructions('');
     setHasContext(false);
     
     // Call the parent handler with empty values to clear the context
     console.log("SmartContext: Deleting context");
-    onSmartContext('');
+    onSmartContext('', '');
   };
 
   // Model replacement style button
@@ -72,6 +75,7 @@ export const SmartContext = ({
           onSmartContext={handleSmartContext}
           onDeleteContext={handleDeleteContext}
           savedContext={savedContext}
+          savedUsageInstructions={savedUsageInstructions}
           hasContext={hasContext}
         />
       </div>
@@ -108,6 +112,7 @@ export const SmartContext = ({
         onSmartContext={handleSmartContext}
         onDeleteContext={handleDeleteContext}
         savedContext={savedContext}
+        savedUsageInstructions={savedUsageInstructions}
         hasContext={hasContext}
       />
     </div>
