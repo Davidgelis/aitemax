@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Globe, Trash2 } from 'lucide-react';
 import { WebScanDialog } from './WebScanDialog';

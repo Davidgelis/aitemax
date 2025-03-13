@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
