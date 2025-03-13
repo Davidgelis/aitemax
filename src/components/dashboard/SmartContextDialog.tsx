@@ -71,7 +71,7 @@ export const SmartContextDialog = ({
   
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-md bg-white border border-[#084b49]/30 p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[550px] bg-white border border-[#084b49]/30 p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="text-xl font-medium text-[#545454]">Smart Context</DialogTitle>
           <p className="text-sm text-[#545454] font-normal mt-1">Use specific context to enhance your original prompt</p>
