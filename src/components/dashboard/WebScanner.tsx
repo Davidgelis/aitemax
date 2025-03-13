@@ -27,12 +27,12 @@ export const WebScanner = ({
     setHasContext(true);
     
     // Add additional logging to debug data flow
-    console.log("WebScanner: Preparing to send website data to parent");
+    console.log("WebScanner: Preparing to send website/YouTube data to parent");
     console.log("URL:", url);
     console.log("Instructions:", instructions || "No specific instructions provided");
     
     // Call the parent handler without modifying any text area
-    console.log("WebScanner: Sending website data to parent");
+    console.log("WebScanner: Sending website/YouTube data to parent");
     onWebsiteScan(url, instructions);
   };
 
@@ -42,7 +42,7 @@ export const WebScanner = ({
     setHasContext(false);
     
     // Call the parent handler with empty values to clear the context
-    console.log("WebScanner: Deleting website context");
+    console.log("WebScanner: Deleting website/YouTube context");
     onWebsiteScan('', '');
   };
 
@@ -58,7 +58,7 @@ export const WebScanner = ({
                 ? 'shadow-[0_0_5px_0_#33fea6]' 
                 : 'shadow-sm'
             }`}
-            title="Extract specific information from a website to enhance your prompt"
+            title="Extract specific information from a website or YouTube video to enhance your prompt"
           >
             <span className="truncate ml-1">Web Smart Scan</span>
             <Globe className={`mr-1 h-4 w-4 ${hasContext ? 'text-[#33fea6]' : 'text-[#084b49]'}`} />
@@ -101,7 +101,7 @@ export const WebScanner = ({
               ? 'shadow-[0_0_5px_0_#33fea6]' 
               : ''
           }`}
-          title="Extract specific information from a website to enhance your prompt"
+          title="Extract specific information from a website or YouTube video to enhance your prompt"
         >
           <Globe className={`w-3 h-3 ${hasContext ? 'text-[#33fea6]' : 'text-[#64bf95] group-hover:text-[#33fea6]'} transition-colors`} />
           <span>Web Scan</span>

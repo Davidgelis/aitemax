@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Globe, Info, Youtube } from 'lucide-react';
+import { Globe, Info, Youtube, Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface WebScanDialogProps {
@@ -30,6 +30,7 @@ export const WebScanDialog = ({
   const [url, setUrl] = useState(savedUrl);
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [instructions, setInstructions] = useState(savedInstructions);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   
   // Update state when props change
@@ -47,7 +48,7 @@ export const WebScanDialog = ({
     }
   }, [open, savedUrl, savedInstructions]);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Determine the URL to use based on active tab
@@ -71,10 +72,59 @@ export const WebScanDialog = ({
       });
       return;
     }
-    
-    // Process the data and close the dialog
-    onWebsiteScan(selectedUrl.trim(), instructions.trim());
-    onOpenChange(false);
+
+    try {
+      setIsLoading(true);
+      
+      // If it's a YouTube URL, fetch the transcript first
+      if (activeTab === 'youtube') {
+        const videoId = extractYouTubeVideoId(youtubeUrl);
+        
+        if (!videoId) {
+          toast({
+            title: "Invalid YouTube URL",
+            description: "Could not extract video ID from the URL. Please ensure it's a valid YouTube video URL.",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        try {
+          const response = await fetch(`https://zsvfxzbcfdxqhblcgptd.supabase.co/functions/v1/youtube-transcript?videoId=${videoId}`);
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch transcript: ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          
+          if (data.error) {
+            throw new Error(data.error);
+          }
+          
+          // Use the transcript as the context (the onWebsiteScan function will handle this)
+          console.log("Successfully fetched YouTube transcript");
+        } catch (error) {
+          console.error("YouTube transcript fetch error:", error);
+          toast({
+            title: "Failed to fetch YouTube transcript",
+            description: error instanceof Error ? error.message : "An unexpected error occurred",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+      
+      // Process the data and close the dialog
+      onWebsiteScan(selectedUrl.trim(), instructions.trim());
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const handleDialogClose = (open: boolean) => {
@@ -88,6 +138,13 @@ export const WebScanDialog = ({
       }
     }
     onOpenChange(open);
+  };
+  
+  // Helper function to extract YouTube video ID
+  const extractYouTubeVideoId = (url: string): string | null => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
   };
   
   const currentUrlIsYoutube = savedUrl && (savedUrl.includes('youtube.com') || savedUrl.includes('youtu.be'));
@@ -209,8 +266,16 @@ export const WebScanDialog = ({
               <Button
                 type="submit"
                 className="bg-[#084b49] hover:bg-[#084b49]/90 text-white px-4 py-2 shadow-[0_0_0_0_#33fea6] transition-all duration-300 hover:shadow-[0_0_10px_0_#33fea6]"
+                disabled={isLoading}
               >
-                {hasContext ? "Update Context" : "Use as Context"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  hasContext ? "Update Context" : "Use as Context"
+                )}
               </Button>
             </div>
           </div>
