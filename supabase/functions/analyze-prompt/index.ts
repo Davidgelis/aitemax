@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -304,28 +305,40 @@ serve(async (req) => {
       userId, 
       promptId, 
       websiteData, 
-      imageData 
+      imageData,
+      inputTypes = {} // New field that tracks which input sources are available
     } = await req.json();
     
-    console.log(`Analyzing prompt: "${promptText}"\n`);
+    console.log(`Analyzing prompt with multiple input types`);
+    console.log(`Input text: "${promptText.slice(0, 50)}${promptText.length > 50 ? '...' : ''}"`);
     console.log(`Primary toggle: ${primaryToggle || "None"}`);
     console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
-    console.log(`Creating prompt for AI platform with appropriate context`);
+    
+    // Log information about which input types are available
+    console.log("Input types available:", {
+      hasText: inputTypes.hasText === false ? false : true, // Default to true for backwards compatibility
+      hasToggles: inputTypes.hasToggles === true || !!(primaryToggle || secondaryToggle),
+      hasWebscan: inputTypes.hasWebscan === true || !!(websiteData && websiteData.url),
+      hasImageScan: inputTypes.hasImageScan === true || !!(imageData && imageData.length > 0)
+    });
     
     // Improved logging for debugging context data
-    console.log("Website data provided:", websiteData ? "Yes" : "No");
     if (websiteData) {
       console.log(`Website URL: ${websiteData.url || "None"}`);
       console.log(`Website instructions: ${websiteData.instructions ? "Provided" : "None"}`);
     }
     
-    console.log("Image data provided:", imageData ? "Yes" : "No");
     if (imageData) {
-      console.log("Image type:", imageData.type || "No file type");
-      console.log("Has image base64:", imageData.base64 ? "Yes" : "No");
-      console.log("Image context provided:", imageData.context ? "Yes" : "No");
-      if (imageData.context) {
-        console.log("Image context:", imageData.context);
+      if (Array.isArray(imageData)) {
+        console.log(`Number of images: ${imageData.length}`);
+        imageData.forEach((img, idx) => {
+          console.log(`Image ${idx+1} type: ${img.type || "Unknown"}`);
+          console.log(`Image ${idx+1} context: ${img.context ? "Provided" : "None"}`);
+        });
+      } else {
+        console.log("Image type:", imageData.type || "No file type");
+        console.log("Has image base64:", imageData.base64 ? "Yes" : "No");
+        console.log("Image context provided:", imageData.context ? "Yes" : "No");
       }
     }
     
@@ -334,10 +347,10 @@ serve(async (req) => {
     let websiteKeywords = [];
     let hasAdditionalContext = false;
     
+    // Process website data if available - this corresponds to Scenario 3 & 4
     if (websiteData && websiteData.url) {
       hasAdditionalContext = true;
-      console.log(`Website provided for context: ${websiteData.url}`);
-      console.log(`User instructions for website analysis: ${websiteData.instructions || "No specific instructions"}`);
+      console.log(`Processing website context from: ${websiteData.url}`);
       
       const websiteContent = await fetchWebsiteContent(websiteData.url, websiteData.instructions);
       websiteKeywords = extractKeyTerms(websiteContent.text);
@@ -360,48 +373,95 @@ YOUR TASK FOR WEBSITE ANALYSIS:
 4. Extract concrete, detailed information from the website content that directly supports the primary prompt
 5. For question answers, provide 1-2 FULL SENTENCES of DETAILED information from the website
 6. Include SPECIFIC FACTS, NUMBERS, QUOTES or EXAMPLES directly from the website when available
-7. Only use information EXPLICITLY present in the content - do not generalize or make assumptions`;
+7. Only use information EXPLICITLY present in the content - do not generalize or make assumptions
+8. MARK all questions and variables that are filled from website data with "prefillSource": "webscan"`;
     }
     
-    // Add image context if provided
+    // Process image context if provided - this corresponds to Scenario 4
     let imageContext = "";
-    if (imageData && imageData.base64) {
+    if (imageData) {
       hasAdditionalContext = true;
-      console.log("Image provided for context - will be sent to OpenAI for analysis");
+      console.log("Processing image context");
       
-      // Add specific instructions for image analysis if provided
-      const specificInstructions = imageData.context 
-        ? `\n\nSPECIFIC IMAGE ANALYSIS INSTRUCTIONS: ${imageData.context}\n\n` 
-        : "";
+      // Handle both single image object and array of images
+      const imageDataArray = Array.isArray(imageData) ? imageData : [imageData];
       
-      imageContext = `\n\nIMAGE CONTEXT: The user has provided an image. Please analyze this image briefly (max 2 paragraphs) with a focus on:
+      // Generate context instructions for each image
+      imageDataArray.forEach((img, idx) => {
+        const specificInstructions = img.context 
+          ? `\n\nSPECIFIC IMAGE ANALYSIS INSTRUCTIONS: ${img.context}\n\n` 
+          : "";
+        
+        imageContext += `\n\nIMAGE ${idx+1} CONTEXT: The user has provided an image. Please analyze this image briefly (max 2 paragraphs) with a focus on:
 - The user's main prompt: "${promptText}"
 ${specificInstructions}
 
-IMPORTANT INSTRUCTIONS:
+IMPORTANT INSTRUCTIONS FOR IMAGE ANALYSIS:
 1. The user's primary task is defined by their prompt text above - this is the MAIN FOCUS
 2. The image is SUPPLEMENTARY material to enhance understanding of the prompt
 3. Only analyze aspects of the image that are directly relevant to the primary prompt
 4. Keep the image description brief and focused on relevant details
-5. If user provided specific instructions, PRIORITIZE analyzing those aspects of the image`;
+5. If user provided specific instructions, PRIORITIZE analyzing those aspects of the image
+6. MARK all questions and variables that are filled from image data with "prefillSource": "imagescan"`;
+      });
     }
     
+    // Process toggle information - this corresponds to Scenario 2
+    let toggleContext = "";
+    if (primaryToggle || secondaryToggle) {
+      console.log("Processing toggle context");
+      
+      toggleContext = "\n\nTOGGLE SELECTIONS:";
+      
+      if (primaryToggle) {
+        const primaryLabel = primaryToggle;
+        toggleContext += `\nPrimary Toggle: ${primaryLabel}`;
+      }
+      
+      if (secondaryToggle) {
+        const secondaryLabel = secondaryToggle;
+        toggleContext += `\nSecondary Toggle: ${secondaryLabel}`;
+      }
+      
+      toggleContext += `\n\nTOGGLE PROCESSING INSTRUCTIONS:
+1. Use these toggle selections to REFINE the questions and variables
+2. Adjust the focus and specificity of questions based on these selections
+3. MARK all questions and variables that are specifically influenced by toggles with "prefillSource": "toggle"
+4. For questions/variables that combine multiple information sources, use "prefillSource": "combined"`;
+    }
+    
+    // Input combination section - help the model understand how to merge different input types
+    let combinationInstructions = `\n\nINPUT COMBINATION INSTRUCTIONS:
+You're analyzing a prompt with the following input types:
+- Text input: ${inputTypes.hasText === false ? "NOT provided" : "Provided"}
+- Toggles: ${inputTypes.hasToggles || (primaryToggle || secondaryToggle) ? "Selected" : "NOT selected"}
+- Website Scan: ${inputTypes.hasWebscan || (websiteData && websiteData.url) ? "Active" : "NOT active"}
+- Image Scan: ${inputTypes.hasImageScan || (imageData && (Array.isArray(imageData) ? imageData.length > 0 : imageData.base64)) ? "Active" : "NOT active"}
+
+Based on this combination, follow these guidelines:
+1. Create a comprehensive set of questions that address ALL missing context from the prompt
+2. Generate variables that can be used to customize the final output
+3. For each question and variable, determine the appropriate value based on ALL available inputs
+4. Use "prefillSource" to indicate where the pre-filled value came from (webscan, imagescan, toggle, combined)
+5. Only pre-fill values when you have high confidence based on the available inputs
+6. Mark all items that combine information from multiple sources with "prefillSource": "combined"`;
+
     console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);
     if (!hasAdditionalContext) {
-      console.log("No additional context provided - ensuring answers and values remain empty");
       contextualData += "\n\nIMPORTANT: No additional context (website/image) has been provided. DO NOT pre-fill any answers or values - leave them ALL as empty strings.";
     }
     
     // Create a system message with better context about our purpose
     const systemMessage = createSystemPrompt(primaryToggle, secondaryToggle);
     
-    // Get analysis from OpenAI
+    // Get analysis from OpenAI with all context combined
     const analysisResult = await analyzePromptWithAI(
       promptText, 
       systemMessage, 
       openAIApiKey, 
-      contextualData + imageContext, 
-      imageData?.base64
+      contextualData + imageContext + toggleContext + combinationInstructions, 
+      Array.isArray(imageData) && imageData.length > 0 ? imageData[0].base64 : 
+        (imageData?.base64 || null)
     );
     
     const analysis = analysisResult.content;
@@ -425,7 +485,7 @@ IMPORTANT INSTRUCTIONS:
       const masterCommand = extractMasterCommand(analysis);
       const enhancedPrompt = extractEnhancedPrompt(analysis);
       
-      console.log(`Extracted ${questions.length} context questions relevant to AI platforms`);
+      console.log(`Extracted ${questions.length} context questions`);
       console.log(`Extracted ${variables.length} variables for customization`);
       
       // Log how many questions and variables were pre-filled
@@ -433,6 +493,16 @@ IMPORTANT INSTRUCTIONS:
       const prefilledVariables = variables.filter(v => v.value && v.value.trim() !== "").length;
       console.log(`Pre-filled answers: ${prefilledQuestions}/${questions.length} questions`);
       console.log(`Pre-filled values: ${prefilledVariables}/${variables.length} variables`);
+      
+      // Log prefill sources for debugging
+      const prefillSources = {
+        webscan: questions.filter(q => q.prefillSource === 'webscan').length,
+        imagescan: questions.filter(q => q.prefillSource === 'imagescan').length,
+        toggle: questions.filter(q => q.prefillSource === 'toggle').length,
+        combined: questions.filter(q => q.prefillSource === 'combined').length,
+        unspecified: questions.filter(q => !q.prefillSource).length
+      };
+      console.log("Question prefill sources:", prefillSources);
       
       // If no additional context was provided, verify that no pre-filling occurred
       if (!hasAdditionalContext && (prefilledQuestions > 0 || prefilledVariables > 0)) {
@@ -452,7 +522,8 @@ IMPORTANT INSTRUCTIONS:
         usage: analysisResult.usage,
         primaryToggle,
         secondaryToggle,
-        hasAdditionalContext  // Include flag in response
+        hasAdditionalContext,
+        inputTypes
       };
       
       return new Response(JSON.stringify(result), {
@@ -470,10 +541,18 @@ IMPORTANT INSTRUCTIONS:
         contextQuestions = contextQuestions.map(q => {
           // Try to pre-fill based on website context
           if (q.text.toLowerCase().includes("topic") || q.text.toLowerCase().includes("subject")) {
-            return {...q, answer: `Based on the website, the main topic appears to be related to ${websiteKeywords.slice(0, 3).join(', ')}`};
+            return {
+              ...q, 
+              answer: `Based on the website, the main topic appears to be related to ${websiteKeywords.slice(0, 3).join(', ')}`,
+              prefillSource: "webscan"
+            };
           }
           if (q.text.toLowerCase().includes("tone") || q.text.toLowerCase().includes("style")) {
-            return {...q, answer: "The tone should match the website's professional presentation"};
+            return {
+              ...q, 
+              answer: "The tone should match the website's professional presentation",
+              prefillSource: "webscan"
+            };
           }
           return q;
         });
@@ -497,10 +576,18 @@ IMPORTANT INSTRUCTIONS:
         contextVariables = contextVariables.map(v => {
           // Try to pre-fill based on website keywords
           if (v.name.toLowerCase().includes("topic") || v.name.toLowerCase().includes("subject")) {
-            return {...v, value: websiteKeywords.slice(0, 3).join(', ')};
+            return {
+              ...v, 
+              value: websiteKeywords.slice(0, 3).join(', '),
+              prefillSource: "webscan"
+            };
           }
           if (v.name.toLowerCase().includes("keywords")) {
-            return {...v, value: websiteKeywords.slice(0, 5).join(', ')};
+            return {
+              ...v, 
+              value: websiteKeywords.slice(0, 5).join(', '),
+              prefillSource: "webscan"
+            };
           }
           return v;
         });
@@ -520,7 +607,8 @@ IMPORTANT INSTRUCTIONS:
         usage: analysisResult.usage,
         primaryToggle,
         secondaryToggle,
-        hasAdditionalContext  // Include flag in response
+        hasAdditionalContext,
+        inputTypes
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -538,7 +626,8 @@ IMPORTANT INSTRUCTIONS:
       error: error.message,
       primaryToggle: null,
       secondaryToggle: null,
-      hasAdditionalContext: false
+      hasAdditionalContext: false,
+      inputTypes: {}
     }), {
       status: 200, // Always return a 200 to avoid edge function errors
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

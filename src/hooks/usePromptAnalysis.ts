@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions, primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
@@ -78,53 +79,69 @@ export const usePromptAnalysis = (
       return;
     }
     
-    // Add more detailed logging to verify what's being sent to the edge function
-    console.log("Analysis requested with:", {
-      promptLength: promptText.length,
-      primaryToggle: selectedPrimary,
-      secondaryToggle: selectedSecondary,
-      hasImages: images && images.length > 0,
-      imageCount: images ? images.length : 0,
-      hasWebsiteData: !!websiteData,
-      websiteUrl: websiteData ? websiteData.url : null,
-      websiteInstructions: websiteData ? websiteData.instructions : null
-    });
+    // Detailed logging for input types and their availability
+    console.log("Analysis initiated with the following inputs:");
+    console.log(`- Text input: ${promptText.length > 0 ? "Available" : "Not available"}`);
+    console.log(`- Primary toggle: ${selectedPrimary || "None selected"}`);
+    console.log(`- Secondary toggle: ${selectedSecondary || "None selected"}`);
+    console.log(`- WebSmart scan: ${websiteData && websiteData.url ? "Active" : "Not active"}`);
+    console.log(`- Image Smart scan: ${images && images.length > 0 ? "Active" : "Not active"}`);
     
-    const hasAdditionalContext = (images && images.length > 0) || (websiteData && websiteData.url);
+    if (websiteData && websiteData.url) {
+      console.log(`  WebSmart URL: ${websiteData.url}`);
+      console.log(`  WebSmart instructions: ${websiteData.instructions || "None provided"}`);
+    }
+    
+    if (images && images.length > 0) {
+      console.log(`  Image count: ${images.length}`);
+      images.forEach((img, idx) => {
+        console.log(`  Image ${idx+1}: ${img.file.name} (${img.file.type}), Context: ${img.context || "None provided"}`);
+      });
+    }
     
     // Start loading immediately
     setIsLoading(true);
     
-    // Get toggle label for a more descriptive loading message
+    // Prepare a contextual loading message based on active inputs
     let loadingMessageText = "Analyzing your prompt";
-    if (images && images.length > 0) {
-      loadingMessageText += " and image";
-    }
-    if (websiteData && websiteData.url) {
-      loadingMessageText += " and website content";
-    }
-    if (selectedPrimary) {
-      const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label;
-      if (primaryLabel) {
-        loadingMessageText += ` for ${primaryLabel}`;
-      }
-    }
-    if (selectedSecondary) {
-      const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label;
-      if (secondaryLabel) {
-        loadingMessageText += ` with ${secondaryLabel} formatting`;
+    
+    // Add context about which inputs are being processed
+    const activeInputs = [];
+    if (images && images.length > 0) activeInputs.push("image");
+    if (websiteData && websiteData.url) activeInputs.push("website content");
+    if (selectedPrimary) activeInputs.push(primaryToggles.find(t => t.id === selectedPrimary)?.label?.toLowerCase() || "selected context");
+    if (selectedSecondary) activeInputs.push(secondaryToggles.find(t => t.id === selectedSecondary)?.label?.toLowerCase() || "format options");
+    
+    // Format the loading message based on active inputs
+    if (activeInputs.length > 0) {
+      loadingMessageText += " with ";
+      if (activeInputs.length === 1) {
+        loadingMessageText += activeInputs[0];
+      } else if (activeInputs.length === 2) {
+        loadingMessageText += `${activeInputs[0]} and ${activeInputs[1]}`;
+      } else {
+        const lastInput = activeInputs.pop();
+        loadingMessageText += `${activeInputs.join(', ')}, and ${lastInput}`;
       }
     }
     loadingMessageText += "...";
     
     setCurrentLoadingMessage(loadingMessageText);
+    console.log("Set loading message:", loadingMessageText);
     
     try {
-      // Include userId and promptId in the payload if available
+      // Prepare payload for analysis with all available inputs
       const payload: any = {
         promptText,
         primaryToggle: selectedPrimary,
-        secondaryToggle: selectedSecondary
+        secondaryToggle: selectedSecondary,
+        // Track which input types are available
+        inputTypes: {
+          hasText: promptText.trim().length > 0,
+          hasToggles: !!(selectedPrimary || selectedSecondary),
+          hasWebscan: !!(websiteData && websiteData.url),
+          hasImageScan: !!(images && images.length > 0)
+        }
       };
       
       // Add user and prompt ID if available
@@ -136,41 +153,42 @@ export const usePromptAnalysis = (
         payload.promptId = promptId;
       }
       
-      // Add website data if available - ensure it's properly formatted
+      // Add website data if available
       if (websiteData && websiteData.url) {
-        console.log("Including website data in analysis payload:", websiteData);
+        console.log("Including website data in analysis payload");
         payload.websiteData = {
           url: websiteData.url,
           instructions: websiteData.instructions || ""
         };
       }
       
-      // Add image data if available
+      // Add image data if available - now supports multiple images
       if (images && images.length > 0) {
+        payload.imageData = [];
+        
+        // Process each image (focusing on first image for now due to token limitations)
         const firstImage = images[0];
         try {
-          console.log("Converting image to base64 for analysis:", firstImage.file.name);
+          console.log(`Processing image: ${firstImage.file.name}`);
           const base64 = await imageToBase64(firstImage.file);
-          payload.imageData = { 
+          payload.imageData.push({ 
             base64,
             filename: firstImage.file.name,
             type: firstImage.file.type,
-            context: firstImage.context || "" // Add image context if available
-          };
-          console.log("Image successfully converted and added to payload with context:", !!firstImage.context);
+            context: firstImage.context || ""
+          });
+          console.log("Image successfully processed and added to payload");
         } catch (error) {
-          console.error("Error converting image to base64:", error);
+          console.error("Error processing image:", error);
         }
       }
       
-      console.log("Sending analysis request with toggles:", { 
-        primaryToggle: selectedPrimary, 
-        secondaryToggle: selectedSecondary,
-        hasImage: !!(images && images.length > 0),
-        hasWebsite: !!(websiteData && websiteData.url),
-        hasAdditionalContext,
-        websiteDataInPayload: !!payload.websiteData
-      });
+      console.log("Sending comprehensive analysis request with all available inputs");
+      console.log("Input combination:", Object.entries(payload.inputTypes)
+        .filter(([_, value]) => value)
+        .map(([key]) => key.replace('has', ''))
+        .join(' + ')
+      );
       
       const { data, error } = await supabase.functions.invoke('analyze-prompt', {
         body: payload
@@ -179,33 +197,53 @@ export const usePromptAnalysis = (
       if (error) throw error;
       
       if (data) {
-        console.log("AI analysis response:", data);
+        console.log("AI analysis response received");
         
-        // Check if there was an error in the edge function (which still returns 200)
+        // Check if there was an error in the edge function
         if (data.error) {
           console.warn("Edge function encountered an error:", data.error);
-          // We still continue processing the fallback data provided
+          // Continue processing the fallback data provided
         }
         
+        // Process questions with conditional prefilling based on input combination
         if (data.questions && data.questions.length > 0) {
-          const aiQuestions = data.questions.map((q: any, index: number) => ({
-            ...q,
-            id: q.id || `q${index + 1}`,
-            // Keep pre-filled answers if they exist and we have additional context
-            answer: data.hasAdditionalContext ? (q.answer || "") : "",
-            // Mark as relevant if it has an answer
-            isRelevant: q.answer && q.answer.trim() !== "" ? true : null
-          }));
+          console.log(`Processing ${data.questions.length} questions from analysis`);
           
+          const aiQuestions = data.questions.map((q: any, index: number) => {
+            // Determine if this question should be prefilled based on input types
+            const shouldPrefill = q.prefillSource ? 
+              // Only prefill if the source input is available
+              (q.prefillSource === 'webscan' && websiteData && websiteData.url) ||
+              (q.prefillSource === 'imagescan' && images && images.length > 0) ||
+              (q.prefillSource === 'toggle' && (selectedPrimary || selectedSecondary)) ||
+              // If source is combined or not specified, check if we have additional context
+              ((q.prefillSource === 'combined' || !q.prefillSource) && 
+               ((websiteData && websiteData.url) || (images && images.length > 0)))
+              : false;
+            
+            return {
+              ...q,
+              id: q.id || `q${index + 1}`,
+              // Only prefill answer if conditions are met
+              answer: shouldPrefill && q.answer ? q.answer : "",
+              // Mark as relevant if it has an answer and should be prefilled
+              isRelevant: shouldPrefill && q.answer && q.answer.trim() !== "" ? true : null
+            };
+          });
+          
+          console.log(`Processed questions: ${aiQuestions.length} total, ${aiQuestions.filter(q => q.answer).length} prefilled`);
           setQuestions(aiQuestions);
         } else {
           console.warn("No questions received from analysis, using fallbacks");
           setQuestions(mockQuestions);
         }
         
+        // Process variables with similar conditional prefilling logic
         if (data.variables && data.variables.length > 0) {
-          // Additional filtering to ensure no invalid variables get through
-          const validVariables = data.variables
+          console.log(`Processing ${data.variables.length} variables from analysis`);
+          
+          // Filter and process variables
+          const processedVariables = data.variables
             .filter((v: any) => 
               v.name && 
               isValidVariableName(v.name) && 
@@ -214,25 +252,43 @@ export const usePromptAnalysis = (
               v.name !== 'Conditions' && 
               v.name !== 'Instructions'
             )
-            .map((v: any, index: number) => ({
-              ...v,
-              id: v.id || `v${index + 1}`,
-              // Only keep pre-filled values if we have additional context
-              value: data.hasAdditionalContext ? (v.value || "") : "",
-              // Mark as relevant if it has a value
-              isRelevant: v.value && v.value.trim() !== "" ? true : null
-            }));
+            .map((v: any, index: number) => {
+              // Similar prefilling logic for variables
+              const shouldPrefill = v.prefillSource ? 
+                (v.prefillSource === 'webscan' && websiteData && websiteData.url) ||
+                (v.prefillSource === 'imagescan' && images && images.length > 0) ||
+                (v.prefillSource === 'toggle' && (selectedPrimary || selectedSecondary)) ||
+                ((v.prefillSource === 'combined' || !v.prefillSource) && 
+                 ((websiteData && websiteData.url) || (images && images.length > 0)))
+                : false;
+              
+              return {
+                ...v,
+                id: v.id || `v${index + 1}`,
+                // Only prefill value if conditions are met
+                value: shouldPrefill && v.value ? v.value : "",
+                // Mark as relevant if it has a value and should be prefilled
+                isRelevant: shouldPrefill && v.value && v.value.trim() !== "" ? true : null
+              };
+            });
             
+          console.log(`Processed variables: ${processedVariables.length} total, ${processedVariables.filter(v => v.value).length} prefilled`);
+          
           // If we have valid variables after filtering, use them
-          if (validVariables.length > 0) {
-            setVariables(validVariables);
+          if (processedVariables.length > 0) {
+            setVariables(processedVariables);
           } else {
             // Otherwise use default variables from constants
             const { defaultVariables } = await import("@/components/dashboard/constants");
             setVariables(defaultVariables);
           }
+        } else {
+          // Use default variables if none provided
+          const { defaultVariables } = await import("@/components/dashboard/constants");
+          setVariables(defaultVariables);
         }
         
+        // Set master command and enhanced prompt if available
         if (data.masterCommand) {
           setMasterCommand(data.masterCommand);
         }
@@ -241,12 +297,7 @@ export const usePromptAnalysis = (
           setFinalPrompt(data.enhancedPrompt);
         }
         
-        // If we received raw analysis, log it for debugging
-        if (data.rawAnalysis) {
-          console.log("Raw AI analysis:", data.rawAnalysis);
-        }
-        
-        // Log token usage if available
+        // Log usage statistics if available
         if (data.usage) {
           console.log("Token usage:", data.usage);
           console.log(`Prompt tokens: ${data.usage.prompt_tokens}, Completion tokens: ${data.usage.completion_tokens}`);
