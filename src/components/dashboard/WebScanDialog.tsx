@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Globe, Info, Youtube, Loader2 } from 'lucide-react';
+import { Globe, Info, Youtube, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface WebScanDialogProps {
@@ -30,11 +31,17 @@ export const WebScanDialog = ({
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [instructions, setInstructions] = useState(savedInstructions);
   const [isLoading, setIsLoading] = useState(false);
+  const [processingResult, setProcessingResult] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
   const { toast } = useToast();
   
   // Update state when props change
   useEffect(() => {
     if (open) {
+      // Reset processing result when dialog opens
+      setProcessingResult(null);
       setUrl(savedUrl);
       setInstructions(savedInstructions);
       // Check if savedUrl is a YouTube URL and switch to the YouTube tab
@@ -49,6 +56,9 @@ export const WebScanDialog = ({
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Reset the processing result
+    setProcessingResult(null);
     
     // Determine the URL to use based on active tab
     const selectedUrl = activeTab === 'website' ? url : youtubeUrl;
@@ -107,18 +117,31 @@ export const WebScanDialog = ({
           // Use the transcript as the context (the onWebsiteScan function will handle this)
           console.log("Successfully fetched YouTube data with targeted extraction");
           
-          // Success toast to inform the user
-          toast({
-            title: "YouTube data extracted",
-            description: `Successfully extracted information from "${data.title}" using your specific instructions.`,
+          // Set success result
+          setProcessingResult({
+            success: true,
+            message: `Successfully extracted information from "${data.title}".`
           });
         } catch (error) {
           console.error("YouTube transcript fetch error:", error);
-          toast({
-            title: "Failed to fetch YouTube data",
-            description: error instanceof Error ? error.message : "An unexpected error occurred",
-            variant: "destructive"
+          
+          // Set error result
+          setProcessingResult({
+            success: false,
+            message: error instanceof Error && error.message.includes("captions") 
+              ? "This video doesn't have captions available."
+              : "Failed to extract information from the video."
           });
+          
+          // Still show toast for non-caption errors
+          if (!(error instanceof Error && error.message.includes("captions"))) {
+            toast({
+              title: "Failed to fetch YouTube data",
+              description: error instanceof Error ? error.message : "An unexpected error occurred",
+              variant: "destructive"
+            });
+          }
+          
           setIsLoading(false);
           return;
         }
@@ -126,9 +149,19 @@ export const WebScanDialog = ({
       
       // Process the data and close the dialog
       onWebsiteScan(selectedUrl.trim(), instructions.trim());
-      onOpenChange(false);
+      
+      // Only close the dialog automatically for website scans or successful YouTube scans
+      if (activeTab === 'website' || (activeTab === 'youtube' && processingResult?.success)) {
+        setTimeout(() => {
+          onOpenChange(false);
+        }, 1000); // Add a small delay to show the success message
+      }
     } catch (error) {
       console.error("Error in handleSubmit:", error);
+      setProcessingResult({
+        success: false,
+        message: "An unexpected error occurred while processing your request."
+      });
     } finally {
       setIsLoading(false);
     }
@@ -267,6 +300,20 @@ export const WebScanDialog = ({
               </p>
             </div>
           </div>
+          
+          {/* Processing result message */}
+          {processingResult && (
+            <div className={`mb-4 p-3 rounded-md flex items-start gap-2 ${
+              processingResult.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+            }`}>
+              {processingResult.success ? (
+                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+              )}
+              <p className="text-sm">{processingResult.message}</p>
+            </div>
+          )}
           
           <div className="flex justify-end mt-4">            
             <div className="flex ml-auto">

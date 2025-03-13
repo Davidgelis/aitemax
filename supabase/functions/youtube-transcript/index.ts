@@ -54,6 +54,11 @@ serve(async (req) => {
       captionsInfo = await captionsInfoResponse.json();
     }
     
+    // If no captions available and we need them, throw a specific error
+    if ((!captionsInfo.items || captionsInfo.items.length === 0) && userInstructions.includes('caption')) {
+      throw new Error('This video does not have captions available');
+    }
+    
     // Get more detailed information from the video description
     let relevantInfo = "";
     if (userInstructions) {
