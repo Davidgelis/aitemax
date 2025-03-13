@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -306,6 +305,7 @@ serve(async (req) => {
       promptId, 
       websiteData, 
       imageData,
+      smartContextData,
       inputTypes = {} // New field that tracks which input sources are available
     } = await req.json();
     
@@ -319,7 +319,8 @@ serve(async (req) => {
       hasText: inputTypes.hasText === false ? false : true, // Default to true for backwards compatibility
       hasToggles: inputTypes.hasToggles === true || !!(primaryToggle || secondaryToggle),
       hasWebscan: inputTypes.hasWebscan === true || !!(websiteData && websiteData.url),
-      hasImageScan: inputTypes.hasImageScan === true || !!(imageData && imageData.length > 0)
+      hasImageScan: inputTypes.hasImageScan === true || !!(imageData && imageData.length > 0),
+      hasSmartContext: inputTypes.hasSmartContext === true || !!(smartContextData && smartContextData.context)
     });
     
     // Improved logging for debugging context data
@@ -342,12 +343,18 @@ serve(async (req) => {
       }
     }
     
+    if (smartContextData) {
+      console.log("Smart context provided:", smartContextData.context ? "Yes" : "No");
+      console.log("Smart context length:", smartContextData.context ? smartContextData.context.length : 0);
+      console.log("Smart context usage instructions provided:", smartContextData.usageInstructions ? "Yes" : "No");
+    }
+    
     // Add website content to context if provided
     let contextualData = "";
     let websiteKeywords = [];
     let hasAdditionalContext = false;
     
-    // Process website data if available - this corresponds to Scenario 3 & 4
+    // Process website data if available
     if (websiteData && websiteData.url) {
       hasAdditionalContext = true;
       console.log(`Processing website context from: ${websiteData.url}`);
@@ -377,7 +384,29 @@ YOUR TASK FOR WEBSITE ANALYSIS:
 8. MARK all questions and variables that are filled from website data with "prefillSource": "webscan"`;
     }
     
-    // Process image context if provided - this corresponds to Scenario 4
+    // Process smart context if provided (adding new section)
+    if (smartContextData && smartContextData.context) {
+      hasAdditionalContext = true;
+      console.log("Processing smart context data");
+      
+      contextualData += `\n\nSMART CONTEXT DATA:
+User Provided Context:
+${smartContextData.context}
+
+Usage Instructions: ${smartContextData.usageInstructions || "No specific usage instructions provided"}
+
+YOUR TASK FOR SMART CONTEXT ANALYSIS:
+1. The user's primary task is defined by their prompt: "${promptText}"
+2. The user has provided the above additional context to enhance the prompt
+3. Focus on extracting and utilizing the information according to: "${smartContextData.usageInstructions || "the user's needs"}"
+4. For question answers, extract RELEVANT, DETAILED information from the smart context
+5. Include SPECIFIC TERMINOLOGY, CONCEPTS, or EXAMPLES from the provided context when relevant
+6. Respect any tone, style, or audience preferences mentioned in the context
+7. Only use information EXPLICITLY present in the context - do not generalize or make assumptions
+8. MARK all questions and variables that are filled from smart context data with "prefillSource": "smartcontext"`;
+    }
+    
+    // Process image context if provided
     let imageContext = "";
     if (imageData) {
       hasAdditionalContext = true;
@@ -406,7 +435,7 @@ IMPORTANT INSTRUCTIONS FOR IMAGE ANALYSIS:
       });
     }
     
-    // Process toggle information - this corresponds to Scenario 2
+    // Process toggle information
     let toggleContext = "";
     if (primaryToggle || secondaryToggle) {
       console.log("Processing toggle context");
@@ -437,18 +466,19 @@ You're analyzing a prompt with the following input types:
 - Toggles: ${inputTypes.hasToggles || (primaryToggle || secondaryToggle) ? "Selected" : "NOT selected"}
 - Website Scan: ${inputTypes.hasWebscan || (websiteData && websiteData.url) ? "Active" : "NOT active"}
 - Image Scan: ${inputTypes.hasImageScan || (imageData && (Array.isArray(imageData) ? imageData.length > 0 : imageData.base64)) ? "Active" : "NOT active"}
+- Smart Context: ${inputTypes.hasSmartContext || (smartContextData && smartContextData.context) ? "Active" : "NOT active"}
 
 Based on this combination, follow these guidelines:
 1. Create a comprehensive set of questions that address ALL missing context from the prompt
 2. Generate variables that can be used to customize the final output
 3. For each question and variable, determine the appropriate value based on ALL available inputs
-4. Use "prefillSource" to indicate where the pre-filled value came from (webscan, imagescan, toggle, combined)
+4. Use "prefillSource" to indicate where the pre-filled value came from (webscan, imagescan, smartcontext, toggle, combined)
 5. Only pre-fill values when you have high confidence based on the available inputs
 6. Mark all items that combine information from multiple sources with "prefillSource": "combined"`;
 
     console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);
     if (!hasAdditionalContext) {
-      contextualData += "\n\nIMPORTANT: No additional context (website/image) has been provided. DO NOT pre-fill any answers or values - leave them ALL as empty strings.";
+      contextualData += "\n\nIMPORTANT: No additional context (website/image/smart) has been provided. DO NOT pre-fill any answers or values - leave them ALL as empty strings.";
     }
     
     // Create a system message with better context about our purpose
@@ -498,6 +528,7 @@ Based on this combination, follow these guidelines:
       const prefillSources = {
         webscan: questions.filter(q => q.prefillSource === 'webscan').length,
         imagescan: questions.filter(q => q.prefillSource === 'imagescan').length,
+        smartcontext: questions.filter(q => q.prefillSource === 'smartcontext').length,
         toggle: questions.filter(q => q.prefillSource === 'toggle').length,
         combined: questions.filter(q => q.prefillSource === 'combined').length,
         unspecified: questions.filter(q => !q.prefillSource).length

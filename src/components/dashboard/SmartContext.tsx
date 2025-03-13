@@ -27,6 +27,9 @@ export const SmartContext = ({
     
     // Call the parent handler
     console.log("SmartContext: Sending context data to parent");
+    console.log("Context:", context.substring(0, 100) + (context.length > 100 ? "..." : ""));
+    console.log("Usage Instructions:", usageInstructions.substring(0, 100) + (usageInstructions.length > 100 ? "..." : ""));
+    
     onSmartContext(context, usageInstructions);
   };
 

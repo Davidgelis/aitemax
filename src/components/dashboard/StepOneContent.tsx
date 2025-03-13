@@ -25,7 +25,7 @@ interface StepOneContentProps {
   handleCognitiveToggle: (id: string) => void;
   onImagesChange?: (images: UploadedImage[]) => void;
   onWebsiteScan?: (url: string, instructions: string) => void;
-  onSmartContext?: (context: string) => void;
+  onSmartContext?: (context: string, usageInstructions: string) => void;
 }
 
 export const StepOneContent = ({
@@ -47,7 +47,7 @@ export const StepOneContent = ({
 }: StepOneContentProps) => {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
-  const [smartContext, setSmartContext] = useState<string>('');
+  const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Ensure images are passed to parent component
@@ -71,20 +71,24 @@ export const StepOneContent = ({
     onWebsiteScan(url, instructions);
   };
 
-  const handleSmartContext = (context: string) => {
-    setSmartContext(context);
-    console.log("StepOneContent: Smart context set:", context);
+  const handleSmartContext = (context: string, usageInstructions: string = "") => {
+    const contextData = { context, usageInstructions };
+    setSmartContext(contextData);
+    console.log("StepOneContent: Smart context set:", {
+      context: context.substring(0, 100) + (context.length > 100 ? "..." : ""),
+      usageInstructions: usageInstructions.substring(0, 100) + (usageInstructions.length > 100 ? "..." : "")
+    });
     
-    // Important: Forward to parent component
-    onSmartContext(context);
+    // Important: Forward to parent component with both parameters
+    onSmartContext(context, usageInstructions);
   };
 
   const handleAnalyzeWithContext = () => {
     console.log("StepOneContent: Analyzing with context:", {
       promptText,
-      uploadedImages,
+      uploadedImages: uploadedImages.length,
       websiteContext,
-      smartContext,
+      smartContext: smartContext ? "Provided" : "None",
       selectedPrimary,
       selectedSecondary
     });
@@ -147,6 +151,17 @@ export const StepOneContent = ({
             open={dialogOpen}
             onOpenChange={setDialogOpen}
           />
+        </div>
+      )}
+
+      {/* Display smart context if provided */}
+      {smartContext && smartContext.context && (
+        <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
+          <h3 className="text-sm font-medium text-[#545454] mb-2">Smart Context Added</h3>
+          <p className="text-xs text-[#545454] italic truncate">
+            {smartContext.context.substring(0, 100)}
+            {smartContext.context.length > 100 ? "..." : ""}
+          </p>
         </div>
       )}
 
