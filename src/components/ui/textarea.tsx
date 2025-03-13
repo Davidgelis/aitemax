@@ -19,16 +19,45 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       typeof value === 'string' ? value.length : 0
     );
     
+    // Intent detection patterns to look for in text
+    const contentPatterns = [/write/i, /create/i, /draft/i, /article/i, /blog/i, /post/i, /copy/i, /text/i];
+    const imagePatterns = [/image/i, /picture/i, /photo/i, /design/i, /draw/i, /graphic/i, /visual/i, /illustration/i];
+    const marketingPatterns = [/marketing/i, /campaign/i, /ad/i, /audience/i, /conversion/i, /brand/i, /sell/i, /promote/i];
+    const researchPatterns = [/research/i, /analyze/i, /study/i, /investigate/i, /explore/i, /data/i, /findings/i, /report/i];
+    
+    // Simple intent detection helper
+    const detectIntent = (text: string) => {
+      // Count pattern matches for each category
+      const contentMatches = contentPatterns.filter(pattern => pattern.test(text)).length;
+      const imageMatches = imagePatterns.filter(pattern => pattern.test(text)).length;
+      const marketingMatches = marketingPatterns.filter(pattern => pattern.test(text)).length;
+      const researchMatches = researchPatterns.filter(pattern => pattern.test(text)).length;
+      
+      // Find the category with the most matches
+      const matches = [
+        { type: 'content', count: contentMatches },
+        { type: 'image', count: imageMatches },
+        { type: 'marketing', count: marketingMatches },
+        { type: 'research', count: researchMatches }
+      ];
+      
+      const highestMatch = matches.reduce((prev, current) => 
+        (current.count > prev.count) ? current : prev
+      );
+      
+      // Only return an intent if we have at least one match
+      return highestMatch.count > 0 ? highestMatch.type : null;
+    };
+    
     // Handle changes for character count and intent detection
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const newValue = e.target.value;
       setCurrentCount(newValue.length);
       
-      // If intent detection is enabled, we can add additional logic here
-      // to detect patterns that suggest certain types of content needs
+      // If intent detection is enabled, analyze the input
       if (intentDetection) {
-        // This is a placeholder for future intent detection enhancements
-        console.log("Intent detection active, analyzing input...");
+        const detectedIntent = detectIntent(newValue);
+        console.log("Intent detection active, analyzing input...", detectedIntent);
       }
       
       if (onChange) {

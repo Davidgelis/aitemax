@@ -24,14 +24,15 @@ INTENT-BASED QUESTION GENERATION:
 - For coding intents: include questions about language, framework, functionality, edge cases, error handling
 
 DYNAMIC INPUT PROCESSING GUIDELINES:
-1. Adapt your analysis based on WHICH combination of inputs is provided (text, toggles, website data, image data)
+1. Adapt your analysis based on WHICH combination of inputs is provided (text, toggles, website data, image data, smart context)
 2. For each question and variable you generate, include a "prefillSource" field that indicates where the answer/value came from:
    - "webscan" for data extracted from website content
    - "imagescan" for data derived from image analysis
    - "toggle" for information inferred from toggle selections
+   - "smartcontext" for information provided via smart context
    - "combined" for data derived from multiple sources
 3. Only pre-fill answers and values when you have high confidence based on the available inputs
-4. If no additional context (website/image) is provided, leave ALL answers and values as empty strings
+4. If no additional context (website/image/smart context) is provided, leave ALL answers and values as empty strings
 
 CONTEXT QUESTIONS FORMAT:
 - Provide 8-12 focused questions, covering all aspects needed for a complete prompt
@@ -43,7 +44,7 @@ CONTEXT QUESTIONS FORMAT:
     "text": "Question text?",
     "answer": "Pre-filled answer if available, otherwise empty string",
     "category": "Category name",
-    "prefillSource": "webscan|imagescan|toggle|combined" (only include if pre-filled)
+    "prefillSource": "webscan|imagescan|toggle|smartcontext|combined" (only include if pre-filled)
   }
 ]
 
@@ -57,7 +58,7 @@ VARIABLES FORMAT:
     "name": "VariableName",
     "value": "Default value if available, otherwise empty string", 
     "category": "Category name",
-    "prefillSource": "webscan|imagescan|toggle|combined" (only include if pre-filled)
+    "prefillSource": "webscan|imagescan|toggle|smartcontext|combined" (only include if pre-filled)
   }
 ]
 
@@ -157,6 +158,9 @@ CREATIVE OUTPUT STYLE:
   // Return the combined system prompt
   return `${basePrompt}
 ${toggleSpecificInstructions}
+
+SMART CONTEXT PROCESSING:
+When provided with explicit Smart Context, give it high priority when generating context questions and variable values. Smart Context represents the user's explicit guidance about their intent or requirements and should be treated as highly reliable information for prefilling answers and values.
 
 RESPONSE FORMAT:
 Respond with a valid JSON output containing all required sections:

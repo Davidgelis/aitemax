@@ -1,6 +1,8 @@
+
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
+import { SmartContext } from "@/components/dashboard/SmartContext";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { AIModel, UploadedImage } from "./types";
 import { Switch } from "@/components/ui/switch";
@@ -23,6 +25,7 @@ interface StepOneContentProps {
   handleCognitiveToggle: (id: string) => void;
   onImagesChange?: (images: UploadedImage[]) => void;
   onWebsiteScan?: (url: string, instructions: string) => void;
+  onSmartContext?: (context: string) => void;
 }
 
 export const StepOneContent = ({
@@ -39,10 +42,12 @@ export const StepOneContent = ({
   selectedCognitive,
   handleCognitiveToggle,
   onImagesChange = () => {},
-  onWebsiteScan = () => {}
+  onWebsiteScan = () => {},
+  onSmartContext = () => {}
 }: StepOneContentProps) => {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
+  const [smartContext, setSmartContext] = useState<string>('');
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Ensure images are passed to parent component
@@ -66,11 +71,20 @@ export const StepOneContent = ({
     onWebsiteScan(url, instructions);
   };
 
+  const handleSmartContext = (context: string) => {
+    setSmartContext(context);
+    console.log("StepOneContent: Smart context set:", context);
+    
+    // Important: Forward to parent component
+    onSmartContext(context);
+  };
+
   const handleAnalyzeWithContext = () => {
     console.log("StepOneContent: Analyzing with context:", {
       promptText,
       uploadedImages,
       websiteContext,
+      smartContext,
       selectedPrimary,
       selectedSecondary
     });
@@ -84,11 +98,17 @@ export const StepOneContent = ({
 
   return (
     <div className="border rounded-xl p-6 bg-card">
-      {/* Web Smart Scan and Image Upload buttons */}
+      {/* Web Smart Scan, Smart Context, and Image Upload buttons */}
       <div className="mb-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
           <WebScanner 
             onWebsiteScan={handleWebsiteScan}
+            variant="modelReplacement"
+          />
+          
+          {/* Smart Context button */}
+          <SmartContext
+            onSmartContext={handleSmartContext}
             variant="modelReplacement"
           />
           
