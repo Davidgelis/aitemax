@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Info, Trash2 } from 'lucide-react';
+import { Globe, Info, Youtube } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface WebScanDialogProps {
@@ -26,7 +26,9 @@ export const WebScanDialog = ({
   savedInstructions = '',
   hasContext = false
 }: WebScanDialogProps) => {
+  const [activeTab, setActiveTab] = useState<'website' | 'youtube'>('website');
   const [url, setUrl] = useState(savedUrl);
+  const [youtubeUrl, setYoutubeUrl] = useState('');
   const [instructions, setInstructions] = useState(savedInstructions);
   const { toast } = useToast();
   
@@ -35,17 +37,27 @@ export const WebScanDialog = ({
     if (open) {
       setUrl(savedUrl);
       setInstructions(savedInstructions);
+      // Check if savedUrl is a YouTube URL and switch to the YouTube tab
+      if (savedUrl.includes('youtube.com') || savedUrl.includes('youtu.be')) {
+        setYoutubeUrl(savedUrl);
+        setActiveTab('youtube');
+      } else {
+        setActiveTab('website');
+      }
     }
   }, [open, savedUrl, savedInstructions]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Determine the URL to use based on active tab
+    const selectedUrl = activeTab === 'website' ? url : youtubeUrl;
+    
     // Validate inputs
-    if (!url.trim()) {
+    if (!selectedUrl.trim()) {
       toast({
-        title: "URL required",
-        description: "Please provide a website URL.",
+        title: activeTab === 'website' ? "Website URL required" : "YouTube URL required",
+        description: `Please provide a ${activeTab === 'website' ? 'website' : 'YouTube'} URL.`,
         variant: "destructive"
       });
       return;
@@ -54,20 +66,20 @@ export const WebScanDialog = ({
     if (!instructions.trim()) {
       toast({
         title: "Context required",
-        description: "Please provide specific instructions for what information to extract from this website.",
+        description: `Please provide specific instructions for what information to extract from this ${activeTab === 'website' ? 'website' : 'YouTube video'}.`,
         variant: "destructive"
       });
       return;
     }
     
     // Process the data and close the dialog
-    onWebsiteScan(url.trim(), instructions.trim());
+    onWebsiteScan(selectedUrl.trim(), instructions.trim());
     onOpenChange(false);
   };
   
   const handleDialogClose = (open: boolean) => {
     // If closing and fields are filled, prompt user
-    if (!open && (url.trim() || instructions.trim())) {
+    if (!open && ((activeTab === 'website' ? url.trim() : youtubeUrl.trim()) || instructions.trim())) {
       if (!savedUrl && !savedInstructions) {
         toast({
           title: "Discard changes?",
@@ -78,73 +90,122 @@ export const WebScanDialog = ({
     onOpenChange(open);
   };
   
-  const handleDelete = () => {
-    if (onDeleteScan) {
-      onDeleteScan();
-      onOpenChange(false);
-    }
-  };
+  const currentUrlIsYoutube = savedUrl && (savedUrl.includes('youtube.com') || savedUrl.includes('youtu.be'));
   
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-md bg-white border border-[#084b49]/30 p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="text-xl font-medium text-[#545454]">Web Smart Scan</DialogTitle>
-          <p className="text-sm text-[#545454] font-normal mt-1">Use website content to enhance your original prompt</p>
+          <p className="text-sm text-[#545454] font-normal mt-1">
+            Use website content to enhance your original prompt
+          </p>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="p-6 pt-2">
-          <div className="mb-4">
-            <label htmlFor="website-url" className="block text-sm font-medium text-[#545454] mb-2">
-              Website URL <span className="text-red-500">*</span>
-            </label>
-            <Input 
-              id="website-url"
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://example.com"
-              className={`w-full ${!url.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
-              required
-            />
+          {/* Tab Selection */}
+          <div className="flex mb-4 border-b">
+            <button
+              type="button"
+              className={`py-2 px-4 font-medium text-sm ${activeTab === 'website' 
+                ? 'text-[#084b49] border-b-2 border-[#084b49]' 
+                : 'text-[#545454]'}`}
+              onClick={() => setActiveTab('website')}
+            >
+              <Globe className="w-4 h-4 inline mr-1" />
+              Website
+            </button>
+            <button
+              type="button"
+              className={`py-2 px-4 font-medium text-sm ${activeTab === 'youtube' 
+                ? 'text-[#084b49] border-b-2 border-[#084b49]' 
+                : 'text-[#545454]'}`}
+              onClick={() => setActiveTab('youtube')}
+            >
+              <Youtube className="w-4 h-4 inline mr-1" />
+              YouTube
+            </button>
           </div>
+          
+          {/* Website URL Input */}
+          {activeTab === 'website' && (
+            <div className="mb-4">
+              <label htmlFor="website-url" className="block text-sm font-medium text-[#545454] mb-2">
+                Website URL <span className="text-red-500">*</span>
+              </label>
+              <Input 
+                id="website-url"
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://example.com"
+                className={`w-full ${!url.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
+                required
+              />
+            </div>
+          )}
+          
+          {/* YouTube URL Input */}
+          {activeTab === 'youtube' && (
+            <div className="mb-4">
+              <label htmlFor="youtube-url" className="block text-sm font-medium text-[#545454] mb-2">
+                YouTube URL <span className="text-red-500">*</span>
+              </label>
+              <Input 
+                id="youtube-url"
+                type="url"
+                value={youtubeUrl}
+                onChange={(e) => setYoutubeUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
+                className={`w-full ${!youtubeUrl.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
+                required
+              />
+              <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">
+                <Info size={14} className="flex-shrink-0" />
+                <p>
+                  Provide a YouTube video URL to extract and analyze captions/subtitles from the video.
+                </p>
+              </div>
+            </div>
+          )}
           
           <div className="mb-4">
             <label htmlFor="instructions" className="block text-sm font-medium text-[#545454] mb-2">
-              What specific information do you want from this website? <span className="text-red-500">*</span>
+              What specific information do you want from this {activeTab === 'website' ? 'website' : 'YouTube video'}? <span className="text-red-500">*</span>
             </label>
             <Textarea 
               id="instructions"
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
-              placeholder="E.g., 'Extract best practices for landing pages' or 'Find information about pricing models'"
+              placeholder={activeTab === 'website' 
+                ? "E.g., 'Extract best practices for landing pages' or 'Find information about pricing models'" 
+                : "E.g., 'Summarize the main points' or 'Extract technical details mentioned in the video'"
+              }
               className={`w-full min-h-[120px] resize-none ${!instructions.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
               required
             />
             <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">
               <Info size={14} className="flex-shrink-0" />
               <p>
-                Be specific about what information you want extracted to enhance your prompt. For example:
-                "Find all best practices for landing page design", "Extract key features of successful SaaS websites", 
-                or "Identify pricing structure patterns used by competitors".
+                {activeTab === 'website' ? (
+                  <>
+                    Be specific about what information you want extracted to enhance your prompt. For example:
+                    "Find all best practices for landing page design", "Extract key features of successful SaaS websites", 
+                    or "Identify pricing structure patterns used by competitors".
+                  </>
+                ) : (
+                  <>
+                    Be specific about what information you want extracted from the video captions. For example:
+                    "Extract key points about machine learning", "Find all technical terms mentioned", 
+                    or "Summarize the presenter's main arguments".
+                  </>
+                )}
               </p>
             </div>
           </div>
           
-          <div className="flex justify-between mt-4">
-            {hasContext && (
-              <Button
-                type="button"
-                onClick={handleDelete}
-                className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/50 text-red-600"
-                size="sm"
-              >
-                <Trash2 className="w-4 h-4 mr-1" />
-                Delete
-              </Button>
-            )}
-            
-            <div className={`flex ml-auto ${hasContext ? 'gap-2' : ''}`}>
+          <div className="flex justify-end mt-4">            
+            <div className="flex ml-auto">
               <Button
                 type="submit"
                 className="bg-[#084b49] hover:bg-[#084b49]/90 text-white px-4 py-2 shadow-[0_0_0_0_#33fea6] transition-all duration-300 hover:shadow-[0_0_10px_0_#33fea6]"

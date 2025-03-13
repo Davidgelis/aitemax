@@ -267,6 +267,130 @@ async function fetchWebsiteContent(url: string, userInstructions: string = "") {
   }
 }
 
+// Extract YouTube video ID from various YouTube URL formats
+function extractYouTubeVideoId(url: string): string | null {
+  console.log(`Extracting video ID from YouTube URL: ${url}`);
+  
+  // Handle youtu.be format
+  if (url.includes('youtu.be')) {
+    const match = url.match(/youtu\.be\/([^?&]+)/);
+    if (match && match[1]) {
+      console.log(`Extracted YouTube video ID: ${match[1]} (youtu.be format)`);
+      return match[1];
+    }
+  }
+  
+  // Handle youtube.com format
+  const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+  if (match && match[1]) {
+    console.log(`Extracted YouTube video ID: ${match[1]} (youtube.com format)`);
+    return match[1];
+  }
+  
+  console.log('Could not extract video ID from URL');
+  return null;
+}
+
+// New function to fetch YouTube video captions
+async function fetchYouTubeVideoInfo(url: string, userInstructions: string = "") {
+  console.log(`Fetching captions from YouTube video: ${url}`);
+  console.log(`User instructions for extraction: ${userInstructions || "None provided"}`);
+  
+  try {
+    // Extract video ID from URL
+    const videoId = extractYouTubeVideoId(url);
+    if (!videoId) {
+      throw new Error("Invalid YouTube URL or could not extract video ID");
+    }
+    
+    console.log(`Attempting to fetch video information for video ID: ${videoId}`);
+    
+    // Fetch video info (title, description)
+    const infoResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
+    if (!infoResponse.ok) {
+      throw new Error(`Failed to fetch video info, status: ${infoResponse.status}`);
+    }
+    
+    const html = await infoResponse.text();
+    
+    // Extract title
+    const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+    let title = titleMatch ? titleMatch[1].replace(' - YouTube', '') : "Unknown YouTube Video";
+    
+    // Extract description (simplified approach)
+    const descriptionMatch = html.match(/"description":{"simpleText":"(.*?)"},"lengthSeconds"/);
+    let description = descriptionMatch ? descriptionMatch[1] : "No description available";
+    
+    console.log(`Successfully extracted video title: "${title}"`);
+    
+    // Fetch transcript/captions using a third-party service or API
+    // For demonstration purposes, we'll attempt to get captions from the HTML
+    console.log(`Attempting to extract captions from video HTML`);
+    
+    // Note: YouTube doesn't provide captions directly in the HTML, this is a simplified approach
+    // In a production environment, you would use YouTube Data API or a specialized library
+    
+    // Look for caption tracks in the HTML
+    const captionTracksMatch = html.match(/"captionTracks":\[(.*?)\]/);
+    let captions = "Captions could not be extracted automatically. Please try a different video or provide specific instructions.";
+    
+    if (captionTracksMatch) {
+      // Extract the first English caption track URL if available
+      const captionData = captionTracksMatch[1];
+      const baseUrlMatch = captionData.match(/"baseUrl":"(.*?)"/);
+      
+      if (baseUrlMatch && baseUrlMatch[1]) {
+        const captionUrl = baseUrlMatch[1].replace(/\\u0026/g, '&');
+        console.log(`Found caption URL: ${captionUrl}`);
+        
+        // Fetch the captions
+        try {
+          const captionResponse = await fetch(captionUrl);
+          if (captionResponse.ok) {
+            const captionText = await captionResponse.text();
+            
+            // Simple XML parsing
+            const captionLines = captionText.match(/<text.*?>(.*?)<\/text>/g) || [];
+            const extractedText = captionLines
+              .map(line => {
+                const textMatch = line.match(/<text.*?>(.*?)<\/text>/);
+                return textMatch ? textMatch[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>') : '';
+              })
+              .join(' ');
+            
+            captions = extractedText || "No captions found in this video.";
+            console.log(`Successfully extracted ${captionLines.length} caption lines`);
+          }
+        } catch (captionError) {
+          console.error(`Error fetching captions: ${captionError.message}`);
+        }
+      }
+    }
+    
+    // If we couldn't extract captions from the HTML
+    if (captions.includes("could not be extracted")) {
+      captions += "\n\nHowever, based on the video title and description, here's what we know:\n" +
+                  `Title: ${title}\n` +
+                  `Description: ${description}`;
+    }
+    
+    return { 
+      title, 
+      text: captions.substring(0, 20000), // Limit to 20,000 chars
+      metaDescription: description,
+      isYouTubeVideo: true
+    };
+  } catch (error) {
+    console.error(`Error fetching YouTube video: ${error.message}`);
+    return { 
+      title: "Error", 
+      text: `Failed to fetch YouTube video information: ${error.message}`, 
+      metaDescription: "",
+      isYouTubeVideo: true
+    };
+  }
+}
+
 // Helper function to extract relevant keywords and terms from text or image analysis
 function extractKeyTerms(text: string): string[] {
   // Extract potential keywords (nouns, technical terms, etc.)
@@ -329,30 +453,57 @@ serve(async (req) => {
       }
     }
     
-    // Add website content to context if provided
+    // Add website or YouTube content to context if provided
     let contextualData = "";
     let websiteKeywords = [];
     let hasAdditionalContext = false;
     
     if (websiteData && websiteData.url) {
       hasAdditionalContext = true;
-      console.log(`Website provided for context: ${websiteData.url}`);
-      console.log(`User instructions for website analysis: ${websiteData.instructions || "No specific instructions"}`);
+      console.log(`URL provided for context: ${websiteData.url}`);
+      console.log(`User instructions for analysis: ${websiteData.instructions || "No specific instructions"}`);
       
-      const websiteContent = await fetchWebsiteContent(websiteData.url, websiteData.instructions);
-      websiteKeywords = extractKeyTerms(websiteContent.text);
+      // Check if it's a YouTube URL
+      const isYouTubeUrl = websiteData.url.includes('youtube.com') || websiteData.url.includes('youtu.be');
       
-      contextualData += `\n\nWEBSITE CONTEXT:
+      let contentData;
+      if (isYouTubeUrl) {
+        console.log("Detected YouTube URL, fetching video captions");
+        contentData = await fetchYouTubeVideoInfo(websiteData.url, websiteData.instructions);
+        
+        contextualData += `\n\nYOUTUBE VIDEO CONTEXT:
 URL: ${websiteData.url}
-Title: ${websiteContent.title}
-Meta Description: ${websiteContent.metaDescription || "None"}
+Title: ${contentData.title}
+User Instructions: ${websiteData.instructions || "No specific instructions provided"}
+
+Video Caption Content:
+${contentData.text}
+
+YOUR TASK FOR YOUTUBE VIDEO ANALYSIS:
+1. The user's primary task is defined by their prompt: "${promptText}"
+2. The YouTube video content is a SUPPLEMENTARY source of information to enhance the prompt
+3. Focus SPECIFICALLY on finding information in the captions related to: "${websiteData.instructions || "the main topic"}"
+4. Extract concrete, detailed information from the video captions that directly supports the primary prompt
+5. For question answers, provide 1-2 FULL SENTENCES of DETAILED information from the video content
+6. Include SPECIFIC FACTS, QUOTES or EXAMPLES directly from the video captions when available
+7. Only use information EXPLICITLY present in the captions - do not generalize or make assumptions`;
+      } else {
+        console.log("Standard website URL detected, fetching website content");
+        contentData = await fetchWebsiteContent(websiteData.url, websiteData.instructions);
+        
+        websiteKeywords = extractKeyTerms(contentData.text);
+        
+        contextualData += `\n\nWEBSITE CONTEXT:
+URL: ${websiteData.url}
+Title: ${contentData.title}
+Meta Description: ${contentData.metaDescription || "None"}
 User Instructions: ${websiteData.instructions || "No specific instructions provided"}
 
 Content Excerpt:
-${websiteContent.text}
+${contentData.text}
 
 Key Terms: ${websiteKeywords.join(', ')}
-      
+        
 YOUR TASK FOR WEBSITE ANALYSIS:
 1. The user's primary task is defined by their prompt: "${promptText}"
 2. The website is a SUPPLEMENTARY source of information to enhance the prompt
@@ -361,6 +512,7 @@ YOUR TASK FOR WEBSITE ANALYSIS:
 5. For question answers, provide 1-2 FULL SENTENCES of DETAILED information from the website
 6. Include SPECIFIC FACTS, NUMBERS, QUOTES or EXAMPLES directly from the website when available
 7. Only use information EXPLICITLY present in the content - do not generalize or make assumptions`;
+      }
     }
     
     // Add image context if provided
@@ -388,7 +540,6 @@ IMPORTANT INSTRUCTIONS:
     
     console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);
     if (!hasAdditionalContext) {
-      console.log("No additional context provided - ensuring answers and values remain empty");
       contextualData += "\n\nIMPORTANT: No additional context (website/image) has been provided. DO NOT pre-fill any answers or values - leave them ALL as empty strings.";
     }
     
