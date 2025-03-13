@@ -87,7 +87,7 @@ export const usePromptAnalysis = (
     console.log("Analysis initiated with the following inputs:");
     console.log(`- Text input: ${promptText.length > 0 ? "Available" : "Not available"}`);
     console.log(`- Primary toggle: ${selectedPrimary || "None selected"}`);
-    console.log(`- Secondary toggle: ${secondaryToggle || "None selected"}`);
+    console.log(`- Secondary toggle: ${selectedSecondary || "None selected"}`);
     console.log(`- WebSmart scan: ${websiteData && websiteData.url ? "Active" : "Not active"}`);
     console.log(`- Image Smart scan: ${images && images.length > 0 ? "Active" : "Not active"}`);
     console.log(`- Smart Context: ${smartContextData && smartContextData.context ? "Active" : "Not active"}`);
