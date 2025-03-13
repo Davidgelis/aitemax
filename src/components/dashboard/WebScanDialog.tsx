@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Globe, Info, Youtube, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Globe, Info, Youtube, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface WebScanDialogProps {
@@ -27,7 +28,9 @@ export const WebScanDialog = ({
 }: WebScanDialogProps) => {
   const [activeTab, setActiveTab] = useState<'website' | 'youtube'>('website');
   const [url, setUrl] = useState(savedUrl);
-  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [youtubeCaption, setYoutubeCaption] = useState('');
+  const [youtubeTitle, setYoutubeTitle] = useState('');
+  const [youtubeMetadata, setYoutubeMetadata] = useState('');
   const [instructions, setInstructions] = useState(savedInstructions);
   const [isLoading, setIsLoading] = useState(false);
   const [processingResult, setProcessingResult] = useState<{
@@ -43,9 +46,8 @@ export const WebScanDialog = ({
       setProcessingResult(null);
       setUrl(savedUrl);
       setInstructions(savedInstructions);
-      // Check if savedUrl is a YouTube URL and switch to the YouTube tab
+      // Check if savedUrl is a YouTube-related context and switch to the YouTube tab
       if (savedUrl.includes('youtube.com') || savedUrl.includes('youtu.be')) {
-        setYoutubeUrl(savedUrl);
         setActiveTab('youtube');
       } else {
         setActiveTab('website');
@@ -58,152 +60,93 @@ export const WebScanDialog = ({
     
     // Reset the processing result
     setProcessingResult(null);
+    setIsLoading(true);
     
-    // Determine the URL to use based on active tab
-    const selectedUrl = activeTab === 'website' ? url : youtubeUrl;
-    
-    // Validate inputs
-    if (!selectedUrl.trim()) {
-      toast({
-        title: activeTab === 'website' ? "Website URL required" : "YouTube URL required",
-        description: `Please provide a ${activeTab === 'website' ? 'website' : 'YouTube'} URL.`,
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (!instructions.trim()) {
-      toast({
-        title: "Context required",
-        description: `Please provide specific instructions for what information to extract from this ${activeTab === 'website' ? 'website' : 'YouTube video'}.`,
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
-      setIsLoading(true);
-      
-      // If it's a YouTube URL, fetch the transcript first
+      // Handle based on active tab
       if (activeTab === 'youtube') {
-        const videoId = extractYouTubeVideoId(youtubeUrl);
-        
-        if (!videoId) {
+        // Validate YouTube inputs
+        if (!youtubeTitle.trim() || !youtubeCaption.trim()) {
           toast({
-            title: "Invalid YouTube URL",
-            description: "Could not extract video ID from the URL. Please ensure it's a valid YouTube video URL.",
+            title: "Required fields missing",
+            description: "Please provide both a video title and captions.",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        if (!instructions.trim()) {
+          toast({
+            title: "Context required",
+            description: "Please provide specific instructions for what information to extract from this YouTube content.",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // Create a placeholder URL for YouTube content to maintain structure compatibility
+        const fakeYoutubeUrl = `youtube://manual/${encodeURIComponent(youtubeTitle.trim())}`;
+        
+        // Format the pasted content for processing
+        const formattedInstructions = `
+PASTED YOUTUBE CONTENT:
+Video Title: ${youtubeTitle.trim()}
+User Instructions: ${instructions.trim()}
+
+Video Captions:
+${youtubeCaption.trim()}
+
+Video Metadata:
+${youtubeMetadata.trim()}
+
+EXTRACTION TASK: ${instructions.trim()}
+        `.trim();
+        
+        // Set success result
+        setProcessingResult({
+          success: true,
+          message: `Successfully processed YouTube content: "${youtubeTitle}"`
+        });
+        
+        // Pass to parent component
+        onWebsiteScan(fakeYoutubeUrl, formattedInstructions);
+        
+        // Close the dialog on success after brief delay
+        setTimeout(() => {
+          onOpenChange(false);
+        }, 1500);
+      } else {
+        // Website handling
+        if (!url.trim()) {
+          toast({
+            title: "Website URL required",
+            description: "Please provide a website URL.",
             variant: "destructive"
           });
           setIsLoading(false);
           return;
         }
         
-        try {
-          console.log(`Fetching transcript for YouTube video ID: ${videoId}`);
-          
-          // Pass user instructions as a query parameter
-          const encodedInstructions = encodeURIComponent(instructions);
-          const response = await fetch(`https://zsvfxzbcfdxqhblcgptd.supabase.co/functions/v1/youtube-transcript?videoId=${videoId}&instructions=${encodedInstructions}`);
-          
-          if (!response.ok) {
-            console.error(`YouTube transcript API error: ${response.status} ${response.statusText}`);
-            throw new Error(`Failed to connect to transcript service: ${response.statusText}`);
-          }
-          
-          const data = await response.json();
-          
-          if (!data.success && data.error) {
-            console.error("YouTube transcript fetch error:", data.error);
-            
-            let errorMessage = data.error;
-            if (data.errorType === 'caption_unavailable') {
-              errorMessage = "This video doesn't have captions available, or they cannot be accessed due to YouTube API limitations.";
-            }
-            
-            // Set error result
-            setProcessingResult({
-              success: false,
-              message: errorMessage
-            });
-            
-            setIsLoading(false);
-            return;
-          }
-          
-          console.log("Successfully fetched YouTube data:", data.title);
-          
-          // If we have a limitation info, show it but consider the process successful
-          if (data.limitationInfo) {
-            console.log("YouTube API limitation note:", data.limitationInfo);
-            
-            setProcessingResult({
-              success: true,
-              message: `Successfully extracted metadata from "${data.title}". Note: ${data.limitationInfo}`
-            });
-          } else {
-            // Set success result
-            setProcessingResult({
-              success: true,
-              message: `Successfully extracted information from "${data.title}".`
-            });
-          }
-          
-          // Process the data
-          onWebsiteScan(youtubeUrl.trim(), instructions.trim());
-          
-          // Close the dialog on success after brief delay
-          setTimeout(() => {
-            onOpenChange(false);
-          }, 1500);
-          
-        } catch (error) {
-          console.error("Error in YouTube transcript processing:", error);
-          
-          // Set error result with more helpful message
-          let errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
-          
-          if (errorMessage.includes("Failed to fetch") || errorMessage.includes("Failed to connect")) {
-            errorMessage = "Network error: Could not connect to the transcript service. Please check your internet connection and try again.";
-          }
-          
-          if (errorMessage.includes("OAuth")) {
-            errorMessage = "Due to YouTube API limitations, we cannot access the full transcript but extracted available metadata instead.";
-            
-            // Even with OAuth limitations, we can use the metadata
-            setProcessingResult({
-              success: true,
-              message: errorMessage
-            });
-            
-            // Process with the available data
-            onWebsiteScan(youtubeUrl.trim(), instructions.trim());
-            
-            // Close the dialog on partial success after brief delay
-            setTimeout(() => {
-              onOpenChange(false);
-            }, 1500);
-            
-            setIsLoading(false);
-            return;
-          }
-          
-          setProcessingResult({
-            success: false,
-            message: errorMessage
+        if (!instructions.trim()) {
+          toast({
+            title: "Context required",
+            description: "Please provide specific instructions for what information to extract from this website.",
+            variant: "destructive"
           });
-          
           setIsLoading(false);
           return;
         }
-      } else {
-        // For regular website, proceed without fetching transcript
-        onWebsiteScan(url.trim(), instructions.trim());
-        
+
         // Set success result
         setProcessingResult({
           success: true,
           message: "Website context added successfully."
         });
+        
+        // Process the regular website URL
+        onWebsiteScan(url.trim(), instructions.trim());
         
         // Close the dialog on success after brief delay
         setTimeout(() => {
@@ -223,8 +166,16 @@ export const WebScanDialog = ({
   
   const handleDialogClose = (open: boolean) => {
     // If closing and fields are filled, prompt user
-    if (!open && ((activeTab === 'website' ? url.trim() : youtubeUrl.trim()) || instructions.trim())) {
-      if (!savedUrl && !savedInstructions) {
+    if (!open) {
+      let hasUnsavedContent = false;
+      
+      if (activeTab === 'website' && url.trim() && instructions.trim()) {
+        hasUnsavedContent = true;
+      } else if (activeTab === 'youtube' && (youtubeTitle.trim() || youtubeCaption.trim() || youtubeMetadata.trim() || instructions.trim())) {
+        hasUnsavedContent = true;
+      }
+      
+      if (hasUnsavedContent && !savedUrl && !savedInstructions) {
         toast({
           title: "Discard changes?",
           description: "You have unsaved changes that will be lost.",
@@ -234,25 +185,7 @@ export const WebScanDialog = ({
     onOpenChange(open);
   };
   
-  // Helper function to extract YouTube video ID
-  const extractYouTubeVideoId = (url: string): string | null => {
-    // Handle various YouTube URL formats
-    const regExpPatterns = [
-      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/,  // Standard YouTube URLs
-      /^.*(youtube.com\/shorts\/)([^#&?]*).*/  // YouTube Shorts URLs
-    ];
-    
-    for (const pattern of regExpPatterns) {
-      const match = url.match(pattern);
-      if (match && match[2] && match[2].length >= 11) {
-        return match[2];
-      }
-    }
-    
-    return null;
-  };
-  
-  const currentUrlIsYoutube = savedUrl && (savedUrl.includes('youtube.com') || savedUrl.includes('youtu.be'));
+  const currentUrlIsYoutube = savedUrl && (savedUrl.includes('youtube.com') || savedUrl.includes('youtu.be') || savedUrl.includes('youtube://manual/'));
   
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
@@ -307,34 +240,64 @@ export const WebScanDialog = ({
             </div>
           )}
           
-          {/* YouTube URL Input */}
+          {/* YouTube Content Paste Fields */}
           {activeTab === 'youtube' && (
-            <div className="mb-4">
-              <label htmlFor="youtube-url" className="block text-sm font-medium text-[#545454] mb-2">
-                YouTube URL <span className="text-red-500">*</span>
-              </label>
-              <Input 
-                id="youtube-url"
-                type="url"
-                value={youtubeUrl}
-                onChange={(e) => setYoutubeUrl(e.target.value)}
-                placeholder="https://www.youtube.com/watch?v=VIDEO_ID"
-                className={`w-full ${!youtubeUrl.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
-                required
-              />
-              <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">
-                <Info size={14} className="flex-shrink-0" />
-                <p>
-                  Provide a YouTube video URL to extract and analyze information from the video.
-                </p>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="youtube-title" className="block text-sm font-medium text-[#545454] mb-2">
+                  Video Title <span className="text-red-500">*</span>
+                </label>
+                <Input 
+                  id="youtube-title"
+                  type="text"
+                  value={youtubeTitle}
+                  onChange={(e) => setYoutubeTitle(e.target.value)}
+                  placeholder="Enter the YouTube video title"
+                  className={`w-full ${!youtubeTitle.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="youtube-caption" className="block text-sm font-medium text-[#545454] mb-2">
+                  Video Captions <span className="text-red-500">*</span>
+                </label>
+                <Textarea 
+                  id="youtube-caption"
+                  value={youtubeCaption}
+                  onChange={(e) => setYoutubeCaption(e.target.value)}
+                  placeholder="Paste the video captions or transcript here"
+                  className={`w-full min-h-[100px] ${!youtubeCaption.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="youtube-metadata" className="block text-sm font-medium text-[#545454] mb-2">
+                  Video Metadata <span className="text-gray-500">(optional)</span>
+                </label>
+                <Textarea 
+                  id="youtube-metadata"
+                  value={youtubeMetadata}
+                  onChange={(e) => setYoutubeMetadata(e.target.value)}
+                  placeholder="Paste additional video metadata (description, tags, etc.)"
+                  className="w-full min-h-[80px] border-[#084b49]/30"
+                />
+                <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">
+                  <Info size={14} className="flex-shrink-0" />
+                  <p>
+                    Add metadata like video description, publish date, channel name, 
+                    or any other relevant information about the video.
+                  </p>
+                </div>
               </div>
             </div>
           )}
           
           {/* Instructions textarea */}
-          <div className="mb-4">
+          <div className="mb-4 mt-4">
             <label htmlFor="instructions" className="block text-sm font-medium text-[#545454] mb-2">
-              What specific information do you want from this {activeTab === 'website' ? 'website' : 'YouTube video'}? <span className="text-red-500">*</span>
+              What specific information do you want from this {activeTab === 'website' ? 'website' : 'YouTube content'}? <span className="text-red-500">*</span>
             </label>
             <Textarea 
               id="instructions"
@@ -344,7 +307,7 @@ export const WebScanDialog = ({
                 ? "E.g., 'Extract best practices for landing pages' or 'Find information about pricing models'" 
                 : "E.g., 'Extract colors mentioned by the artist' or 'List all tools used in the tutorial'"
               }
-              className={`w-full min-h-[120px] resize-none ${!instructions.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
+              className={`w-full min-h-[100px] resize-none ${!instructions.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
               required
             />
             <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">
@@ -358,8 +321,8 @@ export const WebScanDialog = ({
                   </>
                 ) : (
                   <>
-                    Be very specific about what information you want extracted from the video. For example:
-                    "Extract all paint colors mentioned by the artist", "List all cooking ingredients used", 
+                    Be very specific about what information you want extracted from the pasted content. For example:
+                    "Extract all paint colors mentioned in the transcript", "List all cooking ingredients used", 
                     or "Find all programming libraries mentioned in the tutorial".
                   </>
                 )}
@@ -388,14 +351,7 @@ export const WebScanDialog = ({
                 className="bg-[#084b49] hover:bg-[#084b49]/90 text-white px-4 py-2 shadow-[0_0_0_0_#33fea6] transition-all duration-300 hover:shadow-[0_0_10px_0_#33fea6]"
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  hasContext ? "Update Context" : "Use as Context"
-                )}
+                {isLoading ? "Processing..." : (hasContext ? "Update Context" : "Use as Context")}
               </Button>
             </div>
           </div>
