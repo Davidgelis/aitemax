@@ -59,7 +59,7 @@ export const StepOneContent = ({
 
   const handleWebsiteScan = (url: string, instructions: string = "") => {
     const contextData = { url, instructions };
-    setWebsiteContext(contextData);
+    setWebsiteContext(url ? contextData : null);
     console.log("StepOneContent: Website context set:", contextData);
     
     // Important: Forward to parent component

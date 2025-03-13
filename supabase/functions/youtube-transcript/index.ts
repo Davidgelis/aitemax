@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -28,7 +29,6 @@ serve(async (req) => {
 
     console.log(`Fetching transcript for video ID: ${videoId}`);
     console.log(`User instructions: ${userInstructions}`);
-    console.log(`Using API key: ${YOUTUBE_API_KEY.substring(0, 5)}...`); // Log partial key for debugging
 
     // First, fetch the video details to get the title and metadata
     const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`;

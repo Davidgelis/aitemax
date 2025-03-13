@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -332,6 +331,7 @@ export const WebScanDialog = ({
             </div>
           )}
           
+          {/* Instructions textarea */}
           <div className="mb-4">
             <label htmlFor="instructions" className="block text-sm font-medium text-[#545454] mb-2">
               What specific information do you want from this {activeTab === 'website' ? 'website' : 'YouTube video'}? <span className="text-red-500">*</span>

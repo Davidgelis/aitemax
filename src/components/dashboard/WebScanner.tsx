@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Globe, Trash2 } from 'lucide-react';
 import { WebScanDialog } from './WebScanDialog';
@@ -21,7 +20,7 @@ export const WebScanner = ({
   const [hasContext, setHasContext] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  const handleWebsiteScan = (url: string, instructions: string) => {
+  const handleWebsiteScan = (url: string, instructions: string = "") => {
     // Save the values for persistence
     setSavedUrl(url);
     setSavedInstructions(instructions);
@@ -51,7 +50,6 @@ export const WebScanner = ({
     onWebsiteScan('', '');
   };
 
-  // Model replacement style button
   if (variant === 'modelReplacement') {
     return (
       <div className={`w-full mr-auto ${className}`}>
