@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Globe, Info, Youtube, CheckCircle, AlertCircle } from 'lucide-react';
+import { Globe, Info, Youtube, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface WebScanDialogProps {
@@ -179,6 +178,20 @@ EXTRACTION TASK: ${instructions.trim()}
     onOpenChange(open);
   };
   
+  const clearTextField = (field: 'url' | 'youtubeCaption' | 'instructions') => {
+    switch (field) {
+      case 'url':
+        setUrl('');
+        break;
+      case 'youtubeCaption':
+        setYoutubeCaption('');
+        break;
+      case 'instructions':
+        setInstructions('');
+        break;
+    }
+  };
+  
   const currentUrlIsYoutube = savedUrl && (savedUrl.includes('youtube.com') || savedUrl.includes('youtu.be') || savedUrl.includes('youtube://manual/'));
   
   return (
@@ -222,15 +235,27 @@ EXTRACTION TASK: ${instructions.trim()}
               <label htmlFor="website-url" className="block text-sm font-medium text-[#545454] mb-2">
                 Website URL <span className="text-red-500">*</span>
               </label>
-              <Input 
-                id="website-url"
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://example.com"
-                className={`w-full ${!url.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
-                required
-              />
+              <div className="relative">
+                <Input 
+                  id="website-url"
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className={`w-full pr-10 ${!url.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
+                  required
+                />
+                {url.trim() && (
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    onClick={() => clearTextField('url')}
+                    title="Clear URL"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
             </div>
           )}
           
@@ -241,14 +266,26 @@ EXTRACTION TASK: ${instructions.trim()}
                 <label htmlFor="youtube-caption" className="block text-sm font-medium text-[#545454] mb-2">
                   Video Captions <span className="text-red-500">*</span>
                 </label>
-                <Textarea 
-                  id="youtube-caption"
-                  value={youtubeCaption}
-                  onChange={(e) => setYoutubeCaption(e.target.value)}
-                  placeholder="Paste the video captions or transcript here"
-                  className={`w-full min-h-[180px] ${!youtubeCaption.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
-                  required
-                />
+                <div className="relative">
+                  <Textarea 
+                    id="youtube-caption"
+                    value={youtubeCaption}
+                    onChange={(e) => setYoutubeCaption(e.target.value)}
+                    placeholder="Paste the video captions or transcript here"
+                    className={`w-full min-h-[180px] pr-10 ${!youtubeCaption.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
+                    required
+                  />
+                  {youtubeCaption.trim() && (
+                    <button
+                      type="button"
+                      className="absolute right-2 top-4 text-gray-400 hover:text-gray-600"
+                      onClick={() => clearTextField('youtubeCaption')}
+                      title="Clear captions"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -258,17 +295,29 @@ EXTRACTION TASK: ${instructions.trim()}
             <label htmlFor="instructions" className="block text-sm font-medium text-[#545454] mb-2">
               What specific information do you want from this {activeTab === 'website' ? 'website' : 'content'}? <span className="text-red-500">*</span>
             </label>
-            <Textarea 
-              id="instructions"
-              value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
-              placeholder={activeTab === 'website' 
-                ? "E.g., 'Extract best practices for landing pages' or 'Find information about pricing models'" 
-                : "E.g., 'Extract colors mentioned by the artist' or 'List all tools used in the tutorial'"
-              }
-              className={`w-full min-h-[100px] resize-none ${!instructions.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
-              required
-            />
+            <div className="relative">
+              <Textarea 
+                id="instructions"
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder={activeTab === 'website' 
+                  ? "E.g., 'Extract best practices for landing pages' or 'Find information about pricing models'" 
+                  : "E.g., 'Extract colors mentioned by the artist' or 'List all tools used in the tutorial'"
+                }
+                className={`w-full min-h-[100px] resize-none pr-10 ${!instructions.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
+                required
+              />
+              {instructions.trim() && (
+                <button
+                  type="button"
+                  className="absolute right-2 top-4 text-gray-400 hover:text-gray-600"
+                  onClick={() => clearTextField('instructions')}
+                  title="Clear instructions"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">
               <Info size={14} className="flex-shrink-0" />
               <p>
