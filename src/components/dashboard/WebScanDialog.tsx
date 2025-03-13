@@ -100,61 +100,85 @@ export const WebScanDialog = ({
         }
         
         try {
+          console.log(`Fetching transcript for YouTube video ID: ${videoId}`);
+          
           // Pass user instructions as a query parameter
           const encodedInstructions = encodeURIComponent(instructions);
           const response = await fetch(`https://zsvfxzbcfdxqhblcgptd.supabase.co/functions/v1/youtube-transcript?videoId=${videoId}&instructions=${encodedInstructions}`);
           
           if (!response.ok) {
-            throw new Error(`Failed to fetch transcript: ${response.statusText}`);
+            console.error(`YouTube transcript API error: ${response.status} ${response.statusText}`);
+            throw new Error(`Failed to connect to transcript service: ${response.statusText}`);
           }
           
           const data = await response.json();
           
-          if (data.error) {
-            throw new Error(data.error);
+          if (!data.success && data.error) {
+            console.error("YouTube transcript fetch error:", data.error);
+            
+            let errorMessage = data.error;
+            if (data.errorType === 'caption_unavailable') {
+              errorMessage = "This video doesn't have captions available.";
+            }
+            
+            // Set error result
+            setProcessingResult({
+              success: false,
+              message: errorMessage
+            });
+            
+            setIsLoading(false);
+            return;
           }
           
-          // Use the transcript as the context (the onWebsiteScan function will handle this)
-          console.log("Successfully fetched YouTube data with targeted extraction");
+          console.log("Successfully fetched YouTube data:", data.title);
           
           // Set success result
           setProcessingResult({
             success: true,
             message: `Successfully extracted information from "${data.title}".`
           });
-        } catch (error) {
-          console.error("YouTube transcript fetch error:", error);
           
-          // Set error result
+          // Process the data
+          onWebsiteScan(youtubeUrl.trim(), instructions.trim());
+          
+          // Close the dialog on success after brief delay
+          setTimeout(() => {
+            onOpenChange(false);
+          }, 1500);
+          
+        } catch (error) {
+          console.error("Error in YouTube transcript processing:", error);
+          
+          // Set error result with more helpful message
+          let errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+          
+          if (errorMessage.includes("Failed to fetch") || errorMessage.includes("Failed to connect")) {
+            errorMessage = "Network error: Could not connect to the transcript service. Please check your internet connection and try again.";
+          }
+          
           setProcessingResult({
             success: false,
-            message: error instanceof Error && error.message.includes("captions") 
-              ? "This video doesn't have captions available."
-              : "Failed to extract information from the video."
+            message: errorMessage
           });
-          
-          // Still show toast for non-caption errors
-          if (!(error instanceof Error && error.message.includes("captions"))) {
-            toast({
-              title: "Failed to fetch YouTube data",
-              description: error instanceof Error ? error.message : "An unexpected error occurred",
-              variant: "destructive"
-            });
-          }
           
           setIsLoading(false);
           return;
         }
-      }
-      
-      // Process the data and close the dialog
-      onWebsiteScan(selectedUrl.trim(), instructions.trim());
-      
-      // Only close the dialog automatically for website scans or successful YouTube scans
-      if (activeTab === 'website' || (activeTab === 'youtube' && processingResult?.success)) {
+      } else {
+        // For regular website, proceed without fetching transcript
+        onWebsiteScan(url.trim(), instructions.trim());
+        
+        // Set success result
+        setProcessingResult({
+          success: true,
+          message: "Website context added successfully."
+        });
+        
+        // Close the dialog on success after brief delay
         setTimeout(() => {
           onOpenChange(false);
-        }, 1000); // Add a small delay to show the success message
+        }, 1000);
       }
     } catch (error) {
       console.error("Error in handleSubmit:", error);
@@ -182,9 +206,20 @@ export const WebScanDialog = ({
   
   // Helper function to extract YouTube video ID
   const extractYouTubeVideoId = (url: string): string | null => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+    // Handle various YouTube URL formats
+    const regExpPatterns = [
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/,  // Standard YouTube URLs
+      /^.*(youtube.com\/shorts\/)([^#&?]*).*/  // YouTube Shorts URLs
+    ];
+    
+    for (const pattern of regExpPatterns) {
+      const match = url.match(pattern);
+      if (match && match[2] && match[2].length >= 11) {
+        return match[2];
+      }
+    }
+    
+    return null;
   };
   
   const currentUrlIsYoutube = savedUrl && (savedUrl.includes('youtube.com') || savedUrl.includes('youtu.be'));

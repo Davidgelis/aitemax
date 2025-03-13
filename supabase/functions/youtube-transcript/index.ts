@@ -31,31 +31,60 @@ serve(async (req) => {
     // First, fetch the video details to get the title and metadata
     const videoDetailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`;
     
-    const videoResponse = await fetch(videoDetailsUrl);
+    let videoResponse;
+    try {
+      videoResponse = await fetch(videoDetailsUrl);
+    } catch (error) {
+      console.error("Network error fetching video details:", error);
+      throw new Error('Network error: Unable to connect to YouTube API');
+    }
     
     if (!videoResponse.ok) {
-      throw new Error(`Failed to fetch video details: ${videoResponse.status}`);
+      const errorText = await videoResponse.text();
+      console.error(`YouTube API error (${videoResponse.status}):`, errorText);
+      
+      if (videoResponse.status === 403) {
+        throw new Error('YouTube API key error: Please check API key permissions');
+      } else {
+        throw new Error(`YouTube API error: ${videoResponse.status} ${videoResponse.statusText}`);
+      }
     }
     
     const videoData = await videoResponse.json();
     
     if (!videoData.items || videoData.items.length === 0) {
-      throw new Error('Video not found');
+      throw new Error('Video not found or has been removed');
     }
     
     const videoDetails = videoData.items[0].snippet;
+    console.log(`Successfully fetched details for video: ${videoDetails.title}`);
 
     // Next, try to get captions info
     const captionsInfoUrl = `https://www.googleapis.com/youtube/v3/captions?part=snippet&videoId=${videoId}&key=${YOUTUBE_API_KEY}`;
-    const captionsInfoResponse = await fetch(captionsInfoUrl);
     
-    let captionsInfo = { items: [] };
-    if (captionsInfoResponse.ok) {
-      captionsInfo = await captionsInfoResponse.json();
+    let captionsInfoResponse;
+    try {
+      captionsInfoResponse = await fetch(captionsInfoUrl);
+    } catch (error) {
+      console.error("Network error fetching captions info:", error);
+      // Just log this error but don't throw - we'll continue with what we have
     }
     
-    // If no captions available and we need them, throw a specific error
-    if ((!captionsInfo.items || captionsInfo.items.length === 0) && userInstructions.includes('caption')) {
+    let captionsInfo = { items: [] };
+    let captionsAvailable = false;
+    
+    if (captionsInfoResponse && captionsInfoResponse.ok) {
+      try {
+        captionsInfo = await captionsInfoResponse.json();
+        captionsAvailable = captionsInfo.items && captionsInfo.items.length > 0;
+        console.log(`Captions available: ${captionsAvailable ? 'Yes' : 'No'}`);
+      } catch (error) {
+        console.error("Error parsing captions response:", error);
+      }
+    }
+    
+    // If user specifically asked for captions but none are available
+    if (!captionsAvailable && userInstructions.toLowerCase().includes('caption')) {
       throw new Error('This video does not have captions available');
     }
     
@@ -82,6 +111,8 @@ serve(async (req) => {
         if (relevantSentences.length > 0) {
           relevantInfo = `\n\nRelevant information from video description:\n${relevantSentences.join('. ')}`;
           console.log(`Found ${relevantSentences.length} relevant sentences in description`);
+        } else {
+          console.log("No sentences matching keywords found in description");
         }
       }
     }
@@ -90,6 +121,7 @@ serve(async (req) => {
     let keywordsInfo = "";
     if (videoDetails.tags && videoDetails.tags.length > 0) {
       keywordsInfo = `\n\nVideo keywords: ${videoDetails.tags.join(', ')}`;
+      console.log(`Extracted ${videoDetails.tags.length} tags from video`);
     }
     
     // Response with available information
@@ -101,7 +133,8 @@ serve(async (req) => {
       userInstructions: userInstructions,
       tags: videoDetails.tags || [],
       transcript: `Video Title: ${videoDetails.title}\n\nChannel: ${videoDetails.channelTitle}\n\nDescription: ${videoDetails.description}${relevantInfo}${keywordsInfo}\n\nNote: Due to YouTube API limitations, only metadata is available without direct caption access.`,
-      hasCaptions: captionsInfo.items && captionsInfo.items.length > 0,
+      hasCaptions: captionsAvailable,
+      success: true
     };
 
     console.log("Successfully processed YouTube metadata with targeted extraction based on user instructions");
@@ -112,8 +145,13 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in youtube-transcript function:", error);
     
+    // Determine if this is a caption-related error for specific UI handling
+    const isCaptionError = error.message && error.message.includes('captions');
+    
     return new Response(JSON.stringify({
       error: error.message,
+      errorType: isCaptionError ? 'caption_unavailable' : 'general_error',
+      success: false
     }), {
       status: 200, // Return 200 to avoid edge function errors
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
