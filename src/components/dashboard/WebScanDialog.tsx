@@ -29,8 +29,6 @@ export const WebScanDialog = ({
   const [activeTab, setActiveTab] = useState<'website' | 'youtube'>('website');
   const [url, setUrl] = useState(savedUrl);
   const [youtubeCaption, setYoutubeCaption] = useState('');
-  const [youtubeTitle, setYoutubeTitle] = useState('');
-  const [youtubeMetadata, setYoutubeMetadata] = useState('');
   const [instructions, setInstructions] = useState(savedInstructions);
   const [isLoading, setIsLoading] = useState(false);
   const [processingResult, setProcessingResult] = useState<{
@@ -66,10 +64,10 @@ export const WebScanDialog = ({
       // Handle based on active tab
       if (activeTab === 'youtube') {
         // Validate YouTube inputs
-        if (!youtubeTitle.trim() || !youtubeCaption.trim()) {
+        if (!youtubeCaption.trim()) {
           toast({
-            title: "Required fields missing",
-            description: "Please provide both a video title and captions.",
+            title: "Required field missing",
+            description: "Please provide video captions.",
             variant: "destructive"
           });
           setIsLoading(false);
@@ -87,19 +85,15 @@ export const WebScanDialog = ({
         }
 
         // Create a placeholder URL for YouTube content to maintain structure compatibility
-        const fakeYoutubeUrl = `youtube://manual/${encodeURIComponent(youtubeTitle.trim())}`;
+        const fakeYoutubeUrl = `youtube://manual/caption`;
         
         // Format the pasted content for processing
         const formattedInstructions = `
 PASTED YOUTUBE CONTENT:
-Video Title: ${youtubeTitle.trim()}
 User Instructions: ${instructions.trim()}
 
 Video Captions:
 ${youtubeCaption.trim()}
-
-Video Metadata:
-${youtubeMetadata.trim()}
 
 EXTRACTION TASK: ${instructions.trim()}
         `.trim();
@@ -107,7 +101,7 @@ EXTRACTION TASK: ${instructions.trim()}
         // Set success result
         setProcessingResult({
           success: true,
-          message: `Successfully processed YouTube content: "${youtubeTitle}"`
+          message: `Successfully processed YouTube content`
         });
         
         // Pass to parent component
@@ -171,7 +165,7 @@ EXTRACTION TASK: ${instructions.trim()}
       
       if (activeTab === 'website' && url.trim() && instructions.trim()) {
         hasUnsavedContent = true;
-      } else if (activeTab === 'youtube' && (youtubeTitle.trim() || youtubeCaption.trim() || youtubeMetadata.trim() || instructions.trim())) {
+      } else if (activeTab === 'youtube' && (youtubeCaption.trim() || instructions.trim())) {
         hasUnsavedContent = true;
       }
       
@@ -244,21 +238,6 @@ EXTRACTION TASK: ${instructions.trim()}
           {activeTab === 'youtube' && (
             <div className="space-y-4">
               <div>
-                <label htmlFor="youtube-title" className="block text-sm font-medium text-[#545454] mb-2">
-                  Video Title <span className="text-red-500">*</span>
-                </label>
-                <Input 
-                  id="youtube-title"
-                  type="text"
-                  value={youtubeTitle}
-                  onChange={(e) => setYoutubeTitle(e.target.value)}
-                  placeholder="Enter the YouTube video title"
-                  className={`w-full ${!youtubeTitle.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
-                  required
-                />
-              </div>
-              
-              <div>
                 <label htmlFor="youtube-caption" className="block text-sm font-medium text-[#545454] mb-2">
                   Video Captions <span className="text-red-500">*</span>
                 </label>
@@ -267,29 +246,9 @@ EXTRACTION TASK: ${instructions.trim()}
                   value={youtubeCaption}
                   onChange={(e) => setYoutubeCaption(e.target.value)}
                   placeholder="Paste the video captions or transcript here"
-                  className={`w-full min-h-[100px] ${!youtubeCaption.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
+                  className={`w-full min-h-[180px] ${!youtubeCaption.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
                   required
                 />
-              </div>
-              
-              <div>
-                <label htmlFor="youtube-metadata" className="block text-sm font-medium text-[#545454] mb-2">
-                  Video Metadata <span className="text-gray-500">(optional)</span>
-                </label>
-                <Textarea 
-                  id="youtube-metadata"
-                  value={youtubeMetadata}
-                  onChange={(e) => setYoutubeMetadata(e.target.value)}
-                  placeholder="Paste additional video metadata (description, tags, etc.)"
-                  className="w-full min-h-[80px] border-[#084b49]/30"
-                />
-                <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">
-                  <Info size={14} className="flex-shrink-0" />
-                  <p>
-                    Add metadata like video description, publish date, channel name, 
-                    or any other relevant information about the video.
-                  </p>
-                </div>
               </div>
             </div>
           )}
@@ -297,7 +256,7 @@ EXTRACTION TASK: ${instructions.trim()}
           {/* Instructions textarea */}
           <div className="mb-4 mt-4">
             <label htmlFor="instructions" className="block text-sm font-medium text-[#545454] mb-2">
-              What specific information do you want from this {activeTab === 'website' ? 'website' : 'YouTube content'}? <span className="text-red-500">*</span>
+              What specific information do you want from this {activeTab === 'website' ? 'website' : 'content'}? <span className="text-red-500">*</span>
             </label>
             <Textarea 
               id="instructions"
