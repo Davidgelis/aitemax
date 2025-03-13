@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { MessageSquareText, Trash2 } from 'lucide-react';
+import { MessageSquareText } from 'lucide-react';
 import { SmartContextDialog } from './SmartContextDialog';
 
 interface SmartContextProps {
@@ -57,16 +57,6 @@ export const SmartContext = ({
             <span className="truncate ml-1">Smart Context</span>
             <MessageSquareText className={`mr-1 h-4 w-4 ${hasContext ? 'text-[#33fea6]' : 'text-[#084b49]'}`} />
           </button>
-          
-          {hasContext && (
-            <button
-              onClick={handleDeleteContext}
-              className="h-10 ml-2 px-2 bg-white border border-[#e5e7eb] text-red-500 hover:bg-red-50 flex items-center text-sm rounded-md transition-all"
-              title="Delete context data"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
         </div>
         
         <SmartContextDialog
@@ -88,22 +78,12 @@ export const SmartContext = ({
       <div className="mb-2 flex items-center">
         <button
           onClick={() => setDialogOpen(true)}
-          className="group animate-aurora-border"
+          className={`group animate-aurora-border ${hasContext ? 'shadow-[0_0_5px_0_#33fea6]' : ''}`}
           title="Add specific context to enhance your prompt"
         >
           <MessageSquareText className={`w-3 h-3 ${hasContext ? 'text-[#33fea6]' : 'text-[#64bf95] group-hover:text-[#33fea6]'} transition-colors`} />
           <span>Smart Context</span>
         </button>
-        
-        {hasContext && (
-          <button
-            onClick={handleDeleteContext}
-            className="ml-2 text-red-500 hover:bg-red-50 group"
-            title="Delete context data"
-          >
-            <Trash2 className="w-3 h-3" />
-          </button>
-        )}
       </div>
       
       <SmartContextDialog
