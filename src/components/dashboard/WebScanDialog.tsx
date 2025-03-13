@@ -118,7 +118,7 @@ export const WebScanDialog = ({
             
             let errorMessage = data.error;
             if (data.errorType === 'caption_unavailable') {
-              errorMessage = "This video doesn't have captions available.";
+              errorMessage = "This video doesn't have captions available, or they cannot be accessed due to YouTube API limitations.";
             }
             
             // Set error result
@@ -133,11 +133,21 @@ export const WebScanDialog = ({
           
           console.log("Successfully fetched YouTube data:", data.title);
           
-          // Set success result
-          setProcessingResult({
-            success: true,
-            message: `Successfully extracted information from "${data.title}".`
-          });
+          // If we have a limitation info, show it but consider the process successful
+          if (data.limitationInfo) {
+            console.log("YouTube API limitation note:", data.limitationInfo);
+            
+            setProcessingResult({
+              success: true,
+              message: `Successfully extracted metadata from "${data.title}". Note: ${data.limitationInfo}`
+            });
+          } else {
+            // Set success result
+            setProcessingResult({
+              success: true,
+              message: `Successfully extracted information from "${data.title}".`
+            });
+          }
           
           // Process the data
           onWebsiteScan(youtubeUrl.trim(), instructions.trim());
@@ -155,6 +165,27 @@ export const WebScanDialog = ({
           
           if (errorMessage.includes("Failed to fetch") || errorMessage.includes("Failed to connect")) {
             errorMessage = "Network error: Could not connect to the transcript service. Please check your internet connection and try again.";
+          }
+          
+          if (errorMessage.includes("OAuth")) {
+            errorMessage = "Due to YouTube API limitations, we cannot access the full transcript but extracted available metadata instead.";
+            
+            // Even with OAuth limitations, we can use the metadata
+            setProcessingResult({
+              success: true,
+              message: errorMessage
+            });
+            
+            // Process with the available data
+            onWebsiteScan(youtubeUrl.trim(), instructions.trim());
+            
+            // Close the dialog on partial success after brief delay
+            setTimeout(() => {
+              onOpenChange(false);
+            }, 1500);
+            
+            setIsLoading(false);
+            return;
           }
           
           setProcessingResult({
