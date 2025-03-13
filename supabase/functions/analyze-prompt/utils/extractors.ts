@@ -1,248 +1,317 @@
 
+// If this file doesn't exist, I'll create it with proper extractors for handling the improved system prompt output
+
 // Function to extract questions from the AI analysis
-export function extractQuestions(analysis: string, originalPrompt: string): any[] {
+export const extractQuestions = (analysisText: string, originalPrompt: string) => {
   try {
-    // Attempt to parse as JSON first
-    const jsonMatch = analysis.match(/\{[\s\S]*"contextQuestions":\s*(\[[\s\S]*?\])[\s\S]*\}/);
-    if (jsonMatch && jsonMatch[1]) {
-      try {
-        const questionsJson = jsonMatch[1].replace(/,\s*\]/, ']'); // Fix trailing commas
-        const questions = JSON.parse(questionsJson);
-        
-        // Validate each question has required fields
-        return questions.map((q: any, index: number) => {
-          return {
-            id: q.id || `q${index + 1}`,
-            text: q.text || `Question ${index + 1}`,
-            answer: q.answer || "",
-            isRelevant: null,
-            category: q.category || "General",
-            prefillSource: q.prefillSource || null  // Extract prefill source if available
-          };
-        });
-      } catch (e) {
-        console.error("Error parsing contextQuestions JSON:", e);
-      }
+    // Try to parse the entire response as JSON
+    const parsedResponse = JSON.parse(analysisText);
+    if (parsedResponse && Array.isArray(parsedResponse.contextQuestions)) {
+      console.log("Successfully extracted questions from JSON response");
+      return parsedResponse.contextQuestions;
     }
-    
-    // If JSON parsing fails, try regex-based extraction
-    const questionsSection = analysis.match(/CONTEXT QUESTIONS:?\s*([\s\S]*?)(?=VARIABLES:|MASTER COMMAND:|ENHANCED PROMPT:|$)/i);
-    
-    if (questionsSection && questionsSection[1]) {
-      // Extract questions using regex
-      const questionMatches = questionsSection[1].match(/(?:^|\n)(?:\d+[\.\)]\s*|\*\s*|\-\s*|(?:Q|Question)\s*\d+[\.\)]\s*)([^\n]+)/gi);
-      
-      if (questionMatches && questionMatches.length > 0) {
-        return questionMatches.map((q, index) => {
-          const cleanedQuestion = q.replace(/^(?:\d+[\.\)]\s*|\*\s*|\-\s*|(?:Q|Question)\s*\d+[\.\)]\s*)/i, '').trim();
-          return {
-            id: `q${index + 1}`,
-            text: cleanedQuestion,
-            answer: "",
-            isRelevant: null,
-            category: "General"
-          };
-        });
-      }
-    }
-    
-    // If all else fails, return default questions
-    console.warn("Failed to extract questions, generating default questions based on prompt");
-    return generateDefaultQuestions(originalPrompt);
-  } catch (error) {
-    console.error("Error extracting questions:", error);
-    return generateDefaultQuestions(originalPrompt);
+  } catch (e) {
+    // If JSON parsing fails, use regex extraction as fallback
+    console.log("Using regex fallback for extracting questions");
   }
-}
+
+  // If direct JSON parsing didn't work, try to extract the questions section
+  try {
+    const questionsMatch = analysisText.match(/\"contextQuestions\"\s*:\s*(\[[\s\S]*?\])/);
+    if (questionsMatch && questionsMatch[1]) {
+      const questionsJson = questionsMatch[1].replace(/\\"/g, '"');
+      const questions = JSON.parse(questionsJson);
+      if (Array.isArray(questions)) {
+        console.log("Successfully extracted questions from contextQuestions section");
+        return questions;
+      }
+    }
+  } catch (e) {
+    console.error("Error extracting questions from contextQuestions section:", e);
+  }
+
+  // Fallback to legacy format if needed
+  try {
+    const questionsMatch = analysisText.match(/CONTEXT QUESTIONS:?\s*(\[[\s\S]*?\])/);
+    if (questionsMatch && questionsMatch[1]) {
+      const questionsJson = questionsMatch[1].replace(/\\"/g, '"');
+      const questions = JSON.parse(questionsJson);
+      if (Array.isArray(questions)) {
+        console.log("Successfully extracted questions from CONTEXT QUESTIONS section");
+        return questions;
+      }
+    }
+  } catch (e) {
+    console.error("Error extracting questions from legacy format:", e);
+  }
+
+  // If we get here, use some default questions based on the original prompt
+  console.warn("Falling back to generating default questions based on prompt");
+  return generateDefaultQuestions(originalPrompt);
+};
 
 // Function to extract variables from the AI analysis
-export function extractVariables(analysis: string, originalPrompt: string): any[] {
+export const extractVariables = (analysisText: string, originalPrompt: string) => {
   try {
-    // Attempt to parse as JSON first
-    const jsonMatch = analysis.match(/\{[\s\S]*"variables":\s*(\[[\s\S]*?\])[\s\S]*\}/);
-    if (jsonMatch && jsonMatch[1]) {
-      try {
-        const variablesJson = jsonMatch[1].replace(/,\s*\]/, ']'); // Fix trailing commas
-        const variables = JSON.parse(variablesJson);
-        
-        // Validate each variable has required fields
-        return variables.map((v: any, index: number) => {
-          return {
-            id: v.id || `v${index + 1}`,
-            name: v.name || `Variable${index + 1}`,
-            value: v.value || "",
-            isRelevant: null,
-            category: v.category || "Other",
-            prefillSource: v.prefillSource || null  // Extract prefill source if available
-          };
-        });
-      } catch (e) {
-        console.error("Error parsing variables JSON:", e);
+    // Try to parse the entire response as JSON
+    const parsedResponse = JSON.parse(analysisText);
+    if (parsedResponse && Array.isArray(parsedResponse.variables)) {
+      console.log("Successfully extracted variables from JSON response");
+      return parsedResponse.variables;
+    }
+  } catch (e) {
+    // If JSON parsing fails, use regex extraction as fallback
+    console.log("Using regex fallback for extracting variables");
+  }
+
+  // If direct JSON parsing didn't work, try to extract the variables section
+  try {
+    const variablesMatch = analysisText.match(/\"variables\"\s*:\s*(\[[\s\S]*?\])/);
+    if (variablesMatch && variablesMatch[1]) {
+      const variablesJson = variablesMatch[1].replace(/\\"/g, '"');
+      const variables = JSON.parse(variablesJson);
+      if (Array.isArray(variables)) {
+        console.log("Successfully extracted variables from variables section");
+        return variables;
       }
     }
-    
-    // If JSON parsing fails, try regex-based extraction
-    const variablesSection = analysis.match(/VARIABLES:?\s*([\s\S]*?)(?=CONTEXT QUESTIONS:|MASTER COMMAND:|ENHANCED PROMPT:|$)/i);
-    
-    if (variablesSection && variablesSection[1]) {
-      // Extract variables using regex
-      const variableMatches = variablesSection[1].match(/(?:^|\n)(?:\d+[\.\)]\s*|\*\s*|\-\s*)([^\n:]+):?([^\n]*)/gi);
-      
-      if (variableMatches && variableMatches.length > 0) {
-        return variableMatches.map((v, index) => {
-          const match = v.match(/(?:\d+[\.\)]\s*|\*\s*|\-\s*)([^\n:]+):?([^\n]*)/i);
-          if (match) {
-            const name = match[1].trim();
-            const value = match[2].trim();
-            return {
-              id: `v${index + 1}`,
-              name,
-              value,
-              isRelevant: null,
-              category: "Other"
-            };
-          }
-          return {
-            id: `v${index + 1}`,
-            name: `Variable${index + 1}`,
-            value: "",
-            isRelevant: null,
-            category: "Other"
-          };
-        });
+  } catch (e) {
+    console.error("Error extracting variables from variables section:", e);
+  }
+
+  // Fallback to legacy format if needed
+  try {
+    const variablesMatch = analysisText.match(/VARIABLES:?\s*(\[[\s\S]*?\])/);
+    if (variablesMatch && variablesMatch[1]) {
+      const variablesJson = variablesMatch[1].replace(/\\"/g, '"');
+      const variables = JSON.parse(variablesJson);
+      if (Array.isArray(variables)) {
+        console.log("Successfully extracted variables from VARIABLES section");
+        return variables;
       }
     }
-    
-    // If all else fails, return default variables
-    console.warn("Failed to extract variables, generating default variables based on prompt");
-    return generateDefaultVariables(originalPrompt);
-  } catch (error) {
-    console.error("Error extracting variables:", error);
-    return generateDefaultVariables(originalPrompt);
+  } catch (e) {
+    console.error("Error extracting variables from legacy format:", e);
   }
-}
 
-// Function to extract the master command from the AI analysis
-export function extractMasterCommand(analysis: string): string {
+  // If we get here, use some default variables based on the original prompt
+  console.warn("Falling back to generating default variables based on prompt");
+  return generateDefaultVariables(originalPrompt);
+};
+
+// Function to extract master command from the AI analysis
+export const extractMasterCommand = (analysisText: string) => {
   try {
-    // Try to extract from JSON first
-    const jsonMatch = analysis.match(/\{[\s\S]*"masterCommand":\s*"([^"]+)"[\s\S]*\}/);
-    if (jsonMatch && jsonMatch[1]) {
-      return jsonMatch[1];
+    // Try to parse the entire response as JSON
+    const parsedResponse = JSON.parse(analysisText);
+    if (parsedResponse && parsedResponse.masterCommand) {
+      return parsedResponse.masterCommand;
     }
-    
-    // If that fails, try regex
-    const commandSection = analysis.match(/MASTER COMMAND:?\s*([\s\S]*?)(?=CONTEXT QUESTIONS:|VARIABLES:|ENHANCED PROMPT:|$)/i);
-    
-    if (commandSection && commandSection[1]) {
-      return commandSection[1].trim();
-    }
-    
-    return "Analyze and enhance the provided prompt";
-  } catch (error) {
-    console.error("Error extracting master command:", error);
-    return "Analyze and enhance the provided prompt";
+  } catch (e) {
+    // If JSON parsing fails, use regex extraction as fallback
   }
-}
 
-// Function to extract the enhanced prompt from the AI analysis
-export function extractEnhancedPrompt(analysis: string): string {
+  // Try to extract using regex
+  const masterCommandMatch = analysisText.match(/\"masterCommand\"\s*:\s*\"([^\"]+)\"/);
+  if (masterCommandMatch && masterCommandMatch[1]) {
+    return masterCommandMatch[1];
+  }
+
+  // Fallback to legacy format if needed
+  const legacyMatch = analysisText.match(/MASTER COMMAND:?\s*(.+?)(?:\n|$)/);
+  if (legacyMatch && legacyMatch[1]) {
+    return legacyMatch[1].trim();
+  }
+
+  return "Analyze and enhance this prompt";
+};
+
+// Function to extract enhanced prompt from the AI analysis
+export const extractEnhancedPrompt = (analysisText: string) => {
   try {
-    // Try to extract from JSON first
-    const jsonMatch = analysis.match(/\{[\s\S]*"enhancedPrompt":\s*"([\s\S]*?)"(?:,|\})(?:[\s\S]*\}|$)/);
-    if (jsonMatch && jsonMatch[1]) {
-      return jsonMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+    // Try to parse the entire response as JSON
+    const parsedResponse = JSON.parse(analysisText);
+    if (parsedResponse && parsedResponse.enhancedPrompt) {
+      return parsedResponse.enhancedPrompt;
     }
-    
-    // If that fails, try regex
-    const promptSection = analysis.match(/ENHANCED PROMPT:?\s*([\s\S]*?)(?=CONTEXT QUESTIONS:|VARIABLES:|MASTER COMMAND:|$)/i);
-    
-    if (promptSection && promptSection[1]) {
-      return promptSection[1].trim();
-    }
-    
-    return "# Enhanced Prompt\n\nPlease provide more context to enhance this prompt.";
-  } catch (error) {
-    console.error("Error extracting enhanced prompt:", error);
-    return "# Enhanced Prompt\n\nPlease provide more context to enhance this prompt.";
+  } catch (e) {
+    // If JSON parsing fails, use regex extraction as fallback
   }
-}
 
-// Helper function to generate default questions based on prompt text
-function generateDefaultQuestions(promptText: string): any[] {
-  const defaultQuestions = [
-    {
-      id: "q1",
-      text: "What is the primary purpose or goal you want to achieve?",
-      answer: "",
-      isRelevant: null,
-      category: "Purpose"
-    },
-    {
-      id: "q2",
-      text: "Who is the intended audience for this content?",
-      answer: "",
-      isRelevant: null,
-      category: "Audience"
-    },
-    {
-      id: "q3",
-      text: "What tone or style would be most appropriate?",
-      answer: "",
-      isRelevant: null,
-      category: "Style"
-    },
-    {
-      id: "q4",
-      text: "What specific details or information must be included?",
-      answer: "",
-      isRelevant: null,
-      category: "Content"
-    },
-    {
-      id: "q5",
-      text: "Are there any examples or references you'd like to follow?",
-      answer: "",
-      isRelevant: null,
-      category: "References"
-    }
-  ];
+  // Try to extract using regex
+  const enhancedPromptMatch = analysisText.match(/\"enhancedPrompt\"\s*:\s*\"([\s\S]*?)\"/);
+  if (enhancedPromptMatch && enhancedPromptMatch[1]) {
+    return enhancedPromptMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+  }
+
+  // Fallback to legacy format if needed
+  const legacyMatch = analysisText.match(/ENHANCED PROMPT:?\s*([\s\S]*?)(?:$|RESPONSE FORMAT)/);
+  if (legacyMatch && legacyMatch[1]) {
+    return legacyMatch[1].trim();
+  }
+
+  return "# Enhanced Prompt\n\nThis is an enhanced version of your original prompt.";
+};
+
+// Helper function to generate default questions based on the original prompt
+const generateDefaultQuestions = (originalPrompt: string) => {
+  const prompt = originalPrompt.toLowerCase();
+  const questions = [];
   
-  return defaultQuestions;
-}
-
-// Helper function to generate default variables based on prompt text
-function generateDefaultVariables(promptText: string): any[] {
-  const defaultVariables = [
-    {
-      id: "v1",
-      name: "Audience",
-      value: "",
-      isRelevant: null,
-      category: "Targeting"
-    },
-    {
-      id: "v2",
-      name: "Tone",
-      value: "",
-      isRelevant: null,
+  // Add general intent questions first
+  questions.push({
+    id: "q1",
+    text: "What is the main purpose or goal you want to achieve?",
+    answer: "",
+    category: "Intent"
+  });
+  
+  questions.push({
+    id: "q2",
+    text: "Who is the target audience for this content?",
+    answer: "",
+    category: "Audience"
+  });
+  
+  // Check for content creation intent
+  if (prompt.includes("write") || prompt.includes("create") || prompt.includes("generate content")) {
+    questions.push({
+      id: "q3",
+      text: "What tone and style should the content have?",
+      answer: "",
       category: "Style"
-    },
-    {
+    });
+    
+    questions.push({
+      id: "q4",
+      text: "What is the preferred length or format for this content?",
+      answer: "",
+      category: "Format"
+    });
+  }
+  
+  // Check for image generation intent
+  if (prompt.includes("image") || prompt.includes("picture") || prompt.includes("design")) {
+    questions.push({
+      id: "q3",
+      text: "What style, mood, or aesthetic are you looking for?",
+      answer: "",
+      category: "Style"
+    });
+    
+    questions.push({
+      id: "q4",
+      text: "What specific elements should be included in the image?",
+      answer: "",
+      category: "Content"
+    });
+  }
+  
+  // Check for research intent
+  if (prompt.includes("research") || prompt.includes("analyze") || prompt.includes("study")) {
+    questions.push({
+      id: "q3",
+      text: "What specific aspects do you want researched?",
+      answer: "",
+      category: "Scope"
+    });
+    
+    questions.push({
+      id: "q4",
+      text: "What level of detail do you need in the research?",
+      answer: "",
+      category: "Depth"
+    });
+  }
+  
+  // Add general fallback questions
+  questions.push({
+    id: "q5",
+    text: "Are there any specific examples or references you want to follow?",
+    answer: "",
+    category: "Reference"
+  });
+  
+  questions.push({
+    id: "q6",
+    text: "Are there any specific constraints or requirements to consider?",
+    answer: "",
+    category: "Constraints"
+  });
+  
+  return questions;
+};
+
+// Helper function to generate default variables based on the original prompt
+const generateDefaultVariables = (originalPrompt: string) => {
+  const prompt = originalPrompt.toLowerCase();
+  const variables = [];
+  
+  // Add universal variables
+  variables.push({
+    id: "v1",
+    name: "Tone",
+    value: "",
+    category: "Style"
+  });
+  
+  variables.push({
+    id: "v2",
+    name: "DetailLevel",
+    value: "",
+    category: "Content"
+  });
+  
+  // Content-specific variables
+  if (prompt.includes("write") || prompt.includes("create") || prompt.includes("generate content")) {
+    variables.push({
       id: "v3",
-      name: "Format",
+      name: "ContentFormat",
       value: "",
-      isRelevant: null,
-      category: "Structure"
-    },
-    {
+      category: "Format"
+    });
+    
+    variables.push({
       id: "v4",
       name: "KeyPoints",
       value: "",
-      isRelevant: null,
       category: "Content"
-    }
-  ];
+    });
+  }
   
-  return defaultVariables;
-}
+  // Image-specific variables
+  if (prompt.includes("image") || prompt.includes("picture") || prompt.includes("design")) {
+    variables.push({
+      id: "v3",
+      name: "ImageStyle",
+      value: "",
+      category: "Style"
+    });
+    
+    variables.push({
+      id: "v4",
+      name: "ColorPalette",
+      value: "",
+      category: "Design"
+    });
+  }
+  
+  // Research-specific variables
+  if (prompt.includes("research") || prompt.includes("analyze") || prompt.includes("study")) {
+    variables.push({
+      id: "v3",
+      name: "ResearchDepth",
+      value: "",
+      category: "Depth"
+    });
+    
+    variables.push({
+      id: "v4",
+      name: "DataSources",
+      value: "",
+      category: "Sources"
+    });
+  }
+  
+  return variables;
+};
