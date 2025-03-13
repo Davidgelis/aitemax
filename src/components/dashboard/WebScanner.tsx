@@ -19,26 +19,21 @@ export const WebScanner = ({
   const [savedUrl, setSavedUrl] = useState('');
   const [savedInstructions, setSavedInstructions] = useState('');
   const [hasContext, setHasContext] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   
-  const handleWebsiteScan = (url: string, instructions: string = "") => {
+  const handleWebsiteScan = (url: string, instructions: string) => {
     // Save the values for persistence
     setSavedUrl(url);
     setSavedInstructions(instructions);
     setHasContext(true);
-    setIsProcessing(true);
     
     // Add additional logging to debug data flow
-    console.log("WebScanner: Preparing to send website/YouTube data to parent");
+    console.log("WebScanner: Preparing to send website data to parent");
     console.log("URL:", url);
     console.log("Instructions:", instructions || "No specific instructions provided");
     
     // Call the parent handler without modifying any text area
-    console.log("WebScanner: Sending website/YouTube data to parent");
+    console.log("WebScanner: Sending website data to parent");
     onWebsiteScan(url, instructions);
-    
-    // Reset processing state after a short delay
-    setTimeout(() => setIsProcessing(false), 500);
   };
 
   const handleDeleteScan = () => {
@@ -47,45 +42,32 @@ export const WebScanner = ({
     setHasContext(false);
     
     // Call the parent handler with empty values to clear the context
-    console.log("WebScanner: Deleting website/YouTube context");
+    console.log("WebScanner: Deleting website context");
     onWebsiteScan('', '');
   };
 
+  // Model replacement style button
   if (variant === 'modelReplacement') {
     return (
       <div className={`w-full mr-auto ${className}`}>
         <div className="flex items-center">
           <button 
             onClick={() => setDialogOpen(true)}
-            disabled={isProcessing}
             className={`w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center text-sm rounded-md px-4 transition-all duration-300 ${
-              isProcessing 
-                ? 'opacity-75 cursor-wait' 
-                : hasContext 
-                  ? 'shadow-[0_0_5px_0_#33fea6]' 
-                  : 'shadow-sm'
+              hasContext 
+                ? 'shadow-[0_0_5px_0_#33fea6]' 
+                : 'shadow-sm'
             }`}
-            title="Extract specific information from a website or YouTube video to enhance your prompt"
+            title="Extract specific information from a website to enhance your prompt"
           >
-            <span className="truncate ml-1">
-              {isProcessing ? "Processing..." : "Web Smart Scan"}
-            </span>
-            <Globe className={`mr-1 h-4 w-4 ${
-              isProcessing 
-                ? 'animate-pulse text-[#33fea6]' 
-                : hasContext 
-                  ? 'text-[#33fea6]' 
-                  : 'text-[#084b49]'
-            }`} />
+            <span className="truncate ml-1">Web Smart Scan</span>
+            <Globe className={`mr-1 h-4 w-4 ${hasContext ? 'text-[#33fea6]' : 'text-[#084b49]'}`} />
           </button>
           
           {hasContext && (
             <button
               onClick={handleDeleteScan}
-              disabled={isProcessing}
-              className={`h-10 ml-2 px-2 bg-white border border-[#e5e7eb] text-red-500 hover:bg-red-50 flex items-center text-sm rounded-md transition-all ${
-                isProcessing ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
+              className="h-10 ml-2 px-2 bg-white border border-[#e5e7eb] text-red-500 hover:bg-red-50 flex items-center text-sm rounded-md transition-all"
               title="Delete web scan data"
             >
               <Trash2 className="h-4 w-4" />
@@ -112,37 +94,25 @@ export const WebScanner = ({
       <div className="mb-2 flex items-center">
         <Button
           onClick={() => setDialogOpen(true)}
-          disabled={isProcessing}
           variant="slim"
           size="xs"
           className={`group animate-aurora-border ${
-            isProcessing 
-              ? 'opacity-75' 
-              : hasContext 
-                ? 'shadow-[0_0_5px_0_#33fea6]' 
-                : ''
+            hasContext 
+              ? 'shadow-[0_0_5px_0_#33fea6]' 
+              : ''
           }`}
-          title="Extract specific information from a website or YouTube video to enhance your prompt"
+          title="Extract specific information from a website to enhance your prompt"
         >
-          <Globe className={`w-3 h-3 ${
-            isProcessing 
-              ? 'animate-pulse text-[#33fea6]' 
-              : hasContext 
-                ? 'text-[#33fea6]' 
-                : 'text-[#64bf95] group-hover:text-[#33fea6]'
-          } transition-colors`} />
-          <span>{isProcessing ? "Processing..." : "Web Scan"}</span>
+          <Globe className={`w-3 h-3 ${hasContext ? 'text-[#33fea6]' : 'text-[#64bf95] group-hover:text-[#33fea6]'} transition-colors`} />
+          <span>Web Scan</span>
         </Button>
         
         {hasContext && (
           <Button
             onClick={handleDeleteScan}
-            disabled={isProcessing}
             variant="slim"
             size="xs"
-            className={`ml-2 text-red-500 hover:bg-red-50 group ${
-              isProcessing ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className="ml-2 text-red-500 hover:bg-red-50 group"
             title="Delete web scan data"
           >
             <Trash2 className="w-3 h-3" />

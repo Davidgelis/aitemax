@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
@@ -60,8 +59,8 @@ export const StepOneContent = ({
 
   const handleWebsiteScan = (url: string, instructions: string = "") => {
     const contextData = { url, instructions };
-    setWebsiteContext(url ? contextData : null);
-    console.log("StepOneContent: Website/YouTube context set:", contextData);
+    setWebsiteContext(contextData);
+    console.log("StepOneContent: Website context set:", contextData);
     
     // Important: Forward to parent component
     onWebsiteScan(url, instructions);
