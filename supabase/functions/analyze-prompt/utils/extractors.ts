@@ -1,5 +1,5 @@
 
-// If this file doesn't exist, I'll create it with proper extractors for handling the improved system prompt output
+// Functions for extracting data from AI analysis response
 
 // Function to extract questions from the AI analysis
 export const extractQuestions = (analysisText: string, originalPrompt: string) => {
@@ -8,7 +8,29 @@ export const extractQuestions = (analysisText: string, originalPrompt: string) =
     const parsedResponse = JSON.parse(analysisText);
     if (parsedResponse && Array.isArray(parsedResponse.contextQuestions)) {
       console.log("Successfully extracted questions from JSON response");
-      return parsedResponse.contextQuestions;
+      
+      // Validate and enhance question descriptions
+      const enhancedQuestions = parsedResponse.contextQuestions.map(q => {
+        // Check if answer contains generic references and flag it
+        const hasGenericReference = q.answer && (
+          q.answer.includes("the image shows") || 
+          q.answer.includes("the website mentions") || 
+          q.answer.includes("the provided context") ||
+          q.answer.includes("based on the context")
+        );
+        
+        if (hasGenericReference) {
+          console.warn("Question answer contains generic references:", q.text);
+        }
+        
+        return {
+          ...q,
+          // Add metadata about answer quality
+          answerQuality: hasGenericReference ? "generic" : "detailed"
+        };
+      });
+      
+      return enhancedQuestions;
     }
   } catch (e) {
     // If JSON parsing fails, use regex extraction as fallback
@@ -57,7 +79,32 @@ export const extractVariables = (analysisText: string, originalPrompt: string) =
     const parsedResponse = JSON.parse(analysisText);
     if (parsedResponse && Array.isArray(parsedResponse.variables)) {
       console.log("Successfully extracted variables from JSON response");
-      return parsedResponse.variables;
+      
+      // Validate variable values for length and specificity
+      const enhancedVariables = parsedResponse.variables.map(v => {
+        // Check if the value is too long (more than 4 words)
+        const wordCount = v.value ? v.value.split(/\s+/).filter(Boolean).length : 0;
+        const isTooLong = wordCount > 4;
+        
+        if (isTooLong) {
+          console.warn(`Variable ${v.name} has too many words (${wordCount}): "${v.value}"`);
+          // Truncate to first 4 words if too long
+          const truncatedValue = v.value.split(/\s+/).filter(Boolean).slice(0, 4).join(" ");
+          return {
+            ...v,
+            originalValue: v.value,
+            value: truncatedValue,
+            valueQuality: "truncated"
+          };
+        }
+        
+        return {
+          ...v,
+          valueQuality: "appropriate"
+        };
+      });
+      
+      return enhancedVariables;
     }
   } catch (e) {
     // If JSON parsing fails, use regex extraction as fallback

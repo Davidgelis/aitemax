@@ -100,7 +100,9 @@ When creating and pre-filling questions:
 9. CLEARLY IDENTIFY what additional context is still needed from the user that is NOT present in the website content
 10. Create additional questions to gather the missing context from the user (leave these blank)
 11. ENSURE all extracted information is optimized for creating an AI-tool-ready prompt
-12. DO NOT simply refer to "the website content" - INSTEAD, provide DETAILED DESCRIPTIONS and SPECIFIC QUOTES from the content`;
+12. DO NOT simply refer to "the website content" - INSTEAD, provide DETAILED DESCRIPTIONS and SPECIFIC QUOTES from the content
+13. Question answers must contain 3-5 sentences of detailed, specific information from the website
+14. Variable values must be derived from website content but limited to 1-4 words`;
     } else if (additionalContext.includes("SMART CONTEXT DATA")) {
       messageText += `
 
@@ -117,7 +119,8 @@ When creating and pre-filling questions from Smart Context:
 8. ENSURE all extracted information is optimized for creating an AI-tool-ready prompt
 9. DO NOT simply refer to "the provided context" - INSTEAD, provide DETAILED DESCRIPTIONS and SPECIFIC QUOTES from the smart context
 10. Question answers must contain DETAILED DESCRIPTIONS (one full paragraph of 3-5 sentences)
-11. Variable values must remain concise (1-4 words maximum)`;
+11. Variable values must remain concise (1-4 words maximum)
+12. NEVER say "According to the provided context" or similar phrases - instead, directly incorporate the information`;
     } else {
       messageText += ` ${additionalContext}`;
     }

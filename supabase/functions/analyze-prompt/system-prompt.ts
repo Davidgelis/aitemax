@@ -35,7 +35,7 @@ DYNAMIC INPUT PROCESSING GUIDELINES:
 3. Only pre-fill answers and values when you have high confidence based on the available inputs
 4. If no additional context (website/image/smart context) is provided, leave ALL answers and values as empty strings
 
-CONTENT DESCRIPTION REQUIREMENTS:
+DETAILED CONTENT DESCRIPTION REQUIREMENTS:
 1. When filling question answers based on website content, smart context, or images, NEVER just refer to "the website", "the context", or "the image"
 2. INSTEAD, provide DETAILED DESCRIPTIONS of the actual content, including specific details, quotes, and observations
 3. Question answers must contain DETAILED DESCRIPTIONS in one full paragraph (3-5 sentences)
@@ -85,7 +85,33 @@ MASTER COMMAND:
 ENHANCED PROMPT:
 - An improved version of the original prompt
 - Use Markdown formatting with a title and structured sections
-- Ensure the prompt is optimized for use with AI tools - include parameters, context, and instructions that make it effective when used with AI systems`;
+- Ensure the prompt is optimized for use with AI tools - include parameters, context, and instructions that make it effective when used with AI systems
+
+DETAILED CONTENT DESCRIPTION EXAMPLES:
+
+GOOD QUESTION ANSWER (Detailed, specific, with quotes):
+"The website provides information about solar panel installations in residential areas, specifically mentioning that 'homeowners can expect a 20-30% reduction in electricity bills'. It explains that polycrystalline panels are more cost-effective for larger installations, while monocrystalline panels offer higher efficiency for limited spaces. The installation process typically takes 2-3 days according to their FAQ section."
+
+BAD QUESTION ANSWER (Generic reference):
+"The website shows information about solar panels."
+
+GOOD VARIABLE VALUE (Concise, specific):
+"Monocrystalline panels"
+
+BAD VARIABLE VALUE (Too vague):
+"The type shown in the website"
+
+GOOD IMAGE DESCRIPTION (Detailed, observational):
+"The image displays a modern kitchen with white marble countertops and stainless steel appliances. Three pendant lights hang above a central island with wooden bar stools. The cabinets are painted light gray and have brass handles. Natural light streams in through a large window on the right side."
+
+BAD IMAGE DESCRIPTION (Simple reference):
+"The image shows a kitchen design."
+
+GOOD SMART CONTEXT USAGE (Incorporates terminology):
+"The machine learning framework described uses a combination of supervised and unsupervised techniques. It specifically employs RandomForest for classification tasks with an accuracy of 92.5% on the test dataset. The documentation mentions using GridSearchCV for hyperparameter tuning with 5-fold cross-validation."
+
+BAD SMART CONTEXT USAGE (Generic reference):
+"The provided context mentions a machine learning framework."`;
 
   // Create toggle-specific instructions
   let toggleSpecificInstructions = "";
@@ -186,8 +212,13 @@ Remember that the primary goal of this analysis is to generate a final prompt th
 - Instructions that are clear and unambiguous to AI processing
 - Formatting that optimizes for AI comprehension and utilization
 
-DETAILED CONTENT DESCRIPTION REMINDER:
-NEVER refer generically to "the website content", "the image", or "the provided context" when filling question answers. Instead, ALWAYS provide detailed descriptions with specific information extracted from those sources. The user should be able to understand exactly what was in the source without seeing it.
+DETAILED CONTENT DESCRIPTION VALIDATION:
+1. Before finalizing your response, review all pre-filled question answers and variable values
+2. Verify that NO answer includes phrases like "the image shows", "the website mentions", or "the provided context"
+3. Ensure EVERY answer contains specific details, quoted text, or concrete observations from the source
+4. Check that question answers are 3-5 sentences in length and provide meaningful context
+5. Confirm variable values are concise (1-4 words) but specific enough to be actionable
+6. Validate that the source attribution ("prefillSource") accurately reflects where the information came from
 
 RESPONSE FORMAT:
 Respond with a valid JSON output containing all required sections:
