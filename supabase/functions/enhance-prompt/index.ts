@@ -121,7 +121,7 @@ serve(async (req) => {
       promptId
     } = await req.json();
     
-    console.log(`Enhancing prompt with GPT-4o analysis...`);
+    console.log(`Enhancing prompt with o3-mini analysis...`);
     console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
     console.log(`Questions answered: ${answeredQuestions.length}`);
     console.log(`Relevant variables: ${relevantVariables.length}`);
@@ -239,7 +239,7 @@ Based on this information, generate an enhanced final prompt that follows the st
       `
     };
 
-    // Call GPT-4o API to enhance the prompt - explicitly using GPT-4o model
+    // Call the o3-mini model to enhance the prompt
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -247,7 +247,7 @@ Based on this information, generate an enhanced final prompt that follows the st
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // Explicitly use GPT-4o
+        model: 'o3-mini', // Explicitly using o3-mini model
         messages: [systemMessage, userMessage],
         temperature: 0.7,
       }),
@@ -262,7 +262,7 @@ Based on this information, generate an enhanced final prompt that follows the st
     const data = await response.json();
     const enhancedPrompt = data.choices[0].message.content;
     
-    console.log("Prompt enhancement completed successfully with GPT-4o");
+    console.log("Prompt enhancement completed successfully with o3-mini");
     
     // Record the token usage for this step if userId is provided
     if (userId) {
@@ -272,7 +272,7 @@ Based on this information, generate an enhanced final prompt that follows the st
         3, // Step 3: Final prompt generation
         data.usage.prompt_tokens,
         data.usage.completion_tokens,
-        'gpt-4o'
+        'o3-mini'
       );
     }
     
