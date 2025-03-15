@@ -52,6 +52,8 @@ Then generate focused questions and variables with pre-filled values based on wh
 
 IMPORTANT: After analyzing the image, identify what ADDITIONAL context is still needed from the user that is NOT visible in the image and create questions to gather that missing information. For example, if the image shows lighting but doesn't indicate purpose, ask questions about the intended use.
 
+CRITICAL: All extracted information must be evaluated with the specific objective of constructing an AI-TOOL-READY PROMPT. Every piece of context must serve the end goal: generating a final prompt optimized for use with existing AI tools. This means focusing on details, parameters, and instructions that will result in an effective prompt that works well with AI systems.
+
 SPLIT YOUR QUESTIONS INTO:
 1. Questions answerable directly from the image (pre-fill these)
 2. Questions that need user input (leave these blank)
@@ -73,7 +75,9 @@ ${additionalContext}`
     // Enhance user prompt with more specific instructions for intent analysis and content extraction
     let messageText = `Analyze this prompt for generating questions and variables: "${promptText}"
 
-FIRST, DEEPLY ANALYZE the main intent behind this prompt. What is the user trying to accomplish? Is it content creation, image generation, research, marketing, coding, or something else?`;
+FIRST, DEEPLY ANALYZE the main intent behind this prompt. What is the user trying to accomplish? Is it content creation, image generation, research, marketing, coding, or something else?
+
+CRITICAL: All extracted information must be evaluated with the specific objective of constructing an AI-TOOL-READY PROMPT. Every piece of context must serve the end goal: generating a final prompt optimized for use with existing AI tools. This means focusing on details, parameters, and instructions that will result in an effective prompt that works well with AI systems.`;
     
     if (additionalContext.includes("WEBSITE CONTEXT")) {
       messageText += `
@@ -90,7 +94,8 @@ When creating and pre-filling questions:
 7. If the user asked to extract specific information (like "best practices"), focus on those items as they relate to the original prompt
 8. Remember: website content is supplementary research material for enhancing the original prompt, not the primary subject
 9. CLEARLY IDENTIFY what additional context is still needed from the user that is NOT present in the website content
-10. Create additional questions to gather the missing context from the user (leave these blank)`;
+10. Create additional questions to gather the missing context from the user (leave these blank)
+11. ENSURE all extracted information is optimized for creating an AI-tool-ready prompt`;
     } else if (additionalContext.includes("SMART CONTEXT DATA")) {
       messageText += `
 
@@ -103,7 +108,8 @@ When creating and pre-filling questions from Smart Context:
 4. Extract 1-2 full sentences of detailed information from the smart context for question answers
 5. Include specific terminology, concepts, or examples from the smart context when relevant
 6. CLEARLY IDENTIFY what additional context is still needed from the user that is NOT present in the smart context
-7. Create additional questions to gather the missing context from the user (leave these blank)`;
+7. Create additional questions to gather the missing context from the user (leave these blank)
+8. ENSURE all extracted information is optimized for creating an AI-tool-ready prompt`;
     } else {
       messageText += ` ${additionalContext}`;
     }

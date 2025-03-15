@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -477,7 +476,9 @@ Based on this combination, follow these guidelines:
 5. Only pre-fill values when you have high confidence based on the available inputs
 6. Mark all items that combine information from multiple sources with "prefillSource": "combined"
 7. IMPORTANT: Question answers should be filled with detailed context in ONE concise paragraph (3-5 sentences max)
-8. IMPORTANT: Variable values should be very concise and specific (1-4 words maximum)`;
+8. IMPORTANT: Variable values should be very concise and specific (1-4 words maximum)
+9. CRITICAL: All extracted information must be evaluated for its usefulness in creating an AI-TOOL-READY PROMPT
+10. Every question, variable, and context element should contribute to a final prompt that will work effectively with AI systems`;
 
     console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);
     if (!hasAdditionalContext) {

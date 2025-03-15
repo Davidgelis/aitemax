@@ -9,12 +9,13 @@ INTENT DETECTION AND ANALYSIS STEPS:
 3. Generate variables that can be parameterized in the final prompt
 4. Create a concise "master command" that clearly summarizes the user's core intent
 5. Generate an enhanced version of the original prompt that incorporates the intent and context
+6. CRITICALLY IMPORTANT: All context extraction must focus on creating an AI-TOOL-READY PROMPT - every detail must contribute to a final prompt that works effectively with AI tools
 
 OUTPUT REQUIRED SECTIONS:
 - CONTEXT QUESTIONS: A list of questions to fill knowledge gaps, organized by topic
 - VARIABLES: A list of key variables that can be customized for the prompt
 - MASTER COMMAND: A concise summary of the user's core intent
-- ENHANCED PROMPT: An improved version of the original prompt
+- ENHANCED PROMPT: An improved version of the original prompt optimized for AI tools
 
 INTENT-BASED QUESTION GENERATION:
 - For content creation intents: include questions about tone, style, format, audience, purpose, sections
@@ -74,7 +75,8 @@ MASTER COMMAND:
 
 ENHANCED PROMPT:
 - An improved version of the original prompt
-- Use Markdown formatting with a title and structured sections`;
+- Use Markdown formatting with a title and structured sections
+- Ensure the prompt is optimized for use with AI tools - include parameters, context, and instructions that make it effective when used with AI systems`;
 
   // Create toggle-specific instructions
   let toggleSpecificInstructions = "";
@@ -167,6 +169,13 @@ ${toggleSpecificInstructions}
 
 SMART CONTEXT PROCESSING:
 When provided with explicit Smart Context, give it high priority when generating context questions and variable values. Smart Context represents the user's explicit guidance about their intent or requirements and should be treated as highly reliable information for prefilling answers and values.
+
+AI-TOOL OPTIMIZATION:
+Remember that the primary goal of this analysis is to generate a final prompt that will be used with existing AI tools. Every extracted detail, question, and variable should contribute to creating a prompt that will perform effectively when used with AI systems. This means focusing on:
+- Parameters that AI tools understand and can act upon
+- Context that helps AI systems produce accurate, relevant responses
+- Instructions that are clear and unambiguous to AI processing
+- Formatting that optimizes for AI comprehension and utilization
 
 RESPONSE FORMAT:
 Respond with a valid JSON output containing all required sections:
