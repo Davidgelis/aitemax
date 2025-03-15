@@ -44,7 +44,9 @@ export async function analyzePromptWithAI(
           type: "text",
           text: `Analyze this prompt for generating questions and variables: "${promptText}" 
           
-First, provide a BRIEF description of the image (max 2 paragraphs). Focus ONLY on what's directly visible and ONLY mention aspects that are relevant to the prompt.${imageInstructionsText}
+First, DEEPLY ANALYZE the intent behind this prompt to understand what the user is trying to accomplish.
+
+Then, provide a BRIEF description of the image (max 2 paragraphs). Focus ONLY on what's directly visible and ONLY mention aspects that are relevant to the prompt.${imageInstructionsText}
 
 Then generate focused questions and variables with pre-filled values based on what you directly observe in the image that's MOST RELEVANT to the prompt.
 
@@ -68,8 +70,10 @@ ${additionalContext}`
     console.log("No image provided - using text-only OpenAI API request");
     console.log("Additional context provided:", additionalContext ? "Yes" : "No");
     
-    // Enhance user prompt with more specific instructions for website analysis
-    let messageText = `Analyze this prompt for generating questions and variables: "${promptText}"`;
+    // Enhance user prompt with more specific instructions for intent analysis and content extraction
+    let messageText = `Analyze this prompt for generating questions and variables: "${promptText}"
+
+FIRST, DEEPLY ANALYZE the main intent behind this prompt. What is the user trying to accomplish? Is it content creation, image generation, research, marketing, coding, or something else?`;
     
     if (additionalContext.includes("WEBSITE CONTEXT")) {
       messageText += `
@@ -87,6 +91,19 @@ When creating and pre-filling questions:
 8. Remember: website content is supplementary research material for enhancing the original prompt, not the primary subject
 9. CLEARLY IDENTIFY what additional context is still needed from the user that is NOT present in the website content
 10. Create additional questions to gather the missing context from the user (leave these blank)`;
+    } else if (additionalContext.includes("SMART CONTEXT DATA")) {
+      messageText += `
+
+${additionalContext}
+
+When creating and pre-filling questions from Smart Context:
+1. FOCUS ON THE ORIGINAL PROMPT'S INTENT - the smart context should enhance, not replace it
+2. Create questions that relate to the original prompt's purpose, leveraging the smart context information
+3. Use the smart context to provide detailed answers that support the original prompt's goals
+4. Extract 1-2 full sentences of detailed information from the smart context for question answers
+5. Include specific terminology, concepts, or examples from the smart context when relevant
+6. CLEARLY IDENTIFY what additional context is still needed from the user that is NOT present in the smart context
+7. Create additional questions to gather the missing context from the user (leave these blank)`;
     } else {
       messageText += ` ${additionalContext}`;
     }

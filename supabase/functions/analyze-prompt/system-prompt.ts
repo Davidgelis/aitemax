@@ -62,6 +62,12 @@ VARIABLES FORMAT:
   }
 ]
 
+PRE-FILLING GUIDELINES:
+- Question answers should be filled with DETAILED CONTEXT in 1 concise paragraph (3-5 sentences max)
+- Variable values should be concise and specific (1-4 words maximum)
+- Extract the most relevant and specific information from additional context sources
+- Prioritize concrete, specific details over general information
+
 MASTER COMMAND:
 - A single sentence that captures the essence of what the user wants to accomplish
 - Should be direct, actionable, and clearly state the primary intent

@@ -475,7 +475,9 @@ Based on this combination, follow these guidelines:
 3. For each question and variable, determine the appropriate value based on ALL available inputs
 4. Use "prefillSource" to indicate where the pre-filled value came from (webscan, imagescan, smartcontext, toggle, combined)
 5. Only pre-fill values when you have high confidence based on the available inputs
-6. Mark all items that combine information from multiple sources with "prefillSource": "combined"`;
+6. Mark all items that combine information from multiple sources with "prefillSource": "combined"
+7. IMPORTANT: Question answers should be filled with detailed context in ONE concise paragraph (3-5 sentences max)
+8. IMPORTANT: Variable values should be very concise and specific (1-4 words maximum)`;
 
     console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);
     if (!hasAdditionalContext) {
