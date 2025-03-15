@@ -129,11 +129,7 @@ export const StepThreeContent = ({
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
-      <MasterCommandSection 
-        masterCommand={masterCommand || ""}
-        setMasterCommand={setMasterCommand}
-        handleRegenerate={handleRegenerate}
-      />
+      {/* MasterCommandSection is intentionally removed as requested */}
 
       <ToggleSection 
         showJson={showJson}
