@@ -136,10 +136,6 @@ export const StepThreeContent = ({
       />
 
       <ToggleSection 
-        selectedPrimary={selectedPrimary}
-        selectedSecondary={selectedSecondary}
-        handlePrimaryToggle={handlePrimaryToggle}
-        handleSecondaryToggle={handleSecondaryToggle}
         showJson={showJson}
         setShowJson={setShowJson}
       />
