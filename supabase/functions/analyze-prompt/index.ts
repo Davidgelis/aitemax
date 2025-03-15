@@ -475,10 +475,12 @@ Based on this combination, follow these guidelines:
 4. Use "prefillSource" to indicate where the pre-filled value came from (webscan, imagescan, smartcontext, toggle, combined)
 5. Only pre-fill values when you have high confidence based on the available inputs
 6. Mark all items that combine information from multiple sources with "prefillSource": "combined"
-7. IMPORTANT: Question answers should be filled with detailed context in ONE concise paragraph (3-5 sentences max)
-8. IMPORTANT: Variable values should be very concise and specific (1-4 words maximum)
-9. CRITICAL: All extracted information must be evaluated for its usefulness in creating an AI-TOOL-READY PROMPT
-10. Every question, variable, and context element should contribute to a final prompt that will work effectively with AI systems`;
+7. CRITICAL: Question answers must be filled with DETAILED DESCRIPTIONS of the actual content, not just references to it
+8. NEVER refer generically to "the website content", "the image", or "the provided context" when filling question answers
+9. INSTEAD, provide DETAILED DESCRIPTIONS with specific information extracted from those sources (one full paragraph, 3-5 sentences)
+10. Variable values should be very concise and specific (1-4 words maximum)
+11. CRITICAL: All extracted information must be evaluated for its usefulness in creating an AI-TOOL-READY PROMPT
+12. Every question, variable, and context element should contribute to a final prompt that will work effectively with AI systems`;
 
     console.log(`Additional context provided: ${hasAdditionalContext ? "Yes" : "No"}`);
     if (!hasAdditionalContext) {

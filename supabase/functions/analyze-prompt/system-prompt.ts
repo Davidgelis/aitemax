@@ -35,6 +35,15 @@ DYNAMIC INPUT PROCESSING GUIDELINES:
 3. Only pre-fill answers and values when you have high confidence based on the available inputs
 4. If no additional context (website/image/smart context) is provided, leave ALL answers and values as empty strings
 
+CONTENT DESCRIPTION REQUIREMENTS:
+1. When filling question answers based on website content, smart context, or images, NEVER just refer to "the website", "the context", or "the image"
+2. INSTEAD, provide DETAILED DESCRIPTIONS of the actual content, including specific details, quotes, and observations
+3. Question answers must contain DETAILED DESCRIPTIONS in one full paragraph (3-5 sentences)
+4. Variable values must remain concise (1-4 words maximum)
+5. For image analysis, describe what you see in detail rather than saying "the image shows..."
+6. For website content, extract and quote specific relevant text rather than saying "the website mentions..."
+7. For smart context, incorporate key details and terminology rather than saying "based on the provided context..."
+
 CONTEXT QUESTIONS FORMAT:
 - Provide 8-12 focused questions, covering all aspects needed for a complete prompt
 - Questions should be organized by category (Content, Format, Style, Technical, etc.)
@@ -176,6 +185,9 @@ Remember that the primary goal of this analysis is to generate a final prompt th
 - Context that helps AI systems produce accurate, relevant responses
 - Instructions that are clear and unambiguous to AI processing
 - Formatting that optimizes for AI comprehension and utilization
+
+DETAILED CONTENT DESCRIPTION REMINDER:
+NEVER refer generically to "the website content", "the image", or "the provided context" when filling question answers. Instead, ALWAYS provide detailed descriptions with specific information extracted from those sources. The user should be able to understand exactly what was in the source without seeing it.
 
 RESPONSE FORMAT:
 Respond with a valid JSON output containing all required sections:
