@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -23,11 +24,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper function to calculate token costs
+// Helper function to calculate token costs - UPDATED WITH NEW PRICING
 function calculateTokenCosts(promptTokens: number, completionTokens: number) {
-  // GPT-4o pricing: $0.00250 per 1K prompt tokens, $0.00750 per 1K completion tokens
-  const promptCost = (promptTokens / 1000) * 0.00250;
-  const completionCost = (completionTokens / 1000) * 0.00750;
+  // GPT-4o pricing: $0.0025 per 1K prompt tokens, $0.01 per 1K completion tokens
+  const promptCost = (promptTokens / 1000) * 0.0025;
+  const completionCost = (completionTokens / 1000) * 0.01;
   return {
     promptCost,
     completionCost,

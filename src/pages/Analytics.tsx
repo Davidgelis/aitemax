@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -213,16 +212,16 @@ export default function Analytics() {
 
   // Create fallback data if multiple retries fail
   const createFallbackData = () => {
-    // Sample user stats
+    // Sample user stats with updated pricing
     const sampleUserStats: UserTokenStats[] = [
       {
         user_id: "sample-user-1",
         username: "Sample User 1",
         total_prompt_tokens: 5000,
         total_completion_tokens: 2500,
-        total_prompt_cost: 0.01,
-        total_completion_cost: 0.02,
-        total_cost: 0.03,
+        total_prompt_cost: 5000 * 0.0025 / 1000, // Updated pricing
+        total_completion_cost: 2500 * 0.01 / 1000, // Updated pricing
+        total_cost: (5000 * 0.0025 / 1000) + (2500 * 0.01 / 1000), // Updated pricing
         prompts_count: 25
       },
       {
@@ -230,9 +229,9 @@ export default function Analytics() {
         username: "Sample User 2",
         total_prompt_tokens: 3000,
         total_completion_tokens: 1500,
-        total_prompt_cost: 0.006,
-        total_completion_cost: 0.012,
-        total_cost: 0.018,
+        total_prompt_cost: 3000 * 0.0025 / 1000, // Updated pricing
+        total_completion_cost: 1500 * 0.01 / 1000, // Updated pricing
+        total_cost: (3000 * 0.0025 / 1000) + (1500 * 0.01 / 1000), // Updated pricing
         prompts_count: 15
       }
     ];
