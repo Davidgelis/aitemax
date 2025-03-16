@@ -343,6 +343,7 @@ export const StepController = ({
             finalPrompt={finalPrompt}
             getProcessedPrompt={getProcessedPrompt}
             variables={variables}
+            setVariables={setVariables}
             handleVariableValueChange={handleVariableValueChange}
             handleCopyPrompt={handleCopyPrompt}
             handleSavePrompt={handleSavePrompt}

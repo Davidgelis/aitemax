@@ -22,6 +22,7 @@ interface StepThreeContentProps {
   finalPrompt: string;
   getProcessedPrompt: () => string;
   variables: Variable[];
+  setVariables: React.Dispatch<React.SetStateAction<Variable[]>>;
   handleVariableValueChange: (variableId: string, newValue: string) => void;
   handleCopyPrompt: () => void;
   handleSavePrompt: () => void;
@@ -47,6 +48,7 @@ export const StepThreeContent = ({
   finalPrompt,
   getProcessedPrompt,
   variables,
+  setVariables,
   handleVariableValueChange,
   handleCopyPrompt,
   handleSavePrompt,
@@ -127,6 +129,22 @@ export const StepThreeContent = ({
     }
   };
 
+  // Safely update variables
+  const safeSetVariables = (updater: React.SetStateAction<Variable[]>) => {
+    try {
+      setVariables(updater);
+      // Force re-render
+      setRenderTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error("Error updating variables:", error);
+      toast({
+        title: "Error updating variables",
+        description: "An error occurred while trying to update variables",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Wrapper function to adapt the handleSaveEditedPrompt to match EditPromptSheet's onSave prop type
   const handleSaveEdited = () => {
     handleSaveEditedPrompt(editingPrompt);
@@ -145,13 +163,14 @@ export const StepThreeContent = ({
         finalPrompt={finalPrompt || ""}
         getProcessedPrompt={safeGetProcessedPrompt}
         variables={safeVariables}
+        setVariables={safeSetVariables}
         showJson={showJson}
         masterCommand={masterCommand || ""}
         handleOpenEditPrompt={handleOpenEditPrompt}
       />
 
       <VariablesSection 
-        variables={safeVariables}
+        variables={safeVariables.filter(v => v.isRelevant === true)}
         handleVariableValueChange={safeHandleVariableValueChange}
       />
 

@@ -48,7 +48,7 @@ export const EditPromptSheet = ({
         </SheetHeader>
         
         <Textarea
-          className="min-h-[300px] font-mono text-sm"
+          className="min-h-[300px] font-sans text-sm"
           value={localPrompt}
           onChange={(e) => setLocalPrompt(e.target.value)}
         />

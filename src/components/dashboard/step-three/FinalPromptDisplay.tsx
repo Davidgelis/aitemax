@@ -1,14 +1,17 @@
 
-import { Edit } from "lucide-react";
+import { Edit, PlusCircle, Check, X } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { v4 as uuidv4 } from "uuid";
 
 interface FinalPromptDisplayProps {
   finalPrompt: string;
   getProcessedPrompt: () => string;
   variables: Variable[];
+  setVariables: React.Dispatch<React.SetStateAction<Variable[]>>;
   showJson: boolean;
   masterCommand: string;
   handleOpenEditPrompt: () => void;
@@ -18,6 +21,7 @@ export const FinalPromptDisplay = ({
   finalPrompt,
   getProcessedPrompt,
   variables,
+  setVariables,
   showJson,
   masterCommand,
   handleOpenEditPrompt
@@ -26,6 +30,11 @@ export const FinalPromptDisplay = ({
   const [promptJson, setPromptJson] = useState<PromptJsonStructure | null>(null);
   const [isLoadingJson, setIsLoadingJson] = useState(false);
   const [jsonGenerated, setJsonGenerated] = useState(false);
+  const [isCreatingVariable, setIsCreatingVariable] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
+  const [selectionRange, setSelectionRange] = useState<{start: number, end: number} | null>(null);
+  const promptContainerRef = useRef<HTMLDivElement>(null);
+  
   const { toast } = useToast();
   
   const [userId, setUserId] = useState<string | null>(null);
@@ -99,40 +108,112 @@ export const FinalPromptDisplay = ({
     }
   }, [getProcessedPrompt, finalPrompt, variables]);
   
-  const escapeRegExp = (string: string = "") => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Handle user text selection
+  const handleMouseUp = () => {
+    if (!isCreatingVariable) return;
+    
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || !selection.toString().trim()) return;
+    
+    const range = selection.getRangeAt(0);
+    const container = promptContainerRef.current;
+    
+    if (!container || !container.contains(range.commonAncestorContainer)) return;
+    
+    // Calculate the start and end positions in the text
+    const preSelectionRange = range.cloneRange();
+    preSelectionRange.selectNodeContents(container);
+    preSelectionRange.setEnd(range.startContainer, range.startOffset);
+    const start = preSelectionRange.toString().length;
+    
+    const selectedText = selection.toString().trim();
+    
+    setSelectedText(selectedText);
+    setSelectionRange({ start, end: start + selectedText.length });
   };
   
-  const highlightVariablesInText = (text: string) => {
-    if (!text || !Array.isArray(relevantVariables) || relevantVariables.length === 0) {
-      return text;
+  // Create a new variable from the selected text
+  const createVariableFromSelection = () => {
+    if (!selectedText || !selectionRange) return;
+    
+    if (relevantVariables.length >= 15) {
+      toast({
+        title: "Variable limit reached",
+        description: "You can create up to 15 variables",
+        variant: "destructive"
+      });
+      cancelVariableCreation();
+      return;
     }
     
-    let processedText = text;
+    const variableName = selectedText.length > 15 
+      ? `${selectedText.substring(0, 15)}...` 
+      : selectedText;
     
-    relevantVariables.forEach(variable => {
-      if (!variable || !variable.name) return;
-      
-      try {
-        // Highlight unresolved variables (those without values)
-        if (!variable.value) {
-          const pattern = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
-          processedText = processedText.replace(pattern, 
-            `<span class="unresolved-variable">{{${variable.name}}}</span>`);
-        } 
-        // Highlight resolved variables (those with values)
-        else {
-          const escapedValue = escapeRegExp(variable.value);
-          const valuePattern = new RegExp(`\\b${escapedValue}\\b`, 'g');
-          processedText = processedText.replace(valuePattern, 
-            `<span class="variable-highlight">${variable.value}</span>`);
-        }
-      } catch (error) {
-        console.error(`Error highlighting variable ${variable.name}:`, error);
-      }
+    const newVariable: Variable = {
+      id: uuidv4(),
+      name: variableName,
+      value: selectedText,
+      isRelevant: true,
+      category: 'User-Defined'
+    };
+    
+    setVariables(prevVariables => [...prevVariables, newVariable]);
+    
+    toast({
+      title: "Variable created",
+      description: `Created variable: ${variableName}`,
     });
     
-    return processedText;
+    cancelVariableCreation();
+  };
+  
+  // Cancel variable creation mode
+  const cancelVariableCreation = () => {
+    setIsCreatingVariable(false);
+    setSelectedText("");
+    setSelectionRange(null);
+    window.getSelection()?.removeAllRanges();
+  };
+  
+  // Toggle variable creation mode
+  const toggleVariableCreation = () => {
+    setIsCreatingVariable(prevState => !prevState);
+    if (isCreatingVariable) {
+      cancelVariableCreation();
+    } else {
+      toast({
+        title: "Variable creation mode",
+        description: "Select text to create a variable",
+      });
+    }
+  };
+  
+  // Handle variable removal
+  const removeVariable = (variableId: string) => {
+    setVariables(prevVariables => 
+      prevVariables.map(v => 
+        v.id === variableId ? { ...v, isRelevant: false } : v
+      )
+    );
+    
+    toast({
+      title: "Variable removed",
+      description: "Variable has been removed",
+    });
+  };
+  
+  // Update a variable's value
+  const updateVariableValue = (variableId: string, newValue: string) => {
+    setVariables(prevVariables => 
+      prevVariables.map(v => 
+        v.id === variableId ? { ...v, value: newValue } : v
+      )
+    );
+  };
+  
+  const escapeRegExp = (string: string = "") => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   };
   
   const renderProcessedPrompt = () => {
@@ -169,18 +250,122 @@ export const FinalPromptDisplay = ({
         return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
       }
       
-      const paragraphs = processedPrompt.split('\n\n');
-      
       return (
-        <div className="prose prose-sm max-w-none">
-          {paragraphs.map((paragraph, index) => {
+        <div 
+          className="prose prose-sm max-w-none" 
+          ref={promptContainerRef}
+          onMouseUp={handleMouseUp}
+        >
+          {isCreatingVariable && selectionRange && selectedText ? (
+            <div className="fixed z-20 bg-white shadow-lg rounded-lg p-2 flex gap-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="h-8 w-8 p-0" 
+                onClick={createVariableFromSelection}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="h-8 w-8 p-0" 
+                onClick={cancelVariableCreation}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : null}
+          
+          {processedPrompt.split('\n\n').map((paragraph, index) => {
             if (!paragraph) return null;
             
-            const highlightedContent = highlightVariablesInText(paragraph);
+            // Check if this paragraph contains any variables
+            let paragraphContent = paragraph;
+            let hasVariables = false;
             
-            return (
-              <p key={index} dangerouslySetInnerHTML={{ __html: highlightedContent }} />
-            );
+            relevantVariables.forEach(variable => {
+              if (paragraphContent.includes(variable.value)) {
+                hasVariables = true;
+              }
+            });
+            
+            if (hasVariables) {
+              let segments: {type: 'text' | 'variable', content: string, variableId?: string}[] = [
+                {type: 'text', content: paragraphContent}
+              ];
+              
+              // Replace variables with editable inputs
+              relevantVariables.forEach(variable => {
+                if (!variable.value) return;
+                
+                const newSegments: typeof segments = [];
+                
+                segments.forEach(segment => {
+                  if (segment.type === 'variable') {
+                    newSegments.push(segment);
+                    return;
+                  }
+                  
+                  // Split the text segment by the variable value
+                  const parts = segment.content.split(variable.value);
+                  
+                  if (parts.length === 1) {
+                    // Variable not found in this segment
+                    newSegments.push(segment);
+                    return;
+                  }
+                  
+                  // Rebuild segments with variables
+                  parts.forEach((part, i) => {
+                    if (part) {
+                      newSegments.push({type: 'text', content: part});
+                    }
+                    
+                    // Add variable between parts (except after the last part)
+                    if (i < parts.length - 1) {
+                      newSegments.push({type: 'variable', content: variable.value, variableId: variable.id});
+                    }
+                  });
+                });
+                
+                segments = newSegments;
+              });
+              
+              return (
+                <p key={index} className="relative">
+                  {segments.map((segment, segmentIndex) => {
+                    if (segment.type === 'text') {
+                      return <span key={segmentIndex}>{segment.content}</span>;
+                    } else {
+                      // Variable segment
+                      const variable = relevantVariables.find(v => v.id === segment.variableId);
+                      if (!variable) return <span key={segmentIndex}>{segment.content}</span>;
+                      
+                      return (
+                        <span key={segmentIndex} className="inline-block relative">
+                          <input
+                            type="text"
+                            value={variable.value}
+                            onChange={(e) => updateVariableValue(variable.id, e.target.value)}
+                            className="variable-input px-1 py-0 m-0 border-b border-[#33fea6] bg-[#33fea6]/10 font-medium min-w-16 inline-block"
+                          />
+                          <button 
+                            className="absolute -top-3 -right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-sm opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity variable-delete-btn"
+                            onClick={() => removeVariable(variable.id)}
+                          >
+                            <X className="w-3 h-3 text-gray-600" />
+                          </button>
+                        </span>
+                      );
+                    }
+                  })}
+                </p>
+              );
+            }
+            
+            // Paragraph with no variables
+            return <p key={index}>{paragraph}</p>;
           })}
         </div>
       );
@@ -192,22 +377,31 @@ export const FinalPromptDisplay = ({
 
   return (
     <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
-      <button 
-        onClick={(e) => {
-          e.preventDefault();
-          try {
-            if (typeof handleOpenEditPrompt === 'function') {
-              handleOpenEditPrompt();
+      <div className="absolute top-2 right-2 z-10 flex space-x-2">
+        <button 
+          onClick={toggleVariableCreation}
+          className={`p-2 rounded-full ${isCreatingVariable ? 'bg-accent text-white' : 'bg-white/80 hover:bg-white'} transition-colors`}
+          aria-label={isCreatingVariable ? "Cancel creating variable" : "Create variable"}
+        >
+          <PlusCircle className={`w-4 h-4 ${isCreatingVariable ? 'text-white' : 'text-accent'}`} />
+        </button>
+        <button 
+          onClick={(e) => {
+            e.preventDefault();
+            try {
+              if (typeof handleOpenEditPrompt === 'function') {
+                handleOpenEditPrompt();
+              }
+            } catch (error) {
+              console.error("Error opening edit prompt:", error);
             }
-          } catch (error) {
-            console.error("Error opening edit prompt:", error);
-          }
-        }}
-        className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
-        aria-label="Edit prompt"
-      >
-        <Edit className="w-4 h-4 text-accent" />
-      </button>
+          }}
+          className="p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
+          aria-label="Edit prompt"
+        >
+          <Edit className="w-4 h-4 text-accent" />
+        </button>
+      </div>
       
       <div 
         className="absolute inset-0 bg-gradient-to-br from-accent via-primary-dark to-primary animate-aurora opacity-10"
@@ -223,17 +417,28 @@ export const FinalPromptDisplay = ({
       
       <style>
         {`
-        .variable-highlight {
-          background-color: rgba(51, 254, 166, 0.2);
-          border-radius: 2px;
-          padding: 0 2px;
-          border-bottom: 1px solid rgba(51, 254, 166, 0.5);
+        .variable-input {
+          font-family: inherit;
+          outline: none;
+          transition: all 0.2s;
         }
-        .unresolved-variable {
-          background-color: rgba(254, 51, 51, 0.1);
-          border-radius: 2px;
-          padding: 0 2px;
-          border-bottom: 1px dashed rgba(254, 51, 51, 0.5);
+        .variable-input:focus {
+          border-color: #33fea6;
+          background-color: rgba(51, 254, 166, 0.2);
+        }
+        .variable-delete-btn {
+          transition: opacity 0.2s;
+        }
+        p:hover .variable-delete-btn {
+          opacity: 1;
+        }
+        .animate-aurora {
+          animation: aurora 15s ease infinite;
+        }
+        @keyframes aurora {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
         }
         `}
       </style>
