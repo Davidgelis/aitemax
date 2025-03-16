@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Variable } from "../components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,6 +17,7 @@ export const usePromptOperations = (
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastProcessedVariables, setLastProcessedVariables] = useState<Variable[]>([]);
+  const [renderKey, setRenderKey] = useState(0); // Add render key to force updates
 
   // Track variables state changes for immediate re-processing
   useEffect(() => {
@@ -29,12 +30,12 @@ export const usePromptOperations = (
     
     if (relevantVarsChanged) {
       setLastProcessedVariables([...variables]);
+      setRenderKey(prev => prev + 1); // Force re-render when variables change
     }
   }, [variables, lastProcessedVariables]);
 
-  // Process the prompt with variables - simplified approach
-  // that directly inserts variable values into the prompt
-  const getProcessedPrompt = (): string => {
+  // Process the prompt with variables - direct replacement approach
+  const getProcessedPrompt = useCallback((): string => {
     if (!finalPrompt) return "";
     
     let processedPrompt = finalPrompt;
@@ -42,16 +43,22 @@ export const usePromptOperations = (
     // Only use relevant variables that have values
     const relevantVariables = variables.filter(v => v.isRelevant);
     
-    relevantVariables.forEach(variable => {
+    // Process variables in a specific order: longest values first
+    // to prevent partial replacements
+    const sortedVariables = [...relevantVariables].sort(
+      (a, b) => (b.value?.length || 0) - (a.value?.length || 0)
+    );
+    
+    sortedVariables.forEach(variable => {
       if (variable.value) {
-        // Use simple direct replacement for variable values
+        // Simple direct replacement - variables simply exist as their values in the text
         const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
         processedPrompt = processedPrompt.replace(regex, variable.value);
       }
     });
     
     return processedPrompt;
-  };
+  }, [finalPrompt, variables, renderKey]); // Include renderKey to ensure fresh calculation
   
   // Helper to escape regular expression special characters
   const escapeRegExp = (string: string): string => {
@@ -59,7 +66,7 @@ export const usePromptOperations = (
   };
 
   // Update a variable's value with real-time synchronization
-  const handleVariableValueChange = (id: string, newValue: string) => {
+  const handleVariableValueChange = useCallback((id: string, newValue: string) => {
     setVariables(currentVars => {
       const updatedVars = currentVars.map(v => 
         v.id === id ? { ...v, value: newValue } : v
@@ -68,12 +75,15 @@ export const usePromptOperations = (
       // Update lastProcessedVariables to prevent unnecessary re-processing
       setLastProcessedVariables(updatedVars);
       
+      // Force re-render to ensure changes propagate
+      setRenderKey(prev => prev + 1);
+      
       return updatedVars;
     });
-  };
+  }, [setVariables]);
 
   // Open the edit prompt sheet
-  const handleOpenEditPrompt = () => {
+  const handleOpenEditPrompt = useCallback(() => {
     try {
       setEditingPrompt(finalPrompt);
       setShowEditPromptSheet(true);
@@ -85,10 +95,10 @@ export const usePromptOperations = (
         variant: "destructive",
       });
     }
-  };
+  }, [finalPrompt, setEditingPrompt, setShowEditPromptSheet, toast]);
 
   // Save the edited prompt
-  const handleSaveEditedPrompt = () => {
+  const handleSaveEditedPrompt = useCallback(() => {
     try {
       setFinalPrompt(editingPrompt);
       setShowEditPromptSheet(false);
@@ -106,10 +116,10 @@ export const usePromptOperations = (
         variant: "destructive",
       });
     }
-  };
+  }, [editingPrompt, setFinalPrompt, setShowEditPromptSheet, toast]);
 
   // Adapt the prompt by changing variables
-  const handleAdaptPrompt = () => {
+  const handleAdaptPrompt = useCallback(() => {
     try {
       const processedPrompt = getProcessedPrompt();
       
@@ -129,10 +139,10 @@ export const usePromptOperations = (
       });
       return finalPrompt;
     }
-  };
+  }, [finalPrompt, getProcessedPrompt, toast]);
 
   // Copy the prompt to clipboard
-  const handleCopyPrompt = async () => {
+  const handleCopyPrompt = useCallback(async () => {
     try {
       const processedPrompt = getProcessedPrompt();
       
@@ -151,10 +161,10 @@ export const usePromptOperations = (
         variant: "destructive",
       });
     }
-  };
+  }, [getProcessedPrompt, toast]);
 
   // Regenerate the prompt with updated variables
-  const handleRegenerate = async () => {
+  const handleRegenerate = useCallback(async () => {
     setIsProcessing(true);
     
     try {
@@ -174,7 +184,7 @@ export const usePromptOperations = (
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [toast]);
 
   return {
     getProcessedPrompt,
@@ -184,6 +194,7 @@ export const usePromptOperations = (
     handleAdaptPrompt,
     handleCopyPrompt,
     handleRegenerate,
-    isProcessing
+    isProcessing,
+    renderKey
   };
 };

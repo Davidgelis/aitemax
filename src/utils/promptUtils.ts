@@ -19,7 +19,7 @@ export const findVariableOccurrences = (text: string, variableValue: string): nu
   return positions;
 };
 
-// Improved variable replacement function that doesn't rely on exact matching
+// Complete replacement function that doesn't rely on exact matching
 export const replaceVariableInPrompt = (
   prompt: string, 
   oldValue: string, 
@@ -28,6 +28,12 @@ export const replaceVariableInPrompt = (
 ): string => {
   // If both values are empty, return original prompt
   if (!oldValue && !newValue) return prompt;
+  
+  // Direct replacement without pattern matching
+  // This allows a complete replacement of text regardless of context
+  if (oldValue && prompt.includes(oldValue)) {
+    return prompt.replace(oldValue, newValue);
+  }
   
   // If there's no old value, look for variable placeholder pattern
   if (!oldValue) {
@@ -40,8 +46,7 @@ export const replaceVariableInPrompt = (
     return prompt.replace(oldValue, `{{${variableName}}}`);
   }
   
-  // Direct replacement of old value with new value without word boundaries
-  // This allows replacement of any text, not just exact word matches
+  // Fallback to direct string replacement
   try {
     return prompt.replace(oldValue, newValue);
   } catch (error) {

@@ -16,7 +16,7 @@ export const VariablesSection = ({
   const [isVisible, setIsVisible] = useState(true);
   
   // Set preferred category order
-  const categoryOrder = ["Task", "Persona", "Conditions", "Instructions", "Other"];
+  const categoryOrder = ["Task", "Persona", "Conditions", "Instructions", "Other", "User-Defined"];
   
   // Group variables by category
   useEffect(() => {
@@ -45,7 +45,9 @@ export const VariablesSection = ({
   // Handle immediate variable value change - directly updates the variable
   const handleInputChange = (variableId: string, newValue: string) => {
     console.log("Variable section changing value:", variableId, newValue);
-    handleVariableValueChange(variableId, newValue);
+    if (typeof handleVariableValueChange === 'function') {
+      handleVariableValueChange(variableId, newValue);
+    }
   };
   
   // Early return if there are no variables to display
@@ -68,7 +70,7 @@ export const VariablesSection = ({
         </div>
         <div className="bg-background/50 p-4 rounded-lg text-center">
           <p className="text-sm text-muted-foreground">
-            No variables detected in your prompt. Edit your prompt to add variables using {'{{'} variableName {'}}'} syntax.
+            No variables detected in your prompt. Select text in your prompt and click the plus icon to create variables.
           </p>
         </div>
       </div>

@@ -1,3 +1,4 @@
+
 import { Edit, PlusCircle, Check, X } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -38,6 +39,7 @@ export const FinalPromptDisplay = ({
   
   const [userId, setUserId] = useState<string | null>(null);
   const [promptId, setPromptId] = useState<string | null>(null);
+  const [renderKey, setRenderKey] = useState(0); // Force re-render key
   
   useEffect(() => {
     const getUserId = async () => {
@@ -106,7 +108,7 @@ export const FinalPromptDisplay = ({
       console.error("Error processing prompt:", error);
       setProcessedPrompt(finalPrompt || "");
     }
-  }, [getProcessedPrompt, finalPrompt, variables]);
+  }, [getProcessedPrompt, finalPrompt, variables, renderKey]);
   
   // Handle user text selection
   const handleMouseUp = () => {
@@ -120,21 +122,44 @@ export const FinalPromptDisplay = ({
     
     if (!container || !container.contains(range.commonAncestorContainer)) return;
     
-    // Calculate the start and end positions in the text
-    const preSelectionRange = range.cloneRange();
-    preSelectionRange.selectNodeContents(container);
-    preSelectionRange.setEnd(range.startContainer, range.startOffset);
-    const start = preSelectionRange.toString().length;
-    
+    // Get the selected text
     const selectedText = selection.toString().trim();
-    
     setSelectedText(selectedText);
-    setSelectionRange({ start, end: start + selectedText.length });
+    
+    // Create a span to mark the position
+    const tempSpan = document.createElement('span');
+    tempSpan.setAttribute('id', 'temp-selection-marker');
+    tempSpan.style.display = 'inline';
+    
+    try {
+      range.surroundContents(tempSpan);
+      
+      // Position the confirmation dialog near the selection
+      const tempElement = document.getElementById('temp-selection-marker');
+      if (tempElement) {
+        const rect = tempElement.getBoundingClientRect();
+        
+        // Set temporary styles to position the confirmation buttons
+        setSelectionRange({
+          start: rect.left,
+          end: rect.top
+        });
+      }
+    } catch (e) {
+      console.error("Error highlighting selection:", e);
+      toast({
+        title: "Selection error",
+        description: "Could not select text. Try selecting a simpler text segment.",
+        variant: "destructive"
+      });
+      cancelVariableCreation();
+      return;
+    }
   };
   
   // Create a new variable from the selected text
   const createVariableFromSelection = () => {
-    if (!selectedText || !selectionRange) return;
+    if (!selectedText) return;
     
     if (relevantVariables.length >= 15) {
       toast({
@@ -142,6 +167,13 @@ export const FinalPromptDisplay = ({
         description: "You can create up to 15 variables",
         variant: "destructive"
       });
+      cancelVariableCreation();
+      return;
+    }
+    
+    // Remove temporary marker and replace with variable
+    const tempElement = document.getElementById('temp-selection-marker');
+    if (!tempElement) {
       cancelVariableCreation();
       return;
     }
@@ -166,6 +198,7 @@ export const FinalPromptDisplay = ({
     });
     
     cancelVariableCreation();
+    setRenderKey(prev => prev + 1); // Force re-render
   };
   
   // Cancel variable creation mode
@@ -173,15 +206,23 @@ export const FinalPromptDisplay = ({
     setIsCreatingVariable(false);
     setSelectedText("");
     setSelectionRange(null);
+    
+    // Remove temporary marker if it exists
+    const tempElement = document.getElementById('temp-selection-marker');
+    if (tempElement) {
+      // Replace the span with its text content
+      tempElement.outerHTML = tempElement.textContent || "";
+    }
+    
     window.getSelection()?.removeAllRanges();
   };
   
   // Toggle variable creation mode
   const toggleVariableCreation = () => {
-    setIsCreatingVariable(prevState => !prevState);
     if (isCreatingVariable) {
       cancelVariableCreation();
     } else {
+      setIsCreatingVariable(true);
       toast({
         title: "Variable creation mode",
         description: "Select text to create a variable",
@@ -201,16 +242,25 @@ export const FinalPromptDisplay = ({
       title: "Variable removed",
       description: "Variable has been removed",
     });
+    
+    setRenderKey(prev => prev + 1); // Force re-render
   };
   
-  // Direct update of variable value - no pattern matching
+  // Update variable value - direct replacement
   const updateVariableValue = (variableId: string, newValue: string) => {
-    // Immediately update the variable with the new value
+    // Find the variable
+    const variable = relevantVariables.find(v => v.id === variableId);
+    if (!variable) return;
+    
+    // Update variable in state with new value
     setVariables(prevVariables => 
       prevVariables.map(v => 
         v.id === variableId ? { ...v, value: newValue } : v
       )
     );
+    
+    // Force re-render to update display
+    setRenderKey(prev => prev + 1);
   };
   
   const renderProcessedPrompt = () => {
@@ -247,6 +297,9 @@ export const FinalPromptDisplay = ({
         return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
       }
       
+      // Create a structure to represent the prompt with variables replaced by input fields
+      const paragraphs = processedPrompt.split('\n\n');
+      
       return (
         <div 
           className="prose prose-sm max-w-none" 
@@ -254,7 +307,13 @@ export const FinalPromptDisplay = ({
           onMouseUp={handleMouseUp}
         >
           {isCreatingVariable && selectionRange && selectedText ? (
-            <div className="fixed z-20 bg-white shadow-lg rounded-lg p-2 flex gap-2">
+            <div 
+              className="fixed z-20 bg-white shadow-lg rounded-lg p-2 flex gap-2"
+              style={{
+                left: `${typeof selectionRange.start === 'number' ? selectionRange.start : 0}px`,
+                top: `${typeof selectionRange.end === 'number' ? selectionRange.end + 20 : 0}px`,
+              }}
+            >
               <Button 
                 size="sm" 
                 variant="outline" 
@@ -274,88 +333,100 @@ export const FinalPromptDisplay = ({
             </div>
           ) : null}
           
-          {processedPrompt.split('\n\n').map((paragraph, index) => {
+          {paragraphs.map((paragraph, index) => {
             if (!paragraph) return null;
             
-            // Build a map of variable segments in this paragraph
-            let segments: {type: 'text' | 'variable', content: string, variableId?: string}[] = [
-              {type: 'text', content: paragraph}
-            ];
+            let displayParagraph = paragraph;
+            const segmentMap = new Map<number, { 
+              id: string, 
+              value: string, 
+              start: number, 
+              end: number 
+            }>();
             
-            // Check if any variables exist in this paragraph and extract them
+            // Find all variable positions in the paragraph
             relevantVariables.forEach(variable => {
               if (!variable.value) return;
               
-              const newSegments: typeof segments = [];
-              
-              for (const segment of segments) {
-                if (segment.type === 'variable') {
-                  newSegments.push(segment);
-                  continue;
-                }
-                
-                const textContent = segment.content;
-                const variableIndex = textContent.indexOf(variable.value);
-                
-                if (variableIndex === -1) {
-                  // Variable not found in this segment
-                  newSegments.push(segment);
-                  continue;
-                }
-                
-                // Split the segment into parts: before variable, variable, after variable
-                if (variableIndex > 0) {
-                  newSegments.push({
-                    type: 'text',
-                    content: textContent.substring(0, variableIndex)
-                  });
-                }
-                
-                newSegments.push({
-                  type: 'variable',
-                  content: variable.value,
-                  variableId: variable.id
+              // Find all occurrences of this variable in the paragraph
+              let position = displayParagraph.indexOf(variable.value);
+              while (position !== -1) {
+                segmentMap.set(position, {
+                  id: variable.id,
+                  value: variable.value,
+                  start: position,
+                  end: position + variable.value.length
                 });
-                
-                if (variableIndex + variable.value.length < textContent.length) {
-                  newSegments.push({
-                    type: 'text',
-                    content: textContent.substring(variableIndex + variable.value.length)
-                  });
-                }
+                position = displayParagraph.indexOf(variable.value, position + 1);
+              }
+            });
+            
+            // Sort segments by their start position (to process from end to beginning)
+            const sortedSegments = Array.from(segmentMap.values())
+              .sort((a, b) => b.start - a.start);
+            
+            // Create array of chunks alternating between text and inputs
+            const chunks: JSX.Element[] = [];
+            let lastEnd = displayParagraph.length;
+            
+            for (const segment of sortedSegments) {
+              // Add text after variable
+              if (segment.end < lastEnd) {
+                chunks.unshift(
+                  <span key={`text-${segment.end}`}>
+                    {displayParagraph.substring(segment.end, lastEnd)}
+                  </span>
+                );
               }
               
-              segments = newSegments;
-            });
+              // Add variable input
+              const variable = relevantVariables.find(v => v.id === segment.id);
+              if (variable) {
+                chunks.unshift(
+                  <span key={`var-${segment.id}-${segment.start}`} className="inline-block relative">
+                    <input
+                      type="text"
+                      value={variable.value}
+                      onChange={(e) => updateVariableValue(variable.id, e.target.value)}
+                      className="variable-input px-1 py-0 m-0 border-b border-[#33fea6] bg-[#33fea6]/10 font-medium min-w-16 inline-block"
+                    />
+                    <button 
+                      className="absolute -top-3 -right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-sm opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity variable-delete-btn"
+                      onClick={() => removeVariable(variable.id)}
+                    >
+                      <X className="w-3 h-3 text-gray-600" />
+                    </button>
+                  </span>
+                );
+              }
+              
+              // Add text before variable
+              if (segment.start > 0) {
+                chunks.unshift(
+                  <span key={`text-${segment.start}`}>
+                    {displayParagraph.substring(0, segment.start)}
+                  </span>
+                );
+                
+                // Update displayParagraph to not include processed parts
+                displayParagraph = displayParagraph.substring(0, segment.start);
+              }
+              
+              lastEnd = segment.start;
+            }
+            
+            // Add any remaining text at the beginning
+            if (lastEnd > 0) {
+              chunks.unshift(
+                <span key={`text-start`}>
+                  {displayParagraph.substring(0, lastEnd)}
+                </span>
+              );
+            }
             
             return (
               <p key={index} className="relative">
-                {segments.map((segment, segmentIndex) => {
-                  if (segment.type === 'text') {
-                    return <span key={segmentIndex}>{segment.content}</span>;
-                  } else {
-                    // Variable segment
-                    const variable = relevantVariables.find(v => v.id === segment.variableId);
-                    if (!variable) return <span key={segmentIndex}>{segment.content}</span>;
-                    
-                    return (
-                      <span key={segmentIndex} className="inline-block relative">
-                        <input
-                          type="text"
-                          value={variable.value}
-                          onChange={(e) => updateVariableValue(variable.id, e.target.value)}
-                          className="variable-input px-1 py-0 m-0 border-b border-[#33fea6] bg-[#33fea6]/10 font-medium min-w-16 inline-block"
-                        />
-                        <button 
-                          className="absolute -top-3 -right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-sm opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity variable-delete-btn"
-                          onClick={() => removeVariable(variable.id)}
-                        >
-                          <X className="w-3 h-3 text-gray-600" />
-                        </button>
-                      </span>
-                    );
-                  }
-                })}
+                {chunks.length > 0 ? chunks : displayParagraph}
               </p>
             );
           })}
