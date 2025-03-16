@@ -43,6 +43,35 @@ DETAILED CONTENT DESCRIPTION REQUIREMENTS:
 6. For website content, extract and quote specific relevant text rather than saying "the website mentions..."
 7. For smart context, incorporate key details and terminology rather than saying "based on the provided context..."
 
+PILLAR-SPECIFIC QUESTION GENERATION:
+For TASK questions, focus on:
+- What specific outcome or deliverable is required?
+- What is the primary goal or objective?
+- What problem is being solved?
+- What metrics will define success?
+- What is the intended use of the output?
+
+For PERSONA questions, focus on:
+- Who is the target audience or user?
+- What perspective or voice should be used?
+- What tone or style is appropriate?
+- What level of expertise should be assumed?
+- Who will be implementing or acting on this information?
+
+For CONDITIONS questions, focus on:
+- What constraints or limitations exist?
+- What specific requirements must be met?
+- What resources are available or unavailable?
+- What contextual factors are relevant?
+- What assumptions can or cannot be made?
+
+For INSTRUCTIONS questions, focus on:
+- What process or methodology should be followed?
+- What specific steps are needed?
+- How should the information be structured?
+- What tools or techniques should be employed?
+- How should edge cases or exceptions be handled?
+
 CONTEXT QUESTIONS FORMAT:
 - Provide 8-12 focused questions, covering all aspects needed for a complete prompt
 - Questions should be organized by the four pillars (Task, Persona, Conditions, Instructions)
@@ -228,3 +257,4 @@ Respond with a valid JSON output containing all required sections:
   "enhancedPrompt": "improved prompt with markdown"
 }`;
 };
+

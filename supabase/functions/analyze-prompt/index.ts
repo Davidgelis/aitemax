@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -525,6 +524,37 @@ Based on this combination, follow these guidelines:
       console.log(`Extracted ${questions.length} context questions`);
       console.log(`Extracted ${variables.length} variables for customization`);
       
+      // Make sure questions and variables are properly categorized
+      const questionsByCategory = {
+        'Task': 0,
+        'Persona': 0,
+        'Conditions': 0,
+        'Instructions': 0,
+        'Other': 0
+      };
+      
+      questions.forEach(q => {
+        const category = q.category || 'Other';
+        questionsByCategory[category] = (questionsByCategory[category] || 0) + 1;
+      });
+      
+      console.log("Questions by category:", questionsByCategory);
+      
+      const variablesByCategory = {
+        'Task': 0,
+        'Persona': 0,
+        'Conditions': 0,
+        'Instructions': 0,
+        'Other': 0
+      };
+      
+      variables.forEach(v => {
+        const category = v.category || 'Other';
+        variablesByCategory[category] = (variablesByCategory[category] || 0) + 1;
+      });
+      
+      console.log("Variables by category:", variablesByCategory);
+      
       // Log how many questions and variables were pre-filled
       const prefilledQuestions = questions.filter(q => q.answer && q.answer.trim() !== "").length;
       const prefilledVariables = variables.filter(v => v.value && v.value.trim() !== "").length;
@@ -543,6 +573,12 @@ Based on this combination, follow these guidelines:
       console.log("Question prefill sources:", prefillSources);
       
       // If no additional context was provided, verify that no pre-filling occurred
+      const hasAdditionalContext = !!(
+        (websiteData && websiteData.url) || 
+        (imageData && (Array.isArray(imageData) ? imageData.length > 0 : imageData.base64)) ||
+        (smartContextData && smartContextData.context)
+      );
+      
       if (!hasAdditionalContext && (prefilledQuestions > 0 || prefilledVariables > 0)) {
         console.warn("WARNING: Pre-filled values detected without additional context. Clearing pre-filled values.");
         
