@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Variable } from "../components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -36,7 +35,7 @@ export const usePromptOperations = (
     }
   }, [variables, lastProcessedVariables]);
 
-  // Process the prompt with variables - direct replacement approach
+  // Process the prompt with variables - with improved placeholder handling
   const getProcessedPrompt = useCallback((): string => {
     if (!finalPrompt) return "";
     

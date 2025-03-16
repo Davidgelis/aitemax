@@ -1,4 +1,3 @@
-
 import { Edit, PlusCircle, Check, X } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -249,13 +248,26 @@ export const FinalPromptDisplay = ({
     }
   };
   
-  // Handle variable removal - mark as not relevant
+  // Handle variable removal - replace placeholder with actual text
   const removeVariable = (variableId: string) => {
+    // Find the variable we're removing
+    const variable = variables.find(v => v.id === variableId);
+    if (!variable) return;
+    
+    // Get the current value of the variable (to replace placeholder)
+    const currentValue = variable.value || "";
+    
+    // Mark variable as not relevant
     setVariables(prev => 
       prev.map(v => 
         v.id === variableId ? { ...v, isRelevant: false } : v
       )
     );
+    
+    // Replace the placeholder with the actual text in the finalPrompt
+    const placeholder = new RegExp(`<span[^>]*data-variable-id="${variableId}"[^>]*>.*?</span>`, 'g');
+    const updatedPrompt = finalPrompt.replace(placeholder, currentValue);
+    updateFinalPrompt(updatedPrompt);
     
     toast({
       title: "Variable removed",
