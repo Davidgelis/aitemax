@@ -35,7 +35,7 @@ export const replaceVariableInPrompt = (
   }
   
   // If we're replacing with a variable placeholder
-  if (newValue.startsWith('{{') && newValue.endsWith('}}')) {
+  if (newValue.startsWith('<span') && newValue.includes('variable-placeholder')) {
     // Create a regex that matches the text exactly
     const regex = new RegExp(escapeRegExp(selectedText), 'g');
     return prompt.replace(regex, newValue);

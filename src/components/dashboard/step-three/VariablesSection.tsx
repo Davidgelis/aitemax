@@ -15,11 +15,9 @@ export const VariablesSection = ({
   
   // Optimize variable value changes
   const handleInputChange = useCallback((variableId: string, newValue: string) => {
-    // Log changes to help debug
     console.log("Variable section changing value:", variableId, newValue);
     
     try {
-      // Update the variable value
       if (typeof handleVariableValueChange === 'function') {
         handleVariableValueChange(variableId, newValue);
       }
@@ -50,19 +48,10 @@ export const VariablesSection = ({
     };
   }, []);
 
-  if (!variables || variables.length === 0) {
-    return (
-      <div className="mb-4 p-3 border rounded-lg bg-background/50">
-        <h4 className="text-sm font-medium mb-3">Variables</h4>
-        <p className="text-xs text-muted-foreground">No variables available. Select text in the prompt to create variables.</p>
-      </div>
-    );
-  }
-
-  // Make sure we're only using relevant variables
+  // Filter only relevant variables
   const relevantVariables = variables.filter(v => v.isRelevant === true);
-  
-  if (relevantVariables.length === 0) {
+
+  if (!relevantVariables || relevantVariables.length === 0) {
     return (
       <div className="mb-4 p-3 border rounded-lg bg-background/50">
         <h4 className="text-sm font-medium mb-3">Variables</h4>

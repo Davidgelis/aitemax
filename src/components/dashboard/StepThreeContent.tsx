@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Variable } from "./types";
-import { MasterCommandSection } from "./step-three/MasterCommandSection";
 import { ToggleSection } from "./step-three/ToggleSection";
 import { FinalPromptDisplay } from "./step-three/FinalPromptDisplay";
 import { VariablesSection } from "./step-three/VariablesSection";
@@ -21,6 +20,7 @@ interface StepThreeContentProps {
   showJson: boolean;
   setShowJson: (show: boolean) => void;
   finalPrompt: string;
+  setFinalPrompt: (prompt: string) => void; // Add setter for finalPrompt
   variables: Variable[];
   setVariables: React.Dispatch<React.SetStateAction<Variable[]>>;
   handleCopyPrompt: () => void;
@@ -49,6 +49,7 @@ export const StepThreeContent = ({
   showJson,
   setShowJson,
   finalPrompt,
+  setFinalPrompt, // Add this prop
   variables,
   setVariables,
   handleCopyPrompt: externalHandleCopyPrompt,
@@ -67,12 +68,12 @@ export const StepThreeContent = ({
   const { toast } = useToast();
   const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
   
-  // Use the prompt operations hook
+  // Use the prompt operations hook with proper setFinalPrompt function
   const promptOperations = usePromptOperations(
     variables,
     setVariables,
     finalPrompt,
-    () => {}, // We're not updating finalPrompt directly here
+    setFinalPrompt, // Pass the real setter function instead of no-op
     showJson,
     setEditingPrompt,
     setShowEditPromptSheet,
@@ -163,7 +164,7 @@ export const StepThreeContent = ({
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
-      {/* MasterCommandSection is intentionally removed as requested */}
+      {/* MasterCommandSection is removed as requested */}
 
       <ToggleSection 
         showJson={showJson}
@@ -172,6 +173,7 @@ export const StepThreeContent = ({
 
       <FinalPromptDisplay 
         finalPrompt={finalPrompt || ""}
+        updateFinalPrompt={setFinalPrompt} // Pass the updateFinalPrompt function
         getProcessedPrompt={getProcessedPromptFunction}
         variables={safeVariables}
         setVariables={setVariables}
@@ -182,7 +184,7 @@ export const StepThreeContent = ({
       />
 
       <VariablesSection 
-        variables={safeVariables.filter(v => v.isRelevant === true)}
+        variables={safeVariables}
         handleVariableValueChange={enhancedHandleVariableValueChange}
       />
 

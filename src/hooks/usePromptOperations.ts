@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Variable } from "../components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
-import { escapeRegExp } from "@/utils/promptUtils";
+import { escapeRegExp, replaceVariableInPrompt } from "@/utils/promptUtils";
 
 export const usePromptOperations = (
   variables: Variable[],
@@ -66,9 +66,17 @@ export const usePromptOperations = (
       
       // If we have the original selection that created this variable
       if (originalSelection) {
-        // Create a regex that matches the original selection exactly
-        const regex = new RegExp(escapeRegExp(originalSelection), 'g');
-        processedPrompt = processedPrompt.replace(regex, placeholder);
+        try {
+          // Use the utility function to handle the replacement
+          processedPrompt = replaceVariableInPrompt(
+            processedPrompt, 
+            originalSelection, 
+            placeholder, 
+            variable.name
+          );
+        } catch (error) {
+          console.error("Error replacing selection:", error);
+        }
       } else {
         // Look for a placeholder pattern with this variable's ID
         const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
@@ -85,7 +93,7 @@ export const usePromptOperations = (
     });
     
     return processedPrompt;
-  }, [finalPrompt, variables, renderKey, variableSelections]); // Include renderKey and variableSelections
+  }, [finalPrompt, variables, variableSelections]);
   
   // Record the original text selected when creating a variable
   const recordVariableSelection = useCallback((variableId: string, selectedText: string) => {

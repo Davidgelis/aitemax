@@ -5,9 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
+import { replaceVariableInPrompt } from "@/utils/promptUtils";
 
 interface FinalPromptDisplayProps {
   finalPrompt: string;
+  updateFinalPrompt: (newPrompt: string) => void; // Add the new prop
   getProcessedPrompt: () => string;
   variables: Variable[];
   setVariables: React.Dispatch<React.SetStateAction<Variable[]>>;
@@ -19,6 +21,7 @@ interface FinalPromptDisplayProps {
 
 export const FinalPromptDisplay = ({
   finalPrompt,
+  updateFinalPrompt,
   getProcessedPrompt,
   variables,
   setVariables,
@@ -52,6 +55,7 @@ export const FinalPromptDisplay = ({
     getUserId();
   }, []);
   
+  // Filter to only get relevant variables
   const relevantVariables = Array.isArray(variables) 
     ? variables.filter(v => v && typeof v === 'object' && v?.isRelevant === true) 
     : [];
@@ -124,18 +128,18 @@ export const FinalPromptDisplay = ({
     if (!container || !container.contains(range.commonAncestorContainer)) return;
     
     // Get the selected text
-    const selectedText = selection.toString().trim();
-    if (!selectedText) return;
+    const selText = selection.toString().trim();
+    if (!selText) return;
     
-    setSelectedText(selectedText);
+    setSelectedText(selText);
     
-    // Create a span to mark the position
+    // Create a temporary marker span (for positioning only)
     const tempSpan = document.createElement('span');
     tempSpan.setAttribute('id', 'temp-selection-marker');
     tempSpan.style.display = 'inline';
     
     try {
-      // Clear any existing markers first
+      // Remove any existing marker
       const existingMarker = document.getElementById('temp-selection-marker');
       if (existingMarker) {
         existingMarker.outerHTML = existingMarker.textContent || "";
@@ -143,7 +147,7 @@ export const FinalPromptDisplay = ({
       
       range.surroundContents(tempSpan);
       
-      // Position the confirmation dialog near the selection
+      // Position confirmation dialog near the marker
       const tempElement = document.getElementById('temp-selection-marker');
       if (tempElement) {
         const rect = tempElement.getBoundingClientRect();
@@ -166,7 +170,7 @@ export const FinalPromptDisplay = ({
     }
   };
   
-  // Create a new variable from the selected text and replace it completely in the prompt
+  // Create a new variable from the selected text and update the prompt state
   const createVariableFromSelection = () => {
     if (!selectedText) return;
     
@@ -180,39 +184,31 @@ export const FinalPromptDisplay = ({
       return;
     }
     
-    // Remove temporary marker and replace with variable
-    const tempElement = document.getElementById('temp-selection-marker');
-    if (!tempElement) {
-      cancelVariableCreation();
-      return;
-    }
-    
     // Use a simple numeric name based on the number of existing variables
     const variableName = `${relevantVariables.length + 1}`;
-    
     const variableId = uuidv4();
     
     const newVariable: Variable = {
       id: variableId,
       name: variableName,
-      // Initialize with an empty string
       value: "",
       isRelevant: true,
       category: 'User-Defined'
     };
     
-    // IMPORTANT: Record the original selection to enable proper replacement
+    // Record the original selection (for later replacement in the prompt)
     if (typeof recordVariableSelection === 'function') {
       recordVariableSelection(variableId, selectedText);
     }
     
-    // Add the new variable to the variables array
-    setVariables(prevVariables => {
-      return [...prevVariables, newVariable];
-    });
+    // Add the new variable to state
+    setVariables(prev => [...prev, newVariable]);
     
-    // Replace the selection with an empty variable placeholder
-    tempElement.outerHTML = `<span id="${variableId}-placeholder" class="variable-placeholder" data-variable-id="${variableId}"></span>`;
+    // Instead of directly changing the DOM, update the final prompt text via state
+    // Use the utility to replace the selected text with a placeholder
+    const placeholder = `<span id="${variableId}-placeholder" class="variable-placeholder" data-variable-id="${variableId}"></span>`;
+    const updatedPrompt = replaceVariableInPrompt(finalPrompt, selectedText, placeholder, variableName);
+    updateFinalPrompt(updatedPrompt);
     
     toast({
       title: "Variable created",
@@ -223,7 +219,7 @@ export const FinalPromptDisplay = ({
     setRenderTrigger(prev => prev + 1); // Force re-render
   };
   
-  // Cancel variable creation mode
+  // Cancel variable creation mode and remove temporary marker
   const cancelVariableCreation = () => {
     setIsCreatingVariable(false);
     setSelectedText("");
@@ -252,10 +248,10 @@ export const FinalPromptDisplay = ({
     }
   };
   
-  // Handle variable removal
+  // Handle variable removal - mark as not relevant
   const removeVariable = (variableId: string) => {
-    setVariables(prevVariables => 
-      prevVariables.map(v => 
+    setVariables(prev => 
+      prev.map(v => 
         v.id === variableId ? { ...v, isRelevant: false } : v
       )
     );
@@ -268,7 +264,7 @@ export const FinalPromptDisplay = ({
     setRenderTrigger(prev => prev + 1); // Force re-render
   };
   
-  // Update variable value - direct replacement
+  // Update variable value - direct replacement with synchronization
   const updateVariableValue = (variableId: string, newValue: string) => {
     // Find the variable
     const variable = relevantVariables.find(v => v.id === variableId);
@@ -277,8 +273,8 @@ export const FinalPromptDisplay = ({
     console.log(`Updating variable ${variableId} with new value: "${newValue}"`);
     
     // Update variable in state with new value
-    setVariables(prevVariables => 
-      prevVariables.map(v => 
+    setVariables(prev => 
+      prev.map(v => 
         v.id === variableId ? { ...v, value: newValue } : v
       )
     );
@@ -296,7 +292,7 @@ export const FinalPromptDisplay = ({
     setRenderTrigger(prev => prev + 1);
   };
   
-  // Replace a variable occurrence with an input field
+  // Render variable input field (for occurrences in the prompt)
   const renderVariableInput = (variable: Variable, uniqueKey: string) => {
     return (
       <span key={uniqueKey} className="inline-block relative variable-input-container">
