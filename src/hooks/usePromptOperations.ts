@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Variable } from "../components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,6 +16,21 @@ export const usePromptOperations = (
 ) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [lastProcessedVariables, setLastProcessedVariables] = useState<Variable[]>([]);
+
+  // Track variables state changes for immediate re-processing
+  useEffect(() => {
+    // Only re-process if the variables have actually changed in a meaningful way
+    const relevantVarsChanged = JSON.stringify(
+      variables.filter(v => v.isRelevant).map(v => ({ id: v.id, value: v.value }))
+    ) !== JSON.stringify(
+      lastProcessedVariables.filter(v => v.isRelevant).map(v => ({ id: v.id, value: v.value }))
+    );
+    
+    if (relevantVarsChanged) {
+      setLastProcessedVariables([...variables]);
+    }
+  }, [variables, lastProcessedVariables]);
 
   // Process the prompt with variables
   const getProcessedPrompt = (): string => {
@@ -40,13 +55,18 @@ export const usePromptOperations = (
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   };
 
-  // Update a variable's value
+  // Update a variable's value with real-time synchronization
   const handleVariableValueChange = (id: string, newValue: string) => {
-    setVariables(currentVars => 
-      currentVars.map(v => 
+    setVariables(currentVars => {
+      const updatedVars = currentVars.map(v => 
         v.id === id ? { ...v, value: newValue } : v
-      )
-    );
+      );
+      
+      // Update lastProcessedVariables to prevent unnecessary re-processing
+      setLastProcessedVariables(updatedVars);
+      
+      return updatedVars;
+    });
   };
 
   // Open the edit prompt sheet

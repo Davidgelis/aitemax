@@ -6,6 +6,8 @@ export const extractVariablesFromPrompt = (prompt: string): string[] => {
 };
 
 export const findVariableOccurrences = (text: string, variableValue: string): number[] => {
+  if (!variableValue || variableValue.trim() === "") return [];
+  
   const positions: number[] = [];
   let position = text.indexOf(variableValue);
   
@@ -42,6 +44,13 @@ export const replaceVariableInPrompt = (
   
   // Handle normal replacement of old value with new value
   // Use word boundary to prevent partial replacements
-  const pattern = new RegExp(`\\b${oldValue}\\b`, 'g');
-  return prompt.replace(pattern, newValue);
+  try {
+    const escapedOldValue = oldValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`\\b${escapedOldValue}\\b`, 'g');
+    return prompt.replace(pattern, newValue);
+  } catch (error) {
+    console.error("Error replacing variable in prompt:", error);
+    // Fallback to direct string replacement if regex fails
+    return prompt.split(oldValue).join(newValue);
+  }
 };

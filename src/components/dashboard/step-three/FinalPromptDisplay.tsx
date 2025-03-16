@@ -96,6 +96,7 @@ export const FinalPromptDisplay = ({
     }
   }, [showJson, finalPrompt, convertPromptToJson, jsonGenerated, isLoadingJson]);
   
+  // Update processed prompt whenever variables change
   useEffect(() => {
     try {
       if (typeof getProcessedPrompt === 'function') {
@@ -203,8 +204,9 @@ export const FinalPromptDisplay = ({
     });
   };
   
-  // Update a variable's value
+  // Update a variable's value 
   const updateVariableValue = (variableId: string, newValue: string) => {
+    // Update the variable directly in the parent component
     setVariables(prevVariables => 
       prevVariables.map(v => 
         v.id === variableId ? { ...v, value: newValue } : v
@@ -285,7 +287,7 @@ export const FinalPromptDisplay = ({
             let hasVariables = false;
             
             relevantVariables.forEach(variable => {
-              if (paragraphContent.includes(variable.value)) {
+              if (variable.value && paragraphContent.includes(variable.value)) {
                 hasVariables = true;
               }
             });

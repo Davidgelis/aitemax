@@ -84,7 +84,7 @@ export const StepThreeContent = ({
       console.error("Error getting processed prompt:", error);
       return finalPrompt || "";
     }
-  }, [getProcessedPrompt, finalPrompt, renderTrigger]);
+  }, [getProcessedPrompt, finalPrompt, renderTrigger, variables]);
 
   // Update the safe processed prompt when dependencies change
   useEffect(() => {
@@ -109,11 +109,13 @@ export const StepThreeContent = ({
     setSafeVariables(validVariables);
   }, [variables]);
   
-  // Safe wrapper for variable value changes
-  const safeHandleVariableValueChange = (variableId: string, newValue: string) => {
+  // Enhanced variable value change handler to ensure proper updates
+  const enhancedHandleVariableValueChange = (variableId: string, newValue: string) => {
     try {
+      // Update the variable with the new value
       if (typeof handleVariableValueChange === 'function') {
         handleVariableValueChange(variableId, newValue);
+        
         // Force an immediate re-render after variable change
         setRenderTrigger(prev => prev + 1);
       } else {
@@ -171,7 +173,7 @@ export const StepThreeContent = ({
 
       <VariablesSection 
         variables={safeVariables.filter(v => v.isRelevant === true)}
-        handleVariableValueChange={safeHandleVariableValueChange}
+        handleVariableValueChange={enhancedHandleVariableValueChange}
       />
 
       <ActionButtons 

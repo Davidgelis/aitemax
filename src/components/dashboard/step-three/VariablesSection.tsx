@@ -41,6 +41,12 @@ export const VariablesSection = ({
     
     setGroupedVariables(grouped);
   }, [variables]);
+
+  // Handle immediate variable value change
+  const handleInputChange = (variableId: string, newValue: string) => {
+    // Immediately update the variable value to ensure it reflects in the FinalPrompt
+    handleVariableValueChange(variableId, newValue);
+  };
   
   // Early return if there are no variables to display
   if (!variables || variables.length === 0) {
@@ -107,7 +113,7 @@ export const VariablesSection = ({
                             type="text"
                             placeholder="Value"
                             value={variable.value || ""}
-                            onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
+                            onChange={(e) => handleInputChange(variable.id, e.target.value)}
                             className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
                               variable.value ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''
                             }`}
@@ -147,7 +153,7 @@ export const VariablesSection = ({
                             type="text"
                             placeholder="Value"
                             value={variable.value || ""}
-                            onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
+                            onChange={(e) => handleInputChange(variable.id, e.target.value)}
                             className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
                               variable.value ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''
                             }`}
