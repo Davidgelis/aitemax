@@ -19,38 +19,38 @@ export const findVariableOccurrences = (text: string, variableValue: string): nu
   return positions;
 };
 
-// Complete replacement function that doesn't rely on exact matching
+// Completely replace the selected text with a variable placeholder or value
 export const replaceVariableInPrompt = (
   prompt: string, 
-  oldValue: string, 
+  selectedText: string, 
   newValue: string, 
   variableName: string
 ): string => {
-  // If both values are empty, return original prompt
-  if (!oldValue && !newValue) return prompt;
+  // If there's no selected text or prompt, return original prompt
+  if (!prompt || !selectedText) return prompt;
   
-  // Direct replacement without pattern matching
-  // This allows a complete replacement of text regardless of context
-  if (oldValue && prompt.includes(oldValue)) {
-    return prompt.replace(oldValue, newValue);
+  // If the selected text exists in the prompt, replace it completely
+  if (prompt.includes(selectedText)) {
+    return prompt.replace(selectedText, newValue);
   }
   
-  // If there's no old value, look for variable placeholder pattern
-  if (!oldValue) {
-    const pattern = new RegExp(`{{\\s*${variableName}\\s*}}`, 'g');
-    return prompt.replace(pattern, newValue);
+  // If we're replacing with a variable placeholder
+  if (newValue.startsWith('{{') && newValue.endsWith('}}')) {
+    // Create a regex that matches the text exactly
+    const regex = new RegExp(escapeRegExp(selectedText), 'g');
+    return prompt.replace(regex, newValue);
   }
   
-  // If there's no new value, restore the placeholder
-  if (!newValue) {
-    return prompt.replace(oldValue, `{{${variableName}}}`);
-  }
-  
-  // Fallback to direct string replacement
+  // Direct replacement for all occurrences
   try {
-    return prompt.replace(oldValue, newValue);
+    return prompt.replace(new RegExp(escapeRegExp(selectedText), 'g'), newValue);
   } catch (error) {
     console.error("Error replacing variable in prompt:", error);
     return prompt;
   }
+};
+
+// Helper function to escape special regex characters
+export const escapeRegExp = (string: string): string => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };

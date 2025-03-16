@@ -124,6 +124,8 @@ export const FinalPromptDisplay = ({
     
     // Get the selected text
     const selectedText = selection.toString().trim();
+    if (!selectedText) return;
+    
     setSelectedText(selectedText);
     
     // Create a span to mark the position
@@ -132,6 +134,12 @@ export const FinalPromptDisplay = ({
     tempSpan.style.display = 'inline';
     
     try {
+      // Clear any existing markers first
+      const existingMarker = document.getElementById('temp-selection-marker');
+      if (existingMarker) {
+        existingMarker.outerHTML = existingMarker.textContent || "";
+      }
+      
       range.surroundContents(tempSpan);
       
       // Position the confirmation dialog near the selection
@@ -139,7 +147,7 @@ export const FinalPromptDisplay = ({
       if (tempElement) {
         const rect = tempElement.getBoundingClientRect();
         
-        // Set temporary styles to position the confirmation buttons
+        // Set position for the confirmation buttons
         setSelectionRange({
           start: rect.left,
           end: rect.top
@@ -157,7 +165,7 @@ export const FinalPromptDisplay = ({
     }
   };
   
-  // Create a new variable from the selected text
+  // Create a new variable from the selected text and replace it completely in the prompt
   const createVariableFromSelection = () => {
     if (!selectedText) return;
     
@@ -182,15 +190,38 @@ export const FinalPromptDisplay = ({
       ? `${selectedText.substring(0, 15)}...` 
       : selectedText;
     
+    const variableId = uuidv4();
+    
     const newVariable: Variable = {
-      id: uuidv4(),
+      id: variableId,
       name: variableName,
       value: selectedText,
       isRelevant: true,
       category: 'User-Defined'
     };
     
-    setVariables(prevVariables => [...prevVariables, newVariable]);
+    // Add the new variable to the variables array
+    setVariables(prevVariables => {
+      // First check if we already have a similar variable
+      const existingVariable = prevVariables.find(v => 
+        v.name.toLowerCase() === variableName.toLowerCase() && v.isRelevant === true
+      );
+      
+      if (existingVariable) {
+        toast({
+          title: "Variable already exists",
+          description: `A variable with name "${variableName}" already exists`,
+          variant: "destructive"
+        });
+        cancelVariableCreation();
+        return prevVariables;
+      }
+      
+      return [...prevVariables, newVariable];
+    });
+    
+    // Replace the selection with the variable value
+    tempElement.outerHTML = `<span id="${variableId}-placeholder">${selectedText}</span>`;
     
     toast({
       title: "Variable created",
@@ -263,6 +294,27 @@ export const FinalPromptDisplay = ({
     setRenderKey(prev => prev + 1);
   };
   
+  // Replace a variable occurrence with an input field
+  const renderVariableInput = (variable: Variable, uniqueKey: string) => {
+    return (
+      <span key={uniqueKey} className="inline-block relative">
+        <input
+          type="text"
+          value={variable.value}
+          onChange={(e) => updateVariableValue(variable.id, e.target.value)}
+          className="variable-input px-1 py-0 m-0 border-b border-[#33fea6] bg-[#33fea6]/10 font-medium min-w-16 inline-block"
+          data-variable-id={variable.id}
+        />
+        <button 
+          className="absolute -top-3 -right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-sm opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity variable-delete-btn"
+          onClick={() => removeVariable(variable.id)}
+        >
+          <X className="w-3 h-3 text-gray-600" />
+        </button>
+      </span>
+    );
+  };
+  
   const renderProcessedPrompt = () => {
     if (showJson) {
       try {
@@ -305,6 +357,7 @@ export const FinalPromptDisplay = ({
           className="prose prose-sm max-w-none" 
           ref={promptContainerRef}
           onMouseUp={handleMouseUp}
+          key={`prompt-content-${renderKey}`}
         >
           {isCreatingVariable && selectionRange && selectedText ? (
             <div 
@@ -333,100 +386,55 @@ export const FinalPromptDisplay = ({
             </div>
           ) : null}
           
-          {paragraphs.map((paragraph, index) => {
+          {paragraphs.map((paragraph, pIndex) => {
             if (!paragraph) return null;
             
-            let displayParagraph = paragraph;
-            const segmentMap = new Map<number, { 
-              id: string, 
-              value: string, 
-              start: number, 
-              end: number 
-            }>();
+            // Process each paragraph separately
+            let remainingText = paragraph;
+            const elements: JSX.Element[] = [];
+            let elementIndex = 0;
             
-            // Find all variable positions in the paragraph
+            // Look for each variable in the paragraph and replace with input field
             relevantVariables.forEach(variable => {
               if (!variable.value) return;
               
               // Find all occurrences of this variable in the paragraph
-              let position = displayParagraph.indexOf(variable.value);
+              let position = remainingText.indexOf(variable.value);
               while (position !== -1) {
-                segmentMap.set(position, {
-                  id: variable.id,
-                  value: variable.value,
-                  start: position,
-                  end: position + variable.value.length
-                });
-                position = displayParagraph.indexOf(variable.value, position + 1);
+                // Add text before variable
+                if (position > 0) {
+                  elements.push(
+                    <span key={`text-${pIndex}-${elementIndex++}`}>
+                      {remainingText.substring(0, position)}
+                    </span>
+                  );
+                }
+                
+                // Add variable input
+                elements.push(
+                  renderVariableInput(variable, `var-${variable.id}-${pIndex}-${elementIndex++}`)
+                );
+                
+                // Update remaining text
+                remainingText = remainingText.substring(position + variable.value.length);
+                
+                // Look for next occurrence
+                position = remainingText.indexOf(variable.value);
               }
             });
             
-            // Sort segments by their start position (to process from end to beginning)
-            const sortedSegments = Array.from(segmentMap.values())
-              .sort((a, b) => b.start - a.start);
-            
-            // Create array of chunks alternating between text and inputs
-            const chunks: JSX.Element[] = [];
-            let lastEnd = displayParagraph.length;
-            
-            for (const segment of sortedSegments) {
-              // Add text after variable
-              if (segment.end < lastEnd) {
-                chunks.unshift(
-                  <span key={`text-${segment.end}`}>
-                    {displayParagraph.substring(segment.end, lastEnd)}
-                  </span>
-                );
-              }
-              
-              // Add variable input
-              const variable = relevantVariables.find(v => v.id === segment.id);
-              if (variable) {
-                chunks.unshift(
-                  <span key={`var-${segment.id}-${segment.start}`} className="inline-block relative">
-                    <input
-                      type="text"
-                      value={variable.value}
-                      onChange={(e) => updateVariableValue(variable.id, e.target.value)}
-                      className="variable-input px-1 py-0 m-0 border-b border-[#33fea6] bg-[#33fea6]/10 font-medium min-w-16 inline-block"
-                    />
-                    <button 
-                      className="absolute -top-3 -right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-sm opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity variable-delete-btn"
-                      onClick={() => removeVariable(variable.id)}
-                    >
-                      <X className="w-3 h-3 text-gray-600" />
-                    </button>
-                  </span>
-                );
-              }
-              
-              // Add text before variable
-              if (segment.start > 0) {
-                chunks.unshift(
-                  <span key={`text-${segment.start}`}>
-                    {displayParagraph.substring(0, segment.start)}
-                  </span>
-                );
-                
-                // Update displayParagraph to not include processed parts
-                displayParagraph = displayParagraph.substring(0, segment.start);
-              }
-              
-              lastEnd = segment.start;
-            }
-            
-            // Add any remaining text at the beginning
-            if (lastEnd > 0) {
-              chunks.unshift(
-                <span key={`text-start`}>
-                  {displayParagraph.substring(0, lastEnd)}
+            // Add any remaining text
+            if (remainingText) {
+              elements.push(
+                <span key={`text-${pIndex}-${elementIndex++}`}>
+                  {remainingText}
                 </span>
               );
             }
             
             return (
-              <p key={index} className="relative">
-                {chunks.length > 0 ? chunks : displayParagraph}
+              <p key={`paragraph-${pIndex}`} className="relative">
+                {elements.length > 0 ? elements : paragraph}
               </p>
             );
           })}
@@ -484,6 +492,7 @@ export const FinalPromptDisplay = ({
           font-family: inherit;
           outline: none;
           transition: all 0.2s;
+          min-width: 4rem;
         }
         .variable-input:focus {
           border-color: #33fea6;

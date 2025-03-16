@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Variable } from "../components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
+import { escapeRegExp } from "@/utils/promptUtils";
 
 export const usePromptOperations = (
   variables: Variable[],
@@ -18,6 +19,7 @@ export const usePromptOperations = (
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastProcessedVariables, setLastProcessedVariables] = useState<Variable[]>([]);
   const [renderKey, setRenderKey] = useState(0); // Add render key to force updates
+  const [variableSelections, setVariableSelections] = useState<Map<string, string>>(new Map());
 
   // Track variables state changes for immediate re-processing
   useEffect(() => {
@@ -49,21 +51,40 @@ export const usePromptOperations = (
       (a, b) => (b.value?.length || 0) - (a.value?.length || 0)
     );
     
+    // Store original selected texts for each variable
+    const originalSelections = new Map<string, string>();
+    variableSelections.forEach((selection, varId) => {
+      originalSelections.set(varId, selection);
+    });
+    
+    // Apply substitutions for each variable
     sortedVariables.forEach(variable => {
-      if (variable.value) {
-        // Simple direct replacement - variables simply exist as their values in the text
+      const originalSelection = originalSelections.get(variable.id);
+      
+      // If we have the original selection that created this variable
+      if (originalSelection) {
+        // Create a regex that matches the original selection exactly
+        const regex = new RegExp(escapeRegExp(originalSelection), 'g');
+        processedPrompt = processedPrompt.replace(regex, variable.value || '');
+      } else if (variable.value) {
+        // Fallback to variable placeholder replacement
         const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
         processedPrompt = processedPrompt.replace(regex, variable.value);
       }
     });
     
     return processedPrompt;
-  }, [finalPrompt, variables, renderKey]); // Include renderKey to ensure fresh calculation
+  }, [finalPrompt, variables, renderKey, variableSelections]); // Include renderKey and variableSelections
   
-  // Helper to escape regular expression special characters
-  const escapeRegExp = (string: string): string => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  };
+  // Record the original text selected when creating a variable
+  const recordVariableSelection = useCallback((variableId: string, selectedText: string) => {
+    setVariableSelections(prev => {
+      const updated = new Map(prev);
+      updated.set(variableId, selectedText);
+      return updated;
+    });
+    setRenderKey(prev => prev + 1); // Force re-render
+  }, []);
 
   // Update a variable's value with real-time synchronization
   const handleVariableValueChange = useCallback((id: string, newValue: string) => {
@@ -195,6 +216,8 @@ export const usePromptOperations = (
     handleCopyPrompt,
     handleRegenerate,
     isProcessing,
-    renderKey
+    renderKey,
+    recordVariableSelection,
+    variableSelections
   };
 };

@@ -9,6 +9,7 @@ import { ActionButtons } from "./step-three/ActionButtons";
 import { EditPromptSheet } from "./step-three/EditPromptSheet";
 import { StepThreeStyles } from "./step-three/StepThreeStyles";
 import { useToast } from "@/hooks/use-toast";
+import { usePromptOperations } from "@/hooks/usePromptOperations";
 
 interface StepThreeContentProps {
   masterCommand: string;
@@ -20,10 +21,8 @@ interface StepThreeContentProps {
   showJson: boolean;
   setShowJson: (show: boolean) => void;
   finalPrompt: string;
-  getProcessedPrompt: () => string;
   variables: Variable[];
   setVariables: React.Dispatch<React.SetStateAction<Variable[]>>;
-  handleVariableValueChange: (variableId: string, newValue: string) => void;
   handleCopyPrompt: () => void;
   handleSavePrompt: () => void;
   handleRegenerate: () => void;
@@ -32,7 +31,7 @@ interface StepThreeContentProps {
   showEditPromptSheet: boolean;
   setShowEditPromptSheet: (show: boolean) => void;
   handleOpenEditPrompt: () => void;
-  handleSaveEditedPrompt: (editingPrompt: string) => void;
+  handleSaveEditedPrompt: () => void;
   handleAdaptPrompt: () => void;
 }
 
@@ -46,24 +45,34 @@ export const StepThreeContent = ({
   showJson,
   setShowJson,
   finalPrompt,
-  getProcessedPrompt,
   variables,
   setVariables,
-  handleVariableValueChange,
-  handleCopyPrompt,
+  handleCopyPrompt: externalHandleCopyPrompt,
   handleSavePrompt,
-  handleRegenerate,
+  handleRegenerate: externalHandleRegenerate,
   editingPrompt,
   setEditingPrompt,
   showEditPromptSheet,
   setShowEditPromptSheet,
-  handleOpenEditPrompt,
-  handleSaveEditedPrompt,
-  handleAdaptPrompt
+  handleOpenEditPrompt: externalHandleOpenEditPrompt,
+  handleSaveEditedPrompt: externalHandleSaveEditedPrompt,
+  handleAdaptPrompt: externalHandleAdaptPrompt
 }: StepThreeContentProps) => {
   const { toast } = useToast();
   const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
-  const [safeProcessedPrompt, setSafeProcessedPrompt] = useState("");
+  
+  // Use the prompt operations hook
+  const promptOperations = usePromptOperations(
+    variables,
+    setVariables,
+    finalPrompt,
+    () => {}, // We're not updating finalPrompt directly here
+    showJson,
+    setEditingPrompt,
+    setShowEditPromptSheet,
+    masterCommand,
+    editingPrompt
+  );
   
   // Force re-render when variables change
   const [renderTrigger, setRenderTrigger] = useState(0);
@@ -72,29 +81,6 @@ export const StepThreeContent = ({
   useEffect(() => {
     setRenderTrigger(prev => prev + 1);
   }, [variables]);
-  
-  // Safely get the processed prompt
-  const safeGetProcessedPrompt = useCallback(() => {
-    try {
-      if (typeof getProcessedPrompt === 'function') {
-        return getProcessedPrompt() || "";
-      }
-      return finalPrompt || "";
-    } catch (error) {
-      console.error("Error getting processed prompt:", error);
-      return finalPrompt || "";
-    }
-  }, [getProcessedPrompt, finalPrompt, renderTrigger, variables]);
-
-  // Update the safe processed prompt when dependencies change
-  useEffect(() => {
-    try {
-      const processed = safeGetProcessedPrompt();
-      setSafeProcessedPrompt(processed);
-    } catch (error) {
-      console.error("Error updating processed prompt:", error);
-    }
-  }, [safeGetProcessedPrompt, variables, finalPrompt, renderTrigger]);
   
   // Ensure we have valid variables
   useEffect(() => {
@@ -110,17 +96,13 @@ export const StepThreeContent = ({
   }, [variables]);
   
   // Enhanced variable value change handler to ensure proper updates
-  const enhancedHandleVariableValueChange = (variableId: string, newValue: string) => {
+  const enhancedHandleVariableValueChange = useCallback((variableId: string, newValue: string) => {
     try {
-      // Update the variable with the new value
-      if (typeof handleVariableValueChange === 'function') {
-        handleVariableValueChange(variableId, newValue);
-        
-        // Force an immediate re-render after variable change
-        setRenderTrigger(prev => prev + 1);
-      } else {
-        throw new Error("handleVariableValueChange is not a function");
-      }
+      // Use our prompt operations hook to update the variable
+      promptOperations.handleVariableValueChange(variableId, newValue);
+      
+      // Force an immediate re-render after variable change
+      setRenderTrigger(prev => prev + 1);
     } catch (error) {
       console.error("Error changing variable value:", error);
       toast({
@@ -129,28 +111,32 @@ export const StepThreeContent = ({
         variant: "destructive"
       });
     }
-  };
+  }, [promptOperations.handleVariableValueChange, toast]);
 
-  // Safely update variables
-  const safeSetVariables = (updater: React.SetStateAction<Variable[]>) => {
-    try {
-      setVariables(updater);
-      // Force re-render
-      setRenderTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error("Error updating variables:", error);
-      toast({
-        title: "Error updating variables",
-        description: "An error occurred while trying to update variables",
-        variant: "destructive"
-      });
+  // Wrapper functions to use our hook functions
+  const handleOpenEditPrompt = useCallback(() => {
+    if (typeof externalHandleOpenEditPrompt === 'function') {
+      externalHandleOpenEditPrompt();
+    } else {
+      promptOperations.handleOpenEditPrompt();
     }
-  };
+  }, [externalHandleOpenEditPrompt, promptOperations.handleOpenEditPrompt]);
 
-  // Wrapper function to adapt the handleSaveEditedPrompt to match EditPromptSheet's onSave prop type
-  const handleSaveEdited = () => {
-    handleSaveEditedPrompt(editingPrompt);
-  };
+  const handleCopyPrompt = useCallback(() => {
+    if (typeof externalHandleCopyPrompt === 'function') {
+      externalHandleCopyPrompt();
+    } else {
+      promptOperations.handleCopyPrompt();
+    }
+  }, [externalHandleCopyPrompt, promptOperations.handleCopyPrompt]);
+
+  const handleSaveEdited = useCallback(() => {
+    if (typeof externalHandleSaveEditedPrompt === 'function') {
+      externalHandleSaveEditedPrompt();
+    } else {
+      promptOperations.handleSaveEditedPrompt();
+    }
+  }, [externalHandleSaveEditedPrompt, promptOperations.handleSaveEditedPrompt]);
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
@@ -163,9 +149,9 @@ export const StepThreeContent = ({
 
       <FinalPromptDisplay 
         finalPrompt={finalPrompt || ""}
-        getProcessedPrompt={safeGetProcessedPrompt}
+        getProcessedPrompt={promptOperations.getProcessedPrompt}
         variables={safeVariables}
-        setVariables={safeSetVariables}
+        setVariables={setVariables}
         showJson={showJson}
         masterCommand={masterCommand || ""}
         handleOpenEditPrompt={handleOpenEditPrompt}
