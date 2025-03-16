@@ -1,4 +1,3 @@
-
 import { Edit, PlusCircle, Check, X } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -34,6 +33,8 @@ export const FinalPromptDisplay = ({
   const [selectedText, setSelectedText] = useState("");
   const [selectionRange, setSelectionRange] = useState<{start: number, end: number} | null>(null);
   const promptContainerRef = useRef<HTMLDivElement>(null);
+  // Add the missing renderTrigger state
+  const [renderTrigger, setRenderTrigger] = useState(0);
   
   const { toast } = useToast();
   
