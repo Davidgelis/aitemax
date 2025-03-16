@@ -70,6 +70,7 @@ export const StepThreeStyles = () => {
       .variable-selection-btn:hover {
         color: #33fea6;
         border-color: #33fea6;
+        background-color: white;
       }
       
       .variable-active {

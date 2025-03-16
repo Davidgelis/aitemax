@@ -604,7 +604,7 @@ export const FinalPromptDisplay = ({
             <Button 
               size="sm" 
               variant="outline" 
-              className="h-8 p-2 hover:border-[#33fea6] hover:text-[#33fea6]" 
+              className="h-8 p-2 hover:border-[#33fea6] hover:text-[#33fea6] hover:bg-white" 
               onClick={createMultiSelectionVariable}
             >
               <Check className="h-4 w-4 mr-1" />
@@ -613,7 +613,7 @@ export const FinalPromptDisplay = ({
             <Button 
               size="sm" 
               variant="outline" 
-              className="h-8 w-8 p-0 hover:border-[#33fea6] hover:text-[#33fea6]" 
+              className="h-8 w-8 p-0 hover:border-[#33fea6] hover:text-[#33fea6] hover:bg-white" 
               onClick={exitMultiSelectionMode}
             >
               <X className="h-4 w-4" />
