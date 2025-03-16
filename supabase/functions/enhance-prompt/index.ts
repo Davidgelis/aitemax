@@ -72,6 +72,46 @@ async function recordTokenUsage(
   }
 }
 
+// Function to retry the OpenAI API call with exponential backoff
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3) {
+  let lastError;
+  let retryCount = 0;
+  
+  while (retryCount < maxRetries) {
+    try {
+      console.log(`Attempt ${retryCount + 1} to call OpenAI API...`);
+      const response = await fetch(url, options);
+      
+      if (response.ok) {
+        return response;
+      }
+      
+      const errorText = await response.text();
+      console.error(`Error response (${response.status}):`, errorText);
+      
+      if (response.status === 401) {
+        // Authentication error - no need to retry
+        throw new Error(`Authentication error: ${errorText}`);
+      }
+      
+      lastError = new Error(`Request failed with status ${response.status}: ${errorText}`);
+    } catch (error) {
+      console.error(`Attempt ${retryCount + 1} failed:`, error);
+      lastError = error;
+    }
+    
+    retryCount++;
+    if (retryCount < maxRetries) {
+      // Exponential backoff: 1s, 2s, 4s, etc.
+      const backoffMs = 1000 * Math.pow(2, retryCount - 1);
+      console.log(`Retrying in ${backoffMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, backoffMs));
+    }
+  }
+  
+  throw lastError;
+}
+
 // Toggle prompts map
 const togglePrompts = {
   math: "You are an AI specializing in enhancing math-focused prompts. The current prompt is already clear and well-structured. Please revise it only as needed to emphasize step-by-step reasoning (chain-of-thought) and a brief self-review for logical or arithmetic mistakes. Integrate any final clarifications or disclaimers that ensure accurate problem-solving, but retain the prompt's overall structure, tone, and clarity.",
@@ -128,6 +168,12 @@ serve(async (req) => {
     console.log(`Primary toggle: ${primaryToggle || "None"}`);
     console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
     console.log(`Enhancing for use on AI platforms with appropriate context`);
+    
+    // Validate OpenAI API key
+    if (!openAIApiKey) {
+      console.error("OpenAI API key is missing");
+      throw new Error("OpenAI API key is not configured. Please set the OPENAI_API_KEY environment variable.");
+    }
     
     // Get toggle prompts if applicable
     const primaryPrompt = primaryToggle ? togglePrompts[primaryToggle] : "";
@@ -240,27 +286,22 @@ Based on this information, generate an enhanced final prompt that follows the st
     };
 
     try {
-      // Call the o3-mini model with the correct version to enhance the prompt
-      console.log("Calling OpenAI API with o3-mini-2025-01-31 model...");
+      console.log("Calling OpenAI API with o3-mini-2025-01-31 model and o3-preview header...");
       
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      // Call the OpenAI API with retry capability and the required Beta header
+      const response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${openAIApiKey}`,
           'Content-Type': 'application/json',
+          'OpenAI-Beta': 'o3-preview' // IMPORTANT: Required header for o3 models
         },
         body: JSON.stringify({
-          model: 'o3-mini-2025-01-31', // Updated to use the correct full model name with version
+          model: 'o3-mini-2025-01-31', // Using the correct full model name with version
           messages: [systemMessage, userMessage],
           temperature: 0.7,
         }),
       });
-      
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error("OpenAI API error:", errorData);
-        throw new Error(`OpenAI API responded with status ${response.status}: ${errorData}`);
-      }
       
       const data = await response.json();
       
@@ -295,6 +336,7 @@ Based on this information, generate an enhanced final prompt that follows the st
       });
     } catch (openaiError) {
       console.error("Error calling OpenAI API:", openaiError);
+      console.error("Error details:", openaiError.stack || "No stack trace available");
       
       // Create a fallback enhanced prompt
       const fallbackPrompt = `# Enhanced Prompt (Fallback)
@@ -328,6 +370,7 @@ An AI assistant that provides helpful, accurate, and thoughtful responses.
     }
   } catch (error) {
     console.error("Error in enhance-prompt function:", error);
+    console.error("Stack trace:", error.stack || "No stack trace available");
     
     return new Response(JSON.stringify({
       error: error.message,
