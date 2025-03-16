@@ -1,3 +1,4 @@
+
 import { Edit, PlusCircle, Check, X, Lasso } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -455,24 +456,40 @@ export const FinalPromptDisplay = ({
   // Modified renderProcessedPrompt function to handle HTML parsing and variable placeholders
   const renderProcessedPrompt = () => {
     if (isEditing) {
+      // Replace any variable placeholders with their value but make them non-editable
+      let editableText = finalPrompt;
+      const relevantVars = variables.filter(v => v.isRelevant);
+      
+      // First find and replace HTML variable placeholders
+      relevantVars.forEach(variable => {
+        const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
+        editableText = editableText.replace(placeholderRegex, variable.value || "");
+      });
+      
+      // Then replace any {{variable}} notation
+      relevantVars.forEach(variable => {
+        const regex = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
+        editableText = editableText.replace(regex, variable.value || "");
+      });
+      
       return (
         <div className="h-full">
           <textarea
             ref={editableTextareaRef}
             value={editablePrompt}
             onChange={(e) => setEditablePrompt(e.target.value)}
-            className="w-full h-full p-4 resize-none rounded-md bg-[#ddfff0] border-[#33fea6] focus:border-[#33fea6] focus:ring-[#33fea6] focus-visible:ring-0 font-sans text-sm"
+            className="w-full h-full min-h-[300px] p-4 resize-none rounded-md editing-mode font-sans text-sm"
           />
           <div className="flex justify-end space-x-2 mt-2">
             <Button 
               variant="outline" 
-              className="text-xs h-8"
+              className="edit-action-button edit-cancel-button"
               onClick={() => setIsEditing(false)}
             >
               Cancel
             </Button>
             <Button 
-              className="text-xs h-8 bg-[#33fea6] hover:bg-[#33fea6]/90 text-white border-none"
+              className="edit-action-button edit-save-button"
               onClick={() => {
                 handleSaveEditedPrompt();
                 setIsEditing(false);
@@ -670,10 +687,10 @@ export const FinalPromptDisplay = ({
         {!isEditing ? (
           <button 
             onClick={() => setIsEditing(true)}
-            className="p-2 rounded-full bg-white/80 hover:bg-white hover:text-[#33fea6] transition-colors"
+            className="p-2 rounded-full edit-icon-button transition-colors"
             aria-label="Edit prompt"
           >
-            <Edit className="w-4 h-4 text-accent" />
+            <Edit className="w-4 h-4 text-accent edit-icon" />
           </button>
         ) : null}
       </div>

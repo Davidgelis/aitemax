@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -67,7 +66,6 @@ export const StepThreeContent = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState("");
   
-  // Use the prompt operations hook with proper setFinalPrompt function
   const promptOperations = usePromptOperations(
     variables,
     setVariables,
@@ -80,15 +78,12 @@ export const StepThreeContent = ({
     editingPrompt
   );
   
-  // Force re-render when variables change
   const [renderTrigger, setRenderTrigger] = useState(0);
   
-  // Update render trigger when variables change
   useEffect(() => {
     setRenderTrigger(prev => prev + 1);
   }, [variables]);
   
-  // Ensure we have valid variables
   useEffect(() => {
     if (!variables || !Array.isArray(variables)) {
       console.error("Invalid variables provided to StepThreeContent:", variables);
@@ -96,22 +91,18 @@ export const StepThreeContent = ({
       return;
     }
     
-    // Filter out any invalid variables
     const validVariables = variables.filter(v => v && typeof v === 'object');
     setSafeVariables(validVariables);
   }, [variables]);
   
-  // Enhanced variable value change handler to ensure proper updates
   const enhancedHandleVariableValueChange = useCallback((variableId: string, newValue: string) => {
     try {
-      // Use external handler if provided, otherwise use our prompt operations hook
       if (typeof externalHandleVariableValueChange === 'function') {
         externalHandleVariableValueChange(variableId, newValue);
       } else {
         promptOperations.handleVariableValueChange(variableId, newValue);
       }
       
-      // Force an immediate re-render after variable change
       setRenderTrigger(prev => prev + 1);
     } catch (error) {
       console.error("Error changing variable value:", error);
@@ -123,7 +114,6 @@ export const StepThreeContent = ({
     }
   }, [externalHandleVariableValueChange, promptOperations.handleVariableValueChange, toast]);
 
-  // Handle saving edited prompt inline
   const handleSaveInlineEdit = useCallback(() => {
     try {
       setFinalPrompt(editablePrompt);
@@ -143,7 +133,6 @@ export const StepThreeContent = ({
     }
   }, [editablePrompt, setFinalPrompt, toast]);
 
-  // Add a function to handle getProcessedPrompt
   const getProcessedPromptFunction = useCallback(() => {
     if (typeof externalGetProcessedPrompt === 'function') {
       return externalGetProcessedPrompt();
@@ -151,7 +140,6 @@ export const StepThreeContent = ({
     return promptOperations.getProcessedPrompt();
   }, [externalGetProcessedPrompt, promptOperations.getProcessedPrompt]);
 
-  // Handle recording variable selections
   const recordVariableSelection = useCallback((variableId: string, selectedText: string) => {
     promptOperations.recordVariableSelection(variableId, selectedText);
   }, [promptOperations]);

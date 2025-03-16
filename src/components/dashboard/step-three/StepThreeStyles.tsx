@@ -90,6 +90,49 @@ export const StepThreeStyles = () => {
         outline-color: #33fea6 !important;
         box-shadow: 0 0 0 2px rgba(51, 254, 166, 0.2) !important;
       }
+      
+      /* Edit icon hover style */
+      .edit-icon-button {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      
+      .edit-icon-button:hover .edit-icon {
+        color: #33fea6;
+      }
+      
+      /* Editing actions button styles */
+      .edit-action-button {
+        font-size: 0.75rem;
+        height: 2rem;
+        padding: 0 0.75rem;
+        border-radius: 0.375rem;
+        transition: all 0.15s ease;
+      }
+      
+      .edit-save-button {
+        background-color: #33fea6;
+        color: white;
+        border: none;
+      }
+      
+      .edit-save-button:hover {
+        background-color: #2be394;
+        box-shadow: 0 2px 4px rgba(51, 254, 166, 0.2);
+      }
+      
+      .edit-cancel-button {
+        background-color: white;
+        color: #71717a;
+        border: 1px solid #e4e4e7;
+      }
+      
+      .edit-cancel-button:hover {
+        background-color: #f4f4f5;
+        color: #52525b;
+      }
       `}
     </style>
   );
