@@ -341,7 +341,6 @@ export const StepController = ({
             showJson={showJson}
             setShowJson={setShowJson}
             finalPrompt={finalPrompt}
-            getProcessedPrompt={getProcessedPrompt}
             variables={variables}
             setVariables={setVariables}
             handleVariableValueChange={handleVariableValueChange}
@@ -355,6 +354,7 @@ export const StepController = ({
             handleOpenEditPrompt={handleOpenEditPrompt}
             handleSaveEditedPrompt={handleSaveEditedPrompt}
             handleAdaptPrompt={handleAdaptPrompt}
+            getProcessedPrompt={getProcessedPrompt}
           />
         );
 

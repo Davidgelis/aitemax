@@ -33,6 +33,8 @@ interface StepThreeContentProps {
   handleOpenEditPrompt: () => void;
   handleSaveEditedPrompt: () => void;
   handleAdaptPrompt: () => void;
+  // Add the getProcessedPrompt function to the props
+  getProcessedPrompt?: () => string;
 }
 
 export const StepThreeContent = ({
@@ -56,7 +58,8 @@ export const StepThreeContent = ({
   setShowEditPromptSheet,
   handleOpenEditPrompt: externalHandleOpenEditPrompt,
   handleSaveEditedPrompt: externalHandleSaveEditedPrompt,
-  handleAdaptPrompt: externalHandleAdaptPrompt
+  handleAdaptPrompt: externalHandleAdaptPrompt,
+  getProcessedPrompt: externalGetProcessedPrompt
 }: StepThreeContentProps) => {
   const { toast } = useToast();
   const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
@@ -138,6 +141,14 @@ export const StepThreeContent = ({
     }
   }, [externalHandleSaveEditedPrompt, promptOperations.handleSaveEditedPrompt]);
 
+  // Add a function to handle getProcessedPrompt
+  const getProcessedPromptFunction = useCallback(() => {
+    if (typeof externalGetProcessedPrompt === 'function') {
+      return externalGetProcessedPrompt();
+    }
+    return promptOperations.getProcessedPrompt();
+  }, [externalGetProcessedPrompt, promptOperations.getProcessedPrompt]);
+
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
       {/* MasterCommandSection is intentionally removed as requested */}
@@ -149,7 +160,7 @@ export const StepThreeContent = ({
 
       <FinalPromptDisplay 
         finalPrompt={finalPrompt || ""}
-        getProcessedPrompt={promptOperations.getProcessedPrompt}
+        getProcessedPrompt={getProcessedPromptFunction}
         variables={safeVariables}
         setVariables={setVariables}
         showJson={showJson}
