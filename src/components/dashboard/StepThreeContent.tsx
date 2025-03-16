@@ -35,6 +35,8 @@ interface StepThreeContentProps {
   handleAdaptPrompt: () => void;
   // Add the getProcessedPrompt function to the props
   getProcessedPrompt?: () => string;
+  // Add the handleVariableValueChange function to the props
+  handleVariableValueChange?: (variableId: string, newValue: string) => void;
 }
 
 export const StepThreeContent = ({
@@ -59,7 +61,8 @@ export const StepThreeContent = ({
   handleOpenEditPrompt: externalHandleOpenEditPrompt,
   handleSaveEditedPrompt: externalHandleSaveEditedPrompt,
   handleAdaptPrompt: externalHandleAdaptPrompt,
-  getProcessedPrompt: externalGetProcessedPrompt
+  getProcessedPrompt: externalGetProcessedPrompt,
+  handleVariableValueChange: externalHandleVariableValueChange
 }: StepThreeContentProps) => {
   const { toast } = useToast();
   const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
@@ -101,8 +104,12 @@ export const StepThreeContent = ({
   // Enhanced variable value change handler to ensure proper updates
   const enhancedHandleVariableValueChange = useCallback((variableId: string, newValue: string) => {
     try {
-      // Use our prompt operations hook to update the variable
-      promptOperations.handleVariableValueChange(variableId, newValue);
+      // Use external handler if provided, otherwise use our prompt operations hook
+      if (typeof externalHandleVariableValueChange === 'function') {
+        externalHandleVariableValueChange(variableId, newValue);
+      } else {
+        promptOperations.handleVariableValueChange(variableId, newValue);
+      }
       
       // Force an immediate re-render after variable change
       setRenderTrigger(prev => prev + 1);
@@ -114,7 +121,7 @@ export const StepThreeContent = ({
         variant: "destructive"
       });
     }
-  }, [promptOperations.handleVariableValueChange, toast]);
+  }, [externalHandleVariableValueChange, promptOperations.handleVariableValueChange, toast]);
 
   // Wrapper functions to use our hook functions
   const handleOpenEditPrompt = useCallback(() => {
