@@ -121,7 +121,7 @@ serve(async (req) => {
       promptId
     } = await req.json();
     
-    console.log(`Enhancing prompt with gpt-4o-mini analysis...`);
+    console.log(`Enhancing prompt with o3-mini analysis...`);
     console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
     console.log(`Questions answered: ${answeredQuestions.length}`);
     console.log(`Relevant variables: ${relevantVariables.length}`);
@@ -239,24 +239,7 @@ Based on this information, generate an enhanced final prompt that follows the st
       `
     };
 
-    // Input validation
-    if (!originalPrompt || typeof originalPrompt !== 'string') {
-      console.error("Invalid or missing original prompt:", originalPrompt);
-      throw new Error("Original prompt is required and must be a string");
-    }
-
-    if (!Array.isArray(answeredQuestions)) {
-      console.error("Invalid questions format:", answeredQuestions);
-      throw new Error("Questions must be provided as an array");
-    }
-
-    if (!Array.isArray(relevantVariables)) {
-      console.error("Invalid variables format:", relevantVariables);
-      throw new Error("Variables must be provided as an array");
-    }
-
-    // Call GPT-4o-mini model to enhance the prompt
-    // Changed from 'o3-mini' to 'gpt-4o-mini' to ensure compatibility
+    // Call the o3-mini model to enhance the prompt
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -264,7 +247,7 @@ Based on this information, generate an enhanced final prompt that follows the st
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Updated from o3-mini to gpt-4o-mini
+        model: 'o3-mini', // Explicitly using o3-mini model
         messages: [systemMessage, userMessage],
         temperature: 0.7,
       }),
@@ -279,7 +262,7 @@ Based on this information, generate an enhanced final prompt that follows the st
     const data = await response.json();
     const enhancedPrompt = data.choices[0].message.content;
     
-    console.log("Prompt enhancement completed successfully with gpt-4o-mini");
+    console.log("Prompt enhancement completed successfully with o3-mini");
     
     // Record the token usage for this step if userId is provided
     if (userId) {
@@ -289,7 +272,7 @@ Based on this information, generate an enhanced final prompt that follows the st
         3, // Step 3: Final prompt generation
         data.usage.prompt_tokens,
         data.usage.completion_tokens,
-        'gpt-4o-mini'
+        'o3-mini'
       );
     }
     
@@ -304,24 +287,10 @@ Based on this information, generate an enhanced final prompt that follows the st
   } catch (error) {
     console.error("Error in enhance-prompt function:", error);
     
-    // Return a fallback prompt in case of error to prevent step 3 from failing
     return new Response(JSON.stringify({
       error: error.message,
-      enhancedPrompt: `# Enhanced Prompt
-
-I wasn't able to enhance your prompt with AI due to a technical issue, but here's your original prompt with some basic formatting:
-
-## Task
-${req.json?.originalPrompt || "Your original task"}
-
-## Persona
-An expert assistant focused on providing helpful, accurate information.
-
-## Instructions
-Follow the guidelines above to accomplish the task effectively.
-
-Note: This is a simplified version. Please try again or contact support if you continue experiencing issues.`,
-      loadingMessage: "Error enhancing prompt, using fallback..."
+      enhancedPrompt: "# Error Enhancing Prompt\n\nThere was an error analyzing your inputs. Please try again or adjust your inputs.",
+      loadingMessage: "Error enhancing prompt..."
     }), {
       status: 200, // Always return 200 to avoid edge function error
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

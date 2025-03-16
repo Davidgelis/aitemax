@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+
+import { useState, useEffect } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions, primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
 import { useToast } from "@/hooks/use-toast";
@@ -356,8 +357,6 @@ export const usePromptAnalysis = (
     variables: Variable[]
   ): Promise<string> => {
     try {
-      setIsLoading(true);
-      
       // Create a context-aware loading message based on toggles
       let message = "Enhancing your prompt";
       if (selectedPrimary) {
@@ -377,21 +376,6 @@ export const usePromptAnalysis = (
       // Set the customized loading message
       setCurrentLoadingMessage(message);
       
-      // Input validation - ensure we have valid data to send to the edge function
-      if (!promptToEnhance || typeof promptToEnhance !== 'string' || promptToEnhance.trim() === '') {
-        throw new Error("Valid prompt text is required");
-      }
-      
-      if (!Array.isArray(questions)) {
-        console.warn("Questions not provided in expected format, using empty array");
-        questions = [];
-      }
-      
-      if (!Array.isArray(variables)) {
-        console.warn("Variables not provided in expected format, using empty array");
-        variables = [];
-      }
-      
       // Filter out only answered and relevant questions
       const answeredQuestions = questions.filter(
         q => q.answer && q.answer.trim() !== "" && q.isRelevant !== false
@@ -401,9 +385,6 @@ export const usePromptAnalysis = (
       const relevantVariables = variables.filter(
         v => v.isRelevant === true
       );
-      
-      console.log(`Enhancing prompt with ${answeredQuestions.length} answered questions and ${relevantVariables.length} relevant variables`);
-      console.log(`Primary toggle: ${selectedPrimary || "None"}, Secondary toggle: ${selectedSecondary || "None"}`);
       
       const { data, error } = await supabase.functions.invoke('enhance-prompt', {
         body: {
@@ -418,22 +399,7 @@ export const usePromptAnalysis = (
       });
       
       if (error) {
-        console.error("Error from edge function:", error);
         throw error;
-      }
-      
-      if (!data) {
-        throw new Error("No data returned from enhance-prompt function");
-      }
-      
-      // If there was an error in the edge function, it will be in the response
-      if (data.error) {
-        console.error("Error in enhance-prompt edge function:", data.error);
-        toast({
-          title: "Error enhancing prompt",
-          description: "An error occurred while enhancing your prompt: " + data.error,
-          variant: "destructive",
-        });
       }
       
       // Update loading message if available from the edge function
@@ -441,11 +407,6 @@ export const usePromptAnalysis = (
         setCurrentLoadingMessage(data.loadingMessage);
       }
       
-      if (!data.enhancedPrompt) {
-        throw new Error("No enhanced prompt returned from function");
-      }
-      
-      console.log("Successfully enhanced prompt");
       return data.enhancedPrompt;
     } catch (error) {
       console.error("Error enhancing prompt with GPT:", error);
@@ -455,8 +416,6 @@ export const usePromptAnalysis = (
         variant: "destructive",
       });
       return "Error enhancing prompt. Please try again.";
-    } finally {
-      setIsLoading(false);
     }
   };
 

@@ -58,7 +58,7 @@ export const StepController = ({
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
-  const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with o3-mini...");
+  const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with GPT-4o...");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
@@ -208,75 +208,33 @@ export const StepController = ({
     if (step === 3) {
       setIsEnhancingPrompt(true);
       
-      let message = "Enhancing your prompt with o3-mini";
-      setEnhancingMessage(message + "...");
+      let message = "Enhancing your prompt";
+      if (selectedPrimary) {
+        const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label || selectedPrimary;
+        message += ` for ${primaryLabel}`;
+        
+        if (selectedSecondary) {
+          const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
+          message += ` and to be ${secondaryLabel}`;
+        }
+      } else if (selectedSecondary) {
+        const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
+        message += ` to be ${secondaryLabel}`;
+      }
+      message += "...";
+      
+      setEnhancingMessage(message);
       
       try {
-        // Validate input data before calling enhancePromptWithGPT
-        if (!promptText.trim()) {
-          throw new Error("Prompt text is required to enhance the prompt");
-        }
-        
-        if (!Array.isArray(questions) || questions.length === 0) {
-          throw new Error("Questions are required to enhance the prompt");
-        }
-        
-        // Process questions to ensure all are valid
-        const validQuestions = questions.map(q => ({
-          ...q,
-          answer: q.answer || "", // Ensure all answers are at least empty strings, not undefined
-          isRelevant: q.isRelevant === null ? true : q.isRelevant // Default to true if not set
-        }));
-        
-        // Process variables to ensure all are valid
-        const validVariables = variables.map(v => ({
-          ...v,
-          value: v.value || "", // Ensure all values are at least empty strings, not undefined
-          isRelevant: v.isRelevant === null ? true : v.isRelevant // Default to true if not set
-        }));
-        
-        console.log(`Enhancing prompt with ${validQuestions.length} questions and ${validVariables.length} variables`);
-        
-        try {
-          const enhancedPrompt = await promptAnalysis.enhancePromptWithGPT(
-            promptText,
-            validQuestions,
-            validVariables
-          );
-          
-          if (!enhancedPrompt || enhancedPrompt.includes("Error enhancing prompt")) {
-            throw new Error("Failed to enhance prompt properly");
-          }
-          
-          setFinalPrompt(enhancedPrompt);
-        } catch (enhanceError) {
-          console.error("Error in enhance prompt API call:", enhanceError);
-          
-          // Attempt to use a more direct approach for o3-mini
-          try {
-            await enhancePromptWithGPT(promptText, selectedPrimary, selectedSecondary, setFinalPrompt);
-          } catch (fallbackError) {
-            console.error("Fallback enhancement also failed:", fallbackError);
-            throw new Error("All prompt enhancement methods failed");
-          }
-        }
-        
+        const enhancedPrompt = await promptAnalysis.enhancePromptWithGPT(
+          promptText,
+          questions,
+          variables
+        );
+        setFinalPrompt(enhancedPrompt);
         setCurrentStep(step);
       } catch (error) {
         console.error("Error enhancing prompt:", error);
-        toast({
-          title: "Error enhancing prompt",
-          description: error instanceof Error ? error.message : "An unknown error occurred",
-          variant: "destructive",
-        });
-        
-        // Set a fallback prompt so the user can proceed even if enhancement failed
-        setFinalPrompt(`# Enhanced Prompt (Fallback)
-
-${promptText}
-
-Note: The original prompt is shown due to an error during enhancement. You can still edit this prompt directly.`);
-        
         setCurrentStep(step);
       } finally {
         setIsEnhancingPrompt(false);

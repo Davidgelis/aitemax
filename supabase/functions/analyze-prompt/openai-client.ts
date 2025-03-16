@@ -132,7 +132,7 @@ When creating and pre-filling questions from Smart Context:
   }
   
   try {
-    console.log("Calling OpenAI API with o3-mini for prompt analysis...");
+    console.log("Calling OpenAI API with GPT-4o for prompt analysis...");
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -141,7 +141,7 @@ When creating and pre-filling questions from Smart Context:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'o3-mini',  // Using o3-mini model as specified
+        model: 'gpt-4o', // Using GPT-4o for analysis
         messages,
         temperature: 0.7,
       }),
@@ -167,7 +167,7 @@ When creating and pre-filling questions from Smart Context:
       throw new Error("Invalid response format from OpenAI API");
     }
     
-    console.log("Successfully analyzed prompt with o3-mini");
+    console.log("Successfully analyzed prompt with GPT-4o");
     
     return {
       content: data.choices[0].message.content,
