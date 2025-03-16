@@ -239,6 +239,22 @@ Based on this information, generate an enhanced final prompt that follows the st
       `
     };
 
+    // Input validation
+    if (!originalPrompt || typeof originalPrompt !== 'string') {
+      console.error("Invalid or missing original prompt:", originalPrompt);
+      throw new Error("Original prompt is required and must be a string");
+    }
+
+    if (!Array.isArray(answeredQuestions)) {
+      console.error("Invalid questions format:", answeredQuestions);
+      throw new Error("Questions must be provided as an array");
+    }
+
+    if (!Array.isArray(relevantVariables)) {
+      console.error("Invalid variables format:", relevantVariables);
+      throw new Error("Variables must be provided as an array");
+    }
+
     // Call the o3-mini model to enhance the prompt
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

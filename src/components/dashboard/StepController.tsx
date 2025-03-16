@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -226,15 +225,58 @@ export const StepController = ({
       setEnhancingMessage(message);
       
       try {
+        // Validate input data before calling enhancePromptWithGPT
+        if (!promptText.trim()) {
+          throw new Error("Prompt text is required to enhance the prompt");
+        }
+        
+        if (!Array.isArray(questions) || questions.length === 0) {
+          throw new Error("Questions are required to enhance the prompt");
+        }
+        
+        // Process questions to ensure all are valid
+        const validQuestions = questions.map(q => ({
+          ...q,
+          answer: q.answer || "", // Ensure all answers are at least empty strings, not undefined
+          isRelevant: q.isRelevant === null ? true : q.isRelevant // Default to true if not set
+        }));
+        
+        // Process variables to ensure all are valid
+        const validVariables = variables.map(v => ({
+          ...v,
+          value: v.value || "", // Ensure all values are at least empty strings, not undefined
+          isRelevant: v.isRelevant === null ? true : v.isRelevant // Default to true if not set
+        }));
+        
+        console.log(`Enhancing prompt with ${validQuestions.length} questions and ${validVariables.length} variables`);
+        
         const enhancedPrompt = await promptAnalysis.enhancePromptWithGPT(
           promptText,
-          questions,
-          variables
+          validQuestions,
+          validVariables
         );
+        
+        if (!enhancedPrompt || enhancedPrompt.includes("Error enhancing prompt")) {
+          throw new Error("Failed to enhance prompt properly");
+        }
+        
         setFinalPrompt(enhancedPrompt);
         setCurrentStep(step);
       } catch (error) {
         console.error("Error enhancing prompt:", error);
+        toast({
+          title: "Error enhancing prompt",
+          description: error instanceof Error ? error.message : "An unknown error occurred",
+          variant: "destructive",
+        });
+        
+        // Set a fallback prompt so the user can proceed even if enhancement failed
+        setFinalPrompt(`# Enhanced Prompt (Fallback)
+
+${promptText}
+
+Note: The original prompt is shown due to an error during enhancement. You can still edit this prompt directly.`);
+        
         setCurrentStep(step);
       } finally {
         setIsEnhancingPrompt(false);
