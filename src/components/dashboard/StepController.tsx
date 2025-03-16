@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -246,7 +245,7 @@ export const StepController = ({
         toast({
           title: "Warning",
           description: "There was an issue enhancing your prompt, but you can still proceed with the original text.",
-          variant: "warning",
+          variant: "default", // Changed from "warning" to "default"
         });
         
         setCurrentStep(step);
