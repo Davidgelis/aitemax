@@ -141,7 +141,7 @@ When creating and pre-filling questions from Smart Context:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // Using GPT-4o for analysis
+        model: 'gpt-4o', // Using GPT-4o for analysis - keeping this as is since it's working
         messages,
         temperature: 0.7,
       }),

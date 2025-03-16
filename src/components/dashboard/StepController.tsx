@@ -57,7 +57,7 @@ export const StepController = ({
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
-  const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with GPT-4o...");
+  const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with GPT-4o-mini...");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
@@ -207,22 +207,8 @@ export const StepController = ({
     if (step === 3) {
       setIsEnhancingPrompt(true);
       
-      let message = "Enhancing your prompt";
-      if (selectedPrimary) {
-        const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label || selectedPrimary;
-        message += ` for ${primaryLabel}`;
-        
-        if (selectedSecondary) {
-          const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
-          message += ` and to be ${secondaryLabel}`;
-        }
-      } else if (selectedSecondary) {
-        const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
-        message += ` to be ${secondaryLabel}`;
-      }
-      message += "...";
-      
-      setEnhancingMessage(message);
+      let message = "Enhancing your prompt with GPT-4o-mini";
+      setEnhancingMessage(message + "...");
       
       try {
         // Validate input data before calling enhancePromptWithGPT
