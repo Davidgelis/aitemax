@@ -38,7 +38,7 @@ export const VariablesSection = ({
         // Find all other inputs for this variable and update them
         document.querySelectorAll<HTMLInputElement>(`input[data-variable-id="${variableId}"]`).forEach(otherInput => {
           if (otherInput !== input) {
-            otherInput.value = input.value;
+            otherInput.value = input.value || "";
           }
         });
       }
@@ -69,10 +69,11 @@ export const VariablesSection = ({
           <div key={variable.id} className="flex items-center gap-2">
             <span className="text-xs font-medium min-w-[80px]">{variable.name}:</span>
             <Input 
-              value={variable.value}
+              value={variable.value || ""}
               onChange={(e) => handleInputChange(variable.id, e.target.value)}
               className="h-7 text-xs py-1 px-2 bg-[#33fea6]/10 border-[#33fea6]/20 focus-visible:border-[#33fea6] focus-visible:ring-0"
               data-variable-id={variable.id}
+              placeholder="Type here..."
             />
           </div>
         ))}

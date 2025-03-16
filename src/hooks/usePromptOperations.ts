@@ -48,7 +48,7 @@ export const usePromptOperations = (
     // Process variables in a specific order: longest values first
     // to prevent partial replacements
     const sortedVariables = [...relevantVariables].sort(
-      (a, b) => (b.value?.length || 0) - (a.value?.length || 0)
+      (a, b) => ((b.value?.length || 0) - (a.value?.length || 0))
     );
     
     // Store original selected texts for each variable
@@ -63,9 +63,12 @@ export const usePromptOperations = (
       
       // If we have the original selection that created this variable
       if (originalSelection) {
+        // Create a placeholder marker for the variable
+        const placeholder = `<span id="${variable.id}-placeholder" class="variable-placeholder" data-variable-id="${variable.id}">${variable.value || ""}</span>`;
+        
         // Create a regex that matches the original selection exactly
         const regex = new RegExp(escapeRegExp(originalSelection), 'g');
-        processedPrompt = processedPrompt.replace(regex, variable.value || '');
+        processedPrompt = processedPrompt.replace(regex, placeholder);
       } else if (variable.value) {
         // Fallback to variable placeholder replacement
         const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');

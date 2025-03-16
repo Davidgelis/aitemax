@@ -221,7 +221,7 @@ export const FinalPromptDisplay = ({
     });
     
     // Replace the selection with the variable value
-    tempElement.outerHTML = `<span id="${variableId}-placeholder">${selectedText}</span>`;
+    tempElement.outerHTML = `<span id="${variableId}-placeholder" class="variable-placeholder" data-variable-id="${variableId}">${selectedText}</span>`;
     
     toast({
       title: "Variable created",
@@ -229,7 +229,7 @@ export const FinalPromptDisplay = ({
     });
     
     cancelVariableCreation();
-    setRenderKey(prev => prev + 1); // Force re-render
+    setRenderTrigger(prev => prev + 1); // Force re-render
   };
   
   // Cancel variable creation mode
@@ -274,7 +274,7 @@ export const FinalPromptDisplay = ({
       description: "Variable has been removed",
     });
     
-    setRenderKey(prev => prev + 1); // Force re-render
+    setRenderTrigger(prev => prev + 1); // Force re-render
   };
   
   // Update variable value - direct replacement
@@ -282,6 +282,8 @@ export const FinalPromptDisplay = ({
     // Find the variable
     const variable = relevantVariables.find(v => v.id === variableId);
     if (!variable) return;
+    
+    console.log(`Updating variable ${variableId} with new value: "${newValue}"`);
     
     // Update variable in state with new value
     setVariables(prevVariables => 
@@ -291,19 +293,20 @@ export const FinalPromptDisplay = ({
     );
     
     // Force re-render to update display
-    setRenderKey(prev => prev + 1);
+    setRenderTrigger(prev => prev + 1);
   };
   
   // Replace a variable occurrence with an input field
   const renderVariableInput = (variable: Variable, uniqueKey: string) => {
     return (
-      <span key={uniqueKey} className="inline-block relative">
+      <span key={uniqueKey} className="inline-block relative variable-input-container">
         <input
           type="text"
-          value={variable.value}
+          value={variable.value || ""}
           onChange={(e) => updateVariableValue(variable.id, e.target.value)}
           className="variable-input px-1 py-0 m-0 border-b border-[#33fea6] bg-[#33fea6]/10 font-medium min-w-16 inline-block"
           data-variable-id={variable.id}
+          placeholder="Type here..."
         />
         <button 
           className="absolute -top-3 -right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-sm opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity variable-delete-btn"
@@ -396,10 +399,22 @@ export const FinalPromptDisplay = ({
             
             // Look for each variable in the paragraph and replace with input field
             relevantVariables.forEach(variable => {
-              if (!variable.value) return;
+              // Skip variables with no original value or invalid data
+              if (!variable.value && !variable.id) return;
               
               // Find all occurrences of this variable in the paragraph
-              let position = remainingText.indexOf(variable.value);
+              let position = -1;
+              
+              // First look for placeholder element with data-variable-id
+              const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
+              const placeholderMatch = remainingText.match(placeholderRegex);
+              
+              if (placeholderMatch) {
+                position = remainingText.indexOf(placeholderMatch[0]);
+              } else if (variable.value) {
+                position = remainingText.indexOf(variable.value);
+              }
+              
               while (position !== -1) {
                 // Add text before variable
                 if (position > 0) {
@@ -416,10 +431,16 @@ export const FinalPromptDisplay = ({
                 );
                 
                 // Update remaining text
-                remainingText = remainingText.substring(position + variable.value.length);
-                
-                // Look for next occurrence
-                position = remainingText.indexOf(variable.value);
+                if (placeholderMatch) {
+                  remainingText = remainingText.substring(position + placeholderMatch[0].length);
+                  placeholderMatch.shift(); // Remove processed match
+                } else if (variable.value) {
+                  remainingText = remainingText.substring(position + variable.value.length);
+                  position = remainingText.indexOf(variable.value);
+                } else {
+                  // Break to avoid infinite loop
+                  position = -1;
+                }
               }
             });
             
@@ -498,11 +519,19 @@ export const FinalPromptDisplay = ({
           border-color: #33fea6;
           background-color: rgba(51, 254, 166, 0.2);
         }
+        .variable-input::placeholder {
+          opacity: 0.5;
+          font-style: italic;
+        }
         .variable-delete-btn {
           transition: opacity 0.2s;
         }
-        p:hover .variable-delete-btn {
+        .variable-input-container:hover .variable-delete-btn {
           opacity: 1;
+        }
+        .variable-placeholder {
+          background-color: rgba(51, 254, 166, 0.1);
+          border-bottom: 1px dashed #33fea6;
         }
         .animate-aurora {
           animation: aurora 15s ease infinite;
