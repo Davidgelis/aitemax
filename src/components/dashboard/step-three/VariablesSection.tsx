@@ -42,9 +42,9 @@ export const VariablesSection = ({
     setGroupedVariables(grouped);
   }, [variables]);
 
-  // Handle immediate variable value change
+  // Handle immediate variable value change - directly updates the variable
   const handleInputChange = (variableId: string, newValue: string) => {
-    // Immediately update the variable value to ensure it reflects in the FinalPrompt
+    console.log("Variable section changing value:", variableId, newValue);
     handleVariableValueChange(variableId, newValue);
   };
   

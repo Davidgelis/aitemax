@@ -1,4 +1,3 @@
-
 import { Edit, PlusCircle, Check, X } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -204,18 +203,14 @@ export const FinalPromptDisplay = ({
     });
   };
   
-  // Update a variable's value 
+  // Direct update of variable value - no pattern matching
   const updateVariableValue = (variableId: string, newValue: string) => {
-    // Update the variable directly in the parent component
+    // Immediately update the variable with the new value
     setVariables(prevVariables => 
       prevVariables.map(v => 
         v.id === variableId ? { ...v, value: newValue } : v
       )
     );
-  };
-  
-  const escapeRegExp = (string: string = "") => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   };
   
   const renderProcessedPrompt = () => {
@@ -282,92 +277,87 @@ export const FinalPromptDisplay = ({
           {processedPrompt.split('\n\n').map((paragraph, index) => {
             if (!paragraph) return null;
             
-            // Check if this paragraph contains any variables
-            let paragraphContent = paragraph;
-            let hasVariables = false;
+            // Build a map of variable segments in this paragraph
+            let segments: {type: 'text' | 'variable', content: string, variableId?: string}[] = [
+              {type: 'text', content: paragraph}
+            ];
             
+            // Check if any variables exist in this paragraph and extract them
             relevantVariables.forEach(variable => {
-              if (variable.value && paragraphContent.includes(variable.value)) {
-                hasVariables = true;
-              }
-            });
-            
-            if (hasVariables) {
-              let segments: {type: 'text' | 'variable', content: string, variableId?: string}[] = [
-                {type: 'text', content: paragraphContent}
-              ];
+              if (!variable.value) return;
               
-              // Replace variables with editable inputs
-              relevantVariables.forEach(variable => {
-                if (!variable.value) return;
+              const newSegments: typeof segments = [];
+              
+              for (const segment of segments) {
+                if (segment.type === 'variable') {
+                  newSegments.push(segment);
+                  continue;
+                }
                 
-                const newSegments: typeof segments = [];
+                const textContent = segment.content;
+                const variableIndex = textContent.indexOf(variable.value);
                 
-                segments.forEach(segment => {
-                  if (segment.type === 'variable') {
-                    newSegments.push(segment);
-                    return;
-                  }
-                  
-                  // Split the text segment by the variable value
-                  const parts = segment.content.split(variable.value);
-                  
-                  if (parts.length === 1) {
-                    // Variable not found in this segment
-                    newSegments.push(segment);
-                    return;
-                  }
-                  
-                  // Rebuild segments with variables
-                  parts.forEach((part, i) => {
-                    if (part) {
-                      newSegments.push({type: 'text', content: part});
-                    }
-                    
-                    // Add variable between parts (except after the last part)
-                    if (i < parts.length - 1) {
-                      newSegments.push({type: 'variable', content: variable.value, variableId: variable.id});
-                    }
+                if (variableIndex === -1) {
+                  // Variable not found in this segment
+                  newSegments.push(segment);
+                  continue;
+                }
+                
+                // Split the segment into parts: before variable, variable, after variable
+                if (variableIndex > 0) {
+                  newSegments.push({
+                    type: 'text',
+                    content: textContent.substring(0, variableIndex)
                   });
+                }
+                
+                newSegments.push({
+                  type: 'variable',
+                  content: variable.value,
+                  variableId: variable.id
                 });
                 
-                segments = newSegments;
-              });
+                if (variableIndex + variable.value.length < textContent.length) {
+                  newSegments.push({
+                    type: 'text',
+                    content: textContent.substring(variableIndex + variable.value.length)
+                  });
+                }
+              }
               
-              return (
-                <p key={index} className="relative">
-                  {segments.map((segment, segmentIndex) => {
-                    if (segment.type === 'text') {
-                      return <span key={segmentIndex}>{segment.content}</span>;
-                    } else {
-                      // Variable segment
-                      const variable = relevantVariables.find(v => v.id === segment.variableId);
-                      if (!variable) return <span key={segmentIndex}>{segment.content}</span>;
-                      
-                      return (
-                        <span key={segmentIndex} className="inline-block relative">
-                          <input
-                            type="text"
-                            value={variable.value}
-                            onChange={(e) => updateVariableValue(variable.id, e.target.value)}
-                            className="variable-input px-1 py-0 m-0 border-b border-[#33fea6] bg-[#33fea6]/10 font-medium min-w-16 inline-block"
-                          />
-                          <button 
-                            className="absolute -top-3 -right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-sm opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity variable-delete-btn"
-                            onClick={() => removeVariable(variable.id)}
-                          >
-                            <X className="w-3 h-3 text-gray-600" />
-                          </button>
-                        </span>
-                      );
-                    }
-                  })}
-                </p>
-              );
-            }
+              segments = newSegments;
+            });
             
-            // Paragraph with no variables
-            return <p key={index}>{paragraph}</p>;
+            return (
+              <p key={index} className="relative">
+                {segments.map((segment, segmentIndex) => {
+                  if (segment.type === 'text') {
+                    return <span key={segmentIndex}>{segment.content}</span>;
+                  } else {
+                    // Variable segment
+                    const variable = relevantVariables.find(v => v.id === segment.variableId);
+                    if (!variable) return <span key={segmentIndex}>{segment.content}</span>;
+                    
+                    return (
+                      <span key={segmentIndex} className="inline-block relative">
+                        <input
+                          type="text"
+                          value={variable.value}
+                          onChange={(e) => updateVariableValue(variable.id, e.target.value)}
+                          className="variable-input px-1 py-0 m-0 border-b border-[#33fea6] bg-[#33fea6]/10 font-medium min-w-16 inline-block"
+                        />
+                        <button 
+                          className="absolute -top-3 -right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-sm opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity variable-delete-btn"
+                          onClick={() => removeVariable(variable.id)}
+                        >
+                          <X className="w-3 h-3 text-gray-600" />
+                        </button>
+                      </span>
+                    );
+                  }
+                })}
+              </p>
+            );
           })}
         </div>
       );

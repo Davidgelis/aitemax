@@ -32,19 +32,22 @@ export const usePromptOperations = (
     }
   }, [variables, lastProcessedVariables]);
 
-  // Process the prompt with variables
+  // Process the prompt with variables - simplified approach
+  // that directly inserts variable values into the prompt
   const getProcessedPrompt = (): string => {
     if (!finalPrompt) return "";
     
     let processedPrompt = finalPrompt;
     
     // Only use relevant variables that have values
-    const relevantVariables = variables.filter(v => v.isRelevant && v.value);
+    const relevantVariables = variables.filter(v => v.isRelevant);
     
-    // Replace variables in the format {{variable_name}} with their values
     relevantVariables.forEach(variable => {
-      const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
-      processedPrompt = processedPrompt.replace(regex, variable.value);
+      if (variable.value) {
+        // Use simple direct replacement for variable values
+        const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
+        processedPrompt = processedPrompt.replace(regex, variable.value);
+      }
     });
     
     return processedPrompt;

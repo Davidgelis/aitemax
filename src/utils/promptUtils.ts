@@ -19,7 +19,7 @@ export const findVariableOccurrences = (text: string, variableValue: string): nu
   return positions;
 };
 
-// Safely replace text in a string without affecting other occurrences
+// Improved variable replacement function that doesn't rely on exact matching
 export const replaceVariableInPrompt = (
   prompt: string, 
   oldValue: string, 
@@ -37,20 +37,15 @@ export const replaceVariableInPrompt = (
   
   // If there's no new value, restore the placeholder
   if (!newValue) {
-    // Create a regex that only matches the exact old value
-    const pattern = new RegExp(`\\b${oldValue}\\b`, 'g');
-    return prompt.replace(pattern, `{{${variableName}}}`);
+    return prompt.replace(oldValue, `{{${variableName}}}`);
   }
   
-  // Handle normal replacement of old value with new value
-  // Use word boundary to prevent partial replacements
+  // Direct replacement of old value with new value without word boundaries
+  // This allows replacement of any text, not just exact word matches
   try {
-    const escapedOldValue = oldValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const pattern = new RegExp(`\\b${escapedOldValue}\\b`, 'g');
-    return prompt.replace(pattern, newValue);
+    return prompt.replace(oldValue, newValue);
   } catch (error) {
     console.error("Error replacing variable in prompt:", error);
-    // Fallback to direct string replacement if regex fails
-    return prompt.split(oldValue).join(newValue);
+    return prompt;
   }
 };
