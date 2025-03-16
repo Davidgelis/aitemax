@@ -105,10 +105,11 @@ export const StepThreeStyles = () => {
       
       /* Edit icon hover style */
       .edit-icon-button {
-        background: transparent;
+        background: white;
         border: none;
         cursor: pointer;
         transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       }
       
       .edit-icon-button:hover .edit-icon {

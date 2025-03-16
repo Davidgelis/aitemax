@@ -79,7 +79,7 @@ export const FinalPrompt = ({
     
     // Replace HTML variable elements with non-editable spans
     variables.filter(v => v.isRelevant).forEach(variable => {
-      const varRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>[^<]*</span>`, 'g');
+      const varRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
       editableContent = editableContent.replace(varRegex, 
         `<span class="non-editable-variable" data-variable-id="${variable.id}">${variable.value || ""}</span>`);
     });
@@ -205,7 +205,7 @@ export const FinalPrompt = ({
         {!isEditing ? (
           <button 
             onClick={startEditing}
-            className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors edit-icon-button"
+            className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white edit-icon-button"
           >
             <Edit className="w-4 h-4 text-accent edit-icon" />
           </button>
@@ -213,14 +213,14 @@ export const FinalPrompt = ({
           <div className="absolute top-2 right-2 z-10 flex gap-2">
             <button 
               onClick={cancelEditing}
-              className="p-2 rounded-full bg-white/80 hover:bg-white transition-colors edit-icon-button"
+              className="p-2 rounded-full bg-white edit-icon-button"
               title="Cancel editing"
             >
               <X className="w-4 h-4 text-red-500" />
             </button>
             <button 
               onClick={saveEditing}
-              className="p-2 rounded-full bg-white/80 hover:bg-white transition-colors edit-icon-button"
+              className="p-2 rounded-full bg-white edit-icon-button"
               title="Save changes"
             >
               <Check className="w-4 h-4 text-[#33fea6]" />
