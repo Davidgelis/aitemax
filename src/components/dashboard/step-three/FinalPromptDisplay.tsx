@@ -1,4 +1,3 @@
-
 import { Edit, PlusCircle, Check, X } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -15,6 +14,7 @@ interface FinalPromptDisplayProps {
   showJson: boolean;
   masterCommand: string;
   handleOpenEditPrompt: () => void;
+  recordVariableSelection?: (variableId: string, selectedText: string) => void;
 }
 
 export const FinalPromptDisplay = ({
@@ -24,7 +24,8 @@ export const FinalPromptDisplay = ({
   setVariables,
   showJson,
   masterCommand,
-  handleOpenEditPrompt
+  handleOpenEditPrompt,
+  recordVariableSelection
 }: FinalPromptDisplayProps) => {
   const [processedPrompt, setProcessedPrompt] = useState("");
   const [promptJson, setPromptJson] = useState<PromptJsonStructure | null>(null);
@@ -40,7 +41,6 @@ export const FinalPromptDisplay = ({
   
   const [userId, setUserId] = useState<string | null>(null);
   const [promptId, setPromptId] = useState<string | null>(null);
-  const [renderKey, setRenderKey] = useState(0); // Force re-render key
   
   useEffect(() => {
     const getUserId = async () => {
@@ -109,7 +109,7 @@ export const FinalPromptDisplay = ({
       console.error("Error processing prompt:", error);
       setProcessedPrompt(finalPrompt || "");
     }
-  }, [getProcessedPrompt, finalPrompt, variables, renderKey]);
+  }, [getProcessedPrompt, finalPrompt, variables, renderTrigger]);
   
   // Handle user text selection
   const handleMouseUp = () => {
@@ -195,11 +195,16 @@ export const FinalPromptDisplay = ({
     const newVariable: Variable = {
       id: variableId,
       name: variableName,
-      // Initialize with an empty string instead of the selected text
+      // Initialize with an empty string
       value: "",
       isRelevant: true,
       category: 'User-Defined'
     };
+    
+    // IMPORTANT: Record the original selection to enable proper replacement
+    if (typeof recordVariableSelection === 'function') {
+      recordVariableSelection(variableId, selectedText);
+    }
     
     // Add the new variable to the variables array
     setVariables(prevVariables => {
@@ -278,6 +283,15 @@ export const FinalPromptDisplay = ({
       )
     );
     
+    // Dispatch a custom event to synchronize all instances of this variable
+    const customEvent = new CustomEvent('variable-value-changed', {
+      detail: {
+        variableId: variableId,
+        newValue: newValue
+      }
+    });
+    document.dispatchEvent(customEvent);
+    
     // Force re-render to update display
     setRenderTrigger(prev => prev + 1);
   };
@@ -292,6 +306,7 @@ export const FinalPromptDisplay = ({
           onChange={(e) => updateVariableValue(variable.id, e.target.value)}
           className="variable-input px-1 py-0 m-0 border-b border-[#33fea6] bg-[#33fea6]/10 font-medium min-w-16 inline-block"
           data-variable-id={variable.id}
+          data-source="prompt-display"
           placeholder="Type here..."
         />
         <button 
@@ -346,7 +361,7 @@ export const FinalPromptDisplay = ({
           className="prose prose-sm max-w-none" 
           ref={promptContainerRef}
           onMouseUp={handleMouseUp}
-          key={`prompt-content-${renderKey}`}
+          key={`prompt-content-${renderTrigger}`}
         >
           {isCreatingVariable && selectionRange && selectedText ? (
             <div 

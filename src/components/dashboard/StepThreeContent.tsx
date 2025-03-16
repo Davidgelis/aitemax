@@ -156,6 +156,11 @@ export const StepThreeContent = ({
     return promptOperations.getProcessedPrompt();
   }, [externalGetProcessedPrompt, promptOperations.getProcessedPrompt]);
 
+  // Handle recording variable selections
+  const recordVariableSelection = useCallback((variableId: string, selectedText: string) => {
+    promptOperations.recordVariableSelection(variableId, selectedText);
+  }, [promptOperations]);
+
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
       {/* MasterCommandSection is intentionally removed as requested */}
@@ -173,6 +178,7 @@ export const StepThreeContent = ({
         showJson={showJson}
         masterCommand={masterCommand || ""}
         handleOpenEditPrompt={handleOpenEditPrompt}
+        recordVariableSelection={recordVariableSelection}
       />
 
       <VariablesSection 

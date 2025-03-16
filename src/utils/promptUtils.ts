@@ -40,6 +40,13 @@ export const replaceVariableInPrompt = (
     const regex = new RegExp(escapeRegExp(selectedText), 'g');
     return prompt.replace(regex, newValue);
   }
+
+  // Make sure we handle empty newValue correctly - if it's empty,
+  // we still need to replace the selected text with the placeholder
+  if (!newValue && variableName) {
+    const placeholder = `{{${variableName}}}`;
+    return prompt.replace(new RegExp(escapeRegExp(selectedText), 'g'), placeholder);
+  }
   
   // Direct replacement for all occurrences
   try {

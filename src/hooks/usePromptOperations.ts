@@ -89,6 +89,7 @@ export const usePromptOperations = (
   
   // Record the original text selected when creating a variable
   const recordVariableSelection = useCallback((variableId: string, selectedText: string) => {
+    console.log("Recording variable selection:", variableId, selectedText);
     setVariableSelections(prev => {
       const updated = new Map(prev);
       updated.set(variableId, selectedText);
