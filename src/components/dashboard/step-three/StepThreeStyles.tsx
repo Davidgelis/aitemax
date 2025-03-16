@@ -77,6 +77,19 @@ export const StepThreeStyles = () => {
         background-color: rgba(51, 254, 166, 0.2);
         border-color: #33fea6;
       }
+      
+      /* New editing mode styles */
+      .editing-mode {
+        background-color: #ddfff0 !important;
+        border-color: #33fea6 !important;
+        outline-color: #33fea6 !important;
+      }
+      
+      .editing-mode:focus {
+        border-color: #33fea6 !important;
+        outline-color: #33fea6 !important;
+        box-shadow: 0 0 0 2px rgba(51, 254, 166, 0.2) !important;
+      }
       `}
     </style>
   );

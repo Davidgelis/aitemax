@@ -5,7 +5,6 @@ import { ToggleSection } from "./step-three/ToggleSection";
 import { FinalPromptDisplay } from "./step-three/FinalPromptDisplay";
 import { VariablesSection } from "./step-three/VariablesSection";
 import { ActionButtons } from "./step-three/ActionButtons";
-import { EditPromptSheet } from "./step-three/EditPromptSheet";
 import { StepThreeStyles } from "./step-three/StepThreeStyles";
 import { useToast } from "@/hooks/use-toast";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
@@ -20,7 +19,7 @@ interface StepThreeContentProps {
   showJson: boolean;
   setShowJson: (show: boolean) => void;
   finalPrompt: string;
-  setFinalPrompt: (prompt: string) => void; // Add setter for finalPrompt
+  setFinalPrompt: (prompt: string) => void;
   variables: Variable[];
   setVariables: React.Dispatch<React.SetStateAction<Variable[]>>;
   handleCopyPrompt: () => void;
@@ -33,9 +32,7 @@ interface StepThreeContentProps {
   handleOpenEditPrompt: () => void;
   handleSaveEditedPrompt: () => void;
   handleAdaptPrompt: () => void;
-  // Add the getProcessedPrompt function to the props
   getProcessedPrompt?: () => string;
-  // Add the handleVariableValueChange function to the props
   handleVariableValueChange?: (variableId: string, newValue: string) => void;
 }
 
@@ -49,7 +46,7 @@ export const StepThreeContent = ({
   showJson,
   setShowJson,
   finalPrompt,
-  setFinalPrompt, // Add this prop
+  setFinalPrompt,
   variables,
   setVariables,
   handleCopyPrompt: externalHandleCopyPrompt,
@@ -67,13 +64,15 @@ export const StepThreeContent = ({
 }: StepThreeContentProps) => {
   const { toast } = useToast();
   const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editablePrompt, setEditablePrompt] = useState("");
   
   // Use the prompt operations hook with proper setFinalPrompt function
   const promptOperations = usePromptOperations(
     variables,
     setVariables,
     finalPrompt,
-    setFinalPrompt, // Pass the real setter function instead of no-op
+    setFinalPrompt,
     showJson,
     setEditingPrompt,
     setShowEditPromptSheet,
@@ -124,30 +123,25 @@ export const StepThreeContent = ({
     }
   }, [externalHandleVariableValueChange, promptOperations.handleVariableValueChange, toast]);
 
-  // Wrapper functions to use our hook functions
-  const handleOpenEditPrompt = useCallback(() => {
-    if (typeof externalHandleOpenEditPrompt === 'function') {
-      externalHandleOpenEditPrompt();
-    } else {
-      promptOperations.handleOpenEditPrompt();
+  // Handle saving edited prompt inline
+  const handleSaveInlineEdit = useCallback(() => {
+    try {
+      setFinalPrompt(editablePrompt);
+      
+      toast({
+        title: "Success",
+        description: "Prompt updated successfully",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error("Error saving edited prompt:", error);
+      toast({
+        title: "Error",
+        description: "Could not save edited prompt. Please try again.",
+        variant: "destructive",
+      });
     }
-  }, [externalHandleOpenEditPrompt, promptOperations.handleOpenEditPrompt]);
-
-  const handleCopyPrompt = useCallback(() => {
-    if (typeof externalHandleCopyPrompt === 'function') {
-      externalHandleCopyPrompt();
-    } else {
-      promptOperations.handleCopyPrompt();
-    }
-  }, [externalHandleCopyPrompt, promptOperations.handleCopyPrompt]);
-
-  const handleSaveEdited = useCallback(() => {
-    if (typeof externalHandleSaveEditedPrompt === 'function') {
-      externalHandleSaveEditedPrompt();
-    } else {
-      promptOperations.handleSaveEditedPrompt();
-    }
-  }, [externalHandleSaveEditedPrompt, promptOperations.handleSaveEditedPrompt]);
+  }, [editablePrompt, setFinalPrompt, toast]);
 
   // Add a function to handle getProcessedPrompt
   const getProcessedPromptFunction = useCallback(() => {
@@ -164,8 +158,6 @@ export const StepThreeContent = ({
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
-      {/* MasterCommandSection is removed as requested */}
-
       <ToggleSection 
         showJson={showJson}
         setShowJson={setShowJson}
@@ -173,14 +165,19 @@ export const StepThreeContent = ({
 
       <FinalPromptDisplay 
         finalPrompt={finalPrompt || ""}
-        updateFinalPrompt={setFinalPrompt} // Pass the updateFinalPrompt function
+        updateFinalPrompt={setFinalPrompt}
         getProcessedPrompt={getProcessedPromptFunction}
         variables={safeVariables}
         setVariables={setVariables}
         showJson={showJson}
         masterCommand={masterCommand || ""}
-        handleOpenEditPrompt={handleOpenEditPrompt}
+        handleOpenEditPrompt={externalHandleOpenEditPrompt}
         recordVariableSelection={recordVariableSelection}
+        isEditing={isEditing}
+        setIsEditing={setIsEditing}
+        editablePrompt={editablePrompt}
+        setEditablePrompt={setEditablePrompt}
+        handleSaveEditedPrompt={handleSaveInlineEdit}
       />
 
       <VariablesSection 
@@ -189,17 +186,8 @@ export const StepThreeContent = ({
       />
 
       <ActionButtons 
-        handleCopyPrompt={handleCopyPrompt}
+        handleCopyPrompt={externalHandleCopyPrompt}
         handleSavePrompt={handleSavePrompt}
-      />
-
-      <EditPromptSheet 
-        open={showEditPromptSheet}
-        onOpenChange={setShowEditPromptSheet}
-        editingPrompt={editingPrompt || ""}
-        setEditingPrompt={setEditingPrompt}
-        onSave={handleSaveEdited}
-        variables={safeVariables}
       />
 
       <StepThreeStyles />

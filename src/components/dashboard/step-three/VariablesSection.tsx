@@ -63,9 +63,9 @@ export const VariablesSection = ({
   return (
     <div className="mb-4 p-3 border rounded-lg bg-background/50">
       <h4 className="text-sm font-medium mb-3">Variables</h4>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col space-y-2">
         {relevantVariables.map((variable, index) => (
-          <div key={variable.id} className="flex items-center gap-2 min-w-[120px] max-w-[300px]">
+          <div key={variable.id} className="flex items-center gap-2">
             <span className="text-xs font-medium min-w-[25px]">{index + 1}:</span>
             <Input 
               value={variable.value || ""}

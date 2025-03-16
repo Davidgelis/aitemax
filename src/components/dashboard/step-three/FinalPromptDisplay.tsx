@@ -17,6 +17,11 @@ interface FinalPromptDisplayProps {
   masterCommand: string;
   handleOpenEditPrompt: () => void;
   recordVariableSelection?: (variableId: string, selectedText: string) => void;
+  isEditing: boolean;
+  setIsEditing: (isEditing: boolean) => void;
+  editablePrompt: string;
+  setEditablePrompt: (prompt: string) => void;
+  handleSaveEditedPrompt: () => void;
 }
 
 export const FinalPromptDisplay = ({
@@ -28,7 +33,12 @@ export const FinalPromptDisplay = ({
   showJson,
   masterCommand,
   handleOpenEditPrompt,
-  recordVariableSelection
+  recordVariableSelection,
+  isEditing,
+  setIsEditing,
+  editablePrompt,
+  setEditablePrompt,
+  handleSaveEditedPrompt
 }: FinalPromptDisplayProps) => {
   
   const [processedPrompt, setProcessedPrompt] = useState("");
@@ -42,6 +52,7 @@ export const FinalPromptDisplay = ({
   const [selectionRange, setSelectionRange] = useState<{start: number, end: number} | null>(null);
   const promptContainerRef = useRef<HTMLDivElement>(null);
   const [renderTrigger, setRenderTrigger] = useState(0);
+  const editableTextareaRef = useRef<HTMLTextAreaElement>(null);
   
   const { toast } = useToast();
   
@@ -118,9 +129,23 @@ export const FinalPromptDisplay = ({
     }
   }, [getProcessedPrompt, finalPrompt, variables, renderTrigger]);
   
+  useEffect(() => {
+    // When editing mode is activated, set the editable prompt to the current final prompt
+    if (isEditing) {
+      setEditablePrompt(finalPrompt);
+      
+      // Focus the textarea when in editing mode
+      setTimeout(() => {
+        if (editableTextareaRef.current) {
+          editableTextareaRef.current.focus();
+        }
+      }, 100);
+    }
+  }, [isEditing, finalPrompt, setEditablePrompt]);
+  
   // Handle user text selection for multi-select mode
   const handleMouseUp = () => {
-    if (!isCreatingVariable) return;
+    if (!isCreatingVariable || isEditing) return;
     
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0 || !selection.toString().trim()) return;
@@ -356,6 +381,8 @@ export const FinalPromptDisplay = ({
   };
   
   const toggleVariableCreation = () => {
+    if (isEditing) return; // Don't allow variable creation while editing
+    
     if (isCreatingVariable) {
       cancelVariableCreation();
     } else {
@@ -369,6 +396,8 @@ export const FinalPromptDisplay = ({
   };
   
   const toggleMultiSelectMode = () => {
+    if (isEditing) return; // Don't allow multi-select while editing
+    
     if (isMultiSelectMode) {
       exitMultiSelectionMode();
       setIsCreatingVariable(false);
@@ -412,59 +441,50 @@ export const FinalPromptDisplay = ({
     setRenderTrigger(prev => prev + 1); // Force re-render
   };
   
-  // Update variable value - direct replacement with synchronization
-  const updateVariableValue = (variableId: string, newValue: string) => {
-    // Find the variable
-    const variable = relevantVariables.find(v => v.id === variableId);
-    if (!variable) return;
-    
-    console.log(`Updating variable ${variableId} with new value: "${newValue}"`);
-    
-    // Update variable in state with new value
-    setVariables(prev => 
-      prev.map(v => 
-        v.id === variableId ? { ...v, value: newValue } : v
-      )
-    );
-    
-    // Dispatch a custom event to synchronize all instances of this variable
-    const customEvent = new CustomEvent('variable-value-changed', {
-      detail: {
-        variableId: variableId,
-        newValue: newValue
-      }
-    });
-    document.dispatchEvent(customEvent);
-    
-    // Force re-render to update display
-    setRenderTrigger(prev => prev + 1);
-  };
-  
-  // Render variable input field (for occurrences in the prompt)
-  const renderVariableInput = (variable: Variable, uniqueKey: string) => {
+  // For read-only rendering in the prompt display
+  const renderVariablePlaceholder = (variable: Variable, uniqueKey: string) => {
     return (
-      <span key={uniqueKey} className="inline-block relative variable-input-container">
-        <input
-          type="text"
-          value={variable.value || ""}
-          onChange={(e) => updateVariableValue(variable.id, e.target.value)}
-          className="variable-input px-1 py-0 m-0 border-b border-[#33fea6] bg-[#33fea6]/10 font-medium min-w-16 inline-block"
-          data-variable-id={variable.id}
-          data-source="prompt-display"
-          placeholder="Type here..."
-        />
-        <button 
-          className="absolute -top-3 -right-2 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-sm opacity-0 hover:opacity-100 focus:opacity-100 transition-opacity variable-delete-btn"
-          onClick={() => removeVariable(variable.id)}
-        >
-          <X className="w-3 h-3 text-gray-600" />
-        </button>
+      <span key={uniqueKey} className="inline-block relative variable-placeholder">
+        <span className="variable-highlight px-1 py-0 m-0 bg-[#33fea6]/10 border-b border-[#33fea6] text-foreground font-medium min-w-16 inline-block">
+          {variable.value || ""}
+        </span>
       </span>
     );
   };
-  
+
   // Modified renderProcessedPrompt function to handle HTML parsing and variable placeholders
   const renderProcessedPrompt = () => {
+    if (isEditing) {
+      return (
+        <div className="h-full">
+          <textarea
+            ref={editableTextareaRef}
+            value={editablePrompt}
+            onChange={(e) => setEditablePrompt(e.target.value)}
+            className="w-full h-full p-4 resize-none rounded-md bg-[#ddfff0] border-[#33fea6] focus:border-[#33fea6] focus:ring-[#33fea6] focus-visible:ring-0 font-sans text-sm"
+          />
+          <div className="flex justify-end space-x-2 mt-2">
+            <Button 
+              variant="outline" 
+              className="text-xs h-8"
+              onClick={() => setIsEditing(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              className="text-xs h-8 bg-[#33fea6] hover:bg-[#33fea6]/90 text-white border-none"
+              onClick={() => {
+                handleSaveEditedPrompt();
+                setIsEditing(false);
+              }}
+            >
+              Save Changes
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    
     if (showJson) {
       try {
         if (isLoadingJson) {
@@ -519,7 +539,7 @@ export const FinalPromptDisplay = ({
               <Button 
                 size="sm" 
                 variant="outline" 
-                className="h-8 w-8 p-0" 
+                className="h-8 w-8 p-0 hover:border-[#33fea6] hover:text-[#33fea6] hover:bg-white" 
                 onClick={createVariableFromSelection}
               >
                 <Check className="h-4 w-4" />
@@ -527,7 +547,7 @@ export const FinalPromptDisplay = ({
               <Button 
                 size="sm" 
                 variant="outline" 
-                className="h-8 w-8 p-0" 
+                className="h-8 w-8 p-0 hover:border-[#33fea6] hover:text-[#33fea6] hover:bg-white" 
                 onClick={cancelVariableCreation}
               >
                 <X className="h-4 w-4" />
@@ -565,8 +585,8 @@ export const FinalPromptDisplay = ({
                 );
               }
               
-              // Add the variable input
-              parts.push(renderVariableInput(variable, `var-${variable.id}-${pIndex}-${currentIndex++}`));
+              // Add the variable input - now read-only
+              parts.push(renderVariablePlaceholder(variable, `var-${variable.id}-${pIndex}-${currentIndex++}`));
               
               // Update the last processed index
               lastProcessedIndex = matchIndex + fullMatch.length;
@@ -599,7 +619,7 @@ export const FinalPromptDisplay = ({
   return (
     <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
       <div className="absolute top-2 right-2 z-10 flex items-center space-x-4">
-        {isMultiSelectMode && (
+        {isMultiSelectMode && !isEditing && (
           <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20 bg-white shadow-lg rounded-lg p-2 flex gap-2">
             <Button 
               size="sm" 
@@ -621,44 +641,41 @@ export const FinalPromptDisplay = ({
           </div>
         )}
         
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-accent">Create Multi-Variable</span>
-          <button 
-            onClick={toggleMultiSelectMode}
-            className={`p-2 rounded-full ${isMultiSelectMode ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`}
-            aria-label={isMultiSelectMode ? "Exit multi-select mode" : "Multi-select mode"}
-          >
-            <Lasso className={`w-4 h-4 ${isMultiSelectMode ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
-          </button>
-        </div>
+        {!isEditing && (
+          <>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-accent">Create Multi-Variable</span>
+              <button 
+                onClick={toggleMultiSelectMode}
+                className={`p-2 rounded-full ${isMultiSelectMode ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`}
+                aria-label={isMultiSelectMode ? "Exit multi-select mode" : "Multi-select mode"}
+              >
+                <Lasso className={`w-4 h-4 ${isMultiSelectMode ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
+              </button>
+            </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-accent">Create Single-Variable</span>
-          <button 
-            onClick={toggleVariableCreation}
-            className={`p-2 rounded-full ${isCreatingVariable && !isMultiSelectMode ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`}
-            aria-label={isCreatingVariable && !isMultiSelectMode ? "Cancel creating variable" : "Create variable"}
-          >
-            <PlusCircle className={`w-4 h-4 ${isCreatingVariable && !isMultiSelectMode ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
-          </button>
-        </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-accent">Create Single-Variable</span>
+              <button 
+                onClick={toggleVariableCreation}
+                className={`p-2 rounded-full ${isCreatingVariable && !isMultiSelectMode ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`}
+                aria-label={isCreatingVariable && !isMultiSelectMode ? "Cancel creating variable" : "Create variable"}
+              >
+                <PlusCircle className={`w-4 h-4 ${isCreatingVariable && !isMultiSelectMode ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
+              </button>
+            </div>
+          </>
+        )}
         
-        <button 
-          onClick={(e) => {
-            e.preventDefault();
-            try {
-              if (typeof handleOpenEditPrompt === 'function') {
-                handleOpenEditPrompt();
-              }
-            } catch (error) {
-              console.error("Error opening edit prompt:", error);
-            }
-          }}
-          className="p-2 rounded-full bg-white/80 hover:bg-white hover:text-[#33fea6] transition-colors"
-          aria-label="Edit prompt"
-        >
-          <Edit className="w-4 h-4 text-accent" />
-        </button>
+        {!isEditing ? (
+          <button 
+            onClick={() => setIsEditing(true)}
+            className="p-2 rounded-full bg-white/80 hover:bg-white hover:text-[#33fea6] transition-colors"
+            aria-label="Edit prompt"
+          >
+            <Edit className="w-4 h-4 text-accent" />
+          </button>
+        ) : null}
       </div>
       
       <div 
@@ -675,25 +692,9 @@ export const FinalPromptDisplay = ({
       
       <style>
         {`
-        .variable-input {
-          font-family: inherit;
-          outline: none;
-          transition: all 0.2s;
-          min-width: 4rem;
-        }
-        .variable-input:focus {
-          border-color: #33fea6;
-          background-color: rgba(51, 254, 166, 0.2);
-        }
-        .variable-input::placeholder {
-          opacity: 0.5;
-          font-style: italic;
-        }
-        .variable-delete-btn {
-          transition: opacity 0.2s;
-        }
-        .variable-input-container:hover .variable-delete-btn {
-          opacity: 1;
+        .variable-highlight {
+          background-color: rgba(51, 254, 166, 0.1);
+          border-bottom: 1px solid #33fea6;
         }
         .variable-placeholder {
           background-color: rgba(51, 254, 166, 0.1);
