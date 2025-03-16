@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { xhr } from "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -245,10 +245,7 @@ serve(async (req) => {
 
       IMPORTANT: While you should respect these guidelines, you have the freedom to adapt and optimize the prompt to best serve its purpose. Focus on creating a prompt that will produce the most effective results when used with AI systems.
       
-      REMEMBER that this prompt will be used on an AI platform, so ensure it follows best practices for AI-to-AI communication and avoids asking for capabilities or formats that are standardized or fixed in AI systems.
-      
-      ${primaryPrompt ? `\n\nPRIMARY TOGGLE INSTRUCTION: ${primaryPrompt}` : ""}
-      ${secondaryPrompt ? `\n\nSECONDARY TOGGLE INSTRUCTION: ${secondaryPrompt}` : ""}
+      REMEMBER that this prompt will be used on an AI platform, so ensure it follows best practices for AI-to-AI communication and avoids asking for capabilities or formats that are standardized or fixed in AI systems.${primaryPrompt ? `\n\nPRIMARY TOGGLE INSTRUCTION: ${primaryPrompt}` : ""}${secondaryPrompt ? `\n\nSECONDARY TOGGLE INSTRUCTION: ${secondaryPrompt}` : ""}
 
       Come up with a short, concise title (5 words or less) that captures the essence of the prompt. The title should be innovative and suitable for the prompt's purpose. Place this title at the very beginning of your response, before the Task section, formatted as "**[TITLE]**".
       `
