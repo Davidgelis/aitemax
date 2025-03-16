@@ -145,6 +145,51 @@ export const StepThreeStyles = () => {
         background-color: #f4f4f5;
         color: #52525b;
       }
+      
+      /* Variable delete button styles */
+      .variable-delete-btn {
+        color: #71717a;
+        transition: all 0.2s ease;
+        opacity: 0.6;
+        cursor: pointer;
+        padding: 2px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .variable-delete-btn:hover {
+        color: #ef4444;
+        opacity: 1;
+        background-color: rgba(239, 68, 68, 0.1);
+      }
+      
+      /* Variable container with delete button */
+      .variable-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      
+      /* Make the content area editable in editing mode */
+      .editable-content {
+        width: 100%;
+        height: 100%;
+        padding: 6px;
+        border: none;
+        background: transparent;
+        color: inherit;
+        font-family: inherit;
+        font-size: inherit;
+        line-height: inherit;
+        resize: none;
+        outline: none;
+      }
+      
+      .editable-content:focus {
+        outline: none;
+      }
       `}
     </style>
   );

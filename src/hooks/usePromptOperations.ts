@@ -125,6 +125,27 @@ export const usePromptOperations = (
     });
   }, [setVariables]);
 
+  // Delete a variable
+  const handleDeleteVariable = useCallback((variableId: string) => {
+    console.log(`Marking variable ${variableId} as not relevant`);
+    
+    // Mark the variable as not relevant
+    setVariables(currentVars => 
+      currentVars.map(v => 
+        v.id === variableId ? { ...v, isRelevant: false } : v
+      )
+    );
+    
+    // Force re-render to ensure changes propagate
+    setRenderKey(prev => prev + 1);
+    
+    toast({
+      title: "Variable removed",
+      description: "The variable has been removed from your prompt.",
+      variant: "default",
+    });
+  }, [setVariables, toast]);
+
   // Open the edit prompt sheet
   const handleOpenEditPrompt = useCallback(() => {
     try {
@@ -239,6 +260,7 @@ export const usePromptOperations = (
     handleAdaptPrompt,
     handleCopyPrompt,
     handleRegenerate,
+    handleDeleteVariable,
     isProcessing,
     renderKey,
     recordVariableSelection,

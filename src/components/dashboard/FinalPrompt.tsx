@@ -1,6 +1,6 @@
 
-import { Edit, Copy, Save, RotateCw } from "lucide-react";
-import { useRef } from "react";
+import { Edit, Copy, Save, RotateCw, X, Check } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { Variable } from "./types";
 import { useToast } from "@/hooks/use-toast";
+import { VariablesSection } from "./step-three/VariablesSection";
 
 interface FinalPromptProps {
   masterCommand: string;
@@ -33,6 +34,7 @@ interface FinalPromptProps {
   handleOpenEditPrompt: () => void;
   handleSaveEditedPrompt: () => void;
   handleAdaptPrompt: () => void;
+  onDeleteVariable?: (variableId: string) => void;
 }
 
 export const FinalPrompt = ({
@@ -57,10 +59,75 @@ export const FinalPrompt = ({
   setShowEditPromptSheet,
   handleOpenEditPrompt,
   handleSaveEditedPrompt,
-  handleAdaptPrompt
+  handleAdaptPrompt,
+  onDeleteVariable
 }: FinalPromptProps) => {
   const editPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentEditingContent, setCurrentEditingContent] = useState("");
+  const promptContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Begin editing mode
+  const startEditing = () => {
+    setIsEditing(true);
+    // Get the processed prompt with variables as HTML
+    const processedPrompt = getProcessedPrompt();
+    
+    // Convert variables to non-editable spans
+    let editableContent = processedPrompt;
+    
+    // Replace HTML variable elements with non-editable spans
+    variables.filter(v => v.isRelevant).forEach(variable => {
+      const varRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>[^<]*</span>`, 'g');
+      editableContent = editableContent.replace(varRegex, 
+        `<span class="non-editable-variable" data-variable-id="${variable.id}">${variable.value || ""}</span>`);
+    });
+    
+    // Replace any remaining {{variable}} format
+    variables.filter(v => v.isRelevant).forEach(variable => {
+      if (variable.name) {
+        const templateRegex = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
+        editableContent = editableContent.replace(templateRegex, 
+          `<span class="non-editable-variable" data-variable-id="${variable.id}">${variable.value || ""}</span>`);
+      }
+    });
+    
+    setCurrentEditingContent(editableContent);
+  };
+  
+  // Cancel editing
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setCurrentEditingContent("");
+  };
+  
+  // Save edited content
+  const saveEditing = () => {
+    if (promptContainerRef.current) {
+      // Get the content from the editable div
+      let newContent = promptContainerRef.current.innerHTML;
+      
+      // Replace non-editable variables with their original format
+      variables.filter(v => v.isRelevant).forEach(variable => {
+        const nonEditableRegex = new RegExp(`<span[^>]*class="non-editable-variable"[^>]*data-variable-id="${variable.id}"[^>]*>[^<]*</span>`, 'g');
+        
+        // Convert back to the original format expected by the app
+        newContent = newContent.replace(nonEditableRegex, 
+          `<span data-variable-id="${variable.id}" contenteditable="false" class="variable-highlight">${variable.value || ""}</span>`);
+      });
+      
+      // Set the final prompt
+      setEditingPrompt(newContent);
+      handleSaveEditedPrompt();
+      setIsEditing(false);
+      
+      toast({
+        title: "Changes saved",
+        description: "Your prompt has been updated successfully.",
+      });
+    }
+  };
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
@@ -135,53 +202,73 @@ export const FinalPrompt = ({
       </div>
 
       <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
-        <button 
-          onClick={handleOpenEditPrompt}
-          className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
-        >
-          <Edit className="w-4 h-4 text-accent" />
-        </button>
+        {!isEditing ? (
+          <button 
+            onClick={startEditing}
+            className="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white transition-colors edit-icon-button"
+          >
+            <Edit className="w-4 h-4 text-accent edit-icon" />
+          </button>
+        ) : (
+          <div className="absolute top-2 right-2 z-10 flex gap-2">
+            <button 
+              onClick={cancelEditing}
+              className="p-2 rounded-full bg-white/80 hover:bg-white transition-colors edit-icon-button"
+              title="Cancel editing"
+            >
+              <X className="w-4 h-4 text-red-500" />
+            </button>
+            <button 
+              onClick={saveEditing}
+              className="p-2 rounded-full bg-white/80 hover:bg-white transition-colors edit-icon-button"
+              title="Save changes"
+            >
+              <Check className="w-4 h-4 text-[#33fea6]" />
+            </button>
+          </div>
+        )}
         
         <div 
           className="absolute inset-0 bg-gradient-to-br from-accent via-primary-dark to-primary animate-aurora opacity-10"
           style={{ backgroundSize: "400% 400%" }}
         />
         
-        <div className="relative h-full p-6 overflow-y-auto">
+        <div className={`relative h-full p-6 overflow-y-auto ${isEditing ? 'editing-mode' : ''}`}>
           <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
-          <div className="whitespace-pre-wrap text-card-foreground">
-            {showJson ? (
-              <pre className="text-xs font-mono">
-                {JSON.stringify({ 
-                  prompt: finalPrompt, 
-                  masterCommand,
-                  variables: variables.filter(v => v.isRelevant === true)
-                }, null, 2)}
-              </pre>
-            ) : (
-              <div className="prose prose-sm max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: getProcessedPrompt().split('\n\n').map(p => `<p>${p}</p>`).join('') }} />
-              </div>
-            )}
-          </div>
+          
+          {!isEditing ? (
+            <div className="whitespace-pre-wrap text-card-foreground">
+              {showJson ? (
+                <pre className="text-xs font-mono">
+                  {JSON.stringify({ 
+                    prompt: finalPrompt, 
+                    masterCommand,
+                    variables: variables.filter(v => v.isRelevant === true)
+                  }, null, 2)}
+                </pre>
+              ) : (
+                <div className="prose prose-sm max-w-none">
+                  <div dangerouslySetInnerHTML={{ __html: getProcessedPrompt().split('\n\n').map(p => `<p>${p}</p>`).join('') }} />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div 
+              ref={promptContainerRef}
+              className="whitespace-pre-wrap text-card-foreground editable-content" 
+              contentEditable={true}
+              dangerouslySetInnerHTML={{ __html: currentEditingContent }}
+              suppressContentEditableWarning={true}
+            />
+          )}
         </div>
       </div>
 
-      <div className="mb-4 p-3 border rounded-lg bg-background/50">
-        <h4 className="text-sm font-medium mb-3">Variables</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {variables.filter(v => v.isRelevant === true).map((variable) => (
-            <div key={variable.id} className="flex items-center gap-2">
-              <span className="text-xs font-medium min-w-[80px]">{variable.name}:</span>
-              <Input 
-                value={variable.value}
-                onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
-                className="h-7 text-xs py-1 px-2 bg-[#33fea6]/10 border-[#33fea6]/20 focus-visible:border-[#33fea6] focus-visible:ring-0"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      <VariablesSection 
+        variables={variables} 
+        handleVariableValueChange={handleVariableValueChange}
+        onDeleteVariable={onDeleteVariable}
+      />
 
       <div className="flex justify-between items-center">
         <button
@@ -199,56 +286,6 @@ export const FinalPrompt = ({
           Save
         </button>
       </div>
-
-      <Sheet open={showEditPromptSheet} onOpenChange={setShowEditPromptSheet}>
-        <SheetContent className="w-[90%] sm:max-w-[600px] md:max-w-[800px]">
-          <SheetHeader>
-            <SheetTitle>Edit Prompt</SheetTitle>
-            <SheetDescription>
-              Make changes to your prompt. Click save when you're done or adapt to regenerate the prompt.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="py-6">
-            <textarea
-              ref={editPromptTextareaRef}
-              value={editingPrompt}
-              onChange={(e) => setEditingPrompt(e.target.value)}
-              className="w-full min-h-[60vh] p-4 text-sm rounded-md border bg-gray-50/80 text-card-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <SheetFooter className="flex flex-row justify-end space-x-4">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  className="bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-2"
-                >
-                  <RotateCw className="w-4 h-4" />
-                  Adapt
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will regenerate your prompt based on the changes you made.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleAdaptPrompt}>Yes, adapt it</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            <Button 
-              onClick={handleSaveEditedPrompt}
-              className="bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              Save
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 };

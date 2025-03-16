@@ -99,13 +99,17 @@ export const useQuestionsAndVariables = (
     });
   }, [setVariables]);
 
-  const removeVariable = () => {
-    if (!variableToDelete) return;
+  const removeVariable = useCallback((id: string = variableToDelete || "") => {
+    const varId = id || variableToDelete;
+    if (!varId) return;
     
-    console.log(`Removing variable ${variableToDelete}`);
-    setVariables(variables.filter((v) => v.id !== variableToDelete));
-    setVariableToDelete(null);
-  };
+    console.log(`Removing variable ${varId}`);
+    setVariables(variables.filter((v) => v.id !== varId));
+    
+    if (id === variableToDelete) {
+      setVariableToDelete(null);
+    }
+  }, [variables, variableToDelete, setVariables, setVariableToDelete]);
 
   const canProceedToStep3 = (): boolean => {
     return true;
