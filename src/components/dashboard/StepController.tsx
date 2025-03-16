@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -57,7 +58,7 @@ export const StepController = ({
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
-  const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with GPT-4o-mini...");
+  const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with o3-mini...");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
@@ -207,7 +208,7 @@ export const StepController = ({
     if (step === 3) {
       setIsEnhancingPrompt(true);
       
-      let message = "Enhancing your prompt with GPT-4o-mini";
+      let message = "Enhancing your prompt with o3-mini";
       setEnhancingMessage(message + "...");
       
       try {
@@ -236,17 +237,30 @@ export const StepController = ({
         
         console.log(`Enhancing prompt with ${validQuestions.length} questions and ${validVariables.length} variables`);
         
-        const enhancedPrompt = await promptAnalysis.enhancePromptWithGPT(
-          promptText,
-          validQuestions,
-          validVariables
-        );
-        
-        if (!enhancedPrompt || enhancedPrompt.includes("Error enhancing prompt")) {
-          throw new Error("Failed to enhance prompt properly");
+        try {
+          const enhancedPrompt = await promptAnalysis.enhancePromptWithGPT(
+            promptText,
+            validQuestions,
+            validVariables
+          );
+          
+          if (!enhancedPrompt || enhancedPrompt.includes("Error enhancing prompt")) {
+            throw new Error("Failed to enhance prompt properly");
+          }
+          
+          setFinalPrompt(enhancedPrompt);
+        } catch (enhanceError) {
+          console.error("Error in enhance prompt API call:", enhanceError);
+          
+          // Attempt to use a more direct approach for o3-mini
+          try {
+            await enhancePromptWithGPT(promptText, selectedPrimary, selectedSecondary, setFinalPrompt);
+          } catch (fallbackError) {
+            console.error("Fallback enhancement also failed:", fallbackError);
+            throw new Error("All prompt enhancement methods failed");
+          }
         }
         
-        setFinalPrompt(enhancedPrompt);
         setCurrentStep(step);
       } catch (error) {
         console.error("Error enhancing prompt:", error);

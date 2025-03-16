@@ -1,3 +1,4 @@
+
 import { Edit } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback } from "react";
@@ -50,12 +51,15 @@ export const FinalPromptDisplay = ({
     setIsLoadingJson(true);
     
     try {
+      console.log("Calling prompt-to-json with o3-mini model for JSON conversion");
+      
       const { data, error } = await supabase.functions.invoke('prompt-to-json', {
         body: {
           prompt: finalPrompt,
           masterCommand,
           userId,
-          promptId
+          promptId,
+          model: 'o3-mini' // Explicitly specify o3-mini model
         }
       });
       
@@ -74,6 +78,14 @@ export const FinalPromptDisplay = ({
         title: "Error generating JSON",
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive"
+      });
+      // Provide a fallback simple JSON
+      setPromptJson({
+        prompt: finalPrompt || "",
+        structure: {
+          title: finalPrompt.split('\n')[0] || "Untitled Prompt",
+          sections: ["Main prompt"]
+        }
       });
     } finally {
       setIsLoadingJson(false);
@@ -138,7 +150,7 @@ export const FinalPromptDisplay = ({
     if (showJson) {
       try {
         if (isLoadingJson) {
-          return <div className="text-xs animate-pulse">Generating JSON structure...</div>;
+          return <div className="text-xs animate-pulse">Generating JSON structure with o3-mini...</div>;
         }
         
         if (promptJson) {

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -155,6 +156,8 @@ export const useQuestionsAndVariables = (
         v => v.isRelevant === true
       );
       
+      console.log("Calling enhance-prompt with o3-mini for model...");
+      
       const { data, error } = await supabase.functions.invoke('enhance-prompt', {
         body: {
           originalPrompt: promptToEnhance,
@@ -163,20 +166,47 @@ export const useQuestionsAndVariables = (
           primaryToggle,
           secondaryToggle,
           userId: user?.id,
-          promptId
+          promptId,
+          model: 'o3-mini' // Explicitly specify o3-mini model
         }
       });
       
       if (error) {
+        console.error("Error from enhance-prompt function:", error);
         throw error;
+      }
+      
+      if (!data || !data.enhancedPrompt) {
+        throw new Error("Invalid response from enhance-prompt function");
       }
       
       setFinalPrompt(data.enhancedPrompt);
     } catch (error) {
       console.error("Error enhancing prompt with GPT:", error);
+      
+      // Create a direct fallback enhanced prompt
+      const fallbackPrompt = `# Enhanced Prompt (Manual Enhancement)
+
+${promptToEnhance}
+
+## Additional Context
+${questions
+  .filter(q => q.answer && q.answer.trim() !== "" && q.isRelevant !== false)
+  .map(q => `- ${q.question}: ${q.answer}`)
+  .join('\n')}
+
+## Variables
+${variables
+  .filter(v => v.isRelevant === true)
+  .map(v => `- ${v.name}: ${v.value || '{{' + v.name + '}}'} `)
+  .join('\n')}
+`;
+
+      setFinalPrompt(fallbackPrompt);
+      
       toast({
-        title: "Error enhancing prompt",
-        description: "An error occurred while enhancing your prompt. Please try again.",
+        title: "Used fallback enhancement",
+        description: "Created a basic enhanced prompt due to API error. You can edit it directly.",
         variant: "destructive",
       });
     } finally {
