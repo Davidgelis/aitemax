@@ -55,12 +55,15 @@ export interface SavedPrompt {
   jsonStructure?: PromptJsonStructure;
 }
 
+// Updated PromptJsonStructure to match what's used in FinalPromptDisplay
 export interface PromptJsonStructure {
-  task?: string;
-  persona?: string;
-  conditions?: string;
-  instructions?: string;
-  [key: string]: string | undefined;
+  title: string;
+  summary?: string;
+  sections: Array<{title: string, content: string}>;
+  masterCommand?: string;
+  timestamp?: string;
+  variablePlaceholders?: string[];
+  [key: string]: any;
 }
 
 // Helper functions for variable serialization/deserialization with updated types

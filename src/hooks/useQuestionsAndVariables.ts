@@ -192,7 +192,7 @@ ${promptToEnhance}
 ## Additional Context
 ${questions
   .filter(q => q.answer && q.answer.trim() !== "" && q.isRelevant !== false)
-  .map(q => `- ${q.question}: ${q.answer}`)
+  .map(q => `- ${q.text}: ${q.answer}`) // Fixed: Changed q.question to q.text
   .join('\n')}
 
 ## Variables

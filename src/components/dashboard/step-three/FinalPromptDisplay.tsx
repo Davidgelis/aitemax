@@ -79,13 +79,11 @@ export const FinalPromptDisplay = ({
         description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive"
       });
-      // Provide a fallback simple JSON
+      // Fix: Create a proper PromptJsonStructure object instead of a string
       setPromptJson({
-        prompt: finalPrompt || "",
-        structure: {
-          title: finalPrompt.split('\n')[0] || "Untitled Prompt",
-          sections: ["Main prompt"]
-        }
+        title: finalPrompt.split('\n')[0] || "Untitled Prompt",
+        summary: "Failed to process prompt",
+        sections: [{ title: "Main Content", content: finalPrompt || "" }]
       });
     } finally {
       setIsLoadingJson(false);
