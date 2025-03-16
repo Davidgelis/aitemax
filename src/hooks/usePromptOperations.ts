@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Variable } from "../components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -67,6 +68,33 @@ export const usePromptOperations = (
     });
     
     return processedPrompt;
+  }, [finalPrompt, variables]);
+  
+  // New function: Get a clean copy of the prompt with all variables properly substituted
+  const getCleanTextForCopy = useCallback((): string => {
+    if (!finalPrompt) return "";
+    
+    let cleanPrompt = finalPrompt;
+    const relevantVariables = variables.filter(v => v.isRelevant);
+    
+    // First, replace all HTML variable placeholders with their actual values
+    relevantVariables.forEach(variable => {
+      const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
+      if (placeholderRegex.test(cleanPrompt)) {
+        cleanPrompt = cleanPrompt.replace(placeholderRegex, variable.value || "");
+      }
+    });
+    
+    // Then replace any remaining {{variable}} formats
+    relevantVariables.forEach(variable => {
+      const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
+      cleanPrompt = cleanPrompt.replace(regex, variable.value || "");
+    });
+    
+    // Strip any remaining HTML tags that might be present
+    cleanPrompt = cleanPrompt.replace(/<[^>]*>/g, "");
+    
+    return cleanPrompt;
   }, [finalPrompt, variables]);
   
   // Record the original text selected when creating a variable
@@ -159,9 +187,10 @@ export const usePromptOperations = (
   // Copy the prompt to clipboard
   const handleCopyPrompt = useCallback(async () => {
     try {
-      const processedPrompt = getProcessedPrompt();
+      // Use the clean text version for copying instead of the processed prompt with HTML
+      const cleanText = getCleanTextForCopy();
       
-      await navigator.clipboard.writeText(processedPrompt);
+      await navigator.clipboard.writeText(cleanText);
       
       toast({
         title: "Copied to Clipboard",
@@ -176,7 +205,7 @@ export const usePromptOperations = (
         variant: "destructive",
       });
     }
-  }, [getProcessedPrompt, toast]);
+  }, [getCleanTextForCopy, toast]);
 
   // Regenerate the prompt with updated variables
   const handleRegenerate = useCallback(async () => {
@@ -203,6 +232,7 @@ export const usePromptOperations = (
 
   return {
     getProcessedPrompt,
+    getCleanTextForCopy,
     handleVariableValueChange,
     handleOpenEditPrompt,
     handleSaveEditedPrompt,
