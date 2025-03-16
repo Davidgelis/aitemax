@@ -1,4 +1,5 @@
-import { Edit, PlusCircle, Check, X } from "lucide-react";
+
+import { Edit, PlusCircle, Check, X, Lasso } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +10,7 @@ import { replaceVariableInPrompt } from "@/utils/promptUtils";
 
 interface FinalPromptDisplayProps {
   finalPrompt: string;
-  updateFinalPrompt: (newPrompt: string) => void; // Add the new prop
+  updateFinalPrompt: (newPrompt: string) => void;
   getProcessedPrompt: () => string;
   variables: Variable[];
   setVariables: React.Dispatch<React.SetStateAction<Variable[]>>;
@@ -36,7 +37,9 @@ export const FinalPromptDisplay = ({
   const [isLoadingJson, setIsLoadingJson] = useState(false);
   const [jsonGenerated, setJsonGenerated] = useState(false);
   const [isCreatingVariable, setIsCreatingVariable] = useState(false);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [selectedText, setSelectedText] = useState("");
+  const [multiSelections, setMultiSelections] = useState<string[]>([]);
   const [selectionRange, setSelectionRange] = useState<{start: number, end: number} | null>(null);
   const promptContainerRef = useRef<HTMLDivElement>(null);
   const [renderTrigger, setRenderTrigger] = useState(0);
@@ -116,7 +119,7 @@ export const FinalPromptDisplay = ({
     }
   }, [getProcessedPrompt, finalPrompt, variables, renderTrigger]);
   
-  // Handle user text selection
+  // Handle user text selection for multi-select mode
   const handleMouseUp = () => {
     if (!isCreatingVariable) return;
     
@@ -132,43 +135,155 @@ export const FinalPromptDisplay = ({
     const selText = selection.toString().trim();
     if (!selText) return;
     
-    setSelectedText(selText);
-    
-    // Create a temporary marker span (for positioning only)
-    const tempSpan = document.createElement('span');
-    tempSpan.setAttribute('id', 'temp-selection-marker');
-    tempSpan.style.display = 'inline';
-    
-    try {
-      // Remove any existing marker
-      const existingMarker = document.getElementById('temp-selection-marker');
-      if (existingMarker) {
-        existingMarker.outerHTML = existingMarker.textContent || "";
-      }
+    if (isMultiSelectMode) {
+      // Add to multi-selections
+      setMultiSelections(prev => [...prev, selText]);
       
-      range.surroundContents(tempSpan);
+      // Mark the selection with a temporary span
+      const tempSpan = document.createElement('span');
+      tempSpan.setAttribute('class', 'multi-selection-marker');
+      tempSpan.style.backgroundColor = 'rgba(51, 254, 166, 0.3)';
       
-      // Position confirmation dialog near the marker
-      const tempElement = document.getElementById('temp-selection-marker');
-      if (tempElement) {
-        const rect = tempElement.getBoundingClientRect();
+      try {
+        range.surroundContents(tempSpan);
         
-        // Set position for the confirmation buttons
-        setSelectionRange({
-          start: rect.left,
-          end: rect.top
+        // Show a toast to indicate the selection was added
+        toast({
+          title: "Selection added",
+          description: `Added "${selText.substring(0, 20)}${selText.length > 20 ? '...' : ''}" to multi-selection`,
+        });
+      } catch (e) {
+        console.error("Error highlighting multi-selection:", e);
+        toast({
+          title: "Selection error",
+          description: "Could not select text. Try selecting a simpler text segment.",
+          variant: "destructive"
         });
       }
-    } catch (e) {
-      console.error("Error highlighting selection:", e);
+      
+      // Clear the selection
+      selection.removeAllRanges();
+    } else {
+      // Single selection mode - legacy behavior
+      setSelectedText(selText);
+      
+      // Create a temporary marker span (for positioning only)
+      const tempSpan = document.createElement('span');
+      tempSpan.setAttribute('id', 'temp-selection-marker');
+      tempSpan.style.display = 'inline';
+      
+      try {
+        // Remove any existing marker
+        const existingMarker = document.getElementById('temp-selection-marker');
+        if (existingMarker) {
+          existingMarker.outerHTML = existingMarker.textContent || "";
+        }
+        
+        range.surroundContents(tempSpan);
+        
+        // Position confirmation dialog near the marker
+        const tempElement = document.getElementById('temp-selection-marker');
+        if (tempElement) {
+          const rect = tempElement.getBoundingClientRect();
+          
+          // Set position for the confirmation buttons
+          setSelectionRange({
+            start: rect.left,
+            end: rect.top
+          });
+        }
+      } catch (e) {
+        console.error("Error highlighting selection:", e);
+        toast({
+          title: "Selection error",
+          description: "Could not select text. Try selecting a simpler text segment.",
+          variant: "destructive"
+        });
+        cancelVariableCreation();
+        return;
+      }
+    }
+  };
+  
+  // Create a variable from multiple selections
+  const createMultiSelectionVariable = () => {
+    if (multiSelections.length === 0) {
       toast({
-        title: "Selection error",
-        description: "Could not select text. Try selecting a simpler text segment.",
+        title: "No selections",
+        description: "Please select at least one text segment first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (relevantVariables.length >= 15) {
+      toast({
+        title: "Variable limit reached",
+        description: "You can create up to 15 variables",
         variant: "destructive"
       });
       cancelVariableCreation();
       return;
     }
+    
+    // Join all selections with a space for the variable value
+    const combinedText = multiSelections.join(" ");
+    
+    // Use a simple numeric name based on the number of existing variables
+    const variableName = `${relevantVariables.length + 1}`;
+    const variableId = uuidv4();
+    
+    const newVariable: Variable = {
+      id: variableId,
+      name: variableName,
+      value: combinedText, // Set the initial value to the combined selections
+      isRelevant: true,
+      category: 'Multi-Select'
+    };
+    
+    // Record the original selection (for later replacement in the prompt)
+    if (typeof recordVariableSelection === 'function') {
+      recordVariableSelection(variableId, combinedText);
+    }
+    
+    // Add the new variable to state
+    setVariables(prev => [...prev, newVariable]);
+    
+    // Create a copy of the prompt to work with
+    let updatedPrompt = finalPrompt;
+    
+    // Replace each selection with a placeholder in the prompt
+    multiSelections.forEach(selection => {
+      const placeholder = `<span id="${variableId}-placeholder-${Date.now()}" class="variable-placeholder" data-variable-id="${variableId}"></span>`;
+      updatedPrompt = replaceVariableInPrompt(updatedPrompt, selection, placeholder, variableName);
+    });
+    
+    // Update the prompt
+    updateFinalPrompt(updatedPrompt);
+    
+    toast({
+      title: "Multi-selection variable created",
+      description: `Created variable: ${variableName} from ${multiSelections.length} selections`,
+    });
+    
+    // Reset multi-selection mode
+    exitMultiSelectionMode();
+    cancelVariableCreation();
+    setRenderTrigger(prev => prev + 1); // Force re-render
+  };
+  
+  // Exit multi-selection mode and clean up
+  const exitMultiSelectionMode = () => {
+    // Remove all temporary multi-selection markers
+    const markers = document.querySelectorAll('.multi-selection-marker');
+    markers.forEach(marker => {
+      if (marker instanceof HTMLElement) {
+        marker.outerHTML = marker.textContent || "";
+      }
+    });
+    
+    setMultiSelections([]);
+    setIsMultiSelectMode(false);
   };
   
   // Create a new variable from the selected text and update the prompt state
@@ -233,6 +348,11 @@ export const FinalPromptDisplay = ({
       tempElement.outerHTML = tempElement.textContent || "";
     }
     
+    // Also exit multi-selection mode if active
+    if (isMultiSelectMode) {
+      exitMultiSelectionMode();
+    }
+    
     window.getSelection()?.removeAllRanges();
   };
   
@@ -241,9 +361,25 @@ export const FinalPromptDisplay = ({
       cancelVariableCreation();
     } else {
       setIsCreatingVariable(true);
+      setIsMultiSelectMode(false);
       toast({
         title: "Variable creation mode",
         description: "Select text to create a variable",
+      });
+    }
+  };
+  
+  const toggleMultiSelectMode = () => {
+    if (isMultiSelectMode) {
+      exitMultiSelectionMode();
+      setIsCreatingVariable(false);
+    } else {
+      setIsCreatingVariable(true);
+      setIsMultiSelectMode(true);
+      setMultiSelections([]);
+      toast({
+        title: "Multi-select mode",
+        description: "Select multiple text segments to create a variable",
       });
     }
   };
@@ -464,13 +600,44 @@ export const FinalPromptDisplay = ({
   return (
     <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
       <div className="absolute top-2 right-2 z-10 flex space-x-2">
+        {isMultiSelectMode && (
+          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20 bg-white shadow-lg rounded-lg p-2 flex gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="h-8 p-2" 
+              onClick={createMultiSelectionVariable}
+            >
+              <Check className="h-4 w-4 mr-1" />
+              Create Variable ({multiSelections.length})
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="h-8 w-8 p-0" 
+              onClick={exitMultiSelectionMode}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        
+        <button 
+          onClick={toggleMultiSelectMode}
+          className={`p-2 rounded-full ${isMultiSelectMode ? 'bg-accent text-white' : 'bg-white/80 hover:bg-white'} transition-colors`}
+          aria-label={isMultiSelectMode ? "Exit multi-select mode" : "Multi-select mode"}
+        >
+          <Lasso className={`w-4 h-4 ${isMultiSelectMode ? 'text-white' : 'text-accent'}`} />
+        </button>
+        
         <button 
           onClick={toggleVariableCreation}
-          className={`p-2 rounded-full ${isCreatingVariable ? 'bg-accent text-white' : 'bg-white/80 hover:bg-white'} transition-colors`}
-          aria-label={isCreatingVariable ? "Cancel creating variable" : "Create variable"}
+          className={`p-2 rounded-full ${isCreatingVariable && !isMultiSelectMode ? 'bg-accent text-white' : 'bg-white/80 hover:bg-white'} transition-colors`}
+          aria-label={isCreatingVariable && !isMultiSelectMode ? "Cancel creating variable" : "Create variable"}
         >
-          <PlusCircle className={`w-4 h-4 ${isCreatingVariable ? 'text-white' : 'text-accent'}`} />
+          <PlusCircle className={`w-4 h-4 ${isCreatingVariable && !isMultiSelectMode ? 'text-white' : 'text-accent'}`} />
         </button>
+        
         <button 
           onClick={(e) => {
             e.preventDefault();
@@ -525,6 +692,10 @@ export const FinalPromptDisplay = ({
         }
         .variable-placeholder {
           background-color: rgba(51, 254, 166, 0.1);
+          border-bottom: 1px dashed #33fea6;
+        }
+        .multi-selection-marker {
+          background-color: rgba(51, 254, 166, 0.3);
           border-bottom: 1px dashed #33fea6;
         }
         .animate-aurora {
