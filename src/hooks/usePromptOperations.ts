@@ -42,7 +42,7 @@ export const usePromptOperations = (
     
     let processedPrompt = finalPrompt;
     
-    // Only use relevant variables that have values
+    // Only use relevant variables
     const relevantVariables = variables.filter(v => v.isRelevant);
     
     // Process variables in a specific order: longest values first
@@ -61,18 +61,26 @@ export const usePromptOperations = (
     sortedVariables.forEach(variable => {
       const originalSelection = originalSelections.get(variable.id);
       
+      // Create a placeholder marker for the variable
+      const placeholder = `<span id="${variable.id}-placeholder" class="variable-placeholder" data-variable-id="${variable.id}">${variable.value || ""}</span>`;
+      
       // If we have the original selection that created this variable
       if (originalSelection) {
-        // Create a placeholder marker for the variable
-        const placeholder = `<span id="${variable.id}-placeholder" class="variable-placeholder" data-variable-id="${variable.id}">${variable.value || ""}</span>`;
-        
         // Create a regex that matches the original selection exactly
         const regex = new RegExp(escapeRegExp(originalSelection), 'g');
         processedPrompt = processedPrompt.replace(regex, placeholder);
-      } else if (variable.value) {
-        // Fallback to variable placeholder replacement
-        const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
-        processedPrompt = processedPrompt.replace(regex, variable.value);
+      } else {
+        // Look for a placeholder pattern with this variable's ID
+        const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
+        
+        // If we find a placeholder, replace it with an updated one
+        if (placeholderRegex.test(processedPrompt)) {
+          processedPrompt = processedPrompt.replace(placeholderRegex, placeholder);
+        } else if (variable.value) {
+          // Fallback to variable placeholder replacement if needed
+          const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
+          processedPrompt = processedPrompt.replace(regex, variable.value);
+        }
       }
     });
     

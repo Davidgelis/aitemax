@@ -64,10 +64,10 @@ export const VariablesSection = ({
   return (
     <div className="mb-4 p-3 border rounded-lg bg-background/50">
       <h4 className="text-sm font-medium mb-3">Variables</h4>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        {variables.map((variable) => (
-          <div key={variable.id} className="flex items-center gap-2">
-            <span className="text-xs font-medium min-w-[80px]">{variable.name}:</span>
+      <div className="flex flex-wrap gap-3">
+        {variables.map((variable, index) => (
+          <div key={variable.id} className="flex items-center gap-2 min-w-[120px] max-w-[300px]">
+            <span className="text-xs font-medium min-w-[25px]">{index + 1}:</span>
             <Input 
               value={variable.value || ""}
               onChange={(e) => handleInputChange(variable.id, e.target.value)}

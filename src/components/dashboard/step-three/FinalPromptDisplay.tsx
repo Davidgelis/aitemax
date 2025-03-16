@@ -1,3 +1,4 @@
+
 import { Edit, PlusCircle, Check, X } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -33,7 +34,6 @@ export const FinalPromptDisplay = ({
   const [selectedText, setSelectedText] = useState("");
   const [selectionRange, setSelectionRange] = useState<{start: number, end: number} | null>(null);
   const promptContainerRef = useRef<HTMLDivElement>(null);
-  // Add the missing renderTrigger state
   const [renderTrigger, setRenderTrigger] = useState(0);
   
   const { toast } = useToast();
@@ -187,42 +187,27 @@ export const FinalPromptDisplay = ({
       return;
     }
     
-    const variableName = selectedText.length > 15 
-      ? `${selectedText.substring(0, 15)}...` 
-      : selectedText;
+    // Use a simple numeric name based on the number of existing variables
+    const variableName = `${relevantVariables.length + 1}`;
     
     const variableId = uuidv4();
     
     const newVariable: Variable = {
       id: variableId,
       name: variableName,
-      value: selectedText,
+      // Initialize with an empty string instead of the selected text
+      value: "",
       isRelevant: true,
       category: 'User-Defined'
     };
     
     // Add the new variable to the variables array
     setVariables(prevVariables => {
-      // First check if we already have a similar variable
-      const existingVariable = prevVariables.find(v => 
-        v.name.toLowerCase() === variableName.toLowerCase() && v.isRelevant === true
-      );
-      
-      if (existingVariable) {
-        toast({
-          title: "Variable already exists",
-          description: `A variable with name "${variableName}" already exists`,
-          variant: "destructive"
-        });
-        cancelVariableCreation();
-        return prevVariables;
-      }
-      
       return [...prevVariables, newVariable];
     });
     
-    // Replace the selection with the variable value
-    tempElement.outerHTML = `<span id="${variableId}-placeholder" class="variable-placeholder" data-variable-id="${variableId}">${selectedText}</span>`;
+    // Replace the selection with an empty variable placeholder
+    tempElement.outerHTML = `<span id="${variableId}-placeholder" class="variable-placeholder" data-variable-id="${variableId}"></span>`;
     
     toast({
       title: "Variable created",
@@ -400,10 +385,10 @@ export const FinalPromptDisplay = ({
             
             // Look for each variable in the paragraph and replace with input field
             relevantVariables.forEach(variable => {
-              // Skip variables with no original value or invalid data
-              if (!variable.value && !variable.id) return;
+              // Skip variables with invalid data
+              if (!variable.id) return;
               
-              // Find all occurrences of this variable in the paragraph
+              // Find all occurrences of the variable placeholder in the paragraph
               let position = -1;
               
               // First look for placeholder element with data-variable-id
