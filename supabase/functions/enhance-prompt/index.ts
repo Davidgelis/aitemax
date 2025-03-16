@@ -121,7 +121,7 @@ serve(async (req) => {
       promptId
     } = await req.json();
     
-    console.log(`Enhancing prompt with o3-mini analysis...`);
+    console.log(`Enhancing prompt with o3-mini-2025-01-31 analysis...`);
     console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
     console.log(`Questions answered: ${answeredQuestions.length}`);
     console.log(`Relevant variables: ${relevantVariables.length}`);
@@ -240,8 +240,8 @@ Based on this information, generate an enhanced final prompt that follows the st
     };
 
     try {
-      // Call the o3-mini model to enhance the prompt
-      console.log("Calling OpenAI API with o3-mini model...");
+      // Call the o3-mini model with the correct version to enhance the prompt
+      console.log("Calling OpenAI API with o3-mini-2025-01-31 model...");
       
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -250,7 +250,7 @@ Based on this information, generate an enhanced final prompt that follows the st
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'o3-mini', // Explicitly using o3-mini model
+          model: 'o3-mini-2025-01-31', // Updated to use the correct full model name with version
           messages: [systemMessage, userMessage],
           temperature: 0.7,
         }),
@@ -271,7 +271,7 @@ Based on this information, generate an enhanced final prompt that follows the st
       
       const enhancedPrompt = data.choices[0].message.content;
       
-      console.log("Prompt enhancement completed successfully with o3-mini");
+      console.log("Prompt enhancement completed successfully with o3-mini-2025-01-31");
       
       // Record the token usage for this step if userId is provided
       if (userId) {
@@ -281,7 +281,7 @@ Based on this information, generate an enhanced final prompt that follows the st
           3, // Step 3: Final prompt generation
           data.usage.prompt_tokens,
           data.usage.completion_tokens,
-          'o3-mini'
+          'o3-mini-2025-01-31'
         );
       }
       
