@@ -91,6 +91,18 @@ export const StepThreeStyles = () => {
         box-shadow: 0 0 0 2px rgba(51, 254, 166, 0.2) !important;
       }
       
+      /* Non-editable variable in editing mode */
+      .non-editable-variable {
+        background-color: #ddfff0;
+        border: 1px solid #33fea6;
+        border-radius: 2px;
+        padding: 1px 4px;
+        margin: 0 1px;
+        font-weight: bold;
+        pointer-events: none;
+        user-select: none;
+      }
+      
       /* Edit icon hover style */
       .edit-icon-button {
         background: transparent;

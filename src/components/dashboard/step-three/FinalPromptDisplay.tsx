@@ -1,4 +1,3 @@
-
 import { Edit, PlusCircle, Check, X, Lasso } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -133,7 +132,25 @@ export const FinalPromptDisplay = ({
   useEffect(() => {
     // When editing mode is activated, set the editable prompt to the current final prompt
     if (isEditing) {
-      setEditablePrompt(finalPrompt);
+      // Process the prompt to replace variable placeholders with their actual values
+      let processedText = finalPrompt;
+      
+      // First, replace all HTML variable placeholders with their actual values
+      relevantVariables.forEach(variable => {
+        const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
+        if (placeholderRegex.test(processedText)) {
+          // For editing mode, make variables bold but keep them in the text
+          processedText = processedText.replace(placeholderRegex, `{{${variable.value}}}`);
+        }
+      });
+      
+      // Then replace any remaining {{variable}} formats
+      relevantVariables.forEach(variable => {
+        const regex = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
+        processedText = processedText.replace(regex, `{{${variable.value}}}`);
+      });
+      
+      setEditablePrompt(processedText);
       
       // Focus the textarea when in editing mode
       setTimeout(() => {
@@ -142,9 +159,8 @@ export const FinalPromptDisplay = ({
         }
       }, 100);
     }
-  }, [isEditing, finalPrompt, setEditablePrompt]);
+  }, [isEditing, finalPrompt, setEditablePrompt, relevantVariables]);
   
-  // Handle user text selection for multi-select mode
   const handleMouseUp = () => {
     if (!isCreatingVariable || isEditing) return;
     
@@ -360,7 +376,6 @@ export const FinalPromptDisplay = ({
     setRenderTrigger(prev => prev + 1); // Force re-render
   };
   
-  // Cancel variable creation mode and remove temporary marker
   const cancelVariableCreation = () => {
     setIsCreatingVariable(false);
     setSelectedText("");
@@ -456,29 +471,33 @@ export const FinalPromptDisplay = ({
   // Modified renderProcessedPrompt function to handle HTML parsing and variable placeholders
   const renderProcessedPrompt = () => {
     if (isEditing) {
-      // Replace any variable placeholders with their value but make them non-editable
-      let editableText = finalPrompt;
-      const relevantVars = variables.filter(v => v.isRelevant);
-      
-      // First find and replace HTML variable placeholders
-      relevantVars.forEach(variable => {
-        const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
-        editableText = editableText.replace(placeholderRegex, variable.value || "");
-      });
-      
-      // Then replace any {{variable}} notation
-      relevantVars.forEach(variable => {
-        const regex = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
-        editableText = editableText.replace(regex, variable.value || "");
-      });
+      // In editing mode, create a textarea with special styling for variables
+      const processedEditablePrompt = editablePrompt.replace(
+        /{{([^}]+)}}/g,
+        (match, variableText) => {
+          return `<span class="non-editable-variable">${variableText}</span>`;
+        }
+      );
       
       return (
-        <div className="h-full">
-          <textarea
-            ref={editableTextareaRef}
-            value={editablePrompt}
-            onChange={(e) => setEditablePrompt(e.target.value)}
-            className="w-full h-full min-h-[300px] p-4 resize-none rounded-md editing-mode font-sans text-sm"
+        <div className="h-full w-full">
+          <div
+            className="editing-mode w-full h-full min-h-[300px] p-4 rounded-md font-sans text-sm"
+            contentEditable={true}
+            suppressContentEditableWarning={true}
+            ref={editableTextareaRef as any}
+            onInput={(e) => {
+              // Extract the text content with placeholders preserved
+              const content = e.currentTarget.innerHTML;
+              const textWithPlaceholders = content.replace(
+                /<span class="non-editable-variable">([^<]+)<\/span>/g,
+                (_, text) => `{{${text}}}`
+              );
+              setEditablePrompt(textWithPlaceholders);
+            }}
+            dangerouslySetInnerHTML={{
+              __html: processedEditablePrompt
+            }}
           />
           <div className="flex justify-end space-x-2 mt-2">
             <Button 
@@ -728,6 +747,21 @@ export const FinalPromptDisplay = ({
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
           100% { background-position: 0% 50%; }
+        }
+        .non-editable-variable {
+          background-color: #ddfff0;
+          border: 1px solid #33fea6;
+          border-radius: 2px;
+          padding: 1px 4px;
+          margin: 0 1px;
+          font-weight: bold;
+          pointer-events: none;
+          user-select: none;
+        }
+        .editing-mode {
+          background-color: #ddfff0;
+          border: 1px solid #33fea6;
+          outline: 1px solid #33fea6;
         }
         `}
       </style>
