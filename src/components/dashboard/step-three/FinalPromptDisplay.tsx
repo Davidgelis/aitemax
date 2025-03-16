@@ -1,4 +1,3 @@
-
 import { Edit, PlusCircle, Check, X, Lasso } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -599,7 +598,7 @@ export const FinalPromptDisplay = ({
 
   return (
     <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
-      <div className="absolute top-2 right-2 z-10 flex space-x-2">
+      <div className="absolute top-2 right-2 z-10 flex items-center space-x-4">
         {isMultiSelectMode && (
           <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20 bg-white shadow-lg rounded-lg p-2 flex gap-2">
             <Button 
@@ -622,21 +621,27 @@ export const FinalPromptDisplay = ({
           </div>
         )}
         
-        <button 
-          onClick={toggleMultiSelectMode}
-          className={`p-2 rounded-full ${isMultiSelectMode ? 'bg-accent text-white' : 'bg-white/80 hover:bg-white'} transition-colors`}
-          aria-label={isMultiSelectMode ? "Exit multi-select mode" : "Multi-select mode"}
-        >
-          <Lasso className={`w-4 h-4 ${isMultiSelectMode ? 'text-white' : 'text-accent'}`} />
-        </button>
-        
-        <button 
-          onClick={toggleVariableCreation}
-          className={`p-2 rounded-full ${isCreatingVariable && !isMultiSelectMode ? 'bg-accent text-white' : 'bg-white/80 hover:bg-white'} transition-colors`}
-          aria-label={isCreatingVariable && !isMultiSelectMode ? "Cancel creating variable" : "Create variable"}
-        >
-          <PlusCircle className={`w-4 h-4 ${isCreatingVariable && !isMultiSelectMode ? 'text-white' : 'text-accent'}`} />
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-accent">Create Multi-Variable</span>
+          <button 
+            onClick={toggleMultiSelectMode}
+            className={`p-2 rounded-full ${isMultiSelectMode ? 'bg-accent text-white' : 'bg-white/80 hover:bg-white'} transition-colors`}
+            aria-label={isMultiSelectMode ? "Exit multi-select mode" : "Multi-select mode"}
+          >
+            <Lasso className={`w-4 h-4 ${isMultiSelectMode ? 'text-white' : 'text-accent'}`} />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-accent">Create Single-Variable</span>
+          <button 
+            onClick={toggleVariableCreation}
+            className={`p-2 rounded-full ${isCreatingVariable && !isMultiSelectMode ? 'bg-accent text-white' : 'bg-white/80 hover:bg-white'} transition-colors`}
+            aria-label={isCreatingVariable && !isMultiSelectMode ? "Cancel creating variable" : "Create variable"}
+          >
+            <PlusCircle className={`w-4 h-4 ${isCreatingVariable && !isMultiSelectMode ? 'text-white' : 'text-accent'}`} />
+          </button>
+        </div>
         
         <button 
           onClick={(e) => {
