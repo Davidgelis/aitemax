@@ -1,3 +1,4 @@
+
 import { Edit, PlusCircle, Check, X } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -192,7 +193,7 @@ export const FinalPromptDisplay = ({
     const newVariable: Variable = {
       id: variableId,
       name: variableName,
-      value: "",
+      value: selectedText, // Set the initial value to the selected text
       isRelevant: true,
       category: 'User-Defined'
     };

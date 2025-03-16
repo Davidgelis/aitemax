@@ -51,49 +51,24 @@ export const usePromptOperations = (
       (a, b) => ((b.value?.length || 0) - (a.value?.length || 0))
     );
     
-    // Store original selected texts for each variable
-    const originalSelections = new Map<string, string>();
-    variableSelections.forEach((selection, varId) => {
-      originalSelections.set(varId, selection);
-    });
-    
     // Apply substitutions for each variable
     sortedVariables.forEach(variable => {
-      const originalSelection = originalSelections.get(variable.id);
+      // Look for a placeholder pattern with this variable's ID
+      const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
       
-      // Create a placeholder marker for the variable
-      const placeholder = `<span id="${variable.id}-placeholder" class="variable-placeholder" data-variable-id="${variable.id}">${variable.value || ""}</span>`;
-      
-      // If we have the original selection that created this variable
-      if (originalSelection) {
-        try {
-          // Use the utility function to handle the replacement
-          processedPrompt = replaceVariableInPrompt(
-            processedPrompt, 
-            originalSelection, 
-            placeholder, 
-            variable.name
-          );
-        } catch (error) {
-          console.error("Error replacing selection:", error);
-        }
-      } else {
-        // Look for a placeholder pattern with this variable's ID
-        const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
-        
-        // If we find a placeholder, replace it with an updated one
-        if (placeholderRegex.test(processedPrompt)) {
-          processedPrompt = processedPrompt.replace(placeholderRegex, placeholder);
-        } else if (variable.value) {
-          // Fallback to variable placeholder replacement if needed
-          const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
-          processedPrompt = processedPrompt.replace(regex, variable.value);
-        }
+      // If we find a placeholder, we don't need to do anything - the rendering component
+      // will handle displaying the input fields at the placeholder positions
+      if (placeholderRegex.test(processedPrompt)) {
+        return;
+      } else if (variable.value) {
+        // Fallback to variable placeholder replacement if needed
+        const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
+        processedPrompt = processedPrompt.replace(regex, variable.value);
       }
     });
     
     return processedPrompt;
-  }, [finalPrompt, variables, variableSelections]);
+  }, [finalPrompt, variables]);
   
   // Record the original text selected when creating a variable
   const recordVariableSelection = useCallback((variableId: string, selectedText: string) => {
