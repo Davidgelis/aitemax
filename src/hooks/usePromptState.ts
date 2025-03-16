@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -98,6 +97,7 @@ export const usePromptState = (user: any) => {
 
   const handleNewPrompt = () => {
     // Only save if it's a step 2 or 3 draft that hasn't been explicitly deleted
+    // AND is not a saved prompt that's being viewed
     if (promptText && !isViewingSavedPrompt && currentStep > 1) {
       saveDraft();
       toast({
@@ -400,6 +400,7 @@ export const usePromptState = (user: any) => {
   };
 
   const loadSavedPrompt = (prompt: SavedPrompt) => {
+    // Only save draft if it's not a saved prompt that's being viewed
     if (promptText && !isViewingSavedPrompt) {
       saveDraft();
     }
@@ -431,6 +432,38 @@ export const usePromptState = (user: any) => {
       description: `Loaded prompt: ${prompt.title}`,
     });
   };
+
+  useEffect(() => {
+    const saveDraftBeforeNavigate = (nextPath: string) => {
+      if (nextPath !== location.pathname && promptText && !isViewingSavedPrompt) {
+        saveDraft();
+      }
+    };
+
+    // For regular navigation
+    const handleRouteChange = (e: PopStateEvent) => {
+      const nextPath = window.location.pathname;
+      if (nextPath !== location.pathname) {
+        saveDraftBeforeNavigate(nextPath);
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('popstate', handleRouteChange);
+
+    // Intercept Link navigation
+    const originalPushState = window.history.pushState;
+    window.history.pushState = function() {
+      const nextPath = arguments[2] as string;
+      saveDraftBeforeNavigate(nextPath);
+      return originalPushState.apply(this, arguments as any);
+    };
+
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+      window.history.pushState = originalPushState;
+    };
+  }, [location.pathname, promptText, isViewingSavedPrompt, saveDraft]);
 
   useEffect(() => {
     if (user) {

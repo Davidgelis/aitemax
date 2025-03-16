@@ -200,7 +200,7 @@ export const StepController = ({
       return;
     }
 
-    if (step === 2 && currentStep === 1 && user) {
+    if (step === 2 && currentStep === 1 && user && !isViewingSavedPrompt) {
       saveDraft();
     }
 

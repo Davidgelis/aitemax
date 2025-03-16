@@ -74,6 +74,10 @@ export const usePromptDrafts = (
   }, [user]);
 
   const saveDraft = useCallback(async () => {
+    // Don't save drafts if:
+    // 1. No user is logged in
+    // 2. No prompt text
+    // 3. We're on step 1 (haven't analyzed the prompt yet)
     if (!user || !promptText.trim() || currentStep === 1) return;
 
     try {
@@ -95,6 +99,21 @@ export const usePromptDrafts = (
           draftId = existingDrafts[0].id;
           setCurrentDraftId(draftId);
         }
+      }
+      
+      // Check if this is already a saved prompt - if so, don't create a draft
+      const { data: existingSavedPrompts, error: savedPromptsError } = await supabase
+        .from('prompts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('prompt_text', promptText)
+        .limit(1);
+        
+      if (savedPromptsError) throw savedPromptsError;
+      
+      if (existingSavedPrompts && existingSavedPrompts.length > 0) {
+        console.log("This prompt is already saved, not creating a draft");
+        return;
       }
       
       const draft = {
