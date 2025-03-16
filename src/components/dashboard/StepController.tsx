@@ -58,7 +58,7 @@ export const StepController = ({
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
-  const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with GPT-4o...");
+  const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with o3-mini...");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
@@ -208,6 +208,7 @@ export const StepController = ({
     if (step === 3) {
       setIsEnhancingPrompt(true);
       
+      // Update enhancement message based on toggles
       let message = "Enhancing your prompt";
       if (selectedPrimary) {
         const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label || selectedPrimary;
@@ -221,20 +222,33 @@ export const StepController = ({
         const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
         message += ` to be ${secondaryLabel}`;
       }
-      message += "...";
+      message += " with o3-mini...";
       
       setEnhancingMessage(message);
       
       try {
-        const enhancedPrompt = await promptAnalysis.enhancePromptWithGPT(
+        console.log("StepController: Enhancing prompt for step 3 with o3-mini...");
+        
+        // Use the enhancePromptWithGPT function to get an enhanced prompt
+        await enhancePromptWithGPT(
           promptText,
-          questions,
-          variables
+          selectedPrimary,
+          selectedSecondary,
+          setFinalPrompt
         );
-        setFinalPrompt(enhancedPrompt);
+        
+        console.log("StepController: Successfully enhanced prompt, moving to step 3");
         setCurrentStep(step);
       } catch (error) {
-        console.error("Error enhancing prompt:", error);
+        console.error("StepController: Error enhancing prompt:", error);
+        
+        // Still allow user to proceed to step 3 with a fallback message
+        toast({
+          title: "Warning",
+          description: "There was an issue enhancing your prompt, but you can still proceed with the original text.",
+          variant: "warning",
+        });
+        
         setCurrentStep(step);
       } finally {
         setIsEnhancingPrompt(false);

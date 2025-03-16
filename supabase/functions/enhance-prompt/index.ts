@@ -239,51 +239,93 @@ Based on this information, generate an enhanced final prompt that follows the st
       `
     };
 
-    // Call the o3-mini model to enhance the prompt
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'o3-mini', // Explicitly using o3-mini model
-        messages: [systemMessage, userMessage],
-        temperature: 0.7,
-      }),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("OpenAI API error:", errorData);
-      throw new Error(`OpenAI API responded with status ${response.status}: ${errorData}`);
+    try {
+      // Call the o3-mini model to enhance the prompt
+      console.log("Calling OpenAI API with o3-mini model...");
+      
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'o3-mini', // Explicitly using o3-mini model
+          messages: [systemMessage, userMessage],
+          temperature: 0.7,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error("OpenAI API error:", errorData);
+        throw new Error(`OpenAI API responded with status ${response.status}: ${errorData}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error("Invalid response from OpenAI API:", JSON.stringify(data));
+        throw new Error("Invalid response format from OpenAI API");
+      }
+      
+      const enhancedPrompt = data.choices[0].message.content;
+      
+      console.log("Prompt enhancement completed successfully with o3-mini");
+      
+      // Record the token usage for this step if userId is provided
+      if (userId) {
+        await recordTokenUsage(
+          userId,
+          promptId,
+          3, // Step 3: Final prompt generation
+          data.usage.prompt_tokens,
+          data.usage.completion_tokens,
+          'o3-mini'
+        );
+      }
+      
+      return new Response(JSON.stringify({ 
+        enhancedPrompt,
+        loadingMessage,
+        usage: data.usage
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (openaiError) {
+      console.error("Error calling OpenAI API:", openaiError);
+      
+      // Create a fallback enhanced prompt
+      const fallbackPrompt = `# Enhanced Prompt (Fallback)
+
+## Task
+${originalPrompt}
+
+## Persona
+An AI assistant that provides helpful, accurate, and thoughtful responses.
+
+## Conditions
+- Respond based on the given context and information
+- Consider all relevant factors mentioned in the prompt
+- Maintain a balanced and objective perspective
+
+## Instructions
+- Address all aspects of the query
+- Provide clear and structured information
+- Use examples where appropriate
+- Ensure the response is complete and addresses the core needs
+`;
+      
+      return new Response(JSON.stringify({
+        enhancedPrompt: fallbackPrompt,
+        loadingMessage: "Error enhancing prompt, using fallback format...",
+        error: openaiError.message
+      }), {
+        status: 200, // Always return 200 to avoid edge function error
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-    
-    const data = await response.json();
-    const enhancedPrompt = data.choices[0].message.content;
-    
-    console.log("Prompt enhancement completed successfully with o3-mini");
-    
-    // Record the token usage for this step if userId is provided
-    if (userId) {
-      await recordTokenUsage(
-        userId,
-        promptId,
-        3, // Step 3: Final prompt generation
-        data.usage.prompt_tokens,
-        data.usage.completion_tokens,
-        'o3-mini'
-      );
-    }
-    
-    return new Response(JSON.stringify({ 
-      enhancedPrompt,
-      loadingMessage,
-      usage: data.usage
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
   } catch (error) {
     console.error("Error in enhance-prompt function:", error);
     

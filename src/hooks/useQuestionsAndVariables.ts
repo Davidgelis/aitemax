@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -155,6 +156,16 @@ export const useQuestionsAndVariables = (
         v => v.isRelevant === true
       );
       
+      console.log("Calling enhance-prompt with:", {
+        originalPrompt: promptToEnhance.substring(0, 50) + "...",
+        answeredQuestions: answeredQuestions.length,
+        relevantVariables: relevantVariables.length,
+        primaryToggle,
+        secondaryToggle,
+        userId: user?.id ? "Present" : "None",
+        promptId: promptId ? "Present" : "None"
+      });
+      
       const { data, error } = await supabase.functions.invoke('enhance-prompt', {
         body: {
           originalPrompt: promptToEnhance,
@@ -168,9 +179,16 @@ export const useQuestionsAndVariables = (
       });
       
       if (error) {
-        throw error;
+        console.error("Error from enhance-prompt edge function:", error);
+        throw new Error(`Error enhancing prompt: ${error.message}`);
       }
       
+      if (!data || !data.enhancedPrompt) {
+        console.error("No enhancedPrompt in response data:", data);
+        throw new Error("No enhanced prompt returned from the service");
+      }
+      
+      console.log("Enhanced prompt received successfully");
       setFinalPrompt(data.enhancedPrompt);
     } catch (error) {
       console.error("Error enhancing prompt with GPT:", error);
@@ -179,6 +197,13 @@ export const useQuestionsAndVariables = (
         description: "An error occurred while enhancing your prompt. Please try again.",
         variant: "destructive",
       });
+      
+      // Set a fallback prompt to avoid blocking the user
+      setFinalPrompt(`# Enhanced Prompt (Error Recovery)
+
+${promptToEnhance}
+
+Note: There was an error generating an enhanced version of your prompt. This is the original prompt you provided.`);
     } finally {
       setIsEnhancing(false);
     }

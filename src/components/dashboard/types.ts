@@ -25,6 +25,7 @@ export interface Question {
   answer: string;
   isRelevant: boolean | null;
   category?: string;
+  prefillSource?: string;
 }
 
 export interface Variable {
