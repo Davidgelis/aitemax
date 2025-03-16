@@ -127,6 +127,11 @@ export const StepThreeContent = ({
     }
   };
 
+  // Wrapper function to adapt the handleSaveEditedPrompt to match EditPromptSheet's onSave prop type
+  const handleSaveEdited = () => {
+    handleSaveEditedPrompt(editingPrompt);
+  };
+
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
       {/* MasterCommandSection is intentionally removed as requested */}
@@ -160,7 +165,7 @@ export const StepThreeContent = ({
         onOpenChange={setShowEditPromptSheet}
         editingPrompt={editingPrompt || ""}
         setEditingPrompt={setEditingPrompt}
-        onSave={handleSaveEditedPrompt}
+        onSave={handleSaveEdited}
         variables={safeVariables}
       />
 
