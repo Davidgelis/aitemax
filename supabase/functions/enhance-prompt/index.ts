@@ -164,8 +164,7 @@ serve(async (req) => {
       4. Instructions
 
       IMPORTANT FORMATTING RULES:
-      - Start with a SHORT TITLE (3-5 words) that captures the essence of the prompt
-      - The title should be plain text with NO asterisks or other special formatting
+      - Start with a SHORT TITLE (3-5 words) in plain text with NO asterisks, markdown formatting, or other special formatting
       - Use clear section headers for each pillar (Task, Persona, Conditions, Instructions)
       - Format section headers consistently throughout the document
 
@@ -208,6 +207,7 @@ serve(async (req) => {
       - The enhanced prompt must be structured for consumption by another AI system
       - Ensure the content is clear, concise, and ready to be executed without additional clarification
       - The prompt should function effectively as a standalone instruction set
+      - IMPORTANT: The title MUST be plain text with NO markdown formatting (no asterisks, no bold)
       ${primaryPrompt ? `\n\nPRIMARY TOGGLE INSTRUCTION: ${primaryPrompt}` : ""}${secondaryPrompt ? `\n\nSECONDARY TOGGLE INSTRUCTION: ${secondaryPrompt}` : ""}
       `;
 
@@ -236,7 +236,7 @@ ${formattedVariables}
 PRIMARY TOGGLE: ${primaryToggle || "None"}
 SECONDARY TOGGLE: ${secondaryToggle || "None"}
 
-Based on this information, generate an enhanced final prompt that follows the structure of Task, Persona, Conditions, and Instructions while incorporating all necessary variables and maintaining the original intent. Remember to start with a plain text title (no asterisks or special formatting) and use clear section headers for each pillar.
+Based on this information, generate an enhanced final prompt that follows the structure of Task, Persona, Conditions, and Instructions while incorporating all necessary variables and maintaining the original intent. Remember to start with a plain text title (no asterisks, no bold or other markdown formatting) and use clear section headers for each pillar.
     `;
 
     try {

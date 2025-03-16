@@ -24,7 +24,7 @@ export interface Question {
   text: string;
   answer: string;
   isRelevant: boolean | null;
-  category?: string;
+  category?: string; // Now will include Task, Persona, Conditions, Instructions categories
   prefillSource?: string;
 }
 
@@ -33,7 +33,7 @@ export interface Variable {
   name: string;
   value: string;
   isRelevant: boolean | null;
-  category?: string;
+  category?: string; // Now will include Task, Persona, Conditions, Instructions categories
   code?: string;
 }
 
