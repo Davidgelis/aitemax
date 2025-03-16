@@ -604,7 +604,7 @@ export const FinalPromptDisplay = ({
             <Button 
               size="sm" 
               variant="outline" 
-              className="h-8 p-2" 
+              className="h-8 p-2 hover:border-[#33fea6] hover:text-[#33fea6]" 
               onClick={createMultiSelectionVariable}
             >
               <Check className="h-4 w-4 mr-1" />
@@ -613,7 +613,7 @@ export const FinalPromptDisplay = ({
             <Button 
               size="sm" 
               variant="outline" 
-              className="h-8 w-8 p-0" 
+              className="h-8 w-8 p-0 hover:border-[#33fea6] hover:text-[#33fea6]" 
               onClick={exitMultiSelectionMode}
             >
               <X className="h-4 w-4" />
@@ -625,10 +625,10 @@ export const FinalPromptDisplay = ({
           <span className="text-sm text-accent">Create Multi-Variable</span>
           <button 
             onClick={toggleMultiSelectMode}
-            className={`p-2 rounded-full ${isMultiSelectMode ? 'bg-accent text-white' : 'bg-white/80 hover:bg-white'} transition-colors`}
+            className={`p-2 rounded-full ${isMultiSelectMode ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`}
             aria-label={isMultiSelectMode ? "Exit multi-select mode" : "Multi-select mode"}
           >
-            <Lasso className={`w-4 h-4 ${isMultiSelectMode ? 'text-white' : 'text-accent'}`} />
+            <Lasso className={`w-4 h-4 ${isMultiSelectMode ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
           </button>
         </div>
 
@@ -636,10 +636,10 @@ export const FinalPromptDisplay = ({
           <span className="text-sm text-accent">Create Single-Variable</span>
           <button 
             onClick={toggleVariableCreation}
-            className={`p-2 rounded-full ${isCreatingVariable && !isMultiSelectMode ? 'bg-accent text-white' : 'bg-white/80 hover:bg-white'} transition-colors`}
+            className={`p-2 rounded-full ${isCreatingVariable && !isMultiSelectMode ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`}
             aria-label={isCreatingVariable && !isMultiSelectMode ? "Cancel creating variable" : "Create variable"}
           >
-            <PlusCircle className={`w-4 h-4 ${isCreatingVariable && !isMultiSelectMode ? 'text-white' : 'text-accent'}`} />
+            <PlusCircle className={`w-4 h-4 ${isCreatingVariable && !isMultiSelectMode ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
           </button>
         </div>
         
@@ -654,7 +654,7 @@ export const FinalPromptDisplay = ({
               console.error("Error opening edit prompt:", error);
             }
           }}
-          className="p-2 rounded-full bg-white/80 hover:bg-white transition-colors"
+          className="p-2 rounded-full bg-white/80 hover:bg-white hover:text-[#33fea6] transition-colors"
           aria-label="Edit prompt"
         >
           <Edit className="w-4 h-4 text-accent" />

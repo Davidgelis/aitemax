@@ -65,6 +65,17 @@ export const StepThreeStyles = () => {
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(100, 191, 149, 0.1);
       }
+      
+      /* Updated variable selection hover styles */
+      .variable-selection-btn:hover {
+        color: #33fea6;
+        border-color: #33fea6;
+      }
+      
+      .variable-active {
+        background-color: rgba(51, 254, 166, 0.2);
+        border-color: #33fea6;
+      }
       `}
     </style>
   );
