@@ -156,12 +156,12 @@ export const StepThreeContent = ({
       />
 
       <EditPromptSheet 
-        showEditPromptSheet={showEditPromptSheet}
-        setShowEditPromptSheet={setShowEditPromptSheet}
+        open={showEditPromptSheet}
+        onOpenChange={setShowEditPromptSheet}
         editingPrompt={editingPrompt || ""}
         setEditingPrompt={setEditingPrompt}
-        handleSaveEditedPrompt={handleSaveEditedPrompt}
-        handleAdaptPrompt={handleAdaptPrompt}
+        onSave={handleSaveEditedPrompt}
+        variables={safeVariables}
       />
 
       <StepThreeStyles />
