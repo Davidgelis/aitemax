@@ -1,6 +1,6 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { xhr } from "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { OpenAI } from "https://esm.sh/openai@4.26.0";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -72,46 +72,6 @@ async function recordTokenUsage(
   }
 }
 
-// Function to retry the OpenAI API call with exponential backoff
-async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3) {
-  let lastError;
-  let retryCount = 0;
-  
-  while (retryCount < maxRetries) {
-    try {
-      console.log(`Attempt ${retryCount + 1} to call OpenAI API...`);
-      const response = await fetch(url, options);
-      
-      if (response.ok) {
-        return response;
-      }
-      
-      const errorText = await response.text();
-      console.error(`Error response (${response.status}):`, errorText);
-      
-      if (response.status === 401) {
-        // Authentication error - no need to retry
-        throw new Error(`Authentication error: ${errorText}`);
-      }
-      
-      lastError = new Error(`Request failed with status ${response.status}: ${errorText}`);
-    } catch (error) {
-      console.error(`Attempt ${retryCount + 1} failed:`, error);
-      lastError = error;
-    }
-    
-    retryCount++;
-    if (retryCount < maxRetries) {
-      // Exponential backoff: 1s, 2s, 4s, etc.
-      const backoffMs = 1000 * Math.pow(2, retryCount - 1);
-      console.log(`Retrying in ${backoffMs}ms...`);
-      await new Promise(resolve => setTimeout(resolve, backoffMs));
-    }
-  }
-  
-  throw lastError;
-}
-
 // Toggle prompts map
 const togglePrompts = {
   math: "You are an AI specializing in enhancing math-focused prompts. The current prompt is already clear and well-structured. Please revise it only as needed to emphasize step-by-step reasoning (chain-of-thought) and a brief self-review for logical or arithmetic mistakes. Integrate any final clarifications or disclaimers that ensure accurate problem-solving, but retain the prompt's overall structure, tone, and clarity.",
@@ -161,7 +121,7 @@ serve(async (req) => {
       promptId
     } = await req.json();
     
-    console.log(`Enhancing prompt with o3-mini-2025-01-31 analysis...`);
+    console.log(`Enhancing prompt with o3-mini analysis...`);
     console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
     console.log(`Questions answered: ${answeredQuestions.length}`);
     console.log(`Relevant variables: ${relevantVariables.length}`);
@@ -192,9 +152,7 @@ serve(async (req) => {
     loadingMessage += "...";
     
     // Build the system message with the template provided but with more flexibility
-    const systemMessage = {
-      role: 'system',
-      content: `
+    const systemMessage = `
       You are an advanced prompt enhancement specialist. Your task is to transform input prompts into well-structured, effective prompts for AI systems by applying best practices and instructions.
 
       CORE STRUCTURE REQUIREMENTS:
@@ -248,8 +206,7 @@ serve(async (req) => {
       REMEMBER that this prompt will be used on an AI platform, so ensure it follows best practices for AI-to-AI communication and avoids asking for capabilities or formats that are standardized or fixed in AI systems.${primaryPrompt ? `\n\nPRIMARY TOGGLE INSTRUCTION: ${primaryPrompt}` : ""}${secondaryPrompt ? `\n\nSECONDARY TOGGLE INSTRUCTION: ${secondaryPrompt}` : ""}
 
       Come up with a short, concise title (5 words or less) that captures the essence of the prompt. The title should be innovative and suitable for the prompt's purpose. Place this title at the very beginning of your response, before the Task section, formatted as "**[TITLE]**".
-      `
-    };
+      `;
 
     // Format questions and variables into a clear structure for GPT
     const formattedQuestions = answeredQuestions.map(q => 
@@ -261,9 +218,7 @@ serve(async (req) => {
     ).join('\n\n');
 
     // Create user message with structured input data
-    const userMessage = {
-      role: 'user',
-      content: `
+    const userMessage = `
 Please analyze and enhance the following prompt based on the provided context. This prompt will be used on an AI platform, so make it optimized for AI-to-AI communication.
 
 ORIGINAL PROMPT:
@@ -279,37 +234,40 @@ PRIMARY TOGGLE: ${primaryToggle || "None"}
 SECONDARY TOGGLE: ${secondaryToggle || "None"}
 
 Based on this information, generate an enhanced final prompt that follows the structure of Task, Persona, Conditions, and Instructions while incorporating all necessary variables and maintaining the original intent. You have creative freedom to structure the prompt in the most effective way possible while adhering to the general framework.
-      `
-    };
+    `;
 
     try {
-      console.log("Calling OpenAI API with o3-mini-2025-01-31 model and o3-preview header...");
+      console.log("Using modern OpenAI client with o3-mini model...");
       
-      // Call the OpenAI API with retry capability and the required Beta header
-      const response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-          'OpenAI-Beta': 'o3-preview' // IMPORTANT: Required header for o3 models
-        },
-        body: JSON.stringify({
-          model: 'o3-mini-2025-01-31', // Using the correct full model name with version
-          messages: [systemMessage, userMessage],
-          temperature: 0.7,
-        }),
+      // Initialize the OpenAI client
+      const openai = new OpenAI({
+        apiKey: openAIApiKey
       });
       
-      const data = await response.json();
+      // Prepare the message structure following the example provided
+      const messages = [
+        { role: "assistant", content: systemMessage },
+        { role: "user", content: userMessage }
+      ];
       
-      if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-        console.error("Invalid response from OpenAI API:", JSON.stringify(data));
-        throw new Error("Invalid response format from OpenAI API");
-      }
+      // Make the API call using the modern OpenAI client
+      const completion = await openai.chat.completions.create({
+        model: "o3-mini",
+        messages: messages,
+        reasoning_effort: "high", // Using high reasoning effort as shown in the example
+      });
       
-      const enhancedPrompt = data.choices[0].message.content;
+      // Extract the enhanced prompt from the response
+      const enhancedPrompt = completion.choices[0].message.content;
       
-      console.log("Prompt enhancement completed successfully with o3-mini-2025-01-31");
+      console.log("Prompt enhancement completed successfully with o3-mini");
+      
+      // Estimate token usage for reporting (exact counts may not be available)
+      const estimatedUsage = {
+        prompt_tokens: Math.ceil((systemMessage.length + userMessage.length) / 4),
+        completion_tokens: Math.ceil(enhancedPrompt.length / 4),
+        total_tokens: Math.ceil((systemMessage.length + userMessage.length + enhancedPrompt.length) / 4)
+      };
       
       // Record the token usage for this step if userId is provided
       if (userId) {
@@ -317,16 +275,16 @@ Based on this information, generate an enhanced final prompt that follows the st
           userId,
           promptId,
           3, // Step 3: Final prompt generation
-          data.usage.prompt_tokens,
-          data.usage.completion_tokens,
-          'o3-mini-2025-01-31'
+          estimatedUsage.prompt_tokens,
+          estimatedUsage.completion_tokens,
+          'o3-mini'
         );
       }
       
       return new Response(JSON.stringify({ 
         enhancedPrompt,
         loadingMessage,
-        usage: data.usage
+        usage: estimatedUsage
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -334,9 +292,45 @@ Based on this information, generate an enhanced final prompt that follows the st
     } catch (openaiError) {
       console.error("Error calling OpenAI API:", openaiError);
       console.error("Error details:", openaiError.stack || "No stack trace available");
+      console.error("Error response:", JSON.stringify(openaiError.response || {}));
       
-      // Create a fallback enhanced prompt
-      const fallbackPrompt = `# Enhanced Prompt (Fallback)
+      // Attempt with lower reasoning effort if high effort failed
+      try {
+        console.log("Retrying with medium reasoning effort...");
+        
+        const openai = new OpenAI({
+          apiKey: openAIApiKey
+        });
+        
+        const completion = await openai.chat.completions.create({
+          model: "o3-mini",
+          messages: [
+            { role: "assistant", content: systemMessage },
+            { role: "user", content: userMessage }
+          ],
+          reasoning_effort: "medium",
+        });
+        
+        const enhancedPrompt = completion.choices[0].message.content;
+        
+        console.log("Prompt enhancement completed successfully with medium reasoning effort");
+        
+        return new Response(JSON.stringify({ 
+          enhancedPrompt,
+          loadingMessage,
+          usage: {
+            prompt_tokens: Math.ceil((systemMessage.length + userMessage.length) / 4),
+            completion_tokens: Math.ceil(enhancedPrompt.length / 4)
+          }
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (retryError) {
+        console.error("Error on retry attempt:", retryError);
+        
+        // Create a fallback enhanced prompt
+        const fallbackPrompt = `# Enhanced Prompt (Fallback)
 
 ## Task
 ${originalPrompt}
@@ -355,15 +349,16 @@ An AI assistant that provides helpful, accurate, and thoughtful responses.
 - Use examples where appropriate
 - Ensure the response is complete and addresses the core needs
 `;
-      
-      return new Response(JSON.stringify({
-        enhancedPrompt: fallbackPrompt,
-        loadingMessage: "Error enhancing prompt, using fallback format...",
-        error: openaiError.message
-      }), {
-        status: 200, // Always return 200 to avoid edge function error
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+        
+        return new Response(JSON.stringify({
+          enhancedPrompt: fallbackPrompt,
+          loadingMessage: "Error enhancing prompt, using fallback format...",
+          error: retryError.message
+        }), {
+          status: 200, // Always return 200 to avoid edge function error
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
   } catch (error) {
     console.error("Error in enhance-prompt function:", error);
