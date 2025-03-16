@@ -341,6 +341,7 @@ export const StepController = ({
             showJson={showJson}
             setShowJson={setShowJson}
             finalPrompt={finalPrompt}
+            setFinalPrompt={setFinalPrompt} // Pass the setFinalPrompt function explicitly
             variables={variables}
             setVariables={setVariables}
             handleVariableValueChange={handleVariableValueChange}
