@@ -30,6 +30,7 @@ export const FinalPromptDisplay = ({
   handleOpenEditPrompt,
   recordVariableSelection
 }: FinalPromptDisplayProps) => {
+  
   const [processedPrompt, setProcessedPrompt] = useState("");
   const [promptJson, setPromptJson] = useState<PromptJsonStructure | null>(null);
   const [isLoadingJson, setIsLoadingJson] = useState(false);
@@ -235,7 +236,6 @@ export const FinalPromptDisplay = ({
     window.getSelection()?.removeAllRanges();
   };
   
-  // Toggle variable creation mode
   const toggleVariableCreation = () => {
     if (isCreatingVariable) {
       cancelVariableCreation();
@@ -315,6 +315,7 @@ export const FinalPromptDisplay = ({
     );
   };
   
+  // Modified renderProcessedPrompt function to handle HTML parsing and variable placeholders
   const renderProcessedPrompt = () => {
     if (showJson) {
       try {
@@ -349,7 +350,7 @@ export const FinalPromptDisplay = ({
         return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
       }
       
-      // Create a structure to represent the prompt with variables replaced by input fields
+      // Split the prompt into paragraphs
       const paragraphs = processedPrompt.split('\n\n');
       
       return (
@@ -389,72 +390,55 @@ export const FinalPromptDisplay = ({
           {paragraphs.map((paragraph, pIndex) => {
             if (!paragraph) return null;
             
-            // Process each paragraph separately
-            let remainingText = paragraph;
-            const elements: JSX.Element[] = [];
-            let elementIndex = 0;
+            // Process the paragraph to replace variable placeholders
+            const parts: JSX.Element[] = [];
+            let currentIndex = 0;
+            let lastProcessedIndex = 0;
             
-            // Look for each variable in the paragraph and replace with input field
-            relevantVariables.forEach(variable => {
-              // Skip variables with invalid data
-              if (!variable.id) return;
+            // Find all variable placeholder spans in this paragraph
+            const placeholderRegex = /<span[^>]*data-variable-id="([^"]+)"[^>]*><\/span>/g;
+            let match;
+            
+            while ((match = placeholderRegex.exec(paragraph)) !== null) {
+              const fullMatch = match[0];
+              const variableId = match[1];
+              const matchIndex = match.index;
               
-              // Find all occurrences of the variable placeholder in the paragraph
-              let position = -1;
+              // Check if this is a valid variable
+              const variable = relevantVariables.find(v => v.id === variableId);
+              if (!variable) continue;
               
-              // First look for placeholder element with data-variable-id
-              const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
-              const placeholderMatch = remainingText.match(placeholderRegex);
-              
-              if (placeholderMatch) {
-                position = remainingText.indexOf(placeholderMatch[0]);
-              } else if (variable.value) {
-                position = remainingText.indexOf(variable.value);
-              }
-              
-              while (position !== -1) {
-                // Add text before variable
-                if (position > 0) {
-                  elements.push(
-                    <span key={`text-${pIndex}-${elementIndex++}`}>
-                      {remainingText.substring(0, position)}
-                    </span>
-                  );
-                }
-                
-                // Add variable input
-                elements.push(
-                  renderVariableInput(variable, `var-${variable.id}-${pIndex}-${elementIndex++}`)
+              // Add text before the placeholder
+              if (matchIndex > lastProcessedIndex) {
+                parts.push(
+                  <span key={`text-${pIndex}-${currentIndex++}`}>
+                    {paragraph.substring(lastProcessedIndex, matchIndex)}
+                  </span>
                 );
-                
-                // Update remaining text
-                if (placeholderMatch) {
-                  remainingText = remainingText.substring(position + placeholderMatch[0].length);
-                  placeholderMatch.shift(); // Remove processed match
-                } else if (variable.value) {
-                  remainingText = remainingText.substring(position + variable.value.length);
-                  position = remainingText.indexOf(variable.value);
-                } else {
-                  // Break to avoid infinite loop
-                  position = -1;
-                }
               }
-            });
+              
+              // Add the variable input
+              parts.push(renderVariableInput(variable, `var-${variable.id}-${pIndex}-${currentIndex++}`));
+              
+              // Update the last processed index
+              lastProcessedIndex = matchIndex + fullMatch.length;
+            }
             
-            // Add any remaining text
-            if (remainingText) {
-              elements.push(
-                <span key={`text-${pIndex}-${elementIndex++}`}>
-                  {remainingText}
+            // Add any remaining text after the last placeholder
+            if (lastProcessedIndex < paragraph.length) {
+              parts.push(
+                <span key={`text-${pIndex}-${currentIndex++}`}>
+                  {paragraph.substring(lastProcessedIndex)}
                 </span>
               );
             }
             
-            return (
-              <p key={`paragraph-${pIndex}`} className="relative">
-                {elements.length > 0 ? elements : paragraph}
-              </p>
-            );
+            // If we didn't find any placeholders, just return the paragraph as is
+            if (parts.length === 0) {
+              return <p key={`paragraph-${pIndex}`}>{paragraph}</p>;
+            }
+            
+            return <p key={`paragraph-${pIndex}`}>{parts}</p>;
           })}
         </div>
       );
