@@ -7,12 +7,14 @@ interface ToggleSectionProps {
   showJson: boolean;
   setShowJson: (show: boolean) => void;
   refreshJson?: () => void;
+  isRefreshing?: boolean;
 }
 
 export const ToggleSection = ({
   showJson,
   setShowJson,
-  refreshJson
+  refreshJson,
+  isRefreshing = false
 }: ToggleSectionProps) => {
   return (
     <div className="flex items-center gap-2 mb-3">
@@ -31,8 +33,9 @@ export const ToggleSection = ({
           size="xs"
           className="ml-1 p-1 h-6 w-6"
           title="Refresh JSON"
+          disabled={isRefreshing}
         >
-          <RefreshCw className="h-3.5 w-3.5 text-accent" />
+          <RefreshCw className={`h-3.5 w-3.5 text-accent ${isRefreshing ? 'animate-spin' : ''}`} />
         </Button>
       )}
     </div>

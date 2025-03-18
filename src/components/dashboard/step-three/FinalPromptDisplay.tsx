@@ -29,6 +29,7 @@ interface FinalPromptDisplayProps {
   setEditablePrompt: (prompt: string) => void;
   handleSaveEditedPrompt: () => void;
   refreshJsonTrigger?: number;
+  setIsRefreshingJson?: (isRefreshing: boolean) => void;
 }
 
 export const FinalPromptDisplay = ({
@@ -46,7 +47,8 @@ export const FinalPromptDisplay = ({
   editablePrompt,
   setEditablePrompt,
   handleSaveEditedPrompt,
-  refreshJsonTrigger = 0
+  refreshJsonTrigger = 0,
+  setIsRefreshingJson
 }: FinalPromptDisplayProps) => {
   
   const [processedPrompt, setProcessedPrompt] = useState("");
@@ -104,18 +106,40 @@ export const FinalPromptDisplay = ({
         setPromptJson(data.jsonStructure);
         setJsonGenerated(true);
         console.log("Prompt JSON structure generated:", data.jsonStructure);
+        
+        // If there was a generation error in the response, show it to the user
+        if (data.jsonStructure.generationError) {
+          toast({
+            title: "JSON Generation Issue",
+            description: data.jsonStructure.generationError,
+            variant: "destructive"
+          });
+        }
       }
     } catch (error) {
       console.error("Error converting prompt to JSON:", error);
       toast({
         title: "Error generating JSON",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: error instanceof Error ? error.message : "Unknown error. Please try again in a few moments.",
         variant: "destructive"
+      });
+      
+      // Set a fallback JSON structure
+      setPromptJson({
+        title: "Error",
+        summary: "Failed to process prompt",
+        sections: [
+          { title: "Content", content: "Could not generate JSON structure. Please try again later." }
+        ],
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     } finally {
       setIsLoadingJson(false);
+      if (setIsRefreshingJson) {
+        setIsRefreshingJson(false);
+      }
     }
-  }, [finalPrompt, masterCommand, toast, userId, promptId, jsonGenerated]);
+  }, [finalPrompt, masterCommand, toast, userId, promptId, jsonGenerated, setIsRefreshingJson]);
   
   // Initial JSON generation when showing JSON
   useEffect(() => {
@@ -428,7 +452,14 @@ export const FinalPromptDisplay = ({
     if (showJson) {
       try {
         if (isLoadingJson) {
-          return <div className="text-xs animate-pulse">Generating JSON structure...</div>;
+          return (
+            <div className="text-xs flex flex-col items-center justify-center h-full min-h-[200px]">
+              <div className="animate-pulse flex flex-col items-center">
+                <div className="mb-2 text-accent">Generating JSON structure...</div>
+                <div className="text-xs text-muted-foreground">This may take a moment</div>
+              </div>
+            </div>
+          );
         }
         
         if (promptJson) {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -86,6 +85,7 @@ export const StepThreeContent = ({
   
   const [renderTrigger, setRenderTrigger] = useState(0);
   const [refreshJsonTrigger, setRefreshJsonTrigger] = useState(0);
+  const [isRefreshingJson, setIsRefreshingJson] = useState(false);
   
   useEffect(() => {
     setRenderTrigger(prev => prev + 1);
@@ -162,12 +162,30 @@ export const StepThreeContent = ({
   }, [promptOperations, toast]);
 
   const handleRefreshJson = useCallback(() => {
+    if (isRefreshingJson) return; // Prevent multiple refreshes at once
+    
+    setIsRefreshingJson(true);
     setRefreshJsonTrigger(prev => prev + 1);
+    
     toast({
       title: "Refreshing JSON",
       description: "Generating updated JSON structure...",
     });
-  }, [toast]);
+    
+    // Set a timeout to reset the refreshing state even if the operation fails
+    setTimeout(() => {
+      setIsRefreshingJson(false);
+    }, 10000); // 10 second timeout
+  }, [toast, isRefreshingJson]);
+  
+  // Listen for JSON generation completion to reset the refreshing state
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setIsRefreshingJson(false);
+    }, 3000); // Reset after 3 seconds to ensure UI isn't stuck
+    
+    return () => clearTimeout(timeoutId);
+  }, [refreshJsonTrigger]);
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
@@ -175,6 +193,7 @@ export const StepThreeContent = ({
         showJson={showJson}
         setShowJson={setShowJson}
         refreshJson={handleRefreshJson}
+        isRefreshing={isRefreshingJson}
       />
 
       <FinalPromptDisplay 
@@ -193,6 +212,7 @@ export const StepThreeContent = ({
         setEditablePrompt={setEditablePrompt}
         handleSaveEditedPrompt={handleSaveInlineEdit}
         refreshJsonTrigger={refreshJsonTrigger}
+        setIsRefreshingJson={setIsRefreshingJson}
       />
 
       <VariablesSection 

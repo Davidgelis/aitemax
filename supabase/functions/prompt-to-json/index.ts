@@ -55,6 +55,65 @@ async function recordTokenUsage(
   }
 }
 
+// Helper function to add exponential backoff retry for OpenAI API calls
+async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRetries = 3) {
+  let retries = 0;
+  let lastError = null;
+
+  while (retries < maxRetries) {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            { role: 'system', content: systemMessage },
+            { role: 'user', content: `Analyze this prompt and convert to the specified JSON structure: ${prompt}` }
+          ],
+          temperature: 0.3,
+        }),
+      });
+      
+      if (response.status === 429) {
+        // Rate limit error - get retry-after header or use exponential backoff
+        const retryAfter = response.headers.get('retry-after');
+        const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : Math.pow(2, retries) * 1000;
+        console.log(`Rate limit hit. Retrying after ${waitTime}ms (Attempt ${retries + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        retries++;
+        continue;
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(`OpenAI API responded with status ${response.status}: ${errorData}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+      
+      // Only retry on rate limiting or network errors
+      if (error.message && (error.message.includes('429') || error.message.includes('rate_limit'))) {
+        const waitTime = Math.pow(2, retries) * 1000;
+        console.log(`Error (likely rate limit). Retrying after ${waitTime}ms (Attempt ${retries + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        retries++;
+      } else {
+        // For other errors, don't retry
+        throw error;
+      }
+    }
+  }
+  
+  // If we've exhausted all retries
+  throw lastError || new Error('Failed after maximum retry attempts');
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -93,29 +152,29 @@ serve(async (req) => {
       }
     `;
     
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo', // Using o3-mini (gpt-3.5-turbo as the actual model name)
-        messages: [
-          { role: 'system', content: systemMessage },
-          { role: 'user', content: `Analyze this prompt and convert to the specified JSON structure: ${prompt}` }
-        ],
-        temperature: 0.3,
-      }),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("OpenAI API error:", errorData);
-      throw new Error(`OpenAI API responded with status ${response.status}: ${errorData}`);
+    // Try to call OpenAI with automatic retries for rate limiting
+    let data;
+    try {
+      data = await callOpenAIWithRetry(systemMessage, prompt);
+    } catch (error) {
+      console.error("Failed to call OpenAI after retries:", error);
+      // Return a fallback JSON structure in case of failure
+      return new Response(JSON.stringify({
+        jsonStructure: {
+          title: "Prompt Analysis",
+          summary: "Automatic analysis of provided prompt",
+          sections: [
+            { title: "Content", content: prompt.slice(0, 200) + (prompt.length > 200 ? "..." : "") }
+          ],
+          generationError: "Failed to generate structured JSON. Please try again later."
+        },
+        rawPrompt: prompt
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     
-    const data = await response.json();
     let jsonResult;
     
     try {
