@@ -125,6 +125,21 @@ export const usePromptOperations = (
     });
   }, [setVariables]);
 
+  // Add the missing removeVariable function
+  const removeVariable = useCallback((variableId: string) => {
+    console.log(`Marking variable ${variableId} as not relevant`);
+    
+    // Mark the variable as not relevant rather than removing it completely
+    setVariables(currentVars => 
+      currentVars.map(v => 
+        v.id === variableId ? { ...v, isRelevant: false } : v
+      )
+    );
+    
+    // Force re-render to ensure changes propagate
+    setRenderKey(prev => prev + 1);
+  }, [setVariables]);
+
   // Delete a variable
   const handleDeleteVariable = useCallback((variableId: string) => {
     console.log(`Marking variable ${variableId} as not relevant`);
@@ -264,6 +279,7 @@ export const usePromptOperations = (
     isProcessing,
     renderKey,
     recordVariableSelection,
-    variableSelections
+    variableSelections,
+    removeVariable // Export the new removeVariable function
   };
 };
