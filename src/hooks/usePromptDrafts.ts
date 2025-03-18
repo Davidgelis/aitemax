@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useState } from "react";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,7 +80,9 @@ export const usePromptDrafts = (
     if (!user || !promptText.trim() || currentStep === 1) return;
 
     try {
-      const title = promptText.split('\n')[0] || 'Untitled Draft';
+      // Ensure we're saving plain text by removing any HTML tags if present
+      const plainTextPrompt = promptText.replace(/<[^>]*>/g, '');
+      const title = plainTextPrompt.split('\n')[0] || 'Untitled Draft';
       
       let draftId = currentDraftId;
       
@@ -104,7 +107,7 @@ export const usePromptDrafts = (
         .from('prompts')
         .select('id')
         .eq('user_id', user.id)
-        .eq('prompt_text', promptText)
+        .eq('prompt_text', plainTextPrompt)
         .limit(1);
         
       if (savedPromptsError) throw savedPromptsError;
@@ -117,7 +120,7 @@ export const usePromptDrafts = (
       const draft = {
         user_id: user.id,
         title: title,
-        prompt_text: promptText,
+        prompt_text: plainTextPrompt,
         master_command: masterCommand,
         primary_toggle: selectedPrimary,
         secondary_toggle: selectedSecondary,
@@ -149,7 +152,7 @@ export const usePromptDrafts = (
 
       localStorage.setItem('promptDraft', JSON.stringify({
         id: draftId,
-        promptText,
+        promptText: plainTextPrompt,
         masterCommand,
         variables,
         selectedPrimary,
@@ -163,7 +166,7 @@ export const usePromptDrafts = (
       console.error('Error saving draft:', error);
       // Still save to localStorage as a backup
       localStorage.setItem('promptDraft', JSON.stringify({
-        promptText,
+        promptText: promptText.replace(/<[^>]*>/g, ''),
         masterCommand,
         variables,
         selectedPrimary,

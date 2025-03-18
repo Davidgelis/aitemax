@@ -54,6 +54,11 @@ export const UserSidebar = ({
 
   const isAdmin = user?.id === ADMIN_USER_ID;
   
+  // Helper function to ensure we're displaying plain text
+  const getPlainText = (text: string) => {
+    return text ? text.replace(/<[^>]*>/g, '') : '';
+  };
+  
   const startEditing = (prompt: SavedPrompt) => {
     setEditingPromptId(prompt.id);
     setEditingTitle(prompt.title);
@@ -199,7 +204,7 @@ export const UserSidebar = ({
                     <div className="flex flex-col flex-1 min-w-0 w-[70%]">
                       <div className="flex items-center">
                         <span className="text-sm font-medium line-clamp-2">
-                          {draft.title} <span className="text-xs font-normal text-muted-foreground">(Draft)</span>
+                          {getPlainText(draft.title)} <span className="text-xs font-normal text-muted-foreground">(Draft)</span>
                         </span>
                       </div>
                       <span className="text-xs text-muted-foreground">
@@ -238,7 +243,7 @@ export const UserSidebar = ({
                 <div
                   key={item.id}
                   className="p-4 border-b group/item cursor-pointer hover:bg-gray-50 transition-colors"
-                  style={{ minHeight: `${Math.max(72, getTextLines(item.title, 25) * 20 + 32)}px` }}
+                  style={{ minHeight: `${Math.max(72, getTextLines(getPlainText(item.title), 25) * 20 + 32)}px` }}
                   onClick={() => loadSavedPrompt && editingPromptId !== item.id && loadSavedPrompt(item)}
                 >
                   <div className="flex items-start w-full h-full">
@@ -259,7 +264,7 @@ export const UserSidebar = ({
                         ) : (
                           <div className="flex items-center">
                             <span className="text-sm font-medium break-words">
-                              {item.title}
+                              {getPlainText(item.title)}
                             </span>
                           </div>
                         )}
@@ -316,7 +321,7 @@ export const UserSidebar = ({
                   <div
                     key={item.id}
                     className="p-4 border-b group/item cursor-pointer hover:bg-gray-50 transition-colors"
-                    style={{ minHeight: `${Math.max(72, getTextLines(item.title, 25) * 20 + 32)}px` }}
+                    style={{ minHeight: `${Math.max(72, getTextLines(getPlainText(item.title), 25) * 20 + 32)}px` }}
                     onClick={() => loadSavedPrompt && editingPromptId !== item.id && loadSavedPrompt(item)}
                   >
                     <div className="flex items-start w-full h-full">
@@ -337,7 +342,7 @@ export const UserSidebar = ({
                           ) : (
                             <div className="flex items-center">
                               <span className="text-sm font-medium break-words">
-                                {item.title}
+                                {getPlainText(item.title)}
                               </span>
                             </div>
                           )}

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -171,14 +172,16 @@ export const usePromptState = (user: any) => {
     }
 
     try {
+      // Ensure we're saving plain text by removing any HTML tags if present
+      const plainTextPrompt = finalPrompt.replace(/<[^>]*>/g, '');
       let jsonStructure = promptJsonStructure;
       
-      if (!jsonStructure && finalPrompt) {
+      if (!jsonStructure && plainTextPrompt) {
         setIsLoadingPrompts(true);
         try {
           const { data, error } = await supabase.functions.invoke('prompt-to-json', {
             body: {
-              prompt: finalPrompt,
+              prompt: plainTextPrompt,
               masterCommand,
               userId: user.id
             }
@@ -201,8 +204,8 @@ export const usePromptState = (user: any) => {
       const relevantVariables = variables.filter(v => v.isRelevant === true);
       const promptData = {
         user_id: user.id,
-        title: finalPrompt.split('\n')[0] || 'Untitled Prompt',
-        prompt_text: finalPrompt,
+        title: plainTextPrompt.split('\n')[0] || 'Untitled Prompt',
+        prompt_text: plainTextPrompt,
         master_command: masterCommand,
         primary_toggle: selectedPrimary,
         secondary_toggle: selectedSecondary,
@@ -385,8 +388,10 @@ export const usePromptState = (user: any) => {
     }
     
     console.log("Loading saved prompt:", prompt);
-    setPromptText(prompt.promptText || "");
-    setFinalPrompt(prompt.promptText || "");
+    // Ensure we're loading plain text
+    const plainTextPrompt = prompt.promptText ? prompt.promptText.replace(/<[^>]*>/g, '') : "";
+    setPromptText(plainTextPrompt);
+    setFinalPrompt(plainTextPrompt);
     setMasterCommand(prompt.masterCommand || "");
     setSelectedPrimary(prompt.primaryToggle);
     setSelectedSecondary(prompt.secondaryToggle);
