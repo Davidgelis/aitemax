@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -90,7 +89,7 @@ export const StepThreeContent = ({
   const [refreshJsonTrigger, setRefreshJsonTrigger] = useState(0);
   const [isRefreshingJson, setIsRefreshingJson] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
-  const MIN_REFRESH_INTERVAL = 5000; // 5 seconds between refreshes
+  const MIN_REFRESH_INTERVAL = 3000; // 3 seconds between refreshes (reduced from 5s for better UX)
   
   useEffect(() => {
     setRenderTrigger(prev => prev + 1);
@@ -166,6 +165,7 @@ export const StepThreeContent = ({
     }
   }, [promptOperations, toast]);
 
+  // Improved handleRefreshJson with better error handling and user feedback
   const handleRefreshJson = useCallback(() => {
     const now = Date.now();
     
@@ -193,34 +193,40 @@ export const StepThreeContent = ({
       return; // Rate limiting on client side
     }
     
+    // Set state first before proceeding
     setIsRefreshingJson(true);
     setLastRefreshTime(now);
     
-    // Delay the actual refresh to avoid UI jank
+    // Show toast message immediately for better UX
+    toast({
+      title: "Refreshing JSON",
+      description: "Generating updated JSON structure...",
+    });
+    
+    // Trigger refresh with a small delay
     jsonRequestTimeoutRef.current = setTimeout(() => {
+      // Increment the trigger to cause the effect in FinalPromptDisplay to run
       setRefreshJsonTrigger(prev => prev + 1);
       jsonRequestTimeoutRef.current = null;
-      
-      toast({
-        title: "Refreshing JSON",
-        description: "Generating updated JSON structure...",
-      });
-    }, 300); // Small delay for better UX
+    }, 100); // Small delay for better UX
     
-    // Clear any existing timeout
+    // Set a failsafe timeout to reset the state if something goes wrong
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
     }
     
-    // Set a timeout to reset the refreshing state even if the operation fails
     refreshTimeoutRef.current = setTimeout(() => {
-      setIsRefreshingJson(false);
-      refreshTimeoutRef.current = null;
-      toast({
-        title: "JSON refresh complete",
-        description: "The JSON structure has been updated",
-      });
-    }, 10000); // 10 second timeout
+      if (isRefreshingJson) {
+        setIsRefreshingJson(false);
+        refreshTimeoutRef.current = null;
+        
+        toast({
+          title: "JSON refresh timed out",
+          description: "The refresh operation took too long. Please try again.",
+          variant: "destructive"
+        });
+      }
+    }, 15000); // 15 second timeout as a failsafe
   }, [toast, isRefreshingJson, lastRefreshTime]);
   
   // Listen for JSON generation completion to reset the refreshing state

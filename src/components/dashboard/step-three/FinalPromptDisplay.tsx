@@ -120,17 +120,18 @@ export const FinalPromptDisplay = ({
     }
   }, [getProcessedPrompt, relevantVariables]);
   
+  // Improved convertPromptToJson with more consistent forceRefresh handling
   const convertPromptToJson = useCallback(async (forceRefresh = false) => {
     if (!finalPrompt || finalPrompt.trim() === "") {
       setJsonError("No prompt text to convert");
       return;
     }
     
-    // Only proceed if not already generated or if forced refresh
-    if (jsonGenerated && !forceRefresh) return;
-    
-    setIsLoadingJson(true);
+    // Clear any existing error
     setJsonError(null);
+    
+    // Always set loading state regardless of cache status
+    setIsLoadingJson(true);
     console.log("Converting prompt to JSON, forceRefresh:", forceRefresh);
     
     try {
@@ -174,6 +175,9 @@ export const FinalPromptDisplay = ({
             description: data.jsonStructure.generationError,
             variant: "destructive"
           });
+        } else {
+          // Clear any previous error if successful
+          setJsonError(null);
         }
       }
     } catch (error) {
@@ -195,18 +199,24 @@ export const FinalPromptDisplay = ({
         error: error instanceof Error ? error.message : "Unknown error"
       });
     } finally {
+      // Always clean up loading state
       setIsLoadingJson(false);
       if (setIsRefreshingJson) {
         setIsRefreshingJson(false);
       }
     }
-  }, [finalPrompt, masterCommand, toast, userId, promptId, jsonGenerated, setIsRefreshingJson, generateCleanTextForApi]);
+  }, [finalPrompt, masterCommand, toast, userId, promptId, setIsRefreshingJson, generateCleanTextForApi]);
   
-  // Initial JSON generation when showing JSON
+  // Initial JSON generation when showing JSON - make it consistent with refresh
   useEffect(() => {
-    if (showJson && !jsonGenerated && !isLoadingJson) {
-      console.log("Initial toggle to JSON view - generating JSON");
-      convertPromptToJson();
+    if (showJson) {
+      console.log("JSON view is active - checking if JSON needs to be generated");
+      if (!jsonGenerated && !isLoadingJson) {
+        console.log("Initial toggle to JSON view - generating JSON");
+        convertPromptToJson(false); // Don't force refresh on initial
+      } else {
+        console.log("JSON already generated or currently loading - no action needed");
+      }
     }
   }, [showJson, convertPromptToJson, jsonGenerated, isLoadingJson]);
   
@@ -214,7 +224,7 @@ export const FinalPromptDisplay = ({
   useEffect(() => {
     if (refreshJsonTrigger > 0 && showJson) {
       console.log("Refresh JSON button clicked - regenerating JSON with force refresh");
-      convertPromptToJson(true); // Force refresh
+      convertPromptToJson(true); // Always force refresh on button click
     }
   }, [refreshJsonTrigger, showJson, convertPromptToJson]);
   

@@ -16,12 +16,27 @@ export const ToggleSection = ({
   refreshJson,
   isRefreshing = false
 }: ToggleSectionProps) => {
+  // Handler to ensure toggle follows the same pattern as refresh
+  const handleToggle = (checked: boolean) => {
+    // First update the state
+    setShowJson(checked);
+    
+    // If toggling to JSON view and refresh function exists, call it 
+    // with a small delay to allow state update to complete first
+    if (checked && refreshJson) {
+      // Use a very small timeout to ensure state is updated first
+      setTimeout(() => {
+        refreshJson();
+      }, 50);
+    }
+  };
+
   return (
     <div className="flex items-center gap-2 mb-3">
       <span className="text-xs">JSON Toggle view</span>
       <Switch
         checked={showJson}
-        onCheckedChange={setShowJson}
+        onCheckedChange={handleToggle}
         className="scale-75"
         variant="primary"
       />
