@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Variable } from "../types";
 import { useEffect, useCallback, useState } from "react";
@@ -108,10 +107,10 @@ export const VariablesSection = ({
                 <AlertDialogTrigger asChild>
                   <button 
                     onClick={() => setVariableToDelete(variable.id)}
-                    className="variable-delete-btn p-2 rounded-full hover:bg-[#33fea6]/20"
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#33fea6]/20 hover:bg-[#33fea6]/30 transition-colors"
                     aria-label="Delete variable"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4 text-[#545454]" />
                   </button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>

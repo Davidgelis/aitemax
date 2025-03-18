@@ -1,4 +1,3 @@
-
 export const StepThreeStyles = () => {
   return (
     <style>
@@ -149,15 +148,15 @@ export const StepThreeStyles = () => {
       
       /* Variable delete button styles */
       .variable-delete-btn {
-        color: #71717a;
+        color: #545454;
         transition: all 0.2s ease;
-        opacity: 0.8;
         cursor: pointer;
+        background-color: rgba(51, 254, 166, 0.2);
+        border-radius: 50%;
       }
       
       .variable-delete-btn:hover {
-        color: #ef4444;
-        opacity: 1;
+        background-color: rgba(51, 254, 166, 0.3);
       }
       
       /* Variable container with delete button */
