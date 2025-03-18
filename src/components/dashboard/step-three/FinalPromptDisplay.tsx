@@ -51,8 +51,8 @@ export const FinalPromptDisplay = ({
   const [multiSelections, setMultiSelections] = useState<string[]>([]);
   const [selectionRange, setSelectionRange] = useState<{start: number, end: number} | null>(null);
   const promptContainerRef = useRef<HTMLDivElement>(null);
+  const editableContentRef = useRef<HTMLDivElement>(null);
   const [renderTrigger, setRenderTrigger] = useState(0);
-  const editableTextareaRef = useRef<HTMLDivElement>(null);
   const [hasInitializedEditMode, setHasInitializedEditMode] = useState(false);
   
   const { toast } = useToast();
@@ -152,19 +152,12 @@ export const FinalPromptDisplay = ({
       
       setEditablePrompt(processedText);
       setHasInitializedEditMode(true);
-      
-      // Focus the textarea when in editing mode
-      setTimeout(() => {
-        if (editableTextareaRef.current) {
-          editableTextareaRef.current.focus();
-        }
-      }, 100);
     } else if (!isEditing && hasInitializedEditMode) {
       // Reset the initialization flag when exiting edit mode
       setHasInitializedEditMode(false);
     }
   }, [isEditing, finalPrompt, setEditablePrompt, relevantVariables, hasInitializedEditMode]);
-  
+
   const handleMouseUp = () => {
     if (!isCreatingVariable || isEditing) return;
     
@@ -475,8 +468,7 @@ export const FinalPromptDisplay = ({
   // Modified renderProcessedPrompt function to handle HTML parsing and variable placeholders
   const renderProcessedPrompt = () => {
     if (isEditing) {
-      // In editing mode, create a textarea with special styling for variables
-      // Add contentEditable="false" to the non-editable variable spans
+      // In editing mode, create an uncontrolled editable div with special styling for variables
       const processedEditablePrompt = editablePrompt.replace(
         /{{([^}]+)}}/g,
         (match, variableText) => {
@@ -490,17 +482,7 @@ export const FinalPromptDisplay = ({
             className="editing-mode w-full h-full min-h-[300px] p-4 rounded-md font-sans text-sm"
             contentEditable="true"
             suppressContentEditableWarning={true}
-            ref={editableTextareaRef}
-            onInput={(e) => {
-              // Extract the text content with placeholders preserved
-              const content = e.currentTarget.innerHTML;
-              // Updated regex that uses lookahead assertions to match attributes regardless of order
-              const textWithPlaceholders = content.replace(
-                /<span(?=[^>]*\bcontentEditable=['"]false['"])(?=[^>]*\bclass=['"]non-editable-variable['"])[^>]*>(.*?)<\/span>/gi,
-                (_, text) => `{{${text}}}`
-              );
-              setEditablePrompt(textWithPlaceholders);
-            }}
+            ref={editableContentRef}
             dangerouslySetInnerHTML={{
               __html: processedEditablePrompt
             }}
@@ -519,9 +501,23 @@ export const FinalPromptDisplay = ({
             <Button 
               className="edit-action-button edit-save-button"
               onClick={() => {
-                handleSaveEditedPrompt();
-                setIsEditing(false);
-                setEditablePrompt(""); // Clear the editable prompt after saving
+                if (editableContentRef.current) {
+                  // Read current content directly from the DOM
+                  const newContent = editableContentRef.current.innerHTML;
+                  
+                  // Replace non-editable spans with their proper placeholders
+                  const processedContent = newContent.replace(
+                    /<span(?=[^>]*\bcontentEditable=['"]false['"])(?=[^>]*\bclass=['"]non-editable-variable['"])[^>]*>(.*?)<\/span>/gi,
+                    (_, text) => `{{${text}}}`
+                  );
+                  
+                  // Update the editablePrompt with the processed content
+                  setEditablePrompt(processedContent);
+                  
+                  // Then trigger the save
+                  handleSaveEditedPrompt();
+                  setIsEditing(false);
+                }
               }}
             >
               Save Changes

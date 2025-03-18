@@ -117,6 +117,7 @@ export const StepThreeContent = ({
 
   const handleSaveInlineEdit = useCallback(() => {
     try {
+      // Apply the edited content to the finalPrompt
       setFinalPrompt(editablePrompt);
       
       toast({

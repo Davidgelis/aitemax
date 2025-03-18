@@ -1,3 +1,4 @@
+
 import { Edit, Copy, Save, RotateCw, X, Check } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -61,11 +62,10 @@ export const FinalPrompt = ({
   handleAdaptPrompt,
   onDeleteVariable
 }: FinalPromptProps) => {
-  const editPromptTextareaRef = useRef<HTMLDivElement>(null);
+  const promptContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [currentEditingContent, setCurrentEditingContent] = useState("");
-  const promptContainerRef = useRef<HTMLDivElement>(null);
   const [hasInitializedEditMode, setHasInitializedEditMode] = useState(false);
   
   // Begin editing mode
@@ -264,8 +264,9 @@ export const FinalPrompt = ({
               ref={promptContainerRef}
               className="whitespace-pre-wrap text-card-foreground editable-content" 
               contentEditable="true"
-              dangerouslySetInnerHTML={{ __html: currentEditingContent }}
               suppressContentEditableWarning={true}
+              dangerouslySetInnerHTML={{ __html: currentEditingContent }}
+              // Removed onInput handler to prevent re-rendering during typing
             />
           )}
         </div>
