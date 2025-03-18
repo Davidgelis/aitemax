@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { FinalPromptDisplay } from "@/components/dashboard/step-three/FinalPromptDisplay";
 import { MasterCommandSection } from "@/components/dashboard/step-three/MasterCommandSection";
@@ -134,7 +133,6 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
         <MasterCommandSection 
           masterCommand={masterCommand}
           setMasterCommand={setMasterCommand}
-          handleRegenerate={handleRegenerate}
         />
       )}
       
@@ -175,7 +173,6 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
       <ActionButtons
         onCopyPrompt={handleCopyPrompt}
         onSavePrompt={handleSavePrompt}
-        onRegenerate={handleRegenerate}
         isCopied={isCopied}
         isPrivate={isPrivate}
         setIsPrivate={setIsPrivate}
