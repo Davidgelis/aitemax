@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -572,14 +573,67 @@ Based on this combination, follow these guidelines:
       };
       console.log("Question prefill sources:", prefillSources);
       
-      // If no additional context was provided, verify that no pre-filling occurred
-      const hasAdditionalContext = !!(
-        (websiteData && websiteData.url) || 
-        (imageData && (Array.isArray(imageData) ? imageData.length > 0 : imageData.base64)) ||
-        (smartContextData && smartContextData.context)
-      );
-      
-      if (!hasAdditionalContext && (prefilledQuestions > 0 || prefilledVariables > 0)) {
+      // FIXED: Make sure we properly handle the case where both hasAdditionalContext is true
+      // but no pre-filling occurred. This often indicates the AI didn't properly follow instructions.
+      if (hasAdditionalContext && prefilledQuestions === 0 && prefilledVariables === 0) {
+        console.warn("WARNING: No pre-filled values detected despite having additional context. Attempting fallback strategy.");
+        
+        // Simple fallback strategy based on context type
+        if (websiteData && websiteData.url) {
+          // Try to pre-fill at least one question related to the website content
+          const firstQuestion = questions.find(q => 
+            q.text.toLowerCase().includes("topic") || 
+            q.text.toLowerCase().includes("subject") ||
+            q.text.toLowerCase().includes("content")
+          );
+          
+          if (firstQuestion) {
+            firstQuestion.answer = `Based on analyzing the website (${websiteData.url}), the key topics include: ${websiteKeywords.slice(0, 5).join(', ')}. This information provides relevant context for the prompt.`;
+            firstQuestion.prefillSource = "webscan";
+            console.log("Applied fallback pre-filling for a question using website data");
+          }
+        }
+        
+        if (imageData) {
+          // Try to pre-fill at least one question related to image content
+          const imageQuestion = questions.find(q => 
+            q.text.toLowerCase().includes("visual") || 
+            q.text.toLowerCase().includes("image") ||
+            q.text.toLowerCase().includes("picture") ||
+            q.text.toLowerCase().includes("photo")
+          );
+          
+          if (imageQuestion) {
+            const imageDataArray = Array.isArray(imageData) ? imageData : [imageData];
+            const imageInfo = imageDataArray[0];
+            const imageContext = imageInfo.context || "visual elements";
+            
+            imageQuestion.answer = `The image provides valuable visual context related to ${imageContext}. This visual information enhances the prompt by providing specific visual references that can be incorporated.`;
+            imageQuestion.prefillSource = "imagescan";
+            console.log("Applied fallback pre-filling for a question using image data");
+          }
+        }
+        
+        if (smartContextData && smartContextData.context) {
+          // Try to pre-fill at least one question related to smart context
+          const contextQuestion = questions.find(q => 
+            q.text.toLowerCase().includes("context") || 
+            q.text.toLowerCase().includes("background") ||
+            q.text.toLowerCase().includes("information") ||
+            q.text.toLowerCase().includes("details")
+          );
+          
+          if (contextQuestion) {
+            const contextExcerpt = smartContextData.context.length > 150 ? 
+              smartContextData.context.substring(0, 150) + "..." : 
+              smartContextData.context;
+              
+            contextQuestion.answer = `The provided smart context offers relevant information about the topic: "${contextExcerpt}". This context helps frame the prompt appropriately and provides key details to enhance the result.`;
+            contextQuestion.prefillSource = "smartcontext";
+            console.log("Applied fallback pre-filling for a question using smart context data");
+          }
+        }
+      } else if (!hasAdditionalContext && (prefilledQuestions > 0 || prefilledVariables > 0)) {
         console.warn("WARNING: Pre-filled values detected without additional context. Clearing pre-filled values.");
         
         // Clear any pre-filled answers when no context was provided

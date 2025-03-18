@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions, primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
@@ -353,22 +352,23 @@ export const usePromptAnalysis = (
 
   const enhancePromptWithGPT = async (
     promptToEnhance: string,
-    questions: Question[],
-    variables: Variable[]
+    primaryToggle: string | null,
+    secondaryToggle: string | null,
+    setFinalPromptFn: React.Dispatch<React.SetStateAction<string>>
   ): Promise<string> => {
     try {
       // Create a context-aware loading message based on toggles
       let message = "Enhancing your prompt";
-      if (selectedPrimary) {
-        const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label || selectedPrimary;
+      if (primaryToggle) {
+        const primaryLabel = primaryToggles.find(t => t.id === primaryToggle)?.label || primaryToggle;
         message += ` for ${primaryLabel}`;
         
-        if (selectedSecondary) {
-          const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
+        if (secondaryToggle) {
+          const secondaryLabel = secondaryToggles.find(t => t.id === secondaryToggle)?.label || secondaryToggle;
           message += ` and to be ${secondaryLabel}`;
         }
-      } else if (selectedSecondary) {
-        const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
+      } else if (secondaryToggle) {
+        const secondaryLabel = secondaryToggles.find(t => t.id === secondaryToggle)?.label || secondaryToggle;
         message += ` to be ${secondaryLabel}`;
       }
       message += "...";
@@ -391,8 +391,8 @@ export const usePromptAnalysis = (
           originalPrompt: promptToEnhance,
           answeredQuestions,
           relevantVariables,
-          primaryToggle: selectedPrimary,
-          secondaryToggle: selectedSecondary,
+          primaryToggle,
+          secondaryToggle,
           userId: user?.id,
           promptId
         }
@@ -406,6 +406,9 @@ export const usePromptAnalysis = (
       if (data.loadingMessage) {
         setCurrentLoadingMessage(data.loadingMessage);
       }
+      
+      // Update the final prompt with the enhanced version
+      setFinalPromptFn(data.enhancedPrompt);
       
       return data.enhancedPrompt;
     } catch (error) {

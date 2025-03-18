@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -227,8 +228,8 @@ export const StepController = ({
         // Use the enhancePromptWithGPT function to get an enhanced prompt
         await enhancePromptWithGPT(
           promptText,
-          selectedPrimary,
-          selectedSecondary,
+          questions,
+          variables,
           setFinalPrompt
         );
         
