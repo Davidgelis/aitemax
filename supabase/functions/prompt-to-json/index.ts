@@ -60,6 +60,9 @@ async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRet
   let retries = 0;
   let lastError = null;
 
+  // Implement a progressive delay between retries (starting with a longer initial delay)
+  const initialDelay = 2000; // 2 seconds initial delay
+  
   while (retries < maxRetries) {
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -81,7 +84,7 @@ async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRet
       if (response.status === 429) {
         // Rate limit error - get retry-after header or use exponential backoff
         const retryAfter = response.headers.get('retry-after');
-        const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : Math.pow(2, retries) * 1000;
+        const waitTime = retryAfter ? parseInt(retryAfter, 10) * 1000 : initialDelay * Math.pow(2, retries);
         console.log(`Rate limit hit. Retrying after ${waitTime}ms (Attempt ${retries + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         retries++;
@@ -98,8 +101,8 @@ async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRet
       lastError = error;
       
       // Only retry on rate limiting or network errors
-      if (error.message && (error.message.includes('429') || error.message.includes('rate_limit'))) {
-        const waitTime = Math.pow(2, retries) * 1000;
+      if (error.message && (error.message.includes('429') || error.message.includes('rate_limit') || error.message.includes('network'))) {
+        const waitTime = initialDelay * Math.pow(2, retries);
         console.log(`Error (likely rate limit). Retrying after ${waitTime}ms (Attempt ${retries + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         retries++;
@@ -141,6 +144,7 @@ serve(async (req) => {
       - Create a "sections" array with objects containing "title" and "content"
       - Include a "title" field with a short title for the prompt
       - Include a "summary" field with a very brief description
+      - DO NOT include timestamps or date information
       
       The JSON schema should look like:
       {
@@ -185,9 +189,6 @@ serve(async (req) => {
       if (masterCommand) {
         jsonResult.masterCommand = masterCommand;
       }
-      
-      // Add timestamp
-      jsonResult.timestamp = new Date().toISOString();
       
       // Extract variable placeholders from the prompt
       const variablePlaceholders = extractVariablePlaceholders(prompt);

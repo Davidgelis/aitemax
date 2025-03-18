@@ -63,7 +63,7 @@ export interface PromptJsonStructure {
   error?: string;
   generationError?: string;
   masterCommand?: string;
-  timestamp?: string;
+  timestamp?: string; // Make timestamp optional and ensure it's removed in UI
   variablePlaceholders?: string[];
   task?: string;
   persona?: string;

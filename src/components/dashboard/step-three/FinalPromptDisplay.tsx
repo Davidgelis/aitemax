@@ -62,6 +62,7 @@ export const FinalPromptDisplay = ({
   const editableContentRef = useRef<HTMLDivElement>(null);
   const [renderTrigger, setRenderTrigger] = useState(0);
   const [hasInitializedEditMode, setHasInitializedEditMode] = useState(false);
+  const [jsonError, setJsonError] = useState<string | null>(null);
   
   const { toast } = useToast();
   
@@ -84,9 +85,15 @@ export const FinalPromptDisplay = ({
     : [];
   
   const convertPromptToJson = useCallback(async (forceRefresh = false) => {
-    if (!finalPrompt || finalPrompt.trim() === "" || (jsonGenerated && !forceRefresh)) return;
+    if (!finalPrompt || finalPrompt.trim() === "") {
+      setJsonError("No prompt text to convert");
+      return;
+    }
+    
+    if (jsonGenerated && !forceRefresh) return;
     
     setIsLoadingJson(true);
+    setJsonError(null);
     
     try {
       const { data, error } = await supabase.functions.invoke('prompt-to-json', {
@@ -103,12 +110,18 @@ export const FinalPromptDisplay = ({
       }
       
       if (data && data.jsonStructure) {
+        // Explicitly remove any timestamp fields if they still exist
+        if (data.jsonStructure.timestamp) {
+          delete data.jsonStructure.timestamp;
+        }
+        
         setPromptJson(data.jsonStructure);
         setJsonGenerated(true);
         console.log("Prompt JSON structure generated:", data.jsonStructure);
         
         // If there was a generation error in the response, show it to the user
         if (data.jsonStructure.generationError) {
+          setJsonError(data.jsonStructure.generationError);
           toast({
             title: "JSON Generation Issue",
             description: data.jsonStructure.generationError,
@@ -118,6 +131,7 @@ export const FinalPromptDisplay = ({
       }
     } catch (error) {
       console.error("Error converting prompt to JSON:", error);
+      setJsonError(error instanceof Error ? error.message : "Unknown error");
       toast({
         title: "Error generating JSON",
         description: error instanceof Error ? error.message : "Unknown error. Please try again in a few moments.",
@@ -181,6 +195,7 @@ export const FinalPromptDisplay = ({
     }
   }, [isEditing, finalPrompt, relevantVariables, hasInitializedEditMode, setEditablePrompt]);
 
+  // Functions related to mouse selection and variable creation
   const handleMouseUp = () => {
     if (!isCreatingVariable || isEditing) return;
     
@@ -334,7 +349,6 @@ export const FinalPromptDisplay = ({
     }
   };
   
-  // Handle variable removal - replace placeholder with actual text
   const removeVariable = (variableId: string) => {
     // Find the variable we're removing
     const variable = variables.find(v => v.id === variableId);
@@ -363,7 +377,6 @@ export const FinalPromptDisplay = ({
     setRenderTrigger(prev => prev + 1); // Force re-render
   };
   
-  // For read-only rendering in the prompt display
   const renderVariablePlaceholder = (variable: Variable, uniqueKey: string) => {
     return (
       <span key={uniqueKey} className="inline-block relative variable-placeholder">
@@ -397,6 +410,9 @@ export const FinalPromptDisplay = ({
       
       // Force a re-render to show the updated content with variables
       setRenderTrigger(prev => prev + 1);
+      
+      // Also reset JSON generation flag when content changes
+      setJsonGenerated(false);
     }
   };
 
@@ -462,10 +478,30 @@ export const FinalPromptDisplay = ({
           );
         }
         
+        if (jsonError) {
+          return (
+            <div className="flex flex-col items-center justify-center h-full min-h-[200px]">
+              <div className="text-xs text-destructive mb-2">Error generating JSON: {jsonError}</div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => convertPromptToJson(true)}
+                className="mt-2"
+              >
+                Try Again
+              </Button>
+            </div>
+          );
+        }
+        
         if (promptJson) {
+          // Make a clean copy without timestamp before displaying
+          const displayJson = { ...promptJson };
+          if (displayJson.timestamp) delete displayJson.timestamp;
+          
           return (
             <pre className="text-xs font-mono overflow-x-auto">
-              {JSON.stringify(promptJson, null, 2)}
+              {JSON.stringify(displayJson, null, 2)}
             </pre>
           );
         }

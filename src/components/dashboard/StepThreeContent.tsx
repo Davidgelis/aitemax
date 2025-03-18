@@ -71,6 +71,7 @@ export const StepThreeContent = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState("");
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const jsonRequestTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Get the promptOperations
   const promptOperations = usePromptOperations(
@@ -89,7 +90,7 @@ export const StepThreeContent = ({
   const [refreshJsonTrigger, setRefreshJsonTrigger] = useState(0);
   const [isRefreshingJson, setIsRefreshingJson] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
-  const MIN_REFRESH_INTERVAL = 3000; // 3 seconds between refreshes
+  const MIN_REFRESH_INTERVAL = 5000; // 5 seconds between refreshes
   
   useEffect(() => {
     setRenderTrigger(prev => prev + 1);
@@ -167,8 +168,19 @@ export const StepThreeContent = ({
 
   const handleRefreshJson = useCallback(() => {
     const now = Date.now();
+    
+    // Clear any pending request timeout
+    if (jsonRequestTimeoutRef.current) {
+      clearTimeout(jsonRequestTimeoutRef.current);
+      jsonRequestTimeoutRef.current = null;
+    }
+    
     if (isRefreshingJson) {
       console.log("Already refreshing JSON, ignoring request");
+      toast({
+        title: "Please wait",
+        description: "JSON refresh already in progress",
+      });
       return; // Prevent multiple refreshes at once
     }
     
@@ -176,19 +188,24 @@ export const StepThreeContent = ({
       console.log(`Throttling JSON refresh request (last refresh was ${now - lastRefreshTime}ms ago)`);
       toast({
         title: "Please wait",
-        description: "Please wait a moment before refreshing again",
+        description: `Please wait ${Math.ceil((MIN_REFRESH_INTERVAL - (now - lastRefreshTime)) / 1000)} seconds before refreshing again`,
       });
       return; // Rate limiting on client side
     }
     
     setIsRefreshingJson(true);
     setLastRefreshTime(now);
-    setRefreshJsonTrigger(prev => prev + 1);
     
-    toast({
-      title: "Refreshing JSON",
-      description: "Generating updated JSON structure...",
-    });
+    // Delay the actual refresh to avoid UI jank
+    jsonRequestTimeoutRef.current = setTimeout(() => {
+      setRefreshJsonTrigger(prev => prev + 1);
+      jsonRequestTimeoutRef.current = null;
+      
+      toast({
+        title: "Refreshing JSON",
+        description: "Generating updated JSON structure...",
+      });
+    }, 300); // Small delay for better UX
     
     // Clear any existing timeout
     if (refreshTimeoutRef.current) {
@@ -199,6 +216,10 @@ export const StepThreeContent = ({
     refreshTimeoutRef.current = setTimeout(() => {
       setIsRefreshingJson(false);
       refreshTimeoutRef.current = null;
+      toast({
+        title: "JSON refresh complete",
+        description: "The JSON structure has been updated",
+      });
     }, 10000); // 10 second timeout
   }, [toast, isRefreshingJson, lastRefreshTime]);
   
@@ -216,6 +237,9 @@ export const StepThreeContent = ({
     return () => {
       if (refreshTimeoutRef.current) {
         clearTimeout(refreshTimeoutRef.current);
+      }
+      if (jsonRequestTimeoutRef.current) {
+        clearTimeout(jsonRequestTimeoutRef.current);
       }
     };
   }, []);
