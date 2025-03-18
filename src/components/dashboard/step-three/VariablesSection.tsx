@@ -2,7 +2,7 @@
 import { Input } from "@/components/ui/input";
 import { Variable } from "../types";
 import { useEffect, useCallback, useState } from "react";
-import { X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface VariablesSectionProps {
@@ -108,7 +108,7 @@ export const VariablesSection = ({
                     className="variable-delete-btn"
                     aria-label="Delete variable"
                   >
-                    <X className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
