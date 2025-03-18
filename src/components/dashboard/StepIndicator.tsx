@@ -13,7 +13,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({
   isViewingSavedPrompt = false 
 }) => {
   return (
-    <div className="flex flex-col items-center gap-4 mt-8 mb-4">
+    <div className="flex flex-col items-center gap-4 my-8">
       {/* Numeric buttons for testing */}
       <div className="flex justify-center gap-4 mb-2">
         {[1, 2, 3].map((step) => (

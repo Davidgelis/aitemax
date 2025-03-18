@@ -74,12 +74,6 @@ export const StepController: React.FC<StepControllerProps> = ({
 
   return (
     <div className="flex flex-col w-full">
-      <StepIndicator 
-        currentStep={promptState.currentStep} 
-        onStepChange={handleStepChange}
-        isViewingSavedPrompt={promptState.isViewingSavedPrompt}
-      />
-      
       <div className="mt-4">
         {promptState.currentStep === 1 && (
           <StepOneContent 
@@ -184,6 +178,12 @@ export const StepController: React.FC<StepControllerProps> = ({
           />
         )}
       </div>
+      
+      <StepIndicator 
+        currentStep={promptState.currentStep} 
+        onStepChange={handleStepChange}
+        isViewingSavedPrompt={promptState.isViewingSavedPrompt}
+      />
     </div>
   );
 };
