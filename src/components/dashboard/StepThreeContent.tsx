@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { FinalPromptDisplay } from "@/components/dashboard/step-three/FinalPromptDisplay";
 import { MasterCommandSection } from "@/components/dashboard/step-three/MasterCommandSection";
@@ -10,6 +9,7 @@ import { Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { useResponsive } from "@/hooks/useResponsive";
 import { Switch } from "@/components/ui/switch";
+import { replaceVariableInPrompt } from "@/utils/promptUtils";
 
 interface StepThreeContentProps {
   masterCommand: string;
@@ -92,6 +92,41 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
     setRenderTrigger(prev => prev + 1);
   };
   
+  // Enhanced delete variable function that replaces the variable with its original text
+  const handleDeleteVariable = (variableId: string) => {
+    // Find the variable to delete
+    const variableToDelete = variables.find(v => v.id === variableId);
+    
+    if (variableToDelete) {
+      // Store the current text value of the variable
+      const originalText = variableToDelete.value || "";
+      
+      // First mark it as not relevant
+      setVariables(prev => prev.map(v => 
+        v.id === variableId ? {...v, isRelevant: false} : v
+      ));
+      
+      // Replace all instances of the variable in the prompt with its current text value
+      const updatedPrompt = replaceVariableInPrompt(
+        finalPrompt,
+        `{{VAR::${variableId}}}`, // Placeholder format
+        originalText, // Replace with original text (not in a variable box)
+        variableToDelete.name
+      );
+      
+      // Update the prompt
+      setFinalPrompt(updatedPrompt);
+      
+      // Trigger re-render to reflect changes
+      setRenderTrigger(prev => prev + 1);
+      
+      toast({
+        title: "Variable removed",
+        description: "The variable has been removed and replaced with its text value."
+      });
+    }
+  };
+  
   return (
     <div className="w-full space-y-6">
       {masterCommand && (
@@ -133,16 +168,7 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
       <VariablesSection 
         variables={variables}
         handleVariableValueChange={handleVariableValueChange}
-        onDeleteVariable={(variableId) => {
-          // Find the variable to delete
-          const variableToDelete = variables.find(v => v.id === variableId);
-          if (variableToDelete) {
-            // Mark it as not relevant instead of actually deleting
-            setVariables(prev => prev.map(v => 
-              v.id === variableId ? {...v, isRelevant: false} : v
-            ));
-          }
-        }}
+        onDeleteVariable={handleDeleteVariable}
       />
       
       <ActionButtons

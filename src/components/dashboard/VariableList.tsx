@@ -1,3 +1,4 @@
+
 import { Plus, Trash } from "lucide-react";
 import { Variable } from "./types";
 import { RefObject, useState, useEffect } from "react";
@@ -135,16 +136,21 @@ export const VariableList = ({
     onVariableChange(variableId, 'code' as keyof Variable, code);
   };
 
-  // Handle delete (marking as not relevant)
+  // Handle delete (improved to ensure text replacement)
   const handleDelete = (id: string) => {
     console.log(`Marking variable ${id} as not relevant`);
-    // Always mark as not relevant before removing
-    onVariableRelevance(id, false);
     
-    // Add a small delay to ensure state updates before removing
-    setTimeout(() => {
-      onDeleteVariable();
-    }, 50);
+    // Store variable values before deletion
+    const variableToRemove = variables.find(v => v.id === id);
+    if (variableToRemove) {
+      // First mark as not relevant
+      onVariableRelevance(id, false);
+      
+      // Then trigger deletion with a small delay
+      setTimeout(() => {
+        onDeleteVariable();
+      }, 50);
+    }
   };
 
   return (
