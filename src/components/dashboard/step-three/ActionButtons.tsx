@@ -2,7 +2,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Check, Copy, Save, RefreshCw } from "lucide-react";
-import { PrivacyCheckbox } from "@/components/dashboard/PrivacyCheckbox";
 
 interface ActionButtonsProps {
   onCopyPrompt: () => void;
@@ -22,14 +21,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   setIsPrivate = () => {}
 }) => {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="hidden sm:block">
-        <PrivacyCheckbox
-          isPrivate={isPrivate}
-          onChange={setIsPrivate}
-        />
-      </div>
-      
+    <div className="flex flex-wrap items-center justify-end gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <Button 
           variant="outline" 

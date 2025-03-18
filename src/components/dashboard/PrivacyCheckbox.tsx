@@ -1,8 +1,7 @@
 
 import React from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { LockIcon, UnlockIcon } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PrivacyCheckboxProps {
@@ -13,42 +12,52 @@ interface PrivacyCheckboxProps {
 
 export const PrivacyCheckbox = ({ isPrivate, onChange, className = "" }: PrivacyCheckboxProps) => {
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => onChange(!isPrivate)}>
-              <Checkbox 
-                id="privacy-checkbox" 
-                checked={isPrivate} 
-                onCheckedChange={() => onChange(!isPrivate)}
-                className="data-[state=checked]:bg-[#084b49] data-[state=checked]:border-[#084b49]"
-              />
-              <Label 
-                htmlFor="privacy-checkbox" 
-                className="cursor-pointer text-sm font-medium text-muted-foreground flex items-center"
+    <div className={`relative flex items-center gap-2 ${className}`}>
+      <button 
+        onClick={() => onChange(!isPrivate)}
+        className="h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
+      >
+        <div className="flex items-center gap-2">
+          <Checkbox 
+            id="privacy-checkbox" 
+            checked={isPrivate} 
+            onCheckedChange={() => onChange(!isPrivate)}
+            className="data-[state=checked]:bg-transparent data-[state=checked]:border-[#e5e7eb]"
+          />
+          <span className="mr-1">{isPrivate ? 'Privacy On' : 'Privacy'}</span>
+          
+          {isPrivate && (
+            <span className="h-4 w-4 flex items-center justify-center">
+              <svg 
+                width="14" 
+                height="14" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
               >
-                {isPrivate ? (
-                  <>
-                    <LockIcon className="w-3.5 h-3.5 mr-1 text-[#084b49]" />
-                    Private
-                  </>
-                ) : (
-                  <>
-                    <UnlockIcon className="w-3.5 h-3.5 mr-1" />
-                    Public
-                  </>
-                )}
-              </Label>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            {isPrivate 
-              ? "Your prompt won't be used for data analysis or training" 
-              : "Your prompt may be used for data analysis and training"}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+                <path 
+                  d="M20 6L9 17L4 12" 
+                  stroke="#33fea6" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          )}
+        </div>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <HelpCircle className="ml-1 h-4 w-4 text-[#545454]" />
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs text-xs">
+              Aitema X will not use or share any of this data for any analytics purposes or else
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </button>
     </div>
   );
 };
