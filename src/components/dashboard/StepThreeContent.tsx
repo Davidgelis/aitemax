@@ -12,7 +12,6 @@ import {
   convertEditedContentToPlaceholders, 
   convertPlaceholdersToSpans 
 } from "@/utils/promptUtils";
-import { supabase } from "@/integrations/supabase/client";
 
 interface StepThreeContentProps {
   masterCommand: string;
@@ -71,8 +70,6 @@ export const StepThreeContent = ({
   const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState("");
-  const [isRefreshingJson, setIsRefreshingJson] = useState(false);
-  const [jsonData, setJsonData] = useState<any>(null);
   
   // Get the promptOperations
   const promptOperations = usePromptOperations(
@@ -163,62 +160,11 @@ export const StepThreeContent = ({
     }
   }, [promptOperations, toast]);
 
-  const handleRefreshJson = useCallback(async () => {
-    if (!finalPrompt) {
-      toast({
-        title: "No prompt to convert",
-        description: "Please add content to your prompt first",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsRefreshingJson(true);
-    
-    try {
-      const processedPrompt = getProcessedPromptFunction();
-      
-      // Call the Supabase Edge Function to convert the prompt to JSON
-      const { data, error } = await supabase.functions.invoke('prompt-to-json', {
-        body: {
-          prompt: processedPrompt,
-          masterCommand,
-        }
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      if (data && data.jsonStructure) {
-        setJsonData(data.jsonStructure);
-        
-        // Force a re-render to update the JSON view
-        setRenderTrigger(prev => prev + 1);
-        
-        toast({
-          title: "JSON Refreshed",
-          description: "The JSON view has been updated with your latest changes",
-        });
-      }
-    } catch (error) {
-      console.error("Error refreshing JSON:", error);
-      toast({
-        title: "Error",
-        description: "Could not refresh JSON. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRefreshingJson(false);
-    }
-  }, [finalPrompt, getProcessedPromptFunction, masterCommand, toast]);
-
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
       <ToggleSection 
         showJson={showJson}
         setShowJson={setShowJson}
-        onRefreshJson={handleRefreshJson}
       />
 
       <FinalPromptDisplay 
@@ -236,8 +182,6 @@ export const StepThreeContent = ({
         editablePrompt={editablePrompt}
         setEditablePrompt={setEditablePrompt}
         handleSaveEditedPrompt={handleSaveInlineEdit}
-        jsonData={jsonData}
-        isRefreshingJson={isRefreshingJson}
       />
 
       <VariablesSection 
