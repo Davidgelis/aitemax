@@ -130,7 +130,10 @@ serve(async (req) => {
       throw new Error("Prompt is required");
     }
     
-    console.log("Converting prompt to JSON with o3-mini:", prompt.substring(0, 100) + "...");
+    // Clean the prompt to remove variable markers and source code
+    const cleanedPrompt = cleanPromptForAnalysis(prompt);
+    
+    console.log("Converting prompt to JSON with o3-mini:", cleanedPrompt.substring(0, 100) + "...");
     
     const systemMessage = `
       You are a JSON structure generator for prompt text. Your task is to:
@@ -159,7 +162,7 @@ serve(async (req) => {
     // Try to call OpenAI with automatic retries for rate limiting
     let data;
     try {
-      data = await callOpenAIWithRetry(systemMessage, prompt);
+      data = await callOpenAIWithRetry(systemMessage, cleanedPrompt);
     } catch (error) {
       console.error("Failed to call OpenAI after retries:", error);
       // Return a fallback JSON structure in case of failure
@@ -168,7 +171,7 @@ serve(async (req) => {
           title: "Prompt Analysis",
           summary: "Automatic analysis of provided prompt",
           sections: [
-            { title: "Content", content: prompt.slice(0, 200) + (prompt.length > 200 ? "..." : "") }
+            { title: "Content", content: cleanedPrompt.slice(0, 200) + (cleanedPrompt.length > 200 ? "..." : "") }
           ],
           generationError: "Failed to generate structured JSON. Please try again later."
         },
@@ -196,6 +199,11 @@ serve(async (req) => {
         jsonResult.variablePlaceholders = variablePlaceholders;
       }
       
+      // Explicitly remove any timestamp fields if they still exist
+      if (jsonResult.timestamp) {
+        delete jsonResult.timestamp;
+      }
+      
       console.log("Successfully converted prompt to JSON structure with o3-mini");
       
       // Record token usage if userId is provided - FIRE AND FORGET PATTERN
@@ -219,7 +227,7 @@ serve(async (req) => {
         title: "Parsed Prompt",
         summary: "Automatic prompt parsing",
         sections: [
-          { title: "Content", content: prompt }
+          { title: "Content", content: cleanedPrompt }
         ],
         error: "Failed to parse into structured JSON"
       };
@@ -264,4 +272,21 @@ function extractVariablePlaceholders(text: string): string[] {
   }
   
   return placeholders;
+}
+
+// New helper function to clean the prompt of variable markers and source code for analysis
+function cleanPromptForAnalysis(text: string): string {
+  // Remove variable format {{VAR:id}} and replace with the content
+  let cleanedText = text.replace(/{{VAR:([^}]+)}}/g, '{{variable}}');
+  
+  // Remove any HTML tags and attributes
+  cleanedText = cleanedText.replace(/<[^>]*data-variable-id=[^>]*>(.*?)<\/span>/g, '$1');
+  
+  // Remove any remaining HTML tags
+  cleanedText = cleanedText.replace(/<[^>]*>/g, '');
+  
+  // Replace multi-spaces with single space
+  cleanedText = cleanedText.replace(/\s+/g, ' ');
+  
+  return cleanedText;
 }
