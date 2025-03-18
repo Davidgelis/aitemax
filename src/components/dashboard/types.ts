@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface AIModel {
@@ -57,11 +56,19 @@ export interface SavedPrompt {
 }
 
 export interface PromptJsonStructure {
+  title?: string;
+  summary?: string;
+  sections?: Array<{ title: string; content: string }>;
+  error?: string;
+  generationError?: string;
+  masterCommand?: string;
+  timestamp?: string;
+  variablePlaceholders?: string[];
   task?: string;
   persona?: string;
   conditions?: string;
   instructions?: string;
-  [key: string]: string | undefined;
+  [key: string]: any; // Allow for any additional properties
 }
 
 // Helper functions for variable serialization/deserialization with updated types
