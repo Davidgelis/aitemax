@@ -51,14 +51,13 @@ export const ToggleSection = ({
         checked={showJson}
         onCheckedChange={handleToggle}
         className="scale-75"
-        variant="primary"
       />
       
       {showJson && refreshJson && (
         <Button 
           onClick={handleRefresh}
           variant="ghost" 
-          size="xs"
+          size="sm"
           className="ml-1 p-1 h-6 w-6"
           title="Refresh JSON with current prompt content"
           disabled={isRefreshing || isButtonDisabled}

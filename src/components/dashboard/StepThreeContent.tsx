@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { FinalPromptDisplay } from "@/components/dashboard/step-three/FinalPromptDisplay";
 import { MasterCommandSection } from "@/components/dashboard/step-three/MasterCommandSection";
@@ -77,6 +78,9 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
     toast
   } = useToast();
   const [value, copy] = useCopyToClipboard();
+  const [renderTrigger, setRenderTrigger] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
   const handleCopy = () => {
     copy(finalPrompt);
     setCopied(true);
@@ -88,24 +92,42 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
       setCopied(false);
     }, 2000);
   };
+  
+  const refreshJson = () => {
+    setIsRefreshing(true);
+    setRenderTrigger(prev => prev + 1);
+  };
+  
   return (
     <div className="w-full space-y-6">
-      <MasterCommandSection 
-        masterCommand={masterCommand}
-        setMasterCommand={setMasterCommand}
-      />
+      {masterCommand && (
+        <MasterCommandSection 
+          masterCommand={masterCommand}
+          setMasterCommand={setMasterCommand}
+          handleRegenerate={handleRegenerate}
+        />
+      )}
       
       <ToggleSection 
-        selectedPrimary={selectedPrimary}
-        selectedSecondary={selectedSecondary}
-        handlePrimaryToggle={handlePrimaryToggle}
-        handleSecondaryToggle={handleSecondaryToggle}
+        showJson={showJson}
+        setShowJson={setShowJson}
+        refreshJson={refreshJson}
+        isRefreshing={isRefreshing}
       />
       
       <VariablesSection 
         variables={variables}
-        setVariables={setVariables}
         handleVariableValueChange={handleVariableValueChange}
+        onDeleteVariable={(variableId) => {
+          // Find the variable to delete
+          const variableToDelete = variables.find(v => v.id === variableId);
+          if (variableToDelete) {
+            // Mark it as not relevant instead of actually deleting
+            setVariables(prev => prev.map(v => 
+              v.id === variableId ? {...v, isRelevant: false} : v
+            ));
+          }
+        }}
       />
       
       <FinalPromptDisplay
@@ -122,12 +144,17 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
         editablePrompt={editingPrompt}
         setEditablePrompt={setEditingPrompt}
         handleSaveEditedPrompt={handleSaveEditedPrompt}
+        renderTrigger={renderTrigger}
+        setRenderTrigger={setRenderTrigger}
+        isRefreshing={isRefreshing}
+        setIsRefreshing={setIsRefreshing}
       />
       
       <ActionButtons
         onCopyPrompt={handleCopyPrompt}
         onSavePrompt={handleSavePrompt}
         onRegenerate={handleRegenerate}
+        isCopied={isCopied}
         isPrivate={isPrivate}
         setIsPrivate={setIsPrivate}
       />
