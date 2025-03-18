@@ -16,7 +16,7 @@ export const ToggleSection = ({
   refreshJson,
   isRefreshing = false
 }: ToggleSectionProps) => {
-  // Simple direct toggle handler - reverting to simpler implementation
+  // Simple direct toggle handler
   const handleToggle = (checked: boolean) => {
     setShowJson(checked);
   };
@@ -33,7 +33,11 @@ export const ToggleSection = ({
       
       {showJson && refreshJson && (
         <Button 
-          onClick={refreshJson}
+          onClick={() => {
+            if (!isRefreshing && refreshJson) {
+              refreshJson();
+            }
+          }}
           variant="ghost" 
           size="xs"
           className="ml-1 p-1 h-6 w-6"

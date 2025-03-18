@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -71,7 +70,6 @@ export const StepThreeContent = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState("");
   const [renderTrigger, setRenderTrigger] = useState(0);
-  const [refreshJsonTrigger, setRefreshJsonTrigger] = useState(0);
   const [isRefreshingJson, setIsRefreshingJson] = useState(false);
   
   // Get the promptOperations
@@ -161,30 +159,23 @@ export const StepThreeContent = ({
 
   // Simplified handleRefreshJson function
   const handleRefreshJson = useCallback(() => {
-    if (isRefreshingJson) {
-      toast({
-        title: "Please wait",
-        description: "JSON refresh already in progress",
-      });
-      return;
-    }
+    if (isRefreshingJson) return;
     
     setIsRefreshingJson(true);
-    
     toast({
       title: "Refreshing JSON",
-      description: "Generating updated JSON structure...",
+      description: "Updating JSON structure...",
     });
     
-    // Trigger refresh with a simple increment
+    // Force re-render of the JSON view
     setTimeout(() => {
-      setRefreshJsonTrigger(prev => prev + 1);
+      setRenderTrigger(prev => prev + 1);
+      
+      // Allow a little time for the component to update before marking refresh as complete
+      setTimeout(() => {
+        setIsRefreshingJson(false);
+      }, 500);
     }, 100);
-    
-    // Set a timeout to ensure we don't get stuck in the refreshing state
-    setTimeout(() => {
-      setIsRefreshingJson(false);
-    }, 10000);
   }, [toast, isRefreshingJson]);
 
   return (
@@ -211,8 +202,9 @@ export const StepThreeContent = ({
         editablePrompt={editablePrompt}
         setEditablePrompt={setEditablePrompt}
         handleSaveEditedPrompt={handleSaveInlineEdit}
-        refreshJsonTrigger={refreshJsonTrigger}
-        setIsRefreshingJson={setIsRefreshingJson}
+        renderTrigger={renderTrigger}
+        isRefreshing={isRefreshingJson}
+        setIsRefreshing={setIsRefreshingJson}
       />
 
       <VariablesSection 

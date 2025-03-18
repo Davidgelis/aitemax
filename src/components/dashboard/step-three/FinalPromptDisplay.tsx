@@ -29,8 +29,9 @@ interface FinalPromptDisplayProps {
   editablePrompt: string;
   setEditablePrompt: (prompt: string) => void;
   handleSaveEditedPrompt: () => void;
-  refreshJsonTrigger?: number;
-  setIsRefreshingJson?: (isRefreshing: boolean) => void;
+  renderTrigger?: number;
+  isRefreshing?: boolean;
+  setIsRefreshing?: (isRefreshing: boolean) => void;
 }
 
 export const FinalPromptDisplay = ({
@@ -48,8 +49,9 @@ export const FinalPromptDisplay = ({
   editablePrompt,
   setEditablePrompt,
   handleSaveEditedPrompt,
-  refreshJsonTrigger = 0,
-  setIsRefreshingJson
+  renderTrigger = 0,
+  isRefreshing = false,
+  setIsRefreshing
 }: FinalPromptDisplayProps) => {
   
   const [processedPrompt, setProcessedPrompt] = useState("");
@@ -61,8 +63,6 @@ export const FinalPromptDisplay = ({
   const [multiSelections, setMultiSelections] = useState<string[]>([]);
   const promptContainerRef = useRef<HTMLDivElement>(null);
   const editableContentRef = useRef<HTMLDivElement>(null);
-  const [renderTrigger, setRenderTrigger] = useState(0);
-  const [hasInitializedEditMode, setHasInitializedEditMode] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
   
   const { toast } = useToast();
@@ -111,7 +111,6 @@ export const FinalPromptDisplay = ({
       // Normalize whitespace
       cleanText = cleanText.replace(/\s+/g, ' ').trim();
       
-      console.log("Generated clean text for API (length):", cleanText.length);
       return cleanText;
     } catch (error) {
       console.error("Error generating clean text for API:", error);
@@ -120,7 +119,7 @@ export const FinalPromptDisplay = ({
     }
   }, [getProcessedPrompt, relevantVariables]);
   
-  // Simplified convertPromptToJson function
+  // Improved convertPromptToJson function
   const convertPromptToJson = useCallback(async (forceRefresh = false) => {
     if (!finalPrompt || finalPrompt.trim() === "") {
       setJsonError("No prompt text to convert");
@@ -130,14 +129,12 @@ export const FinalPromptDisplay = ({
     // Clear any existing error
     setJsonError(null);
     
-    // Always set loading state regardless of cache status
+    // Set loading state
     setIsLoadingJson(true);
-    console.log("Converting prompt to JSON, forceRefresh:", forceRefresh);
     
     try {
       // Generate clean text for the API
       const cleanTextForApi = generateCleanTextForApi();
-      console.log("Clean text for API (first 100 chars):", cleanTextForApi.substring(0, 100));
       
       if (!cleanTextForApi || cleanTextForApi.trim() === "") {
         throw new Error("Generated clean text is empty");
@@ -145,11 +142,11 @@ export const FinalPromptDisplay = ({
       
       const { data, error } = await supabase.functions.invoke('prompt-to-json', {
         body: {
-          prompt: cleanTextForApi, // Send only clean text
+          prompt: cleanTextForApi,
           masterCommand,
           userId,
           promptId,
-          forceRefresh: forceRefresh // Pass forceRefresh flag to edge function
+          forceRefresh
         }
       });
       
@@ -158,25 +155,23 @@ export const FinalPromptDisplay = ({
       }
       
       if (data && data.jsonStructure) {
-        // Explicitly remove any timestamp fields if they still exist
+        // Remove timestamp if it exists
         if (data.jsonStructure.timestamp) {
           delete data.jsonStructure.timestamp;
         }
         
         setPromptJson(data.jsonStructure);
         setJsonGenerated(true);
-        console.log("Prompt JSON structure generated:", data.jsonStructure);
         
-        // If there was a generation error in the response, show it to the user
+        // Handle any generation errors in the response
         if (data.jsonStructure.generationError) {
           setJsonError(data.jsonStructure.generationError);
           toast({
-            title: "JSON Generation Issue",
+            title: "JSON Generation Notice",
             description: data.jsonStructure.generationError,
             variant: "destructive"
           });
         } else {
-          // Clear any previous error if successful
           setJsonError(null);
         }
       }
@@ -185,50 +180,42 @@ export const FinalPromptDisplay = ({
       setJsonError(error instanceof Error ? error.message : "Unknown error");
       toast({
         title: "Error generating JSON",
-        description: error instanceof Error ? error.message : "Unknown error. Please try again in a few moments.",
+        description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive"
       });
       
-      // Set a fallback JSON structure
+      // Set fallback JSON
       setPromptJson({
         title: "Error",
         summary: "Failed to process prompt",
         sections: [
-          { title: "Content", content: "Could not generate JSON structure. Please try again later." }
+          { title: "Content", content: "Could not generate JSON structure" }
         ],
         error: error instanceof Error ? error.message : "Unknown error"
       });
     } finally {
-      // Always clean up loading state
       setIsLoadingJson(false);
-      if (setIsRefreshingJson) {
-        setIsRefreshingJson(false);
+      if (setIsRefreshing) {
+        setIsRefreshing(false);
       }
     }
-  }, [finalPrompt, masterCommand, toast, userId, promptId, setIsRefreshingJson, generateCleanTextForApi]);
+  }, [finalPrompt, masterCommand, toast, userId, promptId, generateCleanTextForApi, setIsRefreshing]);
   
-  // Handle initial JSON generation - simplified
+  // Handle JSON view toggling and initial generation
   useEffect(() => {
     if (showJson && !jsonGenerated && !isLoadingJson) {
-      console.log("JSON view is active - checking if JSON needs to be generated");
-      if (!jsonGenerated && !isLoadingJson) {
-        console.log("Initial toggle to JSON view - generating JSON");
-        convertPromptToJson(false); // Don't force refresh on initial
-      } else {
-        console.log("JSON already generated or currently loading - no action needed");
-      }
+      convertPromptToJson(false);
     }
   }, [showJson, jsonGenerated, isLoadingJson, convertPromptToJson]);
   
-  // Handle refresh JSON trigger - simplified
+  // Handle render trigger changes for JSON refreshing
   useEffect(() => {
-    if (refreshJsonTrigger > 0 && showJson) {
-      console.log("Refresh JSON button clicked - regenerating JSON with force refresh");
-      convertPromptToJson(true); // Always force refresh on button click
+    if (renderTrigger > 0 && showJson && isRefreshing) {
+      convertPromptToJson(true);
     }
-  }, [refreshJsonTrigger, showJson, convertPromptToJson]);
+  }, [renderTrigger, showJson, isRefreshing, convertPromptToJson]);
   
-  
+  // Update processed prompt when props change
   useEffect(() => {
     try {
       if (typeof getProcessedPrompt === 'function') {
@@ -241,18 +228,13 @@ export const FinalPromptDisplay = ({
     }
   }, [getProcessedPrompt, finalPrompt, variables, renderTrigger]);
   
-  // Modified edit mode initialization - use placeholder conversion
+  // Initialize edit mode
   useEffect(() => {
-    if (isEditing && !hasInitializedEditMode) {
-      // Process the prompt - convert placeholders to editable format
+    if (isEditing && editablePrompt === "") {
       const processedPrompt = convertPlaceholdersToEditableFormat(finalPrompt, relevantVariables);
       setEditablePrompt(processedPrompt);
-      setHasInitializedEditMode(true);
-    } else if (!isEditing && hasInitializedEditMode) {
-      // Reset the initialization flag when exiting edit mode
-      setHasInitializedEditMode(false);
     }
-  }, [isEditing, finalPrompt, relevantVariables, hasInitializedEditMode, setEditablePrompt]);
+  }, [isEditing, finalPrompt, relevantVariables, editablePrompt, setEditablePrompt]);
 
   
   
@@ -532,58 +514,49 @@ export const FinalPromptDisplay = ({
     }
     
     if (showJson) {
-      try {
-        if (isLoadingJson) {
-          return (
-            <div className="text-xs flex flex-col items-center justify-center h-full min-h-[200px]">
-              <div className="animate-pulse flex flex-col items-center">
-                <div className="mb-2 text-accent">Generating JSON structure...</div>
-                <div className="text-xs text-muted-foreground">This may take a moment</div>
-              </div>
-            </div>
-          );
-        }
-        
-        if (jsonError) {
-          return (
-            <div className="flex flex-col items-center justify-center h-full min-h-[200px]">
-              <div className="text-xs text-destructive mb-2">Error generating JSON: {jsonError}</div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => convertPromptToJson(true)}
-                className="mt-2"
-              >
-                Try Again
-              </Button>
-            </div>
-          );
-        }
-        
-        if (promptJson) {
-          // Make a clean copy without timestamp before displaying
-          const displayJson = { ...promptJson };
-          if (displayJson.timestamp) delete displayJson.timestamp;
-          
-          return (
-            <pre className="text-xs font-mono overflow-x-auto">
-              {JSON.stringify(displayJson, null, 2)}
-            </pre>
-          );
-        }
-        
+      if (isLoadingJson || isRefreshing) {
         return (
-          <pre className="text-xs font-mono">
-            {JSON.stringify({ 
-              prompt: finalPrompt || "", 
-              masterCommand: masterCommand || ""
-            }, null, 2)}
+          <div className="text-xs flex flex-col items-center justify-center h-full min-h-[200px]">
+            <div className="animate-pulse flex flex-col items-center">
+              <div className="mb-2 text-accent">Generating JSON structure...</div>
+              <div className="text-xs text-muted-foreground">This may take a moment</div>
+            </div>
+          </div>
+        );
+      }
+      
+      if (jsonError) {
+        return (
+          <div className="flex flex-col items-center justify-center h-full min-h-[200px]">
+            <div className="text-xs text-destructive mb-2">Error generating JSON: {jsonError}</div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => convertPromptToJson(true)}
+              className="mt-2"
+            >
+              Try Again
+            </Button>
+          </div>
+        );
+      }
+      
+      if (promptJson) {
+        return (
+          <pre className="text-xs font-mono overflow-x-auto">
+            {JSON.stringify(promptJson, null, 2)}
           </pre>
         );
-      } catch (error) {
-        console.error("Error rendering JSON:", error);
-        return <pre className="text-xs font-mono">Error rendering JSON</pre>;
       }
+      
+      return (
+        <pre className="text-xs font-mono">
+          {JSON.stringify({ 
+            prompt: finalPrompt || "", 
+            masterCommand: masterCommand || ""
+          }, null, 2)}
+        </pre>
+      );
     }
 
     try {
