@@ -131,6 +131,7 @@ export const FinalPromptDisplay = ({
     
     setIsLoadingJson(true);
     setJsonError(null);
+    console.log("Converting prompt to JSON, forceRefresh:", forceRefresh);
     
     try {
       // Generate clean text for the API
@@ -146,7 +147,8 @@ export const FinalPromptDisplay = ({
           prompt: cleanTextForApi, // Send only clean text
           masterCommand,
           userId,
-          promptId
+          promptId,
+          forceRefresh: forceRefresh // Pass forceRefresh flag to edge function
         }
       });
       
@@ -203,6 +205,7 @@ export const FinalPromptDisplay = ({
   // Initial JSON generation when showing JSON
   useEffect(() => {
     if (showJson && !jsonGenerated && !isLoadingJson) {
+      console.log("Initial toggle to JSON view - generating JSON");
       convertPromptToJson();
     }
   }, [showJson, convertPromptToJson, jsonGenerated, isLoadingJson]);
@@ -210,6 +213,7 @@ export const FinalPromptDisplay = ({
   // Force refresh JSON when refreshJsonTrigger changes
   useEffect(() => {
     if (refreshJsonTrigger > 0 && showJson) {
+      console.log("Refresh JSON button clicked - regenerating JSON with force refresh");
       convertPromptToJson(true); // Force refresh
     }
   }, [refreshJsonTrigger, showJson, convertPromptToJson]);
