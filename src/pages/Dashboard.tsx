@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -51,7 +50,6 @@ const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
-  const [selectedCognitive, setSelectedCognitive] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -135,17 +133,6 @@ const Dashboard = () => {
     }
   }, [user]);
 
-  const handleCognitiveToggle = (id: string) => {
-    setSelectedCognitive(currentSelected => currentSelected === id ? null : id);
-    
-    if (selectedCognitive === null) {
-      toast({
-        title: "Cognitive Model Activated",
-        description: "Your prompts will now undergo an additional precision-driven refinement",
-      });
-    }
-  };
-
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -155,8 +142,6 @@ const Dashboard = () => {
               user={user} 
               selectedModel={selectedModel} 
               setSelectedModel={setSelectedModel}
-              selectedCognitive={selectedCognitive}
-              handleCognitiveToggle={handleCognitiveToggle}
               promptState={promptState}
             />
           </div>

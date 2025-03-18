@@ -16,8 +16,6 @@ interface StepControllerProps {
   selectedModel: AIModel | null;
   setSelectedModel: (model: AIModel | null) => void;
   isInitializingModels?: boolean;
-  selectedCognitive: string | null;
-  handleCognitiveToggle: (id: string) => void;
   promptState: any;
 }
 
@@ -26,8 +24,6 @@ export const StepController = ({
   selectedModel,
   setSelectedModel,
   isInitializingModels = false,
-  selectedCognitive,
-  handleCognitiveToggle,
   promptState
 }: StepControllerProps) => {
   
@@ -274,7 +270,6 @@ export const StepController = ({
   );
 
   const renderContent = () => {
-    // Modified condition to exclude isInitializingModels from the loading state check
     if (isAnalyzing || isEnhancingPrompt || isEnhancing) {
       let message = isEnhancingPrompt 
         ? enhancingMessage
@@ -299,8 +294,8 @@ export const StepController = ({
             isLoading={isAnalyzing}
             selectedModel={selectedModel}
             setSelectedModel={setSelectedModel}
-            selectedCognitive={selectedCognitive}
-            handleCognitiveToggle={handleCognitiveToggle}
+            selectedCognitive={null}
+            handleCognitiveToggle={() => {}}
             onImagesChange={handleImagesChange}
             onWebsiteScan={handleWebsiteScan}
             onSmartContext={handleSmartContext}

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
@@ -117,14 +118,7 @@ export const StepOneContent = ({
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
-          <span className="text-[#545454] text-sm">Cognitive Prompt Perfection Model</span>
-          <Switch 
-            checked={selectedCognitive !== null}
-            onCheckedChange={() => handleCognitiveToggle('cognitive')}
-            variant="aurora"
-          />
-        </div>
+        {/* Removed the Cognitive Prompt Perfection Model toggle and text */}
       </div>
 
       {uploadedImages.length > 0 && (
