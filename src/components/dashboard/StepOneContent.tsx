@@ -120,12 +120,12 @@ export const StepOneContent = ({
               <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
             </button>
           </div>
-          
-          <PrivacyCheckbox
-            isPrivate={isPrivate}
-            onChange={setIsPrivate}
-          />
         </div>
+        
+        <PrivacyCheckbox
+          isPrivate={isPrivate}
+          onChange={setIsPrivate}
+        />
       </div>
 
       {uploadedImages.length > 0 && (

@@ -12,11 +12,13 @@ interface PrivacyCheckboxProps {
 
 export const PrivacyCheckbox: React.FC<PrivacyCheckboxProps> = ({ isPrivate, onChange, className = "" }) => {
   return (
-    <div className={`relative flex items-center gap-2 ${className}`}>
+    <div className={`relative flex items-center ${className}`}>
       <button 
         onClick={() => onChange(!isPrivate)}
-        className="h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
+        className="h-10 w-32 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
       >
+        <span className="whitespace-nowrap">{isPrivate ? 'Privacy On' : 'Privacy'}</span>
+        
         <div className="flex items-center gap-2">
           <Checkbox 
             id="privacy-checkbox" 
@@ -24,7 +26,6 @@ export const PrivacyCheckbox: React.FC<PrivacyCheckboxProps> = ({ isPrivate, onC
             onCheckedChange={() => onChange(!isPrivate)}
             className="data-[state=checked]:bg-transparent data-[state=checked]:border-[#e5e7eb]"
           />
-          <span className="mr-1">{isPrivate ? 'Privacy On' : 'Privacy'}</span>
           
           {isPrivate && (
             <span className="h-4 w-4 flex items-center justify-center">
@@ -45,18 +46,18 @@ export const PrivacyCheckbox: React.FC<PrivacyCheckboxProps> = ({ isPrivate, onC
               </svg>
             </span>
           )}
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-[#545454]" />
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs text-xs">
+                Aitema X will not use or share any of this data for any analytics purposes or else
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
-        
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <HelpCircle className="ml-1 h-4 w-4 text-[#545454]" />
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs text-xs">
-              Aitema X will not use or share any of this data for any analytics purposes or else
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </button>
     </div>
   );
