@@ -54,6 +54,7 @@ export interface SavedPrompt {
   secondaryToggle: string | null;
   variables: Variable[];
   jsonStructure?: PromptJsonStructure;
+  isPrivate?: boolean; // Add this field
 }
 
 export interface PromptJsonStructure {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -6,6 +5,7 @@ import { defaultVariables, mockQuestions, sampleFinalPrompt } from "@/components
 import { supabase } from "@/integrations/supabase/client";
 import { usePromptDrafts } from "@/hooks/usePromptDrafts";
 import { Json } from "@/integrations/supabase/types";
+import { useLocation } from "react-router-dom";
 
 export const usePromptState = (user: any) => {
   const [promptText, setPromptText] = useState("");
@@ -29,8 +29,10 @@ export const usePromptState = (user: any) => {
   const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState(false);
   const [promptJsonStructure, setPromptJsonStructure] = useState<PromptJsonStructure | null>(null);
   // Removed draftLoaded state since we don't want to auto-load drafts
+  const [isPrivate, setIsPrivate] = useState(false);
 
   const { toast } = useToast();
+  const location = useLocation();
 
   const {
     saveDraft,
@@ -49,7 +51,8 @@ export const usePromptState = (user: any) => {
     selectedPrimary,
     selectedSecondary,
     currentStep,
-    user
+    user,
+    isPrivate
   );
 
   // Removed the useEffect that auto-loads the draft on component mount
@@ -65,6 +68,7 @@ export const usePromptState = (user: any) => {
       if (draftData.selectedPrimary) setSelectedPrimary(draftData.selectedPrimary);
       if (draftData.secondaryToggle) setSelectedSecondary(draftData.secondaryToggle);
       if (draftData.currentStep) setCurrentStep(draftData.currentStep);
+      if (draftData.isPrivate !== undefined) setIsPrivate(draftData.isPrivate);
       
       setFinalPrompt(draftData.promptText || "");
       
@@ -95,6 +99,7 @@ export const usePromptState = (user: any) => {
     setSelectedSecondary(null);
     setCurrentStep(1);
     setIsViewingSavedPrompt(false);
+    setIsPrivate(false);
     
     toast({
       title: "New Prompt",
@@ -143,6 +148,7 @@ export const usePromptState = (user: any) => {
           primaryToggle: item.primary_toggle,
           secondaryToggle: item.secondary_toggle,
           variables: jsonToVariables(item.variables as Json),
+          isPrivate: item.is_private || false,
         };
         
         return prompt;
@@ -211,7 +217,8 @@ export const usePromptState = (user: any) => {
         secondary_toggle: selectedSecondary,
         variables: variablesToJson(relevantVariables),
         current_step: currentStep,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        is_private: isPrivate // Add privacy flag
       };
 
       const { data, error } = await supabase
@@ -233,6 +240,7 @@ export const usePromptState = (user: any) => {
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
           variables: jsonToVariables(data[0].variables as Json),
+          isPrivate: data[0].is_private || false,
         };
         
         if (jsonStructure) {
@@ -306,7 +314,8 @@ export const usePromptState = (user: any) => {
         primary_toggle: prompt.primaryToggle,
         secondary_toggle: prompt.secondaryToggle,
         variables: variablesToJson(prompt.variables),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        is_private: prompt.isPrivate
       };
 
       const { data, error } = await supabase
@@ -328,6 +337,7 @@ export const usePromptState = (user: any) => {
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
           variables: jsonToVariables(data[0].variables as Json),
+          isPrivate: data[0].is_private || false,
         };
         
         if (prompt.jsonStructure) {
@@ -395,6 +405,7 @@ export const usePromptState = (user: any) => {
     setMasterCommand(prompt.masterCommand || "");
     setSelectedPrimary(prompt.primaryToggle);
     setSelectedSecondary(prompt.secondaryToggle);
+    setIsPrivate(prompt.isPrivate || false);
     
     if (prompt.jsonStructure) {
       setPromptJsonStructure(prompt.jsonStructure);
@@ -506,6 +517,8 @@ export const usePromptState = (user: any) => {
     deleteDraft,
     currentDraftId,
     handleDeleteDraft,
-    saveDraft
+    saveDraft,
+    isPrivate,
+    setIsPrivate
   };
 };

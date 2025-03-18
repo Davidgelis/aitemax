@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from "react";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +14,7 @@ interface PromptDraft {
   variables: Variable[];
   currentStep: number;
   updated_at?: string;
+  isPrivate?: boolean;
 }
 
 export const usePromptDrafts = (
@@ -24,7 +24,8 @@ export const usePromptDrafts = (
   selectedPrimary: string | null,
   selectedSecondary: string | null,
   currentStep: number,
-  user: any
+  user: any,
+  isPrivate: boolean = false
 ) => {
   const { toast } = useToast();
   const [drafts, setDrafts] = useState<PromptDraft[]>([]);
@@ -126,6 +127,7 @@ export const usePromptDrafts = (
         secondary_toggle: selectedSecondary,
         variables: variablesToJson(variables),
         current_step: currentStep,
+        is_private: isPrivate
       };
 
       if (draftId) {
@@ -158,12 +160,14 @@ export const usePromptDrafts = (
         selectedPrimary,
         selectedSecondary,
         currentStep,
+        isPrivate,
         timestamp: new Date().toISOString()
       }));
 
       fetchDrafts();
     } catch (error) {
       console.error('Error saving draft:', error);
+      
       // Still save to localStorage as a backup
       localStorage.setItem('promptDraft', JSON.stringify({
         promptText: promptText.replace(/<[^>]*>/g, ''),
@@ -172,10 +176,11 @@ export const usePromptDrafts = (
         selectedPrimary,
         selectedSecondary,
         currentStep,
+        isPrivate,
         timestamp: new Date().toISOString()
       }));
     }
-  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, user, currentDraftId, fetchDrafts]);
+  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, user, currentDraftId, fetchDrafts, isPrivate]);
 
   const loadDraft = useCallback(async () => {
     if (!user) return null;
@@ -319,6 +324,7 @@ export const usePromptDrafts = (
         selectedPrimary: draft.primaryToggle,
         secondaryToggle: draft.secondaryToggle,
         currentStep: draft.currentStep,
+        isPrivate: draft.isPrivate,
         timestamp: new Date().toISOString()
       }));
     }
@@ -329,7 +335,8 @@ export const usePromptDrafts = (
       variables: draft.variables,
       selectedPrimary: draft.primaryToggle,
       secondaryToggle: draft.secondaryToggle,
-      currentStep: draft.currentStep
+      currentStep: draft.currentStep,
+      isPrivate: draft.isPrivate
     };
   }, []);
 

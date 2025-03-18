@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -11,6 +10,7 @@ import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
 import { AIModel, UploadedImage } from "@/components/dashboard/types";
 import { primaryToggles, secondaryToggles } from "./constants";
+import { PrivacyCheckbox } from "@/components/dashboard/PrivacyCheckbox";
 
 interface StepControllerProps {
   user: any;
@@ -50,7 +50,8 @@ export const StepController = ({
     fetchSavedPrompts, handleNewPrompt, handleSavePrompt,
     handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt,
     loadSavedPrompt, isViewingSavedPrompt, setIsViewingSavedPrompt,
-    saveDraft
+    saveDraft,
+    isPrivate, setIsPrivate
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
@@ -351,6 +352,8 @@ export const StepController = ({
             handleSaveEditedPrompt={handleSaveEditedPrompt}
             handleAdaptPrompt={handleAdaptPrompt}
             getProcessedPrompt={getProcessedPrompt}
+            isPrivate={isPrivate}
+            setIsPrivate={setIsPrivate}
           />
         );
 
@@ -361,6 +364,14 @@ export const StepController = ({
 
   return (
     <div className="w-full">
+      <div className="flex justify-end mb-2">
+        {user && (
+          <PrivacyCheckbox 
+            isPrivate={isPrivate} 
+            onChange={setIsPrivate}
+          />
+        )}
+      </div>
       {renderContent()}
       
       <StepIndicator 
