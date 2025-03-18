@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -69,8 +70,9 @@ export const StepThreeContent = ({
   const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState("");
-  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const jsonRequestTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [renderTrigger, setRenderTrigger] = useState(0);
+  const [refreshJsonTrigger, setRefreshJsonTrigger] = useState(0);
+  const [isRefreshingJson, setIsRefreshingJson] = useState(false);
   
   // Get the promptOperations
   const promptOperations = usePromptOperations(
@@ -84,12 +86,6 @@ export const StepThreeContent = ({
     masterCommand,
     editingPrompt
   );
-  
-  const [renderTrigger, setRenderTrigger] = useState(0);
-  const [refreshJsonTrigger, setRefreshJsonTrigger] = useState(0);
-  const [isRefreshingJson, setIsRefreshingJson] = useState(false);
-  const [lastRefreshTime, setLastRefreshTime] = useState(0);
-  const MIN_REFRESH_INTERVAL = 3000; // 3 seconds between refreshes (reduced from 5s for better UX)
   
   useEffect(() => {
     setRenderTrigger(prev => prev + 1);
@@ -128,8 +124,6 @@ export const StepThreeContent = ({
   // Handle saving edited content from the FinalPromptDisplay
   const handleSaveInlineEdit = useCallback(() => {
     try {
-      // When saving from inline edit, the editablePrompt should be processed
-      // This happens within the FinalPromptDisplay component now
       setIsEditing(false);
       setEditablePrompt("");
       setRenderTrigger(prev => prev + 1);
@@ -165,90 +159,33 @@ export const StepThreeContent = ({
     }
   }, [promptOperations, toast]);
 
-  // Improved handleRefreshJson with better error handling and user feedback
+  // Simplified handleRefreshJson function
   const handleRefreshJson = useCallback(() => {
-    const now = Date.now();
-    
-    // Clear any pending request timeout
-    if (jsonRequestTimeoutRef.current) {
-      clearTimeout(jsonRequestTimeoutRef.current);
-      jsonRequestTimeoutRef.current = null;
-    }
-    
     if (isRefreshingJson) {
-      console.log("Already refreshing JSON, ignoring request");
       toast({
         title: "Please wait",
         description: "JSON refresh already in progress",
       });
-      return; // Prevent multiple refreshes at once
+      return;
     }
     
-    if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
-      console.log(`Throttling JSON refresh request (last refresh was ${now - lastRefreshTime}ms ago)`);
-      toast({
-        title: "Please wait",
-        description: `Please wait ${Math.ceil((MIN_REFRESH_INTERVAL - (now - lastRefreshTime)) / 1000)} seconds before refreshing again`,
-      });
-      return; // Rate limiting on client side
-    }
-    
-    // Set state first before proceeding
     setIsRefreshingJson(true);
-    setLastRefreshTime(now);
     
-    // Show toast message immediately for better UX
     toast({
       title: "Refreshing JSON",
       description: "Generating updated JSON structure...",
     });
     
-    // Trigger refresh with a small delay
-    jsonRequestTimeoutRef.current = setTimeout(() => {
-      // Increment the trigger to cause the effect in FinalPromptDisplay to run
+    // Trigger refresh with a simple increment
+    setTimeout(() => {
       setRefreshJsonTrigger(prev => prev + 1);
-      jsonRequestTimeoutRef.current = null;
-    }, 100); // Small delay for better UX
+    }, 100);
     
-    // Set a failsafe timeout to reset the state if something goes wrong
-    if (refreshTimeoutRef.current) {
-      clearTimeout(refreshTimeoutRef.current);
-    }
-    
-    refreshTimeoutRef.current = setTimeout(() => {
-      if (isRefreshingJson) {
-        setIsRefreshingJson(false);
-        refreshTimeoutRef.current = null;
-        
-        toast({
-          title: "JSON refresh timed out",
-          description: "The refresh operation took too long. Please try again.",
-          variant: "destructive"
-        });
-      }
-    }, 15000); // 15 second timeout as a failsafe
-  }, [toast, isRefreshingJson, lastRefreshTime]);
-  
-  // Listen for JSON generation completion to reset the refreshing state
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
+    // Set a timeout to ensure we don't get stuck in the refreshing state
+    setTimeout(() => {
       setIsRefreshingJson(false);
-    }, 3000); // Reset after 3 seconds to ensure UI isn't stuck
-    
-    return () => clearTimeout(timeoutId);
-  }, [refreshJsonTrigger]);
-  
-  // Clean up any timeouts when component unmounts
-  useEffect(() => {
-    return () => {
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-      if (jsonRequestTimeoutRef.current) {
-        clearTimeout(jsonRequestTimeoutRef.current);
-      }
-    };
-  }, []);
+    }, 10000);
+  }, [toast, isRefreshingJson]);
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">

@@ -16,19 +16,9 @@ export const ToggleSection = ({
   refreshJson,
   isRefreshing = false
 }: ToggleSectionProps) => {
-  // Handler to ensure toggle follows the same pattern as refresh
+  // Simple direct toggle handler - reverting to simpler implementation
   const handleToggle = (checked: boolean) => {
-    // First update the state
     setShowJson(checked);
-    
-    // If toggling to JSON view and refresh function exists, call it 
-    // with a small delay to allow state update to complete first
-    if (checked && refreshJson) {
-      // Use a very small timeout to ensure state is updated first
-      setTimeout(() => {
-        refreshJson();
-      }, 50);
-    }
   };
 
   return (

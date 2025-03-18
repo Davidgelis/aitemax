@@ -120,7 +120,7 @@ export const FinalPromptDisplay = ({
     }
   }, [getProcessedPrompt, relevantVariables]);
   
-  // Improved convertPromptToJson with more consistent forceRefresh handling
+  // Simplified convertPromptToJson function
   const convertPromptToJson = useCallback(async (forceRefresh = false) => {
     if (!finalPrompt || finalPrompt.trim() === "") {
       setJsonError("No prompt text to convert");
@@ -207,9 +207,9 @@ export const FinalPromptDisplay = ({
     }
   }, [finalPrompt, masterCommand, toast, userId, promptId, setIsRefreshingJson, generateCleanTextForApi]);
   
-  // Initial JSON generation when showing JSON - make it consistent with refresh
+  // Handle initial JSON generation - simplified
   useEffect(() => {
-    if (showJson) {
+    if (showJson && !jsonGenerated && !isLoadingJson) {
       console.log("JSON view is active - checking if JSON needs to be generated");
       if (!jsonGenerated && !isLoadingJson) {
         console.log("Initial toggle to JSON view - generating JSON");
@@ -218,9 +218,9 @@ export const FinalPromptDisplay = ({
         console.log("JSON already generated or currently loading - no action needed");
       }
     }
-  }, [showJson, convertPromptToJson, jsonGenerated, isLoadingJson]);
+  }, [showJson, jsonGenerated, isLoadingJson, convertPromptToJson]);
   
-  // Force refresh JSON when refreshJsonTrigger changes
+  // Handle refresh JSON trigger - simplified
   useEffect(() => {
     if (refreshJsonTrigger > 0 && showJson) {
       console.log("Refresh JSON button clicked - regenerating JSON with force refresh");
