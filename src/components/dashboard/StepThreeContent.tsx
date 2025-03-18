@@ -8,6 +8,10 @@ import { ActionButtons } from "./step-three/ActionButtons";
 import { StepThreeStyles } from "./step-three/StepThreeStyles";
 import { useToast } from "@/hooks/use-toast";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
+import { 
+  convertEditedContentToPlaceholders, 
+  convertPlaceholdersToSpans 
+} from "@/utils/promptUtils";
 
 interface StepThreeContentProps {
   masterCommand: string;
@@ -67,6 +71,7 @@ export const StepThreeContent = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState("");
   
+  // Get the promptOperations
   const promptOperations = usePromptOperations(
     variables,
     setVariables,
@@ -115,20 +120,11 @@ export const StepThreeContent = ({
     }
   }, [externalHandleVariableValueChange, promptOperations, toast]);
 
-  // Save inline edits logic moved to the FinalPromptDisplay component
+  // Handle saving edited content from the FinalPromptDisplay
   const handleSaveInlineEdit = useCallback(() => {
     try {
-      if (editablePrompt.trim()) {
-        setFinalPrompt(editablePrompt);
-        
-        toast({
-          title: "Success",
-          description: "Prompt updated successfully",
-          variant: "default",
-        });
-      }
-      
-      // Reset edit state
+      // When saving from inline edit, the editablePrompt should be processed
+      // This happens within the FinalPromptDisplay component now
       setIsEditing(false);
       setEditablePrompt("");
       setRenderTrigger(prev => prev + 1);
@@ -140,7 +136,7 @@ export const StepThreeContent = ({
         variant: "destructive",
       });
     }
-  }, [editablePrompt, setFinalPrompt, toast]);
+  }, [toast]);
 
   const getProcessedPromptFunction = useCallback(() => {
     if (typeof externalGetProcessedPrompt === 'function') {

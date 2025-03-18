@@ -5,7 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
-import { replaceVariableInPrompt } from "@/utils/promptUtils";
+import { 
+  replaceVariableInPrompt, 
+  convertEditedContentToPlaceholders,
+  convertPlaceholdersToEditableFormat,
+  convertPlaceholdersToSpans,
+  toVariablePlaceholder
+} from "@/utils/promptUtils";
 
 interface FinalPromptDisplayProps {
   finalPrompt: string;
@@ -129,36 +135,12 @@ export const FinalPromptDisplay = ({
     }
   }, [getProcessedPrompt, finalPrompt, variables, renderTrigger]);
   
-  // Modified edit mode initialization - only run once when entering edit mode
+  // Modified edit mode initialization - use placeholder conversion
   useEffect(() => {
     if (isEditing && !hasInitializedEditMode) {
-      // Process the prompt to replace variable placeholders with their actual values
-      let processedText = finalPrompt;
-      
-      // First, replace all HTML variable placeholders with the special format that preserves variable ID
-      relevantVariables.forEach(variable => {
-        // Use a more robust regex pattern with positive lookahead to match attributes regardless of order
-        const placeholderRegex = new RegExp(
-          `<span[^>]*data-variable-id=["']${variable.id}["'][^>]*>.*?</span>`, 
-          'g'
-        );
-        
-        if (placeholderRegex.test(processedText)) {
-          processedText = processedText.replace(placeholderRegex, `{{${variable.value || ""}::${variable.id}}}`);
-        }
-      });
-      
-      // Then replace any remaining {{variable}} formats with variable ID if possible
-      relevantVariables.forEach(variable => {
-        if (variable.name) {
-          const templateRegex = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
-          if (templateRegex.test(processedText)) {
-            processedText = processedText.replace(templateRegex, `{{${variable.value || ""}::${variable.id}}}`);
-          }
-        }
-      });
-      
-      setEditablePrompt(processedText);
+      // Process the prompt - convert placeholders to editable format
+      const processedPrompt = convertPlaceholdersToEditableFormat(finalPrompt, relevantVariables);
+      setEditablePrompt(processedPrompt);
       setHasInitializedEditMode(true);
     } else if (!isEditing && hasInitializedEditMode) {
       // Reset the initialization flag when exiting edit mode
@@ -297,10 +279,10 @@ export const FinalPromptDisplay = ({
     // Create a copy of the prompt to work with
     let updatedPrompt = finalPrompt;
     
-    // Replace each selection with a placeholder in the prompt
+    // Replace each selection with a standardized placeholder
     multiSelections.forEach(selection => {
-      const placeholder = `<span id="${variableId}-placeholder-${Date.now()}" class="variable-placeholder" data-variable-id="${variableId}"></span>`;
-      updatedPrompt = replaceVariableInPrompt(updatedPrompt, selection, placeholder, variableName);
+      const varPlaceholder = toVariablePlaceholder(variableId);
+      updatedPrompt = replaceVariableInPrompt(updatedPrompt, selection, varPlaceholder, variableName);
     });
     
     // Update the prompt
@@ -364,10 +346,9 @@ export const FinalPromptDisplay = ({
     // Add the new variable to state
     setVariables(prev => [...prev, newVariable]);
     
-    // Instead of directly changing the DOM, update the final prompt text via state
-    // Use the utility to replace the selected text with a placeholder
-    const placeholder = `<span id="${variableId}-placeholder" class="variable-placeholder" data-variable-id="${variableId}"></span>`;
-    const updatedPrompt = replaceVariableInPrompt(finalPrompt, selectedText, placeholder, variableName);
+    // Use the standardized placeholder format
+    const varPlaceholder = toVariablePlaceholder(variableId);
+    const updatedPrompt = replaceVariableInPrompt(finalPrompt, selectedText, varPlaceholder, variableName);
     updateFinalPrompt(updatedPrompt);
     
     toast({
@@ -448,8 +429,8 @@ export const FinalPromptDisplay = ({
     );
     
     // Replace the placeholder with the actual text in the finalPrompt
-    const placeholder = new RegExp(`<span[^>]*data-variable-id="${variableId}"[^>]*>.*?</span>`, 'g');
-    const updatedPrompt = finalPrompt.replace(placeholder, currentValue);
+    const varPlaceholder = toVariablePlaceholder(variableId);
+    const updatedPrompt = finalPrompt.replace(new RegExp(varPlaceholder, 'g'), currentValue);
     updateFinalPrompt(updatedPrompt);
     
     toast({
@@ -478,36 +459,12 @@ export const FinalPromptDisplay = ({
       let newContent = editableContentRef.current.innerHTML;
       console.log("Raw content before processing:", newContent);
       
-      // Convert the special variable format back to variable placeholders
-      relevantVariables.forEach(variable => {
-        // Match the special format {{value::id}}
-        const varFormatRegex = new RegExp(`{{([^:}]*)::(${variable.id})}}`, 'g');
-        
-        if (varFormatRegex.test(newContent)) {
-          newContent = newContent.replace(
-            varFormatRegex, 
-            `<span data-variable-id="${variable.id}" contenteditable="false" class="variable-highlight">${variable.value || ""}</span>`
-          );
-        }
-        
-        // Also match any non-editable variable spans that might be present
-        const spanRegex = new RegExp(
-          `<span[^>]*class=["']non-editable-variable["'][^>]*data-variable-id=["']${variable.id}["'][^>]*>.*?</span>`, 
-          'g'
-        );
-        
-        if (spanRegex.test(newContent)) {
-          newContent = newContent.replace(
-            spanRegex, 
-            `<span data-variable-id="${variable.id}" contenteditable="false" class="variable-highlight">${variable.value || ""}</span>`
-          );
-        }
-      });
+      // Convert the edited content back to the standardized placeholder format
+      const processedContent = convertEditedContentToPlaceholders(newContent, relevantVariables);
+      console.log("Processed content after conversion:", processedContent);
       
-      console.log("Processed content after variable conversion:", newContent);
-      
-      // Update the final prompt with the new content
-      updateFinalPrompt(newContent);
+      // Update the final prompt with the processed content
+      updateFinalPrompt(processedContent);
       setIsEditing(false);
       setEditablePrompt("");
       
@@ -599,11 +556,9 @@ export const FinalPromptDisplay = ({
     }
 
     try {
-      if (!processedPrompt) {
-        return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
-      }
-      
-      const paragraphs = processedPrompt.split('\n\n');
+      // Convert standardized placeholders to HTML spans for display
+      const htmlContent = convertPlaceholdersToSpans(finalPrompt, relevantVariables);
+      const paragraphs = htmlContent.split('\n\n');
       
       return (
         <div 
@@ -640,57 +595,8 @@ export const FinalPromptDisplay = ({
           ) : null}
           
           {paragraphs.map((paragraph, pIndex) => {
-            if (!paragraph) return null;
-            
-            // Process the paragraph to replace variable placeholders
-            const parts: JSX.Element[] = [];
-            let currentIndex = 0;
-            let lastProcessedIndex = 0;
-            
-            // Find all variable placeholder spans in this paragraph
-            const placeholderRegex = /<span[^>]*data-variable-id="([^"]+)"[^>]*><\/span>/g;
-            let match;
-            
-            while ((match = placeholderRegex.exec(paragraph)) !== null) {
-              const fullMatch = match[0];
-              const variableId = match[1];
-              const matchIndex = match.index;
-              
-              // Check if this is a valid variable
-              const variable = relevantVariables.find(v => v.id === variableId);
-              if (!variable) continue;
-              
-              // Add text before the placeholder
-              if (matchIndex > lastProcessedIndex) {
-                parts.push(
-                  <span key={`text-${pIndex}-${currentIndex++}`}>
-                    {paragraph.substring(lastProcessedIndex, matchIndex)}
-                  </span>
-                );
-              }
-              
-              // Add the variable input - now read-only
-              parts.push(renderVariablePlaceholder(variable, `var-${variable.id}-${pIndex}-${currentIndex++}`));
-              
-              // Update the last processed index
-              lastProcessedIndex = matchIndex + fullMatch.length;
-            }
-            
-            // Add any remaining text after the last placeholder
-            if (lastProcessedIndex < paragraph.length) {
-              parts.push(
-                <span key={`text-${pIndex}-${currentIndex++}`}>
-                  {paragraph.substring(lastProcessedIndex)}
-                </span>
-              );
-            }
-            
-            // If we didn't find any placeholders, just return the paragraph as is
-            if (parts.length === 0) {
-              return <p key={`paragraph-${pIndex}`}>{paragraph}</p>;
-            }
-            
-            return <p key={`paragraph-${pIndex}`}>{parts}</p>;
+            if (!paragraph.trim()) return null;
+            return <p key={`paragraph-${pIndex}`} dangerouslySetInnerHTML={{ __html: paragraph }} />;
           })}
         </div>
       );

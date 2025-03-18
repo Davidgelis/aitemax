@@ -1,7 +1,13 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Variable } from "../components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
-import { escapeRegExp, replaceVariableInPrompt } from "@/utils/promptUtils";
+import { 
+  escapeRegExp, 
+  replaceVariableInPrompt, 
+  toVariablePlaceholder,
+  convertPlaceholdersToSpans 
+} from "@/utils/promptUtils";
 
 export const usePromptOperations = (
   variables: Variable[],
@@ -35,38 +41,15 @@ export const usePromptOperations = (
     }
   }, [variables, lastProcessedVariables]);
 
-  // Process the prompt with variables - with improved placeholder handling
+  // Process the prompt with variables - with placeholder conversion
   const getProcessedPrompt = useCallback((): string => {
     if (!finalPrompt) return "";
     
-    let processedPrompt = finalPrompt;
-    
-    // Only use relevant variables
+    // Get only relevant variables
     const relevantVariables = variables.filter(v => v.isRelevant);
     
-    // Process variables in a specific order: longest values first
-    // to prevent partial replacements
-    const sortedVariables = [...relevantVariables].sort(
-      (a, b) => ((b.value?.length || 0) - (a.value?.length || 0))
-    );
-    
-    // Apply substitutions for each variable
-    sortedVariables.forEach(variable => {
-      // Look for a placeholder pattern with this variable's ID
-      const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
-      
-      // If we find a placeholder, we don't need to do anything - the rendering component
-      // will handle displaying the input fields at the placeholder positions
-      if (placeholderRegex.test(processedPrompt)) {
-        return;
-      } else if (variable.value) {
-        // Fallback to variable placeholder replacement if needed
-        const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
-        processedPrompt = processedPrompt.replace(regex, variable.value);
-      }
-    });
-    
-    return processedPrompt;
+    // Convert placeholders to spans for display
+    return convertPlaceholdersToSpans(finalPrompt, relevantVariables);
   }, [finalPrompt, variables]);
   
   // New function: Get a clean copy of the prompt with all variables properly substituted
@@ -76,17 +59,10 @@ export const usePromptOperations = (
     let cleanPrompt = finalPrompt;
     const relevantVariables = variables.filter(v => v.isRelevant);
     
-    // First, replace all HTML variable placeholders with their actual values
+    // Replace all {{VAR:id}} placeholders with their values
     relevantVariables.forEach(variable => {
-      const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
-      if (placeholderRegex.test(cleanPrompt)) {
-        cleanPrompt = cleanPrompt.replace(placeholderRegex, variable.value || "");
-      }
-    });
-    
-    // Then replace any remaining {{variable}} formats
-    relevantVariables.forEach(variable => {
-      const regex = new RegExp(`{{\\s*${escapeRegExp(variable.name)}\\s*}}`, 'g');
+      const placeholder = toVariablePlaceholder(variable.id);
+      const regex = new RegExp(escapeRegExp(placeholder), 'g');
       cleanPrompt = cleanPrompt.replace(regex, variable.value || "");
     });
     
@@ -143,8 +119,8 @@ export const usePromptOperations = (
     );
     
     // Replace the placeholder with the actual text in the finalPrompt
-    const placeholder = new RegExp(`<span[^>]*data-variable-id="${variableId}"[^>]*>.*?</span>`, 'g');
-    const updatedPrompt = finalPrompt.replace(placeholder, currentValue);
+    const placeholder = toVariablePlaceholder(variableId);
+    const updatedPrompt = finalPrompt.replace(new RegExp(escapeRegExp(placeholder), 'g'), currentValue);
     setFinalPrompt(updatedPrompt);
     
     // Force re-render to ensure changes propagate

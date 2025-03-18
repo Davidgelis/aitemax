@@ -82,3 +82,62 @@ export const convertVariableToSpan = (text: string, variables: any[]): string =>
     return `<span data-variable-id="${id}" contenteditable="false" class="variable-highlight">${displayValue}</span>`;
   });
 };
+
+// Standardized placeholder format for variables
+export const toVariablePlaceholder = (variableId: string): string => {
+  return `{{VAR:${variableId}}}`;
+};
+
+// Convert placeholder to editable format for edit mode
+export const convertPlaceholdersToEditableFormat = (text: string, variables: any[]): string => {
+  // Replace {{VAR:id}} format with editable format
+  return text.replace(/{{VAR:([\w-]+)}}/g, (_, variableId) => {
+    const variable = variables.find(v => v.id === variableId);
+    const displayValue = variable?.value || "";
+    return `{{${displayValue}::${variableId}}}`;
+  });
+};
+
+// Convert the edited content back to placeholders format
+export const convertEditedContentToPlaceholders = (
+  content: string, 
+  variables: any[]
+): string => {
+  let processedContent = content;
+  
+  // First, replace any {{value::id}} format with placeholders
+  processedContent = processedContent.replace(
+    /{{([^:}]*)::([\w-]+)}}/g, 
+    (_, __, variableId) => toVariablePlaceholder(variableId)
+  );
+  
+  // Then replace any non-editable spans with placeholders
+  variables.forEach(variable => {
+    if (!variable.id) return;
+    
+    const spanPattern = new RegExp(
+      `<span[^>]*data-variable-id=["']${variable.id}["'][^>]*>.*?</span>`,
+      'gi'
+    );
+    
+    processedContent = processedContent.replace(
+      spanPattern,
+      toVariablePlaceholder(variable.id)
+    );
+  });
+  
+  return processedContent;
+};
+
+// Convert placeholders to HTML spans for display
+export const convertPlaceholdersToSpans = (
+  text: string, 
+  variables: any[]
+): string => {
+  return text.replace(/{{VAR:([\w-]+)}}/g, (_, variableId) => {
+    const variable = variables.find(v => v.id === variableId);
+    if (!variable) return _;
+    
+    return `<span data-variable-id="${variableId}" contenteditable="false" class="variable-highlight">${variable.value || ""}</span>`;
+  });
+};
