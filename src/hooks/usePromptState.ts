@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -16,8 +17,9 @@ export const usePromptState = (user: any) => {
   const [editingPrompt, setEditingPrompt] = useState("");
   const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
   const [masterCommand, setMasterCommand] = useState("");
-  const [selectedPrimary, setSelectedPrimary] = useState<string | null>("coding");
-  const [selectedSecondary, setSelectedSecondary] = useState<string | null>("strict");
+  // Changed these to null so all toggles are off by default
+  const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
+  const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
