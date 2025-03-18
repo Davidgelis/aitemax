@@ -226,10 +226,10 @@ export const StepController = ({
         console.log("StepController: Enhancing prompt for step 3 with o3-mini...");
         
         // Use the enhancePromptWithGPT function to get an enhanced prompt
-        await enhancePromptWithGPT(
+        await promptAnalysis.enhancePromptWithGPT(
           promptText,
-          questions,
-          variables,
+          selectedPrimary,
+          selectedSecondary,
           setFinalPrompt
         );
         

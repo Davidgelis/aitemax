@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions, primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
@@ -44,6 +45,8 @@ export const usePromptAnalysis = (
 ) => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState<number | string>(0);
+  const [analyzedQuestions, setAnalyzedQuestions] = useState<Question[]>([]);
+  const [analyzedVariables, setAnalyzedVariables] = useState<Variable[]>([]);
   const { toast } = useToast();
 
   // Show loading messages while isLoading is true
@@ -256,9 +259,11 @@ export const usePromptAnalysis = (
           
           console.log(`Processed questions: ${aiQuestions.length} total, ${aiQuestions.filter(q => q.answer).length} prefilled`);
           setQuestions(aiQuestions);
+          setAnalyzedQuestions(aiQuestions);
         } else {
           console.warn("No questions received from analysis, using fallbacks");
           setQuestions(mockQuestions);
+          setAnalyzedQuestions(mockQuestions);
         }
         
         // Process variables with similar conditional prefilling logic
@@ -303,15 +308,18 @@ export const usePromptAnalysis = (
           // If we have valid variables after filtering, use them
           if (processedVariables.length > 0) {
             setVariables(processedVariables);
+            setAnalyzedVariables(processedVariables);
           } else {
             // Otherwise use default variables from constants
             const { defaultVariables } = await import("@/components/dashboard/constants");
             setVariables(defaultVariables);
+            setAnalyzedVariables(defaultVariables);
           }
         } else {
           // Use default variables if none provided
           const { defaultVariables } = await import("@/components/dashboard/constants");
           setVariables(defaultVariables);
+          setAnalyzedVariables(defaultVariables);
         }
         
         // Set master command and enhanced prompt if available
@@ -331,6 +339,7 @@ export const usePromptAnalysis = (
       } else {
         console.warn("No data received from analysis function, using fallbacks");
         setQuestions(mockQuestions);
+        setAnalyzedQuestions(mockQuestions);
       }
     } catch (error) {
       console.error("Error analyzing prompt with AI:", error);
@@ -340,6 +349,7 @@ export const usePromptAnalysis = (
         variant: "destructive",
       });
       setQuestions(mockQuestions);
+      setAnalyzedQuestions(mockQuestions);
     } finally {
       // Keep loading state active for at least a few seconds to show the loading screen
       // This ensures a smoother transition even if the API is fast
@@ -377,12 +387,12 @@ export const usePromptAnalysis = (
       setCurrentLoadingMessage(message);
       
       // Filter out only answered and relevant questions
-      const answeredQuestions = questions.filter(
+      const answeredQuestions = analyzedQuestions.filter(
         q => q.answer && q.answer.trim() !== "" && q.isRelevant !== false
       );
       
       // Filter out only relevant variables
-      const relevantVariables = variables.filter(
+      const relevantVariables = analyzedVariables.filter(
         v => v.isRelevant === true
       );
       
