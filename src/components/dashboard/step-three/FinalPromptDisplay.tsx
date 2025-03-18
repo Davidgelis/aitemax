@@ -584,7 +584,7 @@ export const FinalPromptDisplay = ({
       return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
     }
   };
-  return <div className={`relative flex-1 mb-4 overflow-hidden rounded-lg ${className}`}>
+  return <div className={`relative flex-1 mb-4 overflow-hidden rounded-lg ${className}`} style={{ minHeight: "500px" }}>
       <div className="absolute top-2 right-2 z-10 flex items-center space-x-4">
         {!isEditing && <>
             <div className="flex items-center gap-2">
