@@ -1,4 +1,3 @@
-
 import { Edit, Copy, Save, RotateCw, X, Check } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -81,7 +80,7 @@ export const FinalPrompt = ({
     variables.filter(v => v.isRelevant).forEach(variable => {
       const varRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
       editableContent = editableContent.replace(varRegex, 
-        `<span class="non-editable-variable" data-variable-id="${variable.id}">${variable.value || ""}</span>`);
+        `<span class="non-editable-variable" contentEditable="false" data-variable-id="${variable.id}">${variable.value || ""}</span>`);
     });
     
     // Replace any remaining {{variable}} format
@@ -89,7 +88,7 @@ export const FinalPrompt = ({
       if (variable.name) {
         const templateRegex = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
         editableContent = editableContent.replace(templateRegex, 
-          `<span class="non-editable-variable" data-variable-id="${variable.id}">${variable.value || ""}</span>`);
+          `<span class="non-editable-variable" contentEditable="false" data-variable-id="${variable.id}">${variable.value || ""}</span>`);
       }
     });
     

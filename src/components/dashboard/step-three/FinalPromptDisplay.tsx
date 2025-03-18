@@ -472,10 +472,11 @@ export const FinalPromptDisplay = ({
   const renderProcessedPrompt = () => {
     if (isEditing) {
       // In editing mode, create a textarea with special styling for variables
+      // Add contentEditable="false" to the non-editable variable spans
       const processedEditablePrompt = editablePrompt.replace(
         /{{([^}]+)}}/g,
         (match, variableText) => {
-          return `<span class="non-editable-variable">${variableText}</span>`;
+          return `<span contentEditable="false" class="non-editable-variable">${variableText}</span>`;
         }
       );
       
@@ -490,7 +491,7 @@ export const FinalPromptDisplay = ({
               // Extract the text content with placeholders preserved
               const content = e.currentTarget.innerHTML;
               const textWithPlaceholders = content.replace(
-                /<span class="non-editable-variable">([^<]+)<\/span>/g,
+                /<span[^>]*contentEditable="false"[^>]*class="non-editable-variable">([^<]+)<\/span>/g,
                 (_, text) => `{{${text}}}`
               );
               setEditablePrompt(textWithPlaceholders);
