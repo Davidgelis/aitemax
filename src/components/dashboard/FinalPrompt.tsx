@@ -1,4 +1,3 @@
-
 import { Edit, Copy, Save, RotateCw, X, Check } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -67,6 +66,7 @@ export const FinalPrompt = ({
   const [isEditing, setIsEditing] = useState(false);
   const [currentEditingContent, setCurrentEditingContent] = useState("");
   const promptContainerRef = useRef<HTMLDivElement>(null);
+  const [hasInitializedEditMode, setHasInitializedEditMode] = useState(false);
   
   // Begin editing mode
   const startEditing = () => {
@@ -94,12 +94,14 @@ export const FinalPrompt = ({
     });
     
     setCurrentEditingContent(editableContent);
+    setHasInitializedEditMode(true);
   };
   
   // Cancel editing
   const cancelEditing = () => {
     setIsEditing(false);
     setCurrentEditingContent("");
+    setHasInitializedEditMode(false);
   };
   
   // Save edited content
@@ -125,6 +127,7 @@ export const FinalPrompt = ({
       setEditingPrompt(newContent);
       handleSaveEditedPrompt();
       setIsEditing(false);
+      setHasInitializedEditMode(false);
       
       toast({
         title: "Changes saved",
@@ -260,7 +263,7 @@ export const FinalPrompt = ({
             <div 
               ref={promptContainerRef}
               className="whitespace-pre-wrap text-card-foreground editable-content" 
-              contentEditable={true}
+              contentEditable="true"
               dangerouslySetInnerHTML={{ __html: currentEditingContent }}
               suppressContentEditableWarning={true}
             />

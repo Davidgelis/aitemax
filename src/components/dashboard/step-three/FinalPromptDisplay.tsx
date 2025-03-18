@@ -52,7 +52,8 @@ export const FinalPromptDisplay = ({
   const [selectionRange, setSelectionRange] = useState<{start: number, end: number} | null>(null);
   const promptContainerRef = useRef<HTMLDivElement>(null);
   const [renderTrigger, setRenderTrigger] = useState(0);
-  const editableTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const editableTextareaRef = useRef<HTMLDivElement>(null);
+  const [hasInitializedEditMode, setHasInitializedEditMode] = useState(false);
   
   const { toast } = useToast();
   
@@ -116,7 +117,6 @@ export const FinalPromptDisplay = ({
     }
   }, [showJson, finalPrompt, convertPromptToJson, jsonGenerated, isLoadingJson]);
   
-  // Update processed prompt whenever variables change
   useEffect(() => {
     try {
       if (typeof getProcessedPrompt === 'function') {
@@ -129,9 +129,9 @@ export const FinalPromptDisplay = ({
     }
   }, [getProcessedPrompt, finalPrompt, variables, renderTrigger]);
   
+  // Modified edit mode initialization - only run once when entering edit mode
   useEffect(() => {
-    // When editing mode is activated, set the editable prompt to the current final prompt
-    if (isEditing) {
+    if (isEditing && !hasInitializedEditMode) {
       // Process the prompt to replace variable placeholders with their actual values
       let processedText = finalPrompt;
       
@@ -151,6 +151,7 @@ export const FinalPromptDisplay = ({
       });
       
       setEditablePrompt(processedText);
+      setHasInitializedEditMode(true);
       
       // Focus the textarea when in editing mode
       setTimeout(() => {
@@ -158,8 +159,11 @@ export const FinalPromptDisplay = ({
           editableTextareaRef.current.focus();
         }
       }, 100);
+    } else if (!isEditing && hasInitializedEditMode) {
+      // Reset the initialization flag when exiting edit mode
+      setHasInitializedEditMode(false);
     }
-  }, [isEditing, finalPrompt, setEditablePrompt, relevantVariables]);
+  }, [isEditing, finalPrompt, setEditablePrompt, relevantVariables, hasInitializedEditMode]);
   
   const handleMouseUp = () => {
     if (!isCreatingVariable || isEditing) return;
@@ -486,7 +490,7 @@ export const FinalPromptDisplay = ({
             className="editing-mode w-full h-full min-h-[300px] p-4 rounded-md font-sans text-sm"
             contentEditable="true"
             suppressContentEditableWarning={true}
-            ref={editableTextareaRef as any}
+            ref={editableTextareaRef}
             onInput={(e) => {
               // Extract the text content with placeholders preserved
               const content = e.currentTarget.innerHTML;
@@ -505,7 +509,10 @@ export const FinalPromptDisplay = ({
             <Button 
               variant="outline" 
               className="edit-action-button edit-cancel-button"
-              onClick={() => setIsEditing(false)}
+              onClick={() => {
+                setIsEditing(false);
+                setEditablePrompt(""); // Clear the editable prompt on cancel
+              }}
             >
               Cancel
             </Button>
@@ -514,6 +521,7 @@ export const FinalPromptDisplay = ({
               onClick={() => {
                 handleSaveEditedPrompt();
                 setIsEditing(false);
+                setEditablePrompt(""); // Clear the editable prompt after saving
               }}
             >
               Save Changes
@@ -761,9 +769,9 @@ export const FinalPromptDisplay = ({
           user-select: none;
         }
         .editing-mode {
-          background-color: #ddfff0;
+          background-color: #ffffff;
           border: 1px solid #33fea6;
-          outline: 1px solid #33fea6;
+          outline: none;
         }
         `}
       </style>
