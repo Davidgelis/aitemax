@@ -2,8 +2,7 @@
 import React from 'react';
 
 const MasterPanel = () => {
-  // Return null to render nothing
-  return null;
+  return <div>Master Panel Placeholder</div>;
 };
 
 export default MasterPanel;

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -48,6 +49,7 @@ const fallbackModels = [
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
   const [selectedCognitive, setSelectedCognitive] = useState<string | null>(null);
   const { toast } = useToast();
@@ -111,6 +113,28 @@ const Dashboard = () => {
     };
   }, []);
 
+  // Fetch user profile data when user changes
+  useEffect(() => {
+    if (user) {
+      const fetchUserProfile = async () => {
+        const { data: profileData, error } = await supabase
+          .from("profiles")
+          .select("username, avatar_url")
+          .eq("id", user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching user profile:", error);
+        } else if (profileData) {
+          setUserProfile(profileData);
+        }
+      };
+      
+      fetchUserProfile();
+      promptState.fetchSavedPrompts();
+    }
+  }, [user]);
+
   const handleCognitiveToggle = (id: string) => {
     setSelectedCognitive(currentSelected => currentSelected === id ? null : id);
     
@@ -121,12 +145,6 @@ const Dashboard = () => {
       });
     }
   };
-
-  useEffect(() => {
-    if (user) {
-      promptState.fetchSavedPrompts();
-    }
-  }, [user]);
 
   return (
     <SidebarProvider>
@@ -146,6 +164,7 @@ const Dashboard = () => {
 
         <UserSidebar 
           user={user}
+          userProfile={userProfile}
           savedPrompts={promptState.savedPrompts}
           filteredPrompts={filteredPrompts}
           searchTerm={promptState.searchTerm}
