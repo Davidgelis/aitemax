@@ -1,10 +1,11 @@
+
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, ArrowLeft, BarChart3, Users } from "lucide-react";
+import { AlertCircle, ArrowLeft, BarChart3, Users, FileText, FileEdit } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,11 +23,15 @@ interface UserTokenStats {
   total_completion_cost: number;
   total_cost: number;
   prompts_count: number;
+  drafts_count: number;
+  total_count: number;
 }
 
 interface TotalStats {
   total_users: number;
   total_prompts: number;
+  total_drafts: number;
+  total_all_prompts: number;
   total_prompt_tokens: number;
   total_completion_tokens: number;
   total_tokens: number;
@@ -38,7 +43,10 @@ interface TotalStats {
 // Define the type for the RPC response
 interface PromptCountResult {
   user_id: string;
-  count: string;
+  prompts_count: number;
+  drafts_count: number;
+  total_count: number;
+  total_cost: number;
 }
 
 export default function Analytics() {
@@ -89,28 +97,16 @@ export default function Analytics() {
 
         if (userError) throw userError;
 
-        // Get prompt counts using direct query for more accuracy
-        const { data: promptData, error: promptError } = await supabase
-          .from('prompts')
-          .select('user_id, id')
-          .eq('is_draft', false);
+        // Call the edge function to get accurate prompt counts
+        const { data: promptData, error: promptError } = await supabase.functions.invoke(
+          'get-prompt-counts-per-user',
+          { method: 'POST' }
+        );
           
         if (promptError) throw promptError;
         
-        console.log("Direct prompt fetch result:", promptData?.length || 0, "prompts found");
+        console.log("Edge function prompt count result:", promptData);
         
-        // Count prompts per user
-        const userPromptCounts: Record<string, number> = {};
-        if (promptData && promptData.length > 0) {
-          promptData.forEach(item => {
-            if (item.user_id) {
-              userPromptCounts[item.user_id] = (userPromptCounts[item.user_id] || 0) + 1;
-            }
-          });
-        }
-        
-        console.log("Direct count result:", userPromptCounts);
-
         // Get usernames from profiles
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
@@ -125,16 +121,28 @@ export default function Analytics() {
         }, {} as Record<string, string | null>);
 
         // Combine the data
-        const combinedStats = userData.map(user => ({
-          user_id: user.user_id,
-          username: usernameMap[user.user_id] || 'Unknown User',
-          total_prompt_tokens: user.total_prompt_tokens || 0,
-          total_completion_tokens: user.total_completion_tokens || 0,
-          total_prompt_cost: Number(user.total_prompt_cost) || 0,
-          total_completion_cost: Number(user.total_completion_cost) || 0,
-          total_cost: Number(user.total_cost) || 0,
-          prompts_count: userPromptCounts[user.user_id] || 0
-        }));
+        const combinedStats = userData.map(user => {
+          // Find matching prompt counts from edge function data
+          const promptCounts = promptData.find(p => p.user_id === user.user_id) || {
+            prompts_count: 0,
+            drafts_count: 0,
+            total_count: 0,
+            total_cost: 0
+          };
+
+          return {
+            user_id: user.user_id,
+            username: usernameMap[user.user_id] || 'Unknown User',
+            total_prompt_tokens: user.total_prompt_tokens || 0,
+            total_completion_tokens: user.total_completion_tokens || 0,
+            total_prompt_cost: Number(user.total_prompt_cost) || 0,
+            total_completion_cost: Number(user.total_completion_cost) || 0,
+            total_cost: Number(user.total_cost) || 0,
+            prompts_count: promptCounts.prompts_count || 0,
+            drafts_count: promptCounts.drafts_count || 0,
+            total_count: promptCounts.total_count || 0
+          };
+        });
 
         setUserStats(combinedStats);
 
@@ -142,6 +150,8 @@ export default function Analytics() {
         const totals: TotalStats = {
           total_users: combinedStats.length,
           total_prompts: combinedStats.reduce((sum, user) => sum + user.prompts_count, 0),
+          total_drafts: combinedStats.reduce((sum, user) => sum + user.drafts_count, 0),
+          total_all_prompts: combinedStats.reduce((sum, user) => sum + user.total_count, 0),
           total_prompt_tokens: combinedStats.reduce((sum, user) => sum + user.total_prompt_tokens, 0),
           total_completion_tokens: combinedStats.reduce((sum, user) => sum + user.total_completion_tokens, 0),
           total_tokens: combinedStats.reduce((sum, user) => sum + user.total_prompt_tokens + user.total_completion_tokens, 0),
@@ -151,9 +161,9 @@ export default function Analytics() {
         };
 
         // Calculate averages
-        if (totals.total_prompts > 0) {
-          totals.avg_cost_per_prompt = totals.total_cost / totals.total_prompts;
-          totals.avg_tokens_per_prompt = totals.total_tokens / totals.total_prompts;
+        if (totals.total_all_prompts > 0) {
+          totals.avg_cost_per_prompt = totals.total_cost / totals.total_all_prompts;
+          totals.avg_tokens_per_prompt = totals.total_tokens / totals.total_all_prompts;
         }
 
         setTotalStats(totals);
@@ -196,7 +206,9 @@ export default function Analytics() {
         total_prompt_cost: 5000 * 0.0025 / 1000, // Updated pricing
         total_completion_cost: 2500 * 0.01 / 1000, // Updated pricing
         total_cost: (5000 * 0.0025 / 1000) + (2500 * 0.01 / 1000), // Updated pricing
-        prompts_count: 25
+        prompts_count: 20,
+        drafts_count: 5,
+        total_count: 25
       },
       {
         user_id: "sample-user-2",
@@ -206,7 +218,9 @@ export default function Analytics() {
         total_prompt_cost: 3000 * 0.0025 / 1000, // Updated pricing
         total_completion_cost: 1500 * 0.01 / 1000, // Updated pricing
         total_cost: (3000 * 0.0025 / 1000) + (1500 * 0.01 / 1000), // Updated pricing
-        prompts_count: 15
+        prompts_count: 10,
+        drafts_count: 5,
+        total_count: 15
       }
     ];
     
@@ -216,6 +230,8 @@ export default function Analytics() {
     const totals: TotalStats = {
       total_users: sampleUserStats.length,
       total_prompts: sampleUserStats.reduce((sum, user) => sum + user.prompts_count, 0),
+      total_drafts: sampleUserStats.reduce((sum, user) => sum + user.drafts_count, 0),
+      total_all_prompts: sampleUserStats.reduce((sum, user) => sum + user.total_count, 0),
       total_prompt_tokens: sampleUserStats.reduce((sum, user) => sum + user.total_prompt_tokens, 0),
       total_completion_tokens: sampleUserStats.reduce((sum, user) => sum + user.total_completion_tokens, 0),
       total_tokens: sampleUserStats.reduce((sum, user) => sum + user.total_prompt_tokens + user.total_completion_tokens, 0),
@@ -225,9 +241,9 @@ export default function Analytics() {
     };
     
     // Calculate averages
-    if (totals.total_prompts > 0) {
-      totals.avg_cost_per_prompt = totals.total_cost / totals.total_prompts;
-      totals.avg_tokens_per_prompt = totals.total_tokens / totals.total_prompts;
+    if (totals.total_all_prompts > 0) {
+      totals.avg_cost_per_prompt = totals.total_cost / totals.total_all_prompts;
+      totals.avg_tokens_per_prompt = totals.total_tokens / totals.total_all_prompts;
     }
     
     setTotalStats(totals);
@@ -284,7 +300,7 @@ export default function Analytics() {
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[...Array(4)].map((_, i) => (
+          {[...Array(6)].map((_, i) => (
             <Card key={i} className="shadow-lg border-[#084b49]/20">
               <CardHeader className="pb-2">
                 <Skeleton className="h-4 w-24 mb-1" />
@@ -297,15 +313,25 @@ export default function Analytics() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
           <StatsCard 
             title="Total Users" 
             value={totalStats?.total_users || 0} 
             icon={<Users className="h-5 w-5" />} 
           />
           <StatsCard 
-            title="Total Prompts" 
+            title="Completed Prompts" 
             value={totalStats?.total_prompts || 0} 
+            icon={<FileText className="h-5 w-5" />} 
+          />
+          <StatsCard 
+            title="Drafts" 
+            value={totalStats?.total_drafts || 0} 
+            icon={<FileEdit className="h-5 w-5" />} 
+          />
+          <StatsCard 
+            title="Total Prompts" 
+            value={totalStats?.total_all_prompts || 0} 
             icon={<BarChart3 className="h-5 w-5" />} 
           />
           <StatsCard 
@@ -346,7 +372,9 @@ export default function Analytics() {
                 <thead>
                   <tr className="bg-[#fafafa] border-b">
                     <th className="text-left p-4">User</th>
-                    <th className="text-right p-4">Prompts</th>
+                    <th className="text-right p-4">Completed</th>
+                    <th className="text-right p-4">Drafts</th>
+                    <th className="text-right p-4">Total</th>
                     <th className="text-right p-4">Prompt Tokens</th>
                     <th className="text-right p-4">Completion Tokens</th>
                     <th className="text-right p-4">Total Cost</th>
@@ -357,6 +385,8 @@ export default function Analytics() {
                     <tr key={stat.user_id} className="border-b hover:bg-muted/50">
                       <td className="p-4 font-medium">{stat.username}</td>
                       <td className="p-4 text-right">{stat.prompts_count}</td>
+                      <td className="p-4 text-right">{stat.drafts_count}</td>
+                      <td className="p-4 text-right">{stat.total_count}</td>
                       <td className="p-4 text-right">{stat.total_prompt_tokens.toLocaleString()}</td>
                       <td className="p-4 text-right">{stat.total_completion_tokens.toLocaleString()}</td>
                       <td className="p-4 text-right">${stat.total_cost.toFixed(4)}</td>
@@ -365,7 +395,7 @@ export default function Analytics() {
                   
                   {userStats.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="text-center p-8 text-muted-foreground">
+                      <td colSpan={7} className="text-center p-8 text-muted-foreground">
                         No usage data available
                       </td>
                     </tr>

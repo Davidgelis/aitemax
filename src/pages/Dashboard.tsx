@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -60,13 +61,18 @@ const Dashboard = () => {
     (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm.toLowerCase())
   );
   
-  // Log saved prompts for visibility and accurate tracking
+  // Enhanced logging for better prompt tracking
   useEffect(() => {
     if (promptState.savedPrompts.length > 0) {
       console.log(`User has ${promptState.savedPrompts.length} saved prompts`, 
-        promptState.savedPrompts.map(p => p.id));
+        promptState.savedPrompts.map(p => ({id: p.id, title: p.title})));
     }
-  }, [promptState.savedPrompts]);
+    
+    if (promptState.drafts.length > 0) {
+      console.log(`User has ${promptState.drafts.length} draft prompts`,
+        promptState.drafts.map(d => ({id: d.id, title: d.title})));
+    }
+  }, [promptState.savedPrompts, promptState.drafts]);
   
   useEffect(() => {
     const saveDraftBeforeNavigate = (nextPath: string) => {

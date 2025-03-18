@@ -22,32 +22,121 @@ Deno.serve(async (req) => {
     
     console.log('Fetching prompt counts per user...')
 
-    // Query to get count of prompts per user - use an actual count operation
-    const { data, error } = await supabase
-      .from('token_usage')
-      .select('user_id')
-      .is('prompt_id', null, { not: true }) // Only count rows with a valid prompt_id
-      .gt('step', 0) // Ensure step is greater than 0 to count only valid prompts
+    // Get completed prompts (non-drafts from prompts table)
+    const { data: completedPromptsData, error: completedError } = await supabase
+      .from('prompts')
+      .select('user_id, id')
+      .eq('is_draft', false)
     
-    if (error) {
-      console.error('Error fetching prompt data:', error)
-      throw error
+    if (completedError) {
+      console.error('Error fetching completed prompts:', completedError)
+      throw completedError
+    }
+    
+    // Get drafts from prompt_drafts table
+    const { data: draftsData, error: draftsError } = await supabase
+      .from('prompt_drafts')
+      .select('user_id, id')
+    
+    if (draftsError) {
+      console.error('Error fetching drafts:', draftsError)
+      throw draftsError
+    }
+    
+    // Get drafts from prompts table (is_draft = true)
+    const { data: promptDraftsData, error: promptDraftsError } = await supabase
+      .from('prompts')
+      .select('user_id, id')
+      .eq('is_draft', true)
+    
+    if (promptDraftsError) {
+      console.error('Error fetching prompt drafts:', promptDraftsError)
+      throw promptDraftsError
+    }
+    
+    // Get token usage data (for cost calculation)
+    const { data: tokenData, error: tokenError } = await supabase
+      .from('token_usage')
+      .select('user_id, total_cost')
+    
+    if (tokenError) {
+      console.error('Error fetching token data:', tokenError)
+      throw tokenError
     }
 
-    // Manual count to ensure accuracy
-    const userCounts = {}
-    if (data && Array.isArray(data)) {
-      data.forEach(item => {
+    // Count prompts and drafts per user
+    const userStats = {}
+    
+    // Process completed prompts
+    if (completedPromptsData && Array.isArray(completedPromptsData)) {
+      completedPromptsData.forEach(item => {
         if (item.user_id) {
-          userCounts[item.user_id] = (userCounts[item.user_id] || 0) + 1
+          if (!userStats[item.user_id]) {
+            userStats[item.user_id] = { 
+              prompts_count: 0, 
+              drafts_count: 0, 
+              total_count: 0,
+              total_cost: 0
+            }
+          }
+          userStats[item.user_id].prompts_count += 1
+          userStats[item.user_id].total_count += 1
+        }
+      })
+    }
+    
+    // Process drafts from prompt_drafts table
+    if (draftsData && Array.isArray(draftsData)) {
+      draftsData.forEach(item => {
+        if (item.user_id) {
+          if (!userStats[item.user_id]) {
+            userStats[item.user_id] = { 
+              prompts_count: 0, 
+              drafts_count: 0, 
+              total_count: 0,
+              total_cost: 0
+            }
+          }
+          userStats[item.user_id].drafts_count += 1
+          userStats[item.user_id].total_count += 1
+        }
+      })
+    }
+    
+    // Process drafts from prompts table
+    if (promptDraftsData && Array.isArray(promptDraftsData)) {
+      promptDraftsData.forEach(item => {
+        if (item.user_id) {
+          if (!userStats[item.user_id]) {
+            userStats[item.user_id] = { 
+              prompts_count: 0, 
+              drafts_count: 0, 
+              total_count: 0,
+              total_cost: 0
+            }
+          }
+          userStats[item.user_id].drafts_count += 1
+          userStats[item.user_id].total_count += 1
+        }
+      })
+    }
+    
+    // Add token costs
+    if (tokenData && Array.isArray(tokenData)) {
+      tokenData.forEach(item => {
+        if (item.user_id && userStats[item.user_id]) {
+          userStats[item.user_id].total_cost += Number(item.total_cost) || 0
         }
       })
     }
     
     // Convert to expected format
-    const formattedData = Object.entries(userCounts).map(([user_id, count]) => ({
+    const formattedData = Object.entries(userStats).map(([user_id, stats]) => ({
       user_id,
-      count: count.toString()
+      prompts_count: stats.prompts_count,
+      drafts_count: stats.drafts_count,
+      total_count: stats.total_count,
+      total_cost: stats.total_cost
     }))
 
     console.log(`Successfully fetched prompt counts: ${JSON.stringify(formattedData)}`)
