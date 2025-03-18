@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { FinalPromptDisplay } from "@/components/dashboard/step-three/FinalPromptDisplay";
 import { MasterCommandSection } from "@/components/dashboard/step-three/MasterCommandSection";
@@ -126,7 +127,7 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
         setRenderTrigger={setRenderTrigger}
         isRefreshing={isRefreshing}
         setIsRefreshing={setIsRefreshing}
-        className="min-h-[400px]" // Increased height for final prompt area
+        className="min-h-[400px]" 
       />
       
       <VariablesSection 
@@ -151,7 +152,7 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
         isCopied={isCopied}
         isPrivate={isPrivate}
         setIsPrivate={setIsPrivate}
-        useAuroraEffect={false} // Disable aurora effect as per request
+        useAuroraEffect={false}
       />
     </div>
   );

@@ -20,7 +20,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   isCopied = false,
   isPrivate = false,
   setIsPrivate = () => {},
-  useAuroraEffect = true
+  useAuroraEffect = false
 }) => {
   return (
     <div className="flex flex-wrap items-center justify-end gap-3">
