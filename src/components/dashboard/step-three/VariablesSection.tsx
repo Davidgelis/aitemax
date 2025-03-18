@@ -75,17 +75,18 @@ export const VariablesSection = ({
   return (
     <div className="mb-4 p-3 border rounded-lg bg-background/50">
       <h4 className="text-sm font-medium mb-3">Variables</h4>
-      <div className="flex flex-col space-y-2">
+      <div className="flex flex-col space-y-3">
         {relevantVariables.map((variable, index) => (
-          <div key={variable.id} className="variable-container flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 bg-primary/10 text-xs font-medium text-primary-dark">
+          <div key={variable.id} className="variable-container flex gap-3 items-center">
+            <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
               {index + 1}
             </div>
-            <div className="flex-1 flex flex-col sm:flex-row">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sr-only">Variable name</div>
               <Input 
                 value={variable.value || ""}
                 onChange={(e) => handleInputChange(variable.id, e.target.value)}
-                className="h-8 text-xs py-1 px-2 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
+                className="h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
                 data-variable-id={variable.id}
                 data-source="variables-section"
                 placeholder="Type here..."
@@ -107,7 +108,7 @@ export const VariablesSection = ({
                 <AlertDialogTrigger asChild>
                   <button 
                     onClick={() => setVariableToDelete(variable.id)}
-                    className="variable-delete-btn flex-shrink-0 p-2 text-muted-foreground hover:text-destructive transition-colors"
+                    className="variable-delete-btn p-2 rounded-full hover:bg-[#33fea6]/20"
                     aria-label="Delete variable"
                   >
                     <Trash2 className="w-4 h-4" />
