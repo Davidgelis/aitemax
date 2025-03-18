@@ -18,7 +18,8 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   onSavePrompt,
   isCopied = false,
   isPrivate = false,
-  setIsPrivate = () => {}
+  setIsPrivate = () => {},
+  onRegenerate
 }) => {
   return (
     <div className="flex justify-between items-center mt-4">
