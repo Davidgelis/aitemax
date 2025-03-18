@@ -1,11 +1,17 @@
 
+import React from 'react';
+
 interface StepIndicatorProps {
   currentStep: number;
   onStepChange: (step: number) => void;
-  isViewingSavedPrompt?: boolean; // Add this new prop
+  isViewingSavedPrompt?: boolean;
 }
 
-export const StepIndicator = ({ currentStep, onStepChange, isViewingSavedPrompt = false }: StepIndicatorProps) => {
+export const StepIndicator: React.FC<StepIndicatorProps> = ({ 
+  currentStep, 
+  onStepChange, 
+  isViewingSavedPrompt = false 
+}) => {
   return (
     <div className="flex flex-col items-center gap-4 mt-8 mb-4">
       {/* Numeric buttons for testing */}

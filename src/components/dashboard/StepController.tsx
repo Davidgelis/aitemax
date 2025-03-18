@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from "react";
 import { StepOneContent } from "@/components/dashboard/StepOneContent";
 import { StepTwoContent } from "@/components/dashboard/StepTwoContent";
@@ -67,9 +68,17 @@ export const StepController: React.FC<StepControllerProps> = ({
     });
   };
 
+  const handleStepChange = (step: number) => {
+    promptState.setCurrentStep(step);
+  };
+
   return (
     <div className="flex flex-col w-full">
-      <StepIndicator currentStep={promptState.currentStep} />
+      <StepIndicator 
+        currentStep={promptState.currentStep} 
+        onStepChange={handleStepChange}
+        isViewingSavedPrompt={promptState.isViewingSavedPrompt}
+      />
       
       <div className="mt-4">
         {promptState.currentStep === 1 && (
@@ -97,21 +106,36 @@ export const StepController: React.FC<StepControllerProps> = ({
         {promptState.currentStep === 2 && (
           <StepTwoContent
             questions={promptState.questions}
-            setQuestions={promptState.setQuestions}
-            currentQuestionPage={promptState.currentQuestionPage}
-            setCurrentQuestionPage={promptState.setCurrentQuestionPage}
             variables={promptState.variables}
-            setVariables={promptState.setVariables}
-            handleVariableValueChange={(id, value) => {
-              promptState.setVariables(prevVariables =>
-                prevVariables.map(variable =>
-                  variable.id === id ? { ...variable, value } : variable
-                )
+            onQuestionRelevance={(questionId, isRelevant) => {
+              promptState.setQuestions(prevQuestions =>
+                prevQuestions.map(q => q.id === questionId ? { ...q, isRelevant } : q)
               );
             }}
-            onNext={() => promptState.setCurrentQuestionPage(prev => prev + 1)}
-            onPrev={() => promptState.setCurrentQuestionPage(prev => prev - 1)}
-            onGenerate={() => promptState.setCurrentStep(3)}
+            onQuestionAnswer={(questionId, answer) => {
+              promptState.setQuestions(prevQuestions =>
+                prevQuestions.map(q => q.id === questionId ? { ...q, answer } : q)
+              );
+            }}
+            onVariableChange={(variableId, field, content) => {
+              promptState.setVariables(prevVariables =>
+                prevVariables.map(v => v.id === variableId ? { ...v, [field]: content } : v)
+              );
+            }}
+            onVariableRelevance={(variableId, isRelevant) => {
+              promptState.setVariables(prevVariables =>
+                prevVariables.map(v => v.id === variableId ? { ...v, isRelevant } : v)
+              );
+            }}
+            onAddVariable={promptState.addVariable}
+            onDeleteVariable={promptState.deleteVariable}
+            variableToDelete={promptState.variableToDelete}
+            setVariableToDelete={promptState.setVariableToDelete}
+            canProceedToStep3={true}
+            onContinue={() => promptState.setCurrentStep(3)}
+            questionsContainerRef={promptState.questionsContainerRef}
+            variablesContainerRef={promptState.variablesContainerRef}
+            originalPrompt={promptState.promptText}
           />
         )}
         
