@@ -1,3 +1,4 @@
+
 export const StepThreeStyles = () => {
   return (
     <style>
@@ -151,11 +152,10 @@ export const StepThreeStyles = () => {
         color: #545454;
         transition: all 0.2s ease;
         cursor: pointer;
-        background-color: rgba(51, 254, 166, 0.2);
-        border-radius: 50%;
       }
       
       .variable-delete-btn:hover {
+        color: #545454;
         background-color: rgba(51, 254, 166, 0.3);
       }
       

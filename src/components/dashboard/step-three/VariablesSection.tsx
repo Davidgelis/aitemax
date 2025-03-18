@@ -82,51 +82,53 @@ export const VariablesSection = ({
             </div>
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sr-only">Variable name</div>
-              <Input 
-                value={variable.value || ""}
-                onChange={(e) => handleInputChange(variable.id, e.target.value)}
-                className="h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
-                data-variable-id={variable.id}
-                data-source="variables-section"
-                placeholder="Type here..."
-                onInput={(e) => {
-                  // Dispatch a custom event when value changes from this component
-                  const customEvent = new CustomEvent('variable-value-changed', {
-                    detail: {
-                      variableId: variable.id,
-                      newValue: e.currentTarget.value
-                    }
-                  });
-                  document.dispatchEvent(customEvent);
-                }}
-              />
+              <div className="flex items-center w-full">
+                <Input 
+                  value={variable.value || ""}
+                  onChange={(e) => handleInputChange(variable.id, e.target.value)}
+                  className="h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
+                  data-variable-id={variable.id}
+                  data-source="variables-section"
+                  placeholder="Type here..."
+                  onInput={(e) => {
+                    // Dispatch a custom event when value changes from this component
+                    const customEvent = new CustomEvent('variable-value-changed', {
+                      detail: {
+                        variableId: variable.id,
+                        newValue: e.currentTarget.value
+                      }
+                    });
+                    document.dispatchEvent(customEvent);
+                  }}
+                />
+                
+                {onDeleteVariable && (
+                  <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
+                    <AlertDialogTrigger asChild>
+                      <button 
+                        onClick={() => setVariableToDelete(variable.id)}
+                        className="p-2 rounded-full hover:bg-[#33fea6]/20 ml-2"
+                        aria-label="Delete variable"
+                      >
+                        <Trash2 className="w-4 h-4 text-[#545454]" />
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete variable?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this variable? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(variable.id)}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
             </div>
-            
-            {onDeleteVariable && (
-              <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
-                <AlertDialogTrigger asChild>
-                  <button 
-                    onClick={() => setVariableToDelete(variable.id)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#33fea6]/20 hover:bg-[#33fea6]/30 transition-colors"
-                    aria-label="Delete variable"
-                  >
-                    <Trash2 className="w-4 h-4 text-[#545454]" />
-                  </button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete variable?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete this variable? This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleDelete(variable.id)}>Delete</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
           </div>
         ))}
       </div>
