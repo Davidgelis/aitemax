@@ -25,11 +25,12 @@ interface FinalPromptDisplayProps {
   handleOpenEditPrompt: () => void;
   recordVariableSelection?: (variableId: string, selectedText: string) => void;
   isEditing: boolean;
-  setIsEditing: (isEditing: boolean) => void;
+  setIsEditing: (setIsEditing: boolean) => void;
   editablePrompt: string;
   setEditablePrompt: (prompt: string) => void;
   handleSaveEditedPrompt: () => void;
   renderTrigger?: number;
+  setRenderTrigger: (callback: (prev: number) => number) => void;
   isRefreshing?: boolean;
   setIsRefreshing?: (isRefreshing: boolean) => void;
 }
@@ -50,6 +51,7 @@ export const FinalPromptDisplay = ({
   setEditablePrompt,
   handleSaveEditedPrompt,
   renderTrigger = 0,
+  setRenderTrigger,
   isRefreshing = false,
   setIsRefreshing
 }: FinalPromptDisplayProps) => {

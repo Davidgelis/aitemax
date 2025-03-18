@@ -203,6 +203,7 @@ export const StepThreeContent = ({
         setEditablePrompt={setEditablePrompt}
         handleSaveEditedPrompt={handleSaveInlineEdit}
         renderTrigger={renderTrigger}
+        setRenderTrigger={setRenderTrigger}
         isRefreshing={isRefreshingJson}
         setIsRefreshing={setIsRefreshingJson}
       />
