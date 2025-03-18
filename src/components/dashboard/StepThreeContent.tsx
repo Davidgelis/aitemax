@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
 import { FinalPromptDisplay } from "./step-three/FinalPromptDisplay";
@@ -69,6 +70,7 @@ export const StepThreeContent = ({
   const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState("");
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Get the promptOperations
   const promptOperations = usePromptOperations(
@@ -86,6 +88,8 @@ export const StepThreeContent = ({
   const [renderTrigger, setRenderTrigger] = useState(0);
   const [refreshJsonTrigger, setRefreshJsonTrigger] = useState(0);
   const [isRefreshingJson, setIsRefreshingJson] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const MIN_REFRESH_INTERVAL = 3000; // 3 seconds between refreshes
   
   useEffect(() => {
     setRenderTrigger(prev => prev + 1);
@@ -162,9 +166,23 @@ export const StepThreeContent = ({
   }, [promptOperations, toast]);
 
   const handleRefreshJson = useCallback(() => {
-    if (isRefreshingJson) return; // Prevent multiple refreshes at once
+    const now = Date.now();
+    if (isRefreshingJson) {
+      console.log("Already refreshing JSON, ignoring request");
+      return; // Prevent multiple refreshes at once
+    }
+    
+    if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
+      console.log(`Throttling JSON refresh request (last refresh was ${now - lastRefreshTime}ms ago)`);
+      toast({
+        title: "Please wait",
+        description: "Please wait a moment before refreshing again",
+      });
+      return; // Rate limiting on client side
+    }
     
     setIsRefreshingJson(true);
+    setLastRefreshTime(now);
     setRefreshJsonTrigger(prev => prev + 1);
     
     toast({
@@ -172,11 +190,17 @@ export const StepThreeContent = ({
       description: "Generating updated JSON structure...",
     });
     
+    // Clear any existing timeout
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    
     // Set a timeout to reset the refreshing state even if the operation fails
-    setTimeout(() => {
+    refreshTimeoutRef.current = setTimeout(() => {
       setIsRefreshingJson(false);
+      refreshTimeoutRef.current = null;
     }, 10000); // 10 second timeout
-  }, [toast, isRefreshingJson]);
+  }, [toast, isRefreshingJson, lastRefreshTime]);
   
   // Listen for JSON generation completion to reset the refreshing state
   useEffect(() => {
@@ -186,6 +210,15 @@ export const StepThreeContent = ({
     
     return () => clearTimeout(timeoutId);
   }, [refreshJsonTrigger]);
+  
+  // Clean up any timeouts when component unmounts
+  useEffect(() => {
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
