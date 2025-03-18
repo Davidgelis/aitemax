@@ -89,43 +89,27 @@ export default function Analytics() {
 
         if (userError) throw userError;
 
-        // Get prompt counts per user using a more reliable method
-        let promptCountData: any[] = [];
+        // Get prompt counts using direct query for more accuracy
+        const { data: promptData, error: promptError } = await supabase
+          .from('prompts')
+          .select('user_id, id')
+          .eq('is_draft', false);
+          
+        if (promptError) throw promptError;
         
-        try {
-          // First try: Use the edge function
-          const promptCountResponse = await supabase.functions.invoke('get-prompt-counts-per-user', {
-            method: 'GET',
+        console.log("Direct prompt fetch result:", promptData?.length || 0, "prompts found");
+        
+        // Count prompts per user
+        const userPromptCounts: Record<string, number> = {};
+        if (promptData && promptData.length > 0) {
+          promptData.forEach(item => {
+            if (item.user_id) {
+              userPromptCounts[item.user_id] = (userPromptCounts[item.user_id] || 0) + 1;
+            }
           });
-          
-          if (promptCountResponse.error) throw promptCountResponse.error;
-          promptCountData = promptCountResponse.data || [];
-          console.log("Successfully fetched prompt counts from edge function");
-        } catch (edgeError) {
-          console.error("Edge function error:", edgeError);
-          
-          // Fallback: Use direct query
-          console.log("Falling back to direct query for prompt counts");
-          const { data: tokenUsageData, error: tokenUsageError } = await supabase
-            .from('token_usage')
-            .select('user_id');
-          
-          if (tokenUsageError) throw tokenUsageError;
-          
-          // Count occurrences of each user_id manually
-          const userCounts: Record<string, number> = {};
-          tokenUsageData.forEach(row => {
-            userCounts[row.user_id] = (userCounts[row.user_id] || 0) + 1;
-          });
-          
-          // Convert to expected format
-          promptCountData = Object.entries(userCounts).map(([user_id, count]) => ({
-            user_id,
-            count: count.toString()
-          }));
-          
-          console.log("Generated prompt counts from token_usage table");
         }
+        
+        console.log("Direct count result:", userPromptCounts);
 
         // Get usernames from profiles
         const { data: profilesData, error: profilesError } = await supabase
@@ -140,16 +124,6 @@ export default function Analytics() {
           return acc;
         }, {} as Record<string, string | null>);
 
-        // Create a map of user_id to prompt count
-        const promptCountMap: Record<string, number> = {};
-        
-        // Process the prompt count data
-        promptCountData.forEach((item: any) => {
-          const userId = item.user_id;
-          const count = typeof item.count === 'string' ? parseInt(item.count) : item.count;
-          promptCountMap[userId] = count || 0;
-        });
-
         // Combine the data
         const combinedStats = userData.map(user => ({
           user_id: user.user_id,
@@ -159,7 +133,7 @@ export default function Analytics() {
           total_prompt_cost: Number(user.total_prompt_cost) || 0,
           total_completion_cost: Number(user.total_completion_cost) || 0,
           total_cost: Number(user.total_cost) || 0,
-          prompts_count: promptCountMap[user.user_id] || 0
+          prompts_count: userPromptCounts[user.user_id] || 0
         }));
 
         setUserStats(combinedStats);

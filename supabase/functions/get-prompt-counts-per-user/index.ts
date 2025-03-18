@@ -22,25 +22,36 @@ Deno.serve(async (req) => {
     
     console.log('Fetching prompt counts per user...')
 
-    // Query to get count of prompts per user
+    // Query to get count of prompts per user - use an actual count operation
     const { data, error } = await supabase
       .from('token_usage')
-      .select('user_id, count(*)')
-      .group('user_id')
+      .select('user_id')
+      .is('prompt_id', null, { not: true }) // Only count rows with a valid prompt_id
+      .gt('step', 0) // Ensure step is greater than 0 to count only valid prompts
     
     if (error) {
-      console.error('Error fetching prompt counts:', error)
+      console.error('Error fetching prompt data:', error)
       throw error
     }
 
-    console.log('Successfully fetched prompt counts')
+    // Manual count to ensure accuracy
+    const userCounts = {}
+    if (data && Array.isArray(data)) {
+      data.forEach(item => {
+        if (item.user_id) {
+          userCounts[item.user_id] = (userCounts[item.user_id] || 0) + 1
+        }
+      })
+    }
     
-    // Format the data to match the expected structure
-    const formattedData = data.map(item => ({
-      user_id: item.user_id,
-      count: item.count.toString()
+    // Convert to expected format
+    const formattedData = Object.entries(userCounts).map(([user_id, count]) => ({
+      user_id,
+      count: count.toString()
     }))
 
+    console.log(`Successfully fetched prompt counts: ${JSON.stringify(formattedData)}`)
+    
     return new Response(JSON.stringify(formattedData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

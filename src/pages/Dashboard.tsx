@@ -60,6 +60,14 @@ const Dashboard = () => {
     (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm.toLowerCase())
   );
   
+  // Log saved prompts for visibility and accurate tracking
+  useEffect(() => {
+    if (promptState.savedPrompts.length > 0) {
+      console.log(`User has ${promptState.savedPrompts.length} saved prompts`, 
+        promptState.savedPrompts.map(p => p.id));
+    }
+  }, [promptState.savedPrompts]);
+  
   useEffect(() => {
     const saveDraftBeforeNavigate = (nextPath: string) => {
       if (nextPath !== location.pathname && promptState.promptText && !promptState.isViewingSavedPrompt) {
