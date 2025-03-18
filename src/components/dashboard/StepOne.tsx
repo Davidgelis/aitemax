@@ -32,6 +32,7 @@ export const StepOne = ({
         selectedToggle={selectedPrimary} 
         onToggleChange={handlePrimaryToggle} 
         variant="primary"
+        tooltipText="Select a primary use case for your prompt"
       />
 
       <Separator className="my-4" />
@@ -41,6 +42,7 @@ export const StepOne = ({
         selectedToggle={selectedSecondary} 
         onToggleChange={handleSecondaryToggle} 
         variant="secondary"
+        tooltipText="Select a secondary feature for your prompt"
       />
 
       <PromptEditor 

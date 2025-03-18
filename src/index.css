@@ -167,3 +167,16 @@ textarea::placeholder {
 .group:hover .group-hover\:text-\[\#33fea6\] {
   color: #33fea6;
 }
+
+/* Tooltip trigger hover effects */
+[data-variant="primary"] .tooltip-trigger:hover .tooltip-icon {
+  color: #64bf95;
+}
+
+[data-variant="secondary"] .tooltip-trigger:hover .tooltip-icon {
+  color: #084b49;
+}
+
+[data-variant="aurora"] .tooltip-trigger:hover .tooltip-icon {
+  color: #64bf95;
+}

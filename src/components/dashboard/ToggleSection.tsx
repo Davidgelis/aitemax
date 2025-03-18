@@ -1,7 +1,9 @@
+
 import { Switch } from "@/components/ui/switch";
 import { Toggle } from "./types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, Info } from "lucide-react";
+import { useState } from "react";
 
 interface ToggleSectionProps {
   toggles: Toggle[];
@@ -29,6 +31,13 @@ export const ToggleSection = ({
     if (itemVariant === "aurora") return "border-2 border-[#64bf95]/30 glow-effect";
     
     return "border";
+  };
+
+  // Get tooltip icon hover color based on variant
+  const getTooltipIconColor = () => {
+    if (variant === "primary") return "#64bf95";
+    if (variant === "secondary") return "#084b49";
+    return "#64bf95"; // Default to primary color for aurora
   };
 
   const containerClass = "flex flex-wrap gap-2 " + className;
@@ -61,8 +70,14 @@ export const ToggleSection = ({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <button className="text-card-foreground hover:text-[#64bf95] transition-colors ml-2">
-                            <HelpCircle size={18} />
+                          <button 
+                            className="text-card-foreground hover:text-[#64bf95] transition-colors ml-2 tooltip-trigger"
+                            aria-label={`Learn more about ${item.label}`}
+                          >
+                            <HelpCircle 
+                              size={18} 
+                              className="tooltip-icon"
+                            />
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="bottom" className="max-w-xs text-xs">
@@ -94,8 +109,14 @@ export const ToggleSection = ({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <button className="text-card-foreground hover:text-[#64bf95] transition-colors ml-2">
-                            <HelpCircle size={18} />
+                          <button 
+                            className={`text-card-foreground hover:text-[${getTooltipIconColor()}] transition-colors ml-2 tooltip-trigger`}
+                            aria-label={`Learn more about ${item.label}`}
+                          >
+                            <HelpCircle 
+                              size={18} 
+                              className="tooltip-icon" 
+                            />
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="bottom" className="max-w-xs text-xs">
