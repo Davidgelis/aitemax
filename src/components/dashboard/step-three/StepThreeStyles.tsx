@@ -186,6 +186,12 @@ export const StepThreeStyles = () => {
       .editable-content:focus {
         outline: none;
       }
+      
+      /* Multi-selection marker styles */
+      .multi-selection-marker {
+        background-color: rgba(51, 254, 166, 0.3);
+        border-radius: 2px;
+      }
       `}
     </style>
   );
