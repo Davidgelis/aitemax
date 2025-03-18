@@ -72,6 +72,7 @@ export const StepThreeContent = ({
   const [editablePrompt, setEditablePrompt] = useState("");
   const [renderTrigger, setRenderTrigger] = useState(0);
   const [isRefreshingJson, setIsRefreshingJson] = useState(false);
+  const [lastSavedPrompt, setLastSavedPrompt] = useState(finalPrompt);
   
   // Get the promptOperations
   const promptOperations = usePromptOperations(
@@ -89,6 +90,11 @@ export const StepThreeContent = ({
   useEffect(() => {
     setRenderTrigger(prev => prev + 1);
   }, [variables]);
+  
+  // Update lastSavedPrompt when finalPrompt changes
+  useEffect(() => {
+    setLastSavedPrompt(finalPrompt);
+  }, [finalPrompt]);
   
   useEffect(() => {
     if (!variables || !Array.isArray(variables)) {
@@ -163,7 +169,7 @@ export const StepThreeContent = ({
     }
   }, [promptOperations, toast]);
 
-  // Improved handleRefreshJson function
+  // Improved handleRefreshJson function to use the latest finalPrompt
   const handleRefreshJson = useCallback(() => {
     if (isRefreshingJson) return;
     
@@ -207,6 +213,8 @@ export const StepThreeContent = ({
         setRenderTrigger={setRenderTrigger}
         isRefreshing={isRefreshingJson}
         setIsRefreshing={setIsRefreshingJson}
+        lastSavedPrompt={lastSavedPrompt}
+        setLastSavedPrompt={setLastSavedPrompt}
       />
 
       <VariablesSection 

@@ -33,6 +33,8 @@ interface FinalPromptDisplayProps {
   setRenderTrigger: (callback: (prev: number) => number) => void;
   isRefreshing?: boolean;
   setIsRefreshing?: (isRefreshing: boolean) => void;
+  lastSavedPrompt?: string;
+  setLastSavedPrompt?: (prompt: string) => void;
 }
 
 export const FinalPromptDisplay = ({
@@ -53,7 +55,9 @@ export const FinalPromptDisplay = ({
   renderTrigger = 0,
   setRenderTrigger,
   isRefreshing = false,
-  setIsRefreshing
+  setIsRefreshing,
+  lastSavedPrompt = "",
+  setLastSavedPrompt
 }: FinalPromptDisplayProps) => {
   
   const [processedPrompt, setProcessedPrompt] = useState("");
@@ -66,6 +70,7 @@ export const FinalPromptDisplay = ({
   const promptContainerRef = useRef<HTMLDivElement>(null);
   const editableContentRef = useRef<HTMLDivElement>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [currentPromptHash, setCurrentPromptHash] = useState<string>("");
   
   const { toast } = useToast();
   
@@ -113,6 +118,12 @@ export const FinalPromptDisplay = ({
       // Normalize whitespace
       cleanText = cleanText.replace(/\s+/g, ' ').trim();
       
+      // Generate a simple hash to track if content has changed
+      const simpleHash = btoa(cleanText.substring(0, 50) + cleanText.length);
+      setCurrentPromptHash(simpleHash);
+      
+      console.log("Generated clean text for API, length:", cleanText.length);
+      
       return cleanText;
     } catch (error) {
       console.error("Error generating clean text for API:", error);
@@ -121,7 +132,7 @@ export const FinalPromptDisplay = ({
     }
   }, [getProcessedPrompt, relevantVariables]);
   
-  // Improved convertPromptToJson function
+  // Improved convertPromptToJson function to always use latest content
   const convertPromptToJson = useCallback(async (forceRefresh = false) => {
     if (!finalPrompt || finalPrompt.trim() === "") {
       setJsonError("No prompt text to convert");
@@ -250,7 +261,16 @@ export const FinalPromptDisplay = ({
     }
   }, [isEditing, finalPrompt, relevantVariables, editablePrompt, setEditablePrompt]);
 
-  
+  // Keep track of prompt changes to force JSON refresh
+  useEffect(() => {
+    // When finalPrompt changes and JSON view is active, mark JSON as needing refresh
+    if (showJson && finalPrompt !== lastSavedPrompt) {
+      setJsonGenerated(false);
+      if (setLastSavedPrompt) {
+        setLastSavedPrompt(finalPrompt);
+      }
+    }
+  }, [finalPrompt, showJson, lastSavedPrompt, setLastSavedPrompt]);
   
   // Functions related to mouse selection and variable creation
   const handleMouseUp = () => {
@@ -364,9 +384,13 @@ export const FinalPromptDisplay = ({
     
     // Force re-render
     setRenderTrigger(prev => prev + 1);
+    
+    // Reset JSON generation to force refresh if needed
+    if (showJson) {
+      setJsonGenerated(false);
+    }
   };
   
-  // Exit multi-selection mode and clean up
   const exitMultiSelectionMode = () => {
     // Remove all temporary multi-selection markers
     const markers = document.querySelectorAll('.multi-selection-marker');
@@ -433,8 +457,11 @@ export const FinalPromptDisplay = ({
       description: "Variable has been removed",
     });
     
-    // Force re-render
+    // Force re-render and reset JSON if needed
     setRenderTrigger(prev => prev + 1);
+    if (showJson) {
+      setJsonGenerated(false);
+    }
   };
   
   const renderVariablePlaceholder = (variable: Variable, uniqueKey: string) => {
@@ -482,8 +509,6 @@ export const FinalPromptDisplay = ({
     }
   };
 
-  
-  
   // Modified renderProcessedPrompt function to handle HTML parsing and variable placeholders
   const renderProcessedPrompt = () => {
     if (isEditing) {
