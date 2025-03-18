@@ -32,6 +32,7 @@ interface UserSidebarProps {
   currentDraftId?: string | null;
   userProfile?: {
     avatar_url?: string;
+    username?: string;
   };
 }
 
@@ -129,7 +130,9 @@ export const UserSidebar = ({
                 <User className="w-6 h-6 text-muted-foreground" />
               </div>
             )}
-            <span className="font-medium">{user ? (user.email || 'User').split('@')[0] : 'Guest'}</span>
+            <span className="font-medium">
+              {userProfile?.username || (user ? (user.email || 'User').split('@')[0] : 'Guest')}
+            </span>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger className="p-1 rounded-md transition-all hover:shadow-[0_0_10px_rgba(51,254,166,0.7)] focus:shadow-[0_0_10px_rgba(51,254,166,0.7)]">
