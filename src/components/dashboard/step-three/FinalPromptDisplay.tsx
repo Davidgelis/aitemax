@@ -158,12 +158,19 @@ export const FinalPromptDisplay = ({
         length: cleanTextForApi.length
       });
       
-      const requestBody = {
+      const requestBody: {
+        prompt: string;
+        masterCommand: string;
+        userId: string | null;
+        promptId: string | null;
+        forceRefresh: boolean;
+        existingStructure?: PromptJsonStructure;
+      } = {
         prompt: cleanTextForApi,
         masterCommand,
         userId,
         promptId,
-        forceRefresh: forceRefresh // Only force refresh when explicitly requested
+        forceRefresh // Only force refresh when explicitly requested
       };
       
       // If we're refreshing an existing JSON and have a previous structure, include it
