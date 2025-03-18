@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { FinalPromptDisplay } from "@/components/dashboard/step-three/FinalPromptDisplay";
 import { MasterCommandSection } from "@/components/dashboard/step-three/MasterCommandSection";
@@ -69,14 +68,8 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
   setIsPrivate = () => {}
 }) => {
   const [isCopied, setCopied] = useState(false);
-  const {
-    isMobile,
-    isTablet,
-    isDesktop
-  } = useResponsive();
-  const {
-    toast
-  } = useToast();
+  const { isMobile, isTablet, isDesktop } = useResponsive();
+  const { toast } = useToast();
   const [value, copy] = useCopyToClipboard();
   const [renderTrigger, setRenderTrigger] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -115,21 +108,6 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
         isRefreshing={isRefreshing}
       />
       
-      <VariablesSection 
-        variables={variables}
-        handleVariableValueChange={handleVariableValueChange}
-        onDeleteVariable={(variableId) => {
-          // Find the variable to delete
-          const variableToDelete = variables.find(v => v.id === variableId);
-          if (variableToDelete) {
-            // Mark it as not relevant instead of actually deleting
-            setVariables(prev => prev.map(v => 
-              v.id === variableId ? {...v, isRelevant: false} : v
-            ));
-          }
-        }}
-      />
-      
       <FinalPromptDisplay
         finalPrompt={finalPrompt}
         updateFinalPrompt={setFinalPrompt}
@@ -148,6 +126,22 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
         setRenderTrigger={setRenderTrigger}
         isRefreshing={isRefreshing}
         setIsRefreshing={setIsRefreshing}
+        className="min-h-[400px]" // Increased height for final prompt area
+      />
+      
+      <VariablesSection 
+        variables={variables}
+        handleVariableValueChange={handleVariableValueChange}
+        onDeleteVariable={(variableId) => {
+          // Find the variable to delete
+          const variableToDelete = variables.find(v => v.id === variableId);
+          if (variableToDelete) {
+            // Mark it as not relevant instead of actually deleting
+            setVariables(prev => prev.map(v => 
+              v.id === variableId ? {...v, isRelevant: false} : v
+            ));
+          }
+        }}
       />
       
       <ActionButtons
@@ -157,6 +151,7 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
         isCopied={isCopied}
         isPrivate={isPrivate}
         setIsPrivate={setIsPrivate}
+        useAuroraEffect={false} // Disable aurora effect as per request
       />
     </div>
   );

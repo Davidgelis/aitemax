@@ -10,6 +10,7 @@ interface ActionButtonsProps {
   isCopied?: boolean;
   isPrivate?: boolean;
   setIsPrivate?: (isPrivate: boolean) => void;
+  useAuroraEffect?: boolean;
 }
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({
@@ -18,7 +19,8 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   onRegenerate,
   isCopied = false,
   isPrivate = false,
-  setIsPrivate = () => {}
+  setIsPrivate = () => {},
+  useAuroraEffect = true
 }) => {
   return (
     <div className="flex flex-wrap items-center justify-end gap-3">
@@ -42,7 +44,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         </Button>
         
         <Button 
-          className="flex items-center gap-1 bg-[#084b49] text-white hover:bg-[#084b49]/90" 
+          className={`flex items-center gap-1 ${useAuroraEffect ? 'aurora-button' : 'bg-[#084b49] text-white hover:bg-[#084b49]/90'}`}
           onClick={onSavePrompt}
         >
           <Save className="h-4 w-4" />

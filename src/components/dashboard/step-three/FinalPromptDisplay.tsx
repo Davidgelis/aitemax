@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
 import { replaceVariableInPrompt, convertEditedContentToPlaceholders, convertPlaceholdersToEditableFormat, convertPlaceholdersToSpans, toVariablePlaceholder, stripHtml } from "@/utils/promptUtils";
+
 interface FinalPromptDisplayProps {
   finalPrompt: string;
   updateFinalPrompt: (newPrompt: string) => void;
@@ -27,7 +28,9 @@ interface FinalPromptDisplayProps {
   setIsRefreshing?: (isRefreshing: boolean) => void;
   lastSavedPrompt?: string;
   setLastSavedPrompt?: (prompt: string) => void;
+  className?: string; // Add className prop
 }
+
 export const FinalPromptDisplay = ({
   finalPrompt,
   updateFinalPrompt,
@@ -48,7 +51,8 @@ export const FinalPromptDisplay = ({
   isRefreshing = false,
   setIsRefreshing,
   lastSavedPrompt = "",
-  setLastSavedPrompt
+  setLastSavedPrompt,
+  className = "" // Default to empty string
 }: FinalPromptDisplayProps) => {
   const [processedPrompt, setProcessedPrompt] = useState("");
   const [promptJson, setPromptJson] = useState<PromptJsonStructure | null>(null);
@@ -580,7 +584,7 @@ export const FinalPromptDisplay = ({
       return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
     }
   };
-  return <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
+  return <div className={`relative flex-1 mb-4 overflow-hidden rounded-lg ${className}`}>
       <div className="absolute top-2 right-2 z-10 flex items-center space-x-4">
         {!isEditing && <>
             <div className="flex items-center gap-2">
