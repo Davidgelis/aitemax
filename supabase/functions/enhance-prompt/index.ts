@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { xhr } from "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
@@ -272,16 +271,16 @@ Based on this information, generate an enhanced final prompt that follows the st
         total_tokens: Math.ceil((systemMessage.length + userMessage.length + enhancedPrompt.length) / 4)
       };
       
-      // Record the token usage for this step if userId is provided
+      // Record the token usage for this step if userId is provided - FIRE AND FORGET PATTERN
       if (userId) {
-        await recordTokenUsage(
+        recordTokenUsage(
           userId,
           promptId,
           3, // Step 3: Final prompt generation
           estimatedUsage.prompt_tokens,
           estimatedUsage.completion_tokens,
           'o3-mini'
-        );
+        ).catch((err) => console.error("Token usage recording failed:", err));
       }
       
       return new Response(JSON.stringify({ 

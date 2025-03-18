@@ -198,16 +198,17 @@ serve(async (req) => {
       
       console.log("Successfully converted prompt to JSON structure with o3-mini");
       
-      // Record token usage if userId is provided
+      // Record token usage if userId is provided - FIRE AND FORGET PATTERN
       if (userId) {
-        await recordTokenUsage(
+        // Run token usage recording without blocking the response
+        recordTokenUsage(
           userId,
           promptId,
           4, // Step 4: JSON structure generation
           data.usage.prompt_tokens,
           data.usage.completion_tokens,
           'gpt-3.5-turbo'
-        );
+        ).catch((err) => console.error("Token usage recording failed:", err));
       }
     } catch (parseError) {
       console.error("Error parsing JSON response:", parseError);
