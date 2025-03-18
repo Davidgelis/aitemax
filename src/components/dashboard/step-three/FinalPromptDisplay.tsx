@@ -10,7 +10,8 @@ import {
   convertEditedContentToPlaceholders,
   convertPlaceholdersToEditableFormat,
   convertPlaceholdersToSpans,
-  toVariablePlaceholder
+  toVariablePlaceholder,
+  stripHtml
 } from "@/utils/promptUtils";
 
 interface FinalPromptDisplayProps {
@@ -84,6 +85,40 @@ export const FinalPromptDisplay = ({
     ? variables.filter(v => v && typeof v === 'object' && v?.isRelevant === true) 
     : [];
   
+  // Generate a clean text representation for the API
+  const generateCleanTextForApi = useCallback(() => {
+    try {
+      // Get the processed HTML that includes all variable spans
+      const processedHtml = getProcessedPrompt();
+      
+      // Create a temporary element to parse the HTML
+      const temp = document.createElement('div');
+      temp.innerHTML = processedHtml;
+      
+      // Replace all variable spans with their text content
+      const variableSpans = temp.querySelectorAll('[data-variable-id]');
+      variableSpans.forEach(span => {
+        const variableId = span.getAttribute('data-variable-id');
+        const variable = relevantVariables.find(v => v.id === variableId);
+        if (variable) {
+          span.textContent = variable.value || '';
+        }
+      });
+      
+      // Get the text content (strips all HTML)
+      let cleanText = temp.textContent || '';
+      
+      // Normalize whitespace
+      cleanText = cleanText.replace(/\s+/g, ' ').trim();
+      
+      return cleanText;
+    } catch (error) {
+      console.error("Error generating clean text for API:", error);
+      // Fallback: strip HTML directly from the processed prompt
+      return stripHtml(getProcessedPrompt());
+    }
+  }, [getProcessedPrompt, relevantVariables]);
+  
   const convertPromptToJson = useCallback(async (forceRefresh = false) => {
     if (!finalPrompt || finalPrompt.trim() === "") {
       setJsonError("No prompt text to convert");
@@ -96,9 +131,17 @@ export const FinalPromptDisplay = ({
     setJsonError(null);
     
     try {
+      // Generate clean text for the API - this is the key change
+      const cleanTextForApi = generateCleanTextForApi();
+      console.log("Clean text for API (first 100 chars):", cleanTextForApi.substring(0, 100));
+      
+      if (!cleanTextForApi || cleanTextForApi.trim() === "") {
+        throw new Error("Generated clean text is empty");
+      }
+      
       const { data, error } = await supabase.functions.invoke('prompt-to-json', {
         body: {
-          prompt: finalPrompt,
+          prompt: cleanTextForApi, // Send only clean text
           masterCommand,
           userId,
           promptId
@@ -153,7 +196,7 @@ export const FinalPromptDisplay = ({
         setIsRefreshingJson(false);
       }
     }
-  }, [finalPrompt, masterCommand, toast, userId, promptId, jsonGenerated, setIsRefreshingJson]);
+  }, [finalPrompt, masterCommand, toast, userId, promptId, jsonGenerated, setIsRefreshingJson, generateCleanTextForApi]);
   
   // Initial JSON generation when showing JSON
   useEffect(() => {
@@ -169,6 +212,7 @@ export const FinalPromptDisplay = ({
       convertPromptToJson(true); // Force refresh
     }
   }, [refreshJsonTrigger, showJson, convertPromptToJson]);
+  
   
   useEffect(() => {
     try {
@@ -195,6 +239,8 @@ export const FinalPromptDisplay = ({
     }
   }, [isEditing, finalPrompt, relevantVariables, hasInitializedEditMode, setEditablePrompt]);
 
+  
+  
   // Functions related to mouse selection and variable creation
   const handleMouseUp = () => {
     if (!isCreatingVariable || isEditing) return;
@@ -304,6 +350,10 @@ export const FinalPromptDisplay = ({
     // Reset multi-selection mode
     exitMultiSelectionMode();
     cancelVariableCreation();
+    
+    // Reset JSON generation flag so it will regenerate when refreshed
+    setJsonGenerated(false);
+    
     setRenderTrigger(prev => prev + 1); // Force re-render
   };
   
@@ -369,6 +419,9 @@ export const FinalPromptDisplay = ({
     const updatedPrompt = finalPrompt.replace(new RegExp(varPlaceholder, 'g'), currentValue);
     updateFinalPrompt(updatedPrompt);
     
+    // Reset JSON generation flag when variables change
+    setJsonGenerated(false);
+    
     toast({
       title: "Variable removed",
       description: "Variable has been removed",
@@ -392,16 +445,17 @@ export const FinalPromptDisplay = ({
     if (editableContentRef.current) {
       // Get content directly from the DOM
       let newContent = editableContentRef.current.innerHTML;
-      console.log("Raw content before processing:", newContent);
       
       // Convert the edited content back to the standardized placeholder format
       const processedContent = convertEditedContentToPlaceholders(newContent, relevantVariables);
-      console.log("Processed content after conversion:", processedContent);
       
       // Update the final prompt with the processed content
       updateFinalPrompt(processedContent);
       setIsEditing(false);
       setEditablePrompt("");
+      
+      // Reset JSON generation flag when content changes
+      setJsonGenerated(false);
       
       toast({
         title: "Changes saved",
@@ -410,9 +464,6 @@ export const FinalPromptDisplay = ({
       
       // Force a re-render to show the updated content with variables
       setRenderTrigger(prev => prev + 1);
-      
-      // Also reset JSON generation flag when content changes
-      setJsonGenerated(false);
     }
   };
 

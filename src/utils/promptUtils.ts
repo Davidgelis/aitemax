@@ -64,8 +64,16 @@ export const escapeRegExp = (string: string): string => {
 
 // Helper to clean HTML from text (for variable removal)
 export const stripHtml = (html: string): string => {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.body.textContent || "";
+  if (!html) return "";
+  
+  try {
+    // Try using DOMParser first (works in browsers)
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || "";
+  } catch (error) {
+    // Fallback - basic regex to strip HTML tags
+    return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+  }
 };
 
 // Extract variable id from the special format we use for editing
