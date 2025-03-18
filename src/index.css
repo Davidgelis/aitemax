@@ -170,13 +170,24 @@ textarea::placeholder {
 
 /* Tooltip trigger hover effects */
 [data-variant="primary"] .tooltip-trigger:hover .tooltip-icon {
-  color: #64bf95;
+  color: #64bf95 !important;
 }
 
 [data-variant="secondary"] .tooltip-trigger:hover .tooltip-icon {
-  color: #084b49;
+  color: #084b49 !important;
 }
 
 [data-variant="aurora"] .tooltip-trigger:hover .tooltip-icon {
-  color: #64bf95;
+  color: #64bf95 !important;
+}
+
+/* Improved tooltip visibility */
+.tooltip-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tooltip-icon {
+  transition: color 0.2s ease;
 }

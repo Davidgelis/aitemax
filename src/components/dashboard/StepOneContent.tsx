@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
@@ -9,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { HelpCircle, ImageUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "./ImageUploader";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface StepOneContentProps {
   promptText: string;
@@ -50,13 +50,6 @@ export const StepOneContent = ({
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Ensure images are passed to parent component
-  useEffect(() => {
-    if (onImagesChange) {
-      onImagesChange(uploadedImages);
-    }
-  }, [uploadedImages, onImagesChange]);
-
   const handleImagesChange = (images: UploadedImage[]) => {
     setUploadedImages(images);
     console.log("StepOneContent: Images updated:", images);
@@ -67,7 +60,6 @@ export const StepOneContent = ({
     setWebsiteContext(contextData);
     console.log("StepOneContent: Website context set:", contextData);
     
-    // Important: Forward to parent component
     onWebsiteScan(url, instructions);
   };
 
@@ -79,7 +71,6 @@ export const StepOneContent = ({
       usageInstructions: usageInstructions.substring(0, 100) + (usageInstructions.length > 100 ? "..." : "")
     });
     
-    // Important: Forward to parent component with both parameters
     onSmartContext(context, usageInstructions);
   };
 
@@ -102,21 +93,16 @@ export const StepOneContent = ({
 
   return (
     <div className="border rounded-xl p-6 bg-card">
-      {/* Web Smart Scan, Smart Context, and Image Upload buttons */}
       <div className="mb-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
           <WebScanner 
             onWebsiteScan={handleWebsiteScan}
             variant="modelReplacement"
           />
-          
-          {/* Smart Context button */}
           <SmartContext
             onSmartContext={handleSmartContext}
             variant="modelReplacement"
           />
-          
-          {/* Image Upload button styled similar to Web Smart Scan */}
           <div className="w-full">
             <div className="flex items-center">
               <button 
@@ -141,7 +127,6 @@ export const StepOneContent = ({
         </div>
       </div>
 
-      {/* Display any uploaded images with their context */}
       {uploadedImages.length > 0 && (
         <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
           <h3 className="text-sm font-medium text-[#545454] mb-2">Uploaded Images</h3>
@@ -154,7 +139,6 @@ export const StepOneContent = ({
         </div>
       )}
 
-      {/* Display smart context if provided */}
       {smartContext && smartContext.context && (
         <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
           <h3 className="text-sm font-medium text-[#545454] mb-2">Smart Context Added</h3>
@@ -165,12 +149,12 @@ export const StepOneContent = ({
         </div>
       )}
 
-      {/* Toggle sections for prompt types - using primary variant for top toggles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {primaryToggles.map(toggle => (
           <div 
             key={toggle.id}
             className="border rounded-lg p-3 flex justify-between items-center"
+            data-variant="primary"
           >
             <div className="text-[#545454] text-sm">
               {toggle.label}
@@ -181,18 +165,32 @@ export const StepOneContent = ({
                 onCheckedChange={() => handlePrimaryToggle(toggle.id)}
                 variant="primary"  
               />
-              <HelpCircle className="h-4 w-4 text-[#545454] opacity-70" />
+              <TooltipProvider>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <button 
+                      className="tooltip-trigger text-[#545454] opacity-70 hover:opacity-100"
+                      aria-label={`Learn more about ${toggle.label}`}
+                    >
+                      <HelpCircle className="h-4 w-4 tooltip-icon" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs text-xs">
+                    {toggle.definition}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Toggle sections for response styles - using secondary variant for bottom toggles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {secondaryToggles.map(toggle => (
           <div 
             key={toggle.id}
             className="border rounded-lg p-3 flex justify-between items-center"
+            data-variant="secondary"
           >
             <div className="text-[#545454] text-sm">
               {toggle.label}
@@ -203,13 +201,26 @@ export const StepOneContent = ({
                 onCheckedChange={() => handleSecondaryToggle(toggle.id)}
                 variant="secondary"
               />
-              <HelpCircle className="h-4 w-4 text-[#545454] opacity-70" />
+              <TooltipProvider>
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <button 
+                      className="tooltip-trigger text-[#545454] opacity-70 hover:opacity-100"
+                      aria-label={`Learn more about ${toggle.label}`}
+                    >
+                      <HelpCircle className="h-4 w-4 tooltip-icon" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs text-xs">
+                    {toggle.definition}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Main prompt input */}
       <div className="mb-6">
         <PromptInput 
           value={promptText}
@@ -225,7 +236,6 @@ export const StepOneContent = ({
         />
       </div>
 
-      {/* Action button */}
       <div className="flex justify-end mt-8">
         <Button
           onClick={handleAnalyzeWithContext}

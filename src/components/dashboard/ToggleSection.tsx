@@ -52,6 +52,7 @@ export const ToggleSection = ({
           <div 
             key={item.id} 
             className={`flex items-center py-1.5 px-3 ${getBorderClass(isSelected, variant)} rounded-lg bg-white flex-1 transition-all duration-300`}
+            data-variant={variant}
           >
             {/* For Aurora variant, keep text in a single line */}
             {isAurora ? (
@@ -107,10 +108,10 @@ export const ToggleSection = ({
                   {/* Help icon for definition */}
                   {item.definition && (
                     <TooltipProvider>
-                      <Tooltip>
+                      <Tooltip delayDuration={0}>
                         <TooltipTrigger asChild>
                           <button 
-                            className={`text-card-foreground hover:text-[${getTooltipIconColor()}] transition-colors ml-2 tooltip-trigger`}
+                            className="text-card-foreground tooltip-trigger ml-2"
                             aria-label={`Learn more about ${item.label}`}
                           >
                             <HelpCircle 
