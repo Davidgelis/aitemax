@@ -23,7 +23,16 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
   useAuroraEffect = false
 }) => {
   return (
-    <div className="flex flex-wrap items-center justify-end gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <Button 
+        variant="outline" 
+        className="flex items-center gap-1 bg-white shadow-sm" 
+        onClick={onRegenerate}
+      >
+        <RefreshCw className="h-4 w-4" />
+        <span>Regenerate</span>
+      </Button>
+      
       <div className="flex flex-wrap items-center gap-2">
         <Button 
           variant="outline" 
@@ -35,16 +44,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
         </Button>
         
         <Button 
-          variant="outline" 
-          className="flex items-center gap-1 bg-white shadow-sm" 
-          onClick={onRegenerate}
-        >
-          <RefreshCw className="h-4 w-4" />
-          <span>Regenerate</span>
-        </Button>
-        
-        <Button 
-          className={`flex items-center gap-1 ${useAuroraEffect ? 'aurora-button' : 'bg-[#084b49] text-white hover:bg-[#084b49]/90'}`}
+          className="flex items-center gap-1 bg-[#084b49] text-white hover:bg-[#084b49]/90"
           onClick={onSavePrompt}
         >
           <Save className="h-4 w-4" />

@@ -1,5 +1,7 @@
 
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { RotateCw } from "lucide-react";
 
 interface MasterCommandSectionProps {
   masterCommand: string;
@@ -12,6 +14,24 @@ export const MasterCommandSection = ({
   setMasterCommand,
   handleRegenerate
 }: MasterCommandSectionProps) => {
-  // This component will be empty as we're removing both the input and button
-  return null;
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex-1">
+        <Textarea
+          value={masterCommand}
+          onChange={(e) => setMasterCommand(e.target.value)}
+          placeholder="Master command (optional): Use this to adapt the prompt for specific contexts or needs"
+          className="min-h-[80px] text-sm resize-none"
+        />
+      </div>
+      <Button 
+        onClick={handleRegenerate} 
+        variant="outline" 
+        className="h-10 whitespace-nowrap"
+      >
+        <RotateCw className="w-4 h-4 mr-2" />
+        Regenerate
+      </Button>
+    </div>
+  );
 };

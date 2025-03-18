@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { FinalPromptDisplay } from "@/components/dashboard/step-three/FinalPromptDisplay";
 import { MasterCommandSection } from "@/components/dashboard/step-three/MasterCommandSection";
@@ -162,7 +163,7 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
         setRenderTrigger={setRenderTrigger}
         isRefreshing={isRefreshing}
         setIsRefreshing={setIsRefreshing}
-        className="min-h-[400px]" 
+        className="min-h-[500px]" 
       />
       
       <VariablesSection 
