@@ -1,3 +1,4 @@
+
 /**
  * Replaces a variable placeholder in the prompt with a new placeholder,
  * ensuring that the replacement is done correctly by escaping special
@@ -16,6 +17,13 @@ export const replaceVariableInPrompt = (
   // and replace it with the new placeholder
   const regex = new RegExp(escapedOriginalText, 'g');
   return prompt.replace(regex, newPlaceholder);
+};
+
+/**
+ * Escapes special characters in a string to be used in a regular expression
+ */
+export const escapeRegExp = (str: string): string => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
 /**
