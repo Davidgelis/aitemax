@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 interface MasterCommandSectionProps {
   masterCommand: string;
   setMasterCommand: (command: string) => void;
-  handleRegenerate: () => void;
+  handleRegenerate?: () => void;
 }
 
 export const MasterCommandSection = ({
