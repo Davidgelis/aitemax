@@ -77,13 +77,15 @@ export const VariablesSection = ({
       <h4 className="text-sm font-medium mb-3">Variables</h4>
       <div className="flex flex-col space-y-2">
         {relevantVariables.map((variable, index) => (
-          <div key={variable.id} className="variable-container flex items-center">
-            <div className="flex items-center gap-2 flex-1">
-              <span className="text-xs font-medium min-w-[25px]">{index + 1}:</span>
+          <div key={variable.id} className="variable-container flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 bg-primary/10 text-xs font-medium text-primary-dark">
+              {index + 1}
+            </div>
+            <div className="flex-1 flex flex-col sm:flex-row">
               <Input 
                 value={variable.value || ""}
                 onChange={(e) => handleInputChange(variable.id, e.target.value)}
-                className="h-7 text-xs py-1 px-2 bg-[#33fea6]/10 border-[#33fea6]/20 focus-visible:border-[#33fea6] focus-visible:ring-0"
+                className="h-8 text-xs py-1 px-2 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none bg-transparent"
                 data-variable-id={variable.id}
                 data-source="variables-section"
                 placeholder="Type here..."
@@ -105,7 +107,7 @@ export const VariablesSection = ({
                 <AlertDialogTrigger asChild>
                   <button 
                     onClick={() => setVariableToDelete(variable.id)}
-                    className="variable-delete-btn p-1.5 ml-2 rounded-full hover:bg-[#33fea6]/10 text-muted-foreground hover:text-[#33fea6]"
+                    className="variable-delete-btn flex-shrink-0 p-2 text-muted-foreground hover:text-destructive transition-colors"
                     aria-label="Delete variable"
                   >
                     <Trash2 className="w-4 h-4" />

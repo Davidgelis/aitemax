@@ -151,26 +151,22 @@ export const StepThreeStyles = () => {
       .variable-delete-btn {
         color: #71717a;
         transition: all 0.2s ease;
-        opacity: 0.6;
+        opacity: 0.8;
         cursor: pointer;
-        padding: 2px;
-        border-radius: 50%;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
       }
       
       .variable-delete-btn:hover {
         color: #ef4444;
         opacity: 1;
-        background-color: rgba(239, 68, 68, 0.1);
       }
       
       /* Variable container with delete button */
       .variable-container {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+        transition: all 0.2s ease;
+      }
+      
+      .variable-container:hover {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
       }
       
       /* Make the content area editable in editing mode */
