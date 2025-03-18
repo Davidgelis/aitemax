@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -28,7 +27,8 @@ export const usePromptState = (user: any) => {
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState(false);
   const [promptJsonStructure, setPromptJsonStructure] = useState<PromptJsonStructure | null>(null);
-  const [draftLoaded, setDraftLoaded] = useState(false);
+  // Removed draftLoaded state since we don't want to auto-load drafts
+
   const { toast } = useToast();
 
   const {
@@ -51,30 +51,7 @@ export const usePromptState = (user: any) => {
     user
   );
 
-  useEffect(() => {
-    if (user && !draftLoaded) {
-      loadDraft().then(draft => {
-        if (draft) {
-          setDraftLoaded(true);
-          
-          // Only load drafts for steps 2 and 3
-          if (draft.currentStep && draft.currentStep > 1) {
-            toast({
-              title: "Draft Loaded",
-              description: "Your previous work has been restored.",
-            });
-            
-            if (draft.promptText) setPromptText(draft.promptText);
-            if (draft.masterCommand) setMasterCommand(draft.masterCommand);
-            if (draft.variables) setVariables(draft.variables);
-            if (draft.selectedPrimary) setSelectedPrimary(draft.selectedPrimary);
-            if (draft.selectedSecondary) setSelectedSecondary(draft.selectedSecondary);
-            if (draft.currentStep) setCurrentStep(draft.currentStep);
-          }
-        }
-      });
-    }
-  }, [user, draftLoaded]);
+  // Removed the useEffect that auto-loads the draft on component mount
 
   const loadSelectedDraftState = (draft: any) => {
     const draftData = loadSelectedDraft(draft);

@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from "react";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,8 +29,7 @@ export const usePromptDrafts = (
   const [drafts, setDrafts] = useState<PromptDraft[]>([]);
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
-  const [hasLoadedInitialDraft, setHasLoadedInitialDraft] = useState(false);
-
+  
   useEffect(() => {
     if (user) {
       fetchDrafts();
@@ -177,9 +175,7 @@ export const usePromptDrafts = (
   }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, user, currentDraftId, fetchDrafts]);
 
   const loadDraft = useCallback(async () => {
-    if (!user || hasLoadedInitialDraft) return null;
-    
-    setHasLoadedInitialDraft(true);
+    if (!user) return null;
 
     try {
       const { data: drafts, error } = await supabase
@@ -197,7 +193,6 @@ export const usePromptDrafts = (
           return null;
         }
         
-        setCurrentDraftId(drafts[0].id);
         return {
           promptText: drafts[0].prompt_text,
           masterCommand: drafts[0].master_command,
@@ -218,23 +213,6 @@ export const usePromptDrafts = (
           return null;
         }
         
-        if (parsed.id) {
-          // Verify that the draft actually exists in the database
-          const { data: draftExists, error: checkError } = await supabase
-            .from('prompt_drafts')
-            .select('id')
-            .eq('id', parsed.id)
-            .limit(1);
-            
-          if (checkError || !draftExists || draftExists.length === 0) {
-            // If the draft doesn't exist in the database, clear local storage
-            localStorage.removeItem('promptDraft');
-            setCurrentDraftId(null);
-            return null;
-          }
-          
-          setCurrentDraftId(parsed.id);
-        }
         return parsed;
       }
 
@@ -251,36 +229,12 @@ export const usePromptDrafts = (
           return null;
         }
         
-        if (parsed.id) {
-          // Verify that the draft exists in the database
-          try {
-            const { data: draftExists, error: checkError } = await supabase
-              .from('prompt_drafts')
-              .select('id')
-              .eq('id', parsed.id)
-              .limit(1);
-              
-            if (checkError || !draftExists || draftExists.length === 0) {
-              // If the draft doesn't exist, clear local storage
-              localStorage.removeItem('promptDraft');
-              setCurrentDraftId(null);
-              return null;
-            }
-            
-            setCurrentDraftId(parsed.id);
-          } catch (verifyError) {
-            // If verification fails, clear local storage
-            localStorage.removeItem('promptDraft');
-            setCurrentDraftId(null);
-            return null;
-          }
-        }
         return parsed;
       }
     }
 
     return null;
-  }, [user, hasLoadedInitialDraft]);
+  }, [user]);
 
   const clearDraft = useCallback(async () => {
     if (!user) return;
