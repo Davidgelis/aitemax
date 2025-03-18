@@ -62,7 +62,7 @@ export const FinalPrompt = ({
   handleAdaptPrompt,
   onDeleteVariable
 }: FinalPromptProps) => {
-  const editPromptTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const editPromptTextareaRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [currentEditingContent, setCurrentEditingContent] = useState("");

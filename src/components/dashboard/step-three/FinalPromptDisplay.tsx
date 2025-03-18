@@ -484,7 +484,7 @@ export const FinalPromptDisplay = ({
         <div className="h-full w-full">
           <div
             className="editing-mode w-full h-full min-h-[300px] p-4 rounded-md font-sans text-sm"
-            contentEditable={true}
+            contentEditable="true"
             suppressContentEditableWarning={true}
             ref={editableTextareaRef as any}
             onInput={(e) => {
