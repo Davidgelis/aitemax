@@ -77,7 +77,7 @@ export const VariablesSection = ({
       <h4 className="text-sm font-medium mb-3">Variables</h4>
       <div className="flex flex-col space-y-2">
         {relevantVariables.map((variable, index) => (
-          <div key={variable.id} className="variable-container">
+          <div key={variable.id} className="variable-container flex items-center">
             <div className="flex items-center gap-2 flex-1">
               <span className="text-xs font-medium min-w-[25px]">{index + 1}:</span>
               <Input 
@@ -105,7 +105,7 @@ export const VariablesSection = ({
                 <AlertDialogTrigger asChild>
                   <button 
                     onClick={() => setVariableToDelete(variable.id)}
-                    className="variable-delete-btn"
+                    className="variable-delete-btn p-1.5 ml-2 rounded-full hover:bg-[#33fea6]/10 text-muted-foreground hover:text-[#33fea6]"
                     aria-label="Delete variable"
                   >
                     <Trash2 className="w-4 h-4" />

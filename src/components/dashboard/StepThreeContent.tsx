@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -143,6 +144,16 @@ export const StepThreeContent = ({
   const recordVariableSelection = useCallback((variableId: string, selectedText: string) => {
     promptOperations.recordVariableSelection(variableId, selectedText);
   }, [promptOperations]);
+  
+  const handleDeleteVariable = useCallback((variableId: string) => {
+    if (promptOperations.removeVariable) {
+      promptOperations.removeVariable(variableId);
+      toast({
+        title: "Variable deleted",
+        description: "The variable has been removed from your prompt",
+      });
+    }
+  }, [promptOperations, toast]);
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
@@ -171,6 +182,7 @@ export const StepThreeContent = ({
       <VariablesSection 
         variables={safeVariables}
         handleVariableValueChange={enhancedHandleVariableValueChange}
+        onDeleteVariable={handleDeleteVariable}
       />
 
       <ActionButtons 
