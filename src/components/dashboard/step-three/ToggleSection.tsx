@@ -36,6 +36,7 @@ export const ToggleSection = ({
           disabled={isRefreshing}
         >
           <RefreshCw className={`h-3.5 w-3.5 text-accent ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span className="sr-only">Refresh JSON</span>
         </Button>
       )}
     </div>

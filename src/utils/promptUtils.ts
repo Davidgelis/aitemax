@@ -1,103 +1,116 @@
-export const extractVariablesFromPrompt = (prompt: string): string[] => {
-  const pattern = /{{([^}]+)}}/g;
-  const matches = prompt.match(pattern) || [];
-  return matches.map(match => match.replace(/[{}]/g, '').trim());
-};
-
-export const findVariableOccurrences = (text: string, variableValue: string): number[] => {
-  if (!variableValue || variableValue.trim() === "") return [];
-  
-  const positions: number[] = [];
-  let position = text.indexOf(variableValue);
-  
-  while (position !== -1) {
-    positions.push(position);
-    position = text.indexOf(variableValue, position + 1);
-  }
-  
-  return positions;
-};
-
-// Completely replace the selected text with a variable placeholder or value
+/**
+ * Replaces a variable placeholder in the prompt with a new placeholder,
+ * ensuring that the replacement is done correctly by escaping special
+ * characters in the original text.
+ */
 export const replaceVariableInPrompt = (
-  prompt: string, 
-  selectedText: string, 
-  newValue: string, 
+  prompt: string,
+  originalText: string,
+  newPlaceholder: string,
   variableName: string
 ): string => {
-  // If there's no selected text or prompt, return original prompt
-  if (!prompt || !selectedText) return prompt;
-  
-  // If the selected text exists in the prompt, replace it completely
-  if (prompt.includes(selectedText)) {
-    return prompt.replace(selectedText, newValue);
-  }
-  
-  // If we're replacing with a variable placeholder
-  if (newValue.startsWith('<span') && newValue.includes('variable-placeholder')) {
-    // Create a regex that matches the text exactly
-    const regex = new RegExp(escapeRegExp(selectedText), 'g');
-    return prompt.replace(regex, newValue);
-  }
+  // Escape special characters in the original text for regex
+  const escapedOriginalText = originalText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-  // Make sure we handle empty newValue correctly - if it's empty,
-  // we still need to replace the selected text with the placeholder
-  if (!newValue && variableName) {
-    const placeholder = `{{${variableName}}}`;
-    return prompt.replace(new RegExp(escapeRegExp(selectedText), 'g'), placeholder);
-  }
-  
-  // Direct replacement for all occurrences
-  try {
-    return prompt.replace(new RegExp(escapeRegExp(selectedText), 'g'), newValue);
-  } catch (error) {
-    console.error("Error replacing variable in prompt:", error);
-    return prompt;
-  }
+  // Create a regex pattern that matches the escaped original text
+  // and replace it with the new placeholder
+  const regex = new RegExp(escapedOriginalText, 'g');
+  return prompt.replace(regex, newPlaceholder);
 };
 
-// Helper function to escape special regex characters
-export const escapeRegExp = (string: string): string => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-};
-
-// Enhanced helper to clean HTML from text (for variable removal)
-export const stripHtml = (html: string): string => {
-  if (!html) return "";
-  
-  try {
-    // Try using DOMParser first (works in browsers)
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    
-    // Additional processing for variable spans
-    const variableSpans = doc.querySelectorAll('[data-variable-id]');
-    variableSpans.forEach(span => {
-      // Replace span with its text content
-      const textNode = doc.createTextNode(span.textContent || "");
-      span.parentNode?.replaceChild(textNode, span);
-    });
-    
-    return doc.body.textContent || "";
-  } catch (error) {
-    // Fallback - basic regex to strip HTML tags
-    return html
-      .replace(/<[^>]*>/g, "") // Remove all HTML tags
-      .replace(/&nbsp;/g, " ") // Replace HTML space entities
-      .replace(/\s+/g, " ")    // Normalize whitespace
-      .trim();                 // Trim leading/trailing whitespace
-  }
-};
-
-// Generate clean text for API calls
-export const generateCleanTextForApi = (
-  processedHtml: string, 
+/**
+ * Converts edited content back to the standardized placeholder format.
+ * This function takes the edited HTML content and replaces the non-editable
+ * variable spans with the standardized {{value::id}} placeholders.
+ */
+export const convertEditedContentToPlaceholders = (
+  editedContent: string,
   variables: any[]
 ): string => {
+  let processedContent = editedContent;
+
+  // Iterate through each relevant variable and replace the span with the placeholder
+  variables.filter(v => v.isRelevant).forEach(variable => {
+    // Updated regex that uses lookahead assertions to match attributes regardless of order
+    const nonEditableRegex = new RegExp(
+      `<span(?=[^>]*\\bclass=['"]non-editable-variable['"])(?=[^>]*\\bdata-variable-id=["']${variable.id}["'])[^>]*>[^<]*</span>`,
+      'gi'
+    );
+
+    // Convert back to the original format expected by the app
+    processedContent = processedContent.replace(nonEditableRegex, toVariablePlaceholder(variable.id));
+  });
+
+  return processedContent;
+};
+
+/**
+ * Converts the final prompt to an editable format by replacing variable
+ * placeholders with visually distinct non-editable elements.
+ */
+export const convertPlaceholdersToEditableFormat = (
+  finalPrompt: string,
+  variables: any[]
+): string => {
+  let processedPrompt = finalPrompt;
+
+  // Replace {{value::id}} with visually distinct non-editable elements
+  processedPrompt = processedPrompt.replace(
+    /{{([^:}]*)::([\w-]+)}}/g,
+    (match, value, variableId) => {
+      const variable = variables.find(v => v.id === variableId);
+      const displayValue = variable ? variable.value : value;
+      return `<span contentEditable="false" class="non-editable-variable" data-variable-id="${variableId}">${displayValue}</span>`;
+    }
+  );
+
+  return processedPrompt;
+};
+
+/**
+ * Converts standardized variable placeholders to HTML spans for display.
+ * This function takes the final prompt and replaces the {{value::id}} placeholders
+ * with HTML spans that highlight the variable.
+ */
+export const convertPlaceholdersToSpans = (
+  finalPrompt: string,
+  variables: any[]
+): string => {
+  let processedPrompt = finalPrompt;
+
+  // Replace {{value::id}} with HTML spans
+  processedPrompt = processedPrompt.replace(
+    /{{([^:}]*)::([\w-]+)}}/g,
+    (match, value, variableId) => {
+      const variable = variables.find(v => v.id === variableId);
+      const displayValue = variable ? variable.value : value;
+      return `<span data-variable-id="${variableId}" contenteditable="false" class="variable-highlight">${displayValue}</span>`;
+    }
+  );
+
+  return processedPrompt;
+};
+
+/**
+ * Generates a standardized variable placeholder string.
+ * @param variableId The ID of the variable.
+ * @returns A string in the format {{value::variableId}}.
+ */
+export const toVariablePlaceholder = (variableId: string): string => {
+  return `{{value::${variableId}}}`;
+};
+
+/**
+ * Generates clean text for API calls by replacing variables with their values
+ * and stripping all HTML tags
+ */
+export const generateCleanTextFromHtml = (html: string, variables: any[]): string => {
   try {
+    // Create a temporary element to parse the HTML
     const temp = document.createElement('div');
-    temp.innerHTML = processedHtml;
+    temp.innerHTML = html;
     
-    // Replace variable spans with their values
+    // Replace all variable spans with their text content
     const variableSpans = temp.querySelectorAll('[data-variable-id]');
     variableSpans.forEach(span => {
       const variableId = span.getAttribute('data-variable-id');
@@ -107,87 +120,32 @@ export const generateCleanTextForApi = (
       }
     });
     
-    // Extract text and normalize whitespace
+    // Get the text content (strips all HTML)
     let cleanText = temp.textContent || '';
+    
+    // Normalize whitespace
     cleanText = cleanText.replace(/\s+/g, ' ').trim();
     
     return cleanText;
   } catch (error) {
-    console.error("Error generating clean text for API:", error);
-    return stripHtml(processedHtml);
+    console.error("Error generating clean text from HTML:", error);
+    return stripHtml(html);
   }
 };
 
-// Extract variable id from the special format we use for editing
-export const extractVariableId = (text: string): string | null => {
-  const match = text.match(/{{[^:}]*::([^}]+)}}/);
-  return match ? match[1] : null;
-};
-
-// Convert a variable in the {{value::id}} format to a proper span
-export const convertVariableToSpan = (text: string, variables: any[]): string => {
-  return text.replace(/{{([^:}]*)::([\w-]+)}}/g, (_, value, id) => {
-    const variable = variables.find(v => v.id === id);
-    const displayValue = variable ? variable.value || "" : value;
-    return `<span data-variable-id="${id}" contenteditable="false" class="variable-highlight">${displayValue}</span>`;
-  });
-};
-
-// Standardized placeholder format for variables
-export const toVariablePlaceholder = (variableId: string): string => {
-  return `{{VAR:${variableId}}}`;
-};
-
-// Convert placeholder to editable format for edit mode
-export const convertPlaceholdersToEditableFormat = (text: string, variables: any[]): string => {
-  // Replace {{VAR:id}} format with editable format
-  return text.replace(/{{VAR:([\w-]+)}}/g, (_, variableId) => {
-    const variable = variables.find(v => v.id === variableId);
-    const displayValue = variable?.value || "";
-    return `{{${displayValue}::${variableId}}}`;
-  });
-};
-
-// Convert the edited content back to placeholders format
-export const convertEditedContentToPlaceholders = (
-  content: string, 
-  variables: any[]
-): string => {
-  let processedContent = content;
+/**
+ * Strips HTML tags from a string
+ */
+export const stripHtml = (html: string): string => {
+  if (!html) return '';
   
-  // First, replace any {{value::id}} format with placeholders
-  processedContent = processedContent.replace(
-    /{{([^:}]*)::([\w-]+)}}/g, 
-    (_, __, variableId) => toVariablePlaceholder(variableId)
-  );
-  
-  // Then replace any non-editable spans with placeholders
-  variables.forEach(variable => {
-    if (!variable.id) return;
-    
-    const spanPattern = new RegExp(
-      `<span[^>]*data-variable-id=["']${variable.id}["'][^>]*>.*?</span>`,
-      'gi'
-    );
-    
-    processedContent = processedContent.replace(
-      spanPattern,
-      toVariablePlaceholder(variable.id)
-    );
-  });
-  
-  return processedContent;
-};
-
-// Convert placeholders to HTML spans for display
-export const convertPlaceholdersToSpans = (
-  text: string, 
-  variables: any[]
-): string => {
-  return text.replace(/{{VAR:([\w-]+)}}/g, (_, variableId) => {
-    const variable = variables.find(v => v.id === variableId);
-    if (!variable) return _;
-    
-    return `<span data-variable-id="${variableId}" contenteditable="false" class="variable-highlight">${variable.value || ""}</span>`;
-  });
+  try {
+    // Create a temporary element to safely strip HTML
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+  } catch (error) {
+    // Fallback to regex-based stripping if DOM approach fails
+    return html.replace(/<[^>]*>?/gm, '');
+  }
 };

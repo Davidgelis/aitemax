@@ -1,5 +1,5 @@
 
-import { Edit, Copy, Save, RotateCw, X, Check } from "lucide-react";
+import { Edit, Copy, Save, RotateCw, X, Check, RefreshCw } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { primaryToggles, secondaryToggles } from "./constants";
 import { Variable } from "./types";
 import { useToast } from "@/hooks/use-toast";
 import { VariablesSection } from "./step-three/VariablesSection";
+import { ToggleSection } from "./step-three/ToggleSection";
 
 interface FinalPromptProps {
   masterCommand: string;
@@ -67,6 +68,14 @@ export const FinalPrompt = ({
   const [isEditing, setIsEditing] = useState(false);
   const [currentEditingContent, setCurrentEditingContent] = useState("");
   const [hasInitializedEditMode, setHasInitializedEditMode] = useState(false);
+  const [isRefreshingJson, setIsRefreshingJson] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  const handleRefreshJson = () => {
+    setIsRefreshingJson(true);
+    setRefreshTrigger(prev => prev + 1);
+    // The refreshTrigger will be picked up by child components
+  };
   
   // Begin editing mode
   const startEditing = () => {
@@ -199,14 +208,12 @@ export const FinalPrompt = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-xs">JSON Toggle view</span>
-        <Switch
-          checked={showJson}
-          onCheckedChange={setShowJson}
-          className="scale-75"
-        />
-      </div>
+      <ToggleSection 
+        showJson={showJson} 
+        setShowJson={setShowJson} 
+        refreshJson={handleRefreshJson}
+        isRefreshing={isRefreshingJson}
+      />
 
       <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
         {!isEditing ? (
@@ -266,7 +273,6 @@ export const FinalPrompt = ({
               contentEditable="true"
               suppressContentEditableWarning={true}
               dangerouslySetInnerHTML={{ __html: currentEditingContent }}
-              // Removed onInput handler to prevent re-rendering during typing
             />
           )}
         </div>

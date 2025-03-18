@@ -60,7 +60,7 @@ async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRet
   let lastError = null;
 
   // Increase initial delay to reduce rate limit issues
-  const initialDelay = 3000; // 3 seconds initial delay
+  const initialDelay = 5000; // 5 seconds initial delay (increased from 3s)
   
   // Create a hash of the prompt for logging/tracking
   const promptHash = await createSimpleHash(prompt);
@@ -149,8 +149,26 @@ async function createSimpleHash(text: string): Promise<string> {
   }
 }
 
-// Simple in-memory cache for prompt results (will reset when function cold starts)
-const promptCache = new Map<string, any>();
+// Global in-memory cache with expiration
+type CacheEntry = {
+  jsonStructure: any;
+  usage: any;
+  timestamp: number;
+};
+
+// Using a map with expiration management
+const promptCache = new Map<string, CacheEntry>();
+const CACHE_EXPIRATION = 30 * 60 * 1000; // 30 minutes cache expiration
+
+// Clean expired cache entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of promptCache.entries()) {
+    if (now - entry.timestamp > CACHE_EXPIRATION) {
+      promptCache.delete(key);
+    }
+  }
+}, 5 * 60 * 1000); // Clean every 5 minutes
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -169,22 +187,30 @@ serve(async (req) => {
     const promptHash = await createSimpleHash(prompt);
     console.log(`Received prompt with hash: ${promptHash.substring(0, 8)}`);
     console.log(`Original prompt length: ${prompt.length}`);
+    console.log(`Force refresh requested: ${forceRefresh ? 'yes' : 'no'}`);
     
-    // Check if we have a cached result and forceRefresh is not true
+    // Check if we have a valid cached result and forceRefresh is not true
     if (!forceRefresh && promptCache.has(promptHash)) {
-      console.log(`Cache hit! Using cached result for prompt ${promptHash.substring(0, 8)}`);
+      const cacheEntry = promptCache.get(promptHash)!;
+      const now = Date.now();
       
-      const cachedResult = promptCache.get(promptHash);
-      
-      return new Response(JSON.stringify({ 
-        jsonStructure: cachedResult.jsonStructure,
-        rawPrompt: prompt,
-        usage: cachedResult.usage,
-        fromCache: true
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      // Only use cache if it hasn't expired
+      if (now - cacheEntry.timestamp < CACHE_EXPIRATION) {
+        console.log(`Cache hit! Using cached result for prompt ${promptHash.substring(0, 8)}`);
+        
+        return new Response(JSON.stringify({ 
+          jsonStructure: cacheEntry.jsonStructure,
+          rawPrompt: prompt,
+          usage: cacheEntry.usage,
+          fromCache: true
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } else {
+        console.log(`Cache expired for prompt ${promptHash.substring(0, 8)}`);
+        promptCache.delete(promptHash); // Clean up expired entry
+      }
     }
     
     // No cache hit or forceRefresh is true, proceed with API call
@@ -271,10 +297,11 @@ serve(async (req) => {
       
       console.log(`Successfully converted prompt to JSON structure for prompt ${promptHash.substring(0, 8)}`);
       
-      // Cache the result for future requests
+      // Cache the result with timestamp for future requests
       promptCache.set(promptHash, {
         jsonStructure: jsonResult,
-        usage: data.usage
+        usage: data.usage,
+        timestamp: Date.now()
       });
       
       // Record token usage if userId is provided - FIRE AND FORGET PATTERN
