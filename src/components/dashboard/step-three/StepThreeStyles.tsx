@@ -192,6 +192,17 @@ export const StepThreeStyles = () => {
         background-color: rgba(51, 254, 166, 0.3);
         border-radius: 2px;
       }
+      
+      /* JSON refresh button styles */
+      .json-refresh-btn {
+        color: #545454;
+        transition: all 0.2s ease;
+        cursor: pointer;
+      }
+      
+      .json-refresh-btn:hover {
+        color: #33fea6;
+      }
       `}
     </style>
   );

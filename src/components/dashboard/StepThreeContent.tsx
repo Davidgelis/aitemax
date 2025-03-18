@@ -85,6 +85,7 @@ export const StepThreeContent = ({
   );
   
   const [renderTrigger, setRenderTrigger] = useState(0);
+  const [refreshJsonTrigger, setRefreshJsonTrigger] = useState(0);
   
   useEffect(() => {
     setRenderTrigger(prev => prev + 1);
@@ -160,11 +161,20 @@ export const StepThreeContent = ({
     }
   }, [promptOperations, toast]);
 
+  const handleRefreshJson = useCallback(() => {
+    setRefreshJsonTrigger(prev => prev + 1);
+    toast({
+      title: "Refreshing JSON",
+      description: "Generating updated JSON structure...",
+    });
+  }, [toast]);
+
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
       <ToggleSection 
         showJson={showJson}
         setShowJson={setShowJson}
+        refreshJson={handleRefreshJson}
       />
 
       <FinalPromptDisplay 
@@ -182,6 +192,7 @@ export const StepThreeContent = ({
         editablePrompt={editablePrompt}
         setEditablePrompt={setEditablePrompt}
         handleSaveEditedPrompt={handleSaveInlineEdit}
+        refreshJsonTrigger={refreshJsonTrigger}
       />
 
       <VariablesSection 

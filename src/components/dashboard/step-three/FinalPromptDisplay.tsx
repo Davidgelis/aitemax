@@ -1,4 +1,3 @@
-
 import { Edit, PlusCircle, Check, X, Lasso } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -29,6 +28,7 @@ interface FinalPromptDisplayProps {
   editablePrompt: string;
   setEditablePrompt: (prompt: string) => void;
   handleSaveEditedPrompt: () => void;
+  refreshJsonTrigger?: number;
 }
 
 export const FinalPromptDisplay = ({
@@ -45,7 +45,8 @@ export const FinalPromptDisplay = ({
   setIsEditing,
   editablePrompt,
   setEditablePrompt,
-  handleSaveEditedPrompt
+  handleSaveEditedPrompt,
+  refreshJsonTrigger = 0
 }: FinalPromptDisplayProps) => {
   
   const [processedPrompt, setProcessedPrompt] = useState("");
@@ -80,8 +81,8 @@ export const FinalPromptDisplay = ({
     ? variables.filter(v => v && typeof v === 'object' && v?.isRelevant === true) 
     : [];
   
-  const convertPromptToJson = useCallback(async () => {
-    if (!finalPrompt || finalPrompt.trim() === "" || jsonGenerated) return;
+  const convertPromptToJson = useCallback(async (forceRefresh = false) => {
+    if (!finalPrompt || finalPrompt.trim() === "" || (jsonGenerated && !forceRefresh)) return;
     
     setIsLoadingJson(true);
     
@@ -116,11 +117,20 @@ export const FinalPromptDisplay = ({
     }
   }, [finalPrompt, masterCommand, toast, userId, promptId, jsonGenerated]);
   
+  // Initial JSON generation when showing JSON
   useEffect(() => {
     if (showJson && !jsonGenerated && !isLoadingJson) {
       convertPromptToJson();
     }
   }, [showJson, finalPrompt, convertPromptToJson, jsonGenerated, isLoadingJson]);
+  
+  // Force refresh JSON when refreshJsonTrigger changes
+  useEffect(() => {
+    if (refreshJsonTrigger > 0 && showJson) {
+      setJsonGenerated(false); // Reset so we force a refresh
+      convertPromptToJson(true); // Force refresh
+    }
+  }, [refreshJsonTrigger, showJson, convertPromptToJson]);
   
   useEffect(() => {
     try {
