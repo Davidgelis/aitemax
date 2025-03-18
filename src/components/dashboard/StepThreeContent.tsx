@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -125,6 +126,11 @@ export const StepThreeContent = ({
       setIsEditing(false);
       setEditablePrompt("");
       setRenderTrigger(prev => prev + 1);
+      
+      // Force refresh JSON after edit if needed
+      if (showJson) {
+        handleRefreshJson();
+      }
     } catch (error) {
       console.error("Error saving edited prompt:", error);
       toast({
@@ -133,7 +139,7 @@ export const StepThreeContent = ({
         variant: "destructive",
       });
     }
-  }, [toast]);
+  }, [toast, showJson]);
 
   const getProcessedPromptFunction = useCallback(() => {
     if (typeof externalGetProcessedPrompt === 'function') {
@@ -157,24 +163,19 @@ export const StepThreeContent = ({
     }
   }, [promptOperations, toast]);
 
-  // Simplified handleRefreshJson function
+  // Improved handleRefreshJson function
   const handleRefreshJson = useCallback(() => {
     if (isRefreshingJson) return;
     
     setIsRefreshingJson(true);
     toast({
       title: "Refreshing JSON",
-      description: "Updating JSON structure...",
+      description: "Updating JSON structure with current content...",
     });
     
-    // Force re-render of the JSON view
+    // Force re-render of the JSON view with latest content
     setTimeout(() => {
       setRenderTrigger(prev => prev + 1);
-      
-      // Allow a little time for the component to update before marking refresh as complete
-      setTimeout(() => {
-        setIsRefreshingJson(false);
-      }, 500);
     }, 100);
   }, [toast, isRefreshingJson]);
 

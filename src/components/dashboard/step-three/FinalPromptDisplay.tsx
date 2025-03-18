@@ -135,12 +135,17 @@ export const FinalPromptDisplay = ({
     setIsLoadingJson(true);
     
     try {
-      // Generate clean text for the API
+      // Generate clean text for the API - always use the latest finalPrompt
       const cleanTextForApi = generateCleanTextForApi();
       
       if (!cleanTextForApi || cleanTextForApi.trim() === "") {
         throw new Error("Generated clean text is empty");
       }
+      
+      console.log("Sending to API:", {
+        promptText: cleanTextForApi.substring(0, 100) + "...",
+        length: cleanTextForApi.length
+      });
       
       const { data, error } = await supabase.functions.invoke('prompt-to-json', {
         body: {
@@ -148,7 +153,7 @@ export const FinalPromptDisplay = ({
           masterCommand,
           userId,
           promptId,
-          forceRefresh
+          forceRefresh: true // Always force refresh to ensure we get the latest content
         }
       });
       
@@ -175,6 +180,10 @@ export const FinalPromptDisplay = ({
           });
         } else {
           setJsonError(null);
+          toast({
+            title: "JSON Updated",
+            description: "JSON structure has been refreshed with latest content",
+          });
         }
       }
     } catch (error) {
@@ -200,8 +209,11 @@ export const FinalPromptDisplay = ({
       if (setIsRefreshing) {
         setIsRefreshing(false);
       }
+      
+      // Force a re-render after JSON is updated
+      setRenderTrigger(prev => prev + 1);
     }
-  }, [finalPrompt, masterCommand, toast, userId, promptId, generateCleanTextForApi, setIsRefreshing]);
+  }, [finalPrompt, masterCommand, toast, userId, promptId, generateCleanTextForApi, setIsRefreshing, setRenderTrigger]);
   
   // Handle JSON view toggling and initial generation
   useEffect(() => {
@@ -350,10 +362,8 @@ export const FinalPromptDisplay = ({
     exitMultiSelectionMode();
     cancelVariableCreation();
     
-    // Do not reset JSON generation flag - let user decide when to refresh
-    // setJsonGenerated(false);  <-- removed
-    
-    setRenderTrigger(prev => prev + 1); // Force re-render
+    // Force re-render
+    setRenderTrigger(prev => prev + 1);
   };
   
   // Exit multi-selection mode and clean up
@@ -418,15 +428,13 @@ export const FinalPromptDisplay = ({
     const updatedPrompt = finalPrompt.replace(new RegExp(varPlaceholder, 'g'), currentValue);
     updateFinalPrompt(updatedPrompt);
     
-    // Do not reset JSON generation flag - let user decide when to refresh
-    // setJsonGenerated(false);  <-- removed
-    
     toast({
       title: "Variable removed",
       description: "Variable has been removed",
     });
     
-    setRenderTrigger(prev => prev + 1); // Force re-render
+    // Force re-render
+    setRenderTrigger(prev => prev + 1);
   };
   
   const renderVariablePlaceholder = (variable: Variable, uniqueKey: string) => {
@@ -453,19 +461,29 @@ export const FinalPromptDisplay = ({
       setIsEditing(false);
       setEditablePrompt("");
       
-      // Do not reset JSON generation flag - let user decide when to refresh
-      // setJsonGenerated(false);  <-- removed
-      
       toast({
         title: "Changes saved",
         description: "Your prompt has been updated successfully.",
       });
       
+      // Reset JSON generation to force refresh on next view
+      setJsonGenerated(false);
+      
       // Force a re-render to show the updated content with variables
       setRenderTrigger(prev => prev + 1);
+      
+      // If JSON view is active, immediately refresh it
+      if (showJson) {
+        // Set a small timeout to ensure state updates have propagated
+        setTimeout(() => {
+          convertPromptToJson(true);
+        }, 100);
+      }
     }
   };
 
+  
+  
   // Modified renderProcessedPrompt function to handle HTML parsing and variable placeholders
   const renderProcessedPrompt = () => {
     if (isEditing) {

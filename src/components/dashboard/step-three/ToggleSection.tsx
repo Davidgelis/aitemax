@@ -41,7 +41,7 @@ export const ToggleSection = ({
           variant="ghost" 
           size="xs"
           className="ml-1 p-1 h-6 w-6"
-          title="Refresh JSON"
+          title="Refresh JSON with current prompt content"
           disabled={isRefreshing}
         >
           <RefreshCw className={`h-3.5 w-3.5 text-accent ${isRefreshing ? 'animate-spin' : ''}`} />
