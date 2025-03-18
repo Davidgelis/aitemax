@@ -61,3 +61,9 @@ export const replaceVariableInPrompt = (
 export const escapeRegExp = (string: string): string => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
+
+// Helper to clean HTML from text (for variable removal)
+export const stripHtml = (html: string): string => {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || "";
+};

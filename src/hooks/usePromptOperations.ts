@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Variable } from "../components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -125,20 +124,32 @@ export const usePromptOperations = (
     });
   }, [setVariables]);
 
-  // Add the missing removeVariable function
+  // Improved removeVariable function to ensure clean text replacement
   const removeVariable = useCallback((variableId: string) => {
     console.log(`Marking variable ${variableId} as not relevant`);
     
-    // Mark the variable as not relevant rather than removing it completely
+    // Find the variable we're removing
+    const variable = variables.find(v => v.id === variableId);
+    if (!variable) return;
+    
+    // Get the current value of the variable (to replace placeholder)
+    const currentValue = variable.value || "";
+    
+    // Mark the variable as not relevant
     setVariables(currentVars => 
       currentVars.map(v => 
         v.id === variableId ? { ...v, isRelevant: false } : v
       )
     );
     
+    // Replace the placeholder with the actual text in the finalPrompt
+    const placeholder = new RegExp(`<span[^>]*data-variable-id="${variableId}"[^>]*>.*?</span>`, 'g');
+    const updatedPrompt = finalPrompt.replace(placeholder, currentValue);
+    setFinalPrompt(updatedPrompt);
+    
     // Force re-render to ensure changes propagate
     setRenderKey(prev => prev + 1);
-  }, [setVariables]);
+  }, [variables, finalPrompt, setVariables, setFinalPrompt]);
 
   // Delete a variable
   const handleDeleteVariable = useCallback((variableId: string) => {
@@ -280,6 +291,6 @@ export const usePromptOperations = (
     renderKey,
     recordVariableSelection,
     variableSelections,
-    removeVariable // Export the new removeVariable function
+    removeVariable // Export the removeVariable function
   };
 };
