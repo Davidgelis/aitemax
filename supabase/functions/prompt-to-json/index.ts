@@ -11,7 +11,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper function to record token usage in Supabase
+// Improved helper function to record token usage in Supabase
 async function recordTokenUsage(
   userId: string, 
   promptId: string | null,
@@ -55,17 +55,26 @@ async function recordTokenUsage(
   }
 }
 
-// Helper function to add exponential backoff retry for OpenAI API calls
-async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRetries = 3) {
+// Enhanced helper function to add exponential backoff retry for OpenAI API calls
+async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRetries = 5) {
   let retries = 0;
   let lastError = null;
 
-  // Implement a progressive delay between retries (starting with a longer initial delay)
-  const initialDelay = 2000; // 2 seconds initial delay
+  // Increase initial delay to reduce rate limit issues
+  const initialDelay = 3000; // 3 seconds initial delay
+  
+  // Create a hash of the prompt for logging/tracking
+  const promptHash = await createSimpleHash(prompt);
+  console.log(`Processing prompt with hash: ${promptHash}`);
   
   while (retries < maxRetries) {
     try {
-      console.log(`Attempt ${retries + 1}: Calling OpenAI with cleaned prompt (first 100 chars): "${prompt.substring(0, 100)}..."`);
+      if (retries > 0) {
+        console.log(`Retry attempt ${retries + 1}/${maxRetries} for prompt ${promptHash.substring(0, 8)}...`);
+      } else {
+        console.log(`Initial attempt for prompt ${promptHash.substring(0, 8)}...`);
+      }
+      
       console.log(`Prompt length: ${prompt.length} characters`);
       
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -101,7 +110,7 @@ async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRet
       }
       
       const responseData = await response.json();
-      console.log("OpenAI API response received successfully");
+      console.log(`OpenAI API response received successfully for prompt ${promptHash.substring(0, 8)}`);
       return responseData;
     } catch (error) {
       lastError = error;
@@ -109,6 +118,7 @@ async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRet
       
       // Only retry on rate limiting or network errors
       if (error.message && (error.message.includes('429') || error.message.includes('rate_limit') || error.message.includes('network'))) {
+        // Increased backoff time to handle rate limits better
         const waitTime = initialDelay * Math.pow(2, retries);
         console.log(`Error (likely rate limit). Retrying after ${waitTime}ms (Attempt ${retries + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
@@ -124,6 +134,25 @@ async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRet
   throw lastError || new Error('Failed after maximum retry attempts');
 }
 
+// Simple hash function for tracking prompts without storing full text
+async function createSimpleHash(text: string): Promise<string> {
+  try {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+  } catch (error) {
+    console.error("Error creating hash:", error);
+    // Fallback if crypto API not available
+    return Math.random().toString(36).substring(2, 10);
+  }
+}
+
+// Simple in-memory cache for prompt results (will reset when function cold starts)
+const promptCache = new Map<string, any>();
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -131,22 +160,42 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, masterCommand, userId, promptId } = await req.json();
+    const { prompt, masterCommand, userId, promptId, forceRefresh } = await req.json();
     
     if (!prompt) {
       throw new Error("Prompt is required");
     }
     
-    console.log("Original prompt length:", prompt.length);
-    console.log("Original prompt type:", typeof prompt);
+    // Generate a hash of the incoming prompt for caching
+    const promptHash = await createSimpleHash(prompt);
+    console.log(`Received prompt with hash: ${promptHash.substring(0, 8)}`);
+    console.log(`Original prompt length: ${prompt.length}`);
     
-    // The prompt should already be clean text when sent from the client
-    // No need for additional cleaning here
-    const cleanedPrompt = prompt;
+    // Check if we have a cached result and forceRefresh is not true
+    if (!forceRefresh && promptCache.has(promptHash)) {
+      console.log(`Cache hit! Using cached result for prompt ${promptHash.substring(0, 8)}`);
+      
+      const cachedResult = promptCache.get(promptHash);
+      
+      return new Response(JSON.stringify({ 
+        jsonStructure: cachedResult.jsonStructure,
+        rawPrompt: prompt,
+        usage: cachedResult.usage,
+        fromCache: true
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     
-    console.log("Cleaned prompt length:", cleanedPrompt.length);
-    console.log("Converting prompt to JSON with o3-mini:", cleanedPrompt.substring(0, 100) + "...");
+    // No cache hit or forceRefresh is true, proceed with API call
+    if (forceRefresh) {
+      console.log(`Force refresh requested for prompt ${promptHash.substring(0, 8)}`);
+    } else {
+      console.log(`Cache miss for prompt ${promptHash.substring(0, 8)}, calling OpenAI API`);
+    }
     
+    // The prompt should be clean text at this point
     const systemMessage = `
       You are a JSON structure generator for prompt text. Your task is to:
       
@@ -174,22 +223,25 @@ serve(async (req) => {
     // Try to call OpenAI with automatic retries for rate limiting
     let data;
     try {
-      data = await callOpenAIWithRetry(systemMessage, cleanedPrompt);
-      console.log("OpenAI API call successful");
+      console.log(`Calling OpenAI API for prompt ${promptHash.substring(0, 8)}...`);
+      data = await callOpenAIWithRetry(systemMessage, prompt);
+      console.log(`OpenAI API call successful for prompt ${promptHash.substring(0, 8)}`);
     } catch (error) {
-      console.error("Failed to call OpenAI after retries:", error);
+      console.error(`Failed to call OpenAI after retries for prompt ${promptHash.substring(0, 8)}:`, error);
       // Return a fallback JSON structure in case of failure
-      return new Response(JSON.stringify({
+      const fallbackResponse = {
         jsonStructure: {
           title: "Prompt Analysis",
           summary: "Automatic analysis of provided prompt",
           sections: [
-            { title: "Content", content: cleanedPrompt.slice(0, 200) + (cleanedPrompt.length > 200 ? "..." : "") }
+            { title: "Content", content: prompt.slice(0, 200) + (prompt.length > 200 ? "..." : "") }
           ],
           generationError: "Failed to generate structured JSON. Please try again later."
         },
         rawPrompt: prompt
-      }), {
+      };
+      
+      return new Response(JSON.stringify(fallbackResponse), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -199,7 +251,7 @@ serve(async (req) => {
     
     try {
       // Parse the response content as JSON
-      console.log("Parsing OpenAI response to JSON");
+      console.log(`Parsing OpenAI response to JSON for prompt ${promptHash.substring(0, 8)}`);
       jsonResult = JSON.parse(data.choices[0].message.content);
       
       // Add master command if provided
@@ -218,7 +270,13 @@ serve(async (req) => {
         delete jsonResult.timestamp;
       }
       
-      console.log("Successfully converted prompt to JSON structure with o3-mini");
+      console.log(`Successfully converted prompt to JSON structure for prompt ${promptHash.substring(0, 8)}`);
+      
+      // Cache the result for future requests
+      promptCache.set(promptHash, {
+        jsonStructure: jsonResult,
+        usage: data.usage
+      });
       
       // Record token usage if userId is provided - FIRE AND FORGET PATTERN
       if (userId) {
@@ -233,7 +291,7 @@ serve(async (req) => {
         ).catch((err) => console.error("Token usage recording failed:", err));
       }
     } catch (parseError) {
-      console.error("Error parsing JSON response:", parseError);
+      console.error(`Error parsing JSON response for prompt ${promptHash.substring(0, 8)}:`, parseError);
       console.log("Raw response from OpenAI:", data.choices[0].message.content);
       
       // Create a minimal valid JSON if parsing failed
@@ -241,7 +299,7 @@ serve(async (req) => {
         title: "Parsed Prompt",
         summary: "Automatic prompt parsing",
         sections: [
-          { title: "Content", content: cleanedPrompt }
+          { title: "Content", content: prompt }
         ],
         error: "Failed to parse into structured JSON"
       };

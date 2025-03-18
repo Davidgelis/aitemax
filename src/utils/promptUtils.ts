@@ -1,4 +1,3 @@
-
 export const extractVariablesFromPrompt = (prompt: string): string[] => {
   const pattern = /{{([^}]+)}}/g;
   const matches = prompt.match(pattern) || [];
@@ -62,13 +61,22 @@ export const escapeRegExp = (string: string): string => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-// Helper to clean HTML from text (for variable removal)
+// Enhanced helper to clean HTML from text (for variable removal)
 export const stripHtml = (html: string): string => {
   if (!html) return "";
   
   try {
     // Try using DOMParser first (works in browsers)
     const doc = new DOMParser().parseFromString(html, 'text/html');
+    
+    // Additional processing for variable spans
+    const variableSpans = doc.querySelectorAll('[data-variable-id]');
+    variableSpans.forEach(span => {
+      // Replace span with its text content
+      const textNode = doc.createTextNode(span.textContent || "");
+      span.parentNode?.replaceChild(textNode, span);
+    });
+    
     return doc.body.textContent || "";
   } catch (error) {
     // Fallback - basic regex to strip HTML tags
@@ -77,6 +85,36 @@ export const stripHtml = (html: string): string => {
       .replace(/&nbsp;/g, " ") // Replace HTML space entities
       .replace(/\s+/g, " ")    // Normalize whitespace
       .trim();                 // Trim leading/trailing whitespace
+  }
+};
+
+// Generate clean text for API calls
+export const generateCleanTextForApi = (
+  processedHtml: string, 
+  variables: any[]
+): string => {
+  try {
+    const temp = document.createElement('div');
+    temp.innerHTML = processedHtml;
+    
+    // Replace variable spans with their values
+    const variableSpans = temp.querySelectorAll('[data-variable-id]');
+    variableSpans.forEach(span => {
+      const variableId = span.getAttribute('data-variable-id');
+      const variable = variables.find(v => v.id === variableId);
+      if (variable) {
+        span.textContent = variable.value || '';
+      }
+    });
+    
+    // Extract text and normalize whitespace
+    let cleanText = temp.textContent || '';
+    cleanText = cleanText.replace(/\s+/g, ' ').trim();
+    
+    return cleanText;
+  } catch (error) {
+    console.error("Error generating clean text for API:", error);
+    return stripHtml(processedHtml);
   }
 };
 
