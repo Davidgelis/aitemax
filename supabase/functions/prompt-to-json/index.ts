@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -274,18 +273,21 @@ function extractVariablePlaceholders(text: string): string[] {
   return placeholders;
 }
 
-// New helper function to clean the prompt of variable markers and source code for analysis
+// Updated helper function to clean the prompt of variable markers and source code for analysis
 function cleanPromptForAnalysis(text: string): string {
-  // Remove variable format {{VAR:id}} and replace with the content
-  let cleanedText = text.replace(/{{VAR:([^}]+)}}/g, '{{variable}}');
+  // Replace variable markers in the format {{displayText::variableId}} with just the display text
+  let cleanedText = text.replace(/{{([^:}]+)::[\w-]+}}/g, '$1');
   
-  // Remove any HTML tags and attributes
+  // Also handle any legacy markers if needed
+  cleanedText = cleanedText.replace(/{{VAR:([^}]+)}}/g, '$1');
+  
+  // Remove any HTML tags with data-variable-id attributes
   cleanedText = cleanedText.replace(/<[^>]*data-variable-id=[^>]*>(.*?)<\/span>/g, '$1');
   
   // Remove any remaining HTML tags
   cleanedText = cleanedText.replace(/<[^>]*>/g, '');
   
-  // Replace multi-spaces with single space
+  // Replace multiple spaces with a single space
   cleanedText = cleanedText.replace(/\s+/g, ' ');
   
   return cleanedText;
