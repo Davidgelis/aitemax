@@ -47,6 +47,7 @@ export const ImageContextDialog = ({
     }
     
     onConfirm(context.trim());
+    // Only close the dialog, don't navigate
     onOpenChange(false);
   };
   

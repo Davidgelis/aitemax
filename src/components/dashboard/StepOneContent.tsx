@@ -54,6 +54,8 @@ export const StepOneContent = ({
   const handleImagesChange = (images: UploadedImage[]) => {
     setUploadedImages(images);
     console.log("StepOneContent: Images updated:", images);
+    // Pass the images up to the parent component without triggering analysis
+    onImagesChange(images);
   };
 
   const handleWebsiteScan = (url: string, instructions: string = "") => {
