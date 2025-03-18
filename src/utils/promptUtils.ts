@@ -67,3 +67,18 @@ export const stripHtml = (html: string): string => {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   return doc.body.textContent || "";
 };
+
+// Extract variable id from the special format we use for editing
+export const extractVariableId = (text: string): string | null => {
+  const match = text.match(/{{[^:}]*::([^}]+)}}/);
+  return match ? match[1] : null;
+};
+
+// Convert a variable in the {{value::id}} format to a proper span
+export const convertVariableToSpan = (text: string, variables: any[]): string => {
+  return text.replace(/{{([^:}]*)::([\w-]+)}}/g, (_, value, id) => {
+    const variable = variables.find(v => v.id === id);
+    const displayValue = variable ? variable.value || "" : value;
+    return `<span data-variable-id="${id}" contenteditable="false" class="variable-highlight">${displayValue}</span>`;
+  });
+};

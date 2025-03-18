@@ -113,40 +113,24 @@ export const StepThreeContent = ({
         variant: "destructive"
       });
     }
-  }, [externalHandleVariableValueChange, promptOperations.handleVariableValueChange, toast]);
+  }, [externalHandleVariableValueChange, promptOperations, toast]);
 
+  // Save inline edits logic moved to the FinalPromptDisplay component
   const handleSaveInlineEdit = useCallback(() => {
     try {
-      // Apply the edited content to the finalPrompt
-      setFinalPrompt(editablePrompt);
-      
-      // Process the prompt to ensure variable placeholders are preserved
-      const relevantVars = variables.filter(v => v && v.isRelevant);
-      let processedPrompt = editablePrompt;
-      
-      // Convert {{value::id}} format back to proper variable placeholders
-      relevantVars.forEach(variable => {
-        const doubleVarRegex = new RegExp(`{{[^:}]*::${variable.id}}}`, 'g');
-        if (doubleVarRegex.test(processedPrompt)) {
-          processedPrompt = processedPrompt.replace(
-            doubleVarRegex, 
-            `<span data-variable-id="${variable.id}" contenteditable="false" class="variable-highlight">${variable.value || ""}</span>`
-          );
-        }
-      });
-      
-      // If any changes were made in the processing, update the prompt again
-      if (processedPrompt !== editablePrompt) {
-        setFinalPrompt(processedPrompt);
+      if (editablePrompt.trim()) {
+        setFinalPrompt(editablePrompt);
+        
+        toast({
+          title: "Success",
+          description: "Prompt updated successfully",
+          variant: "default",
+        });
       }
       
-      toast({
-        title: "Success",
-        description: "Prompt updated successfully",
-        variant: "default",
-      });
-      
-      // Force a re-render to ensure variables are displayed correctly
+      // Reset edit state
+      setIsEditing(false);
+      setEditablePrompt("");
       setRenderTrigger(prev => prev + 1);
     } catch (error) {
       console.error("Error saving edited prompt:", error);
@@ -156,14 +140,14 @@ export const StepThreeContent = ({
         variant: "destructive",
       });
     }
-  }, [editablePrompt, setFinalPrompt, toast, variables]);
+  }, [editablePrompt, setFinalPrompt, toast]);
 
   const getProcessedPromptFunction = useCallback(() => {
     if (typeof externalGetProcessedPrompt === 'function') {
       return externalGetProcessedPrompt();
     }
     return promptOperations.getProcessedPrompt();
-  }, [externalGetProcessedPrompt, promptOperations.getProcessedPrompt]);
+  }, [externalGetProcessedPrompt, promptOperations]);
 
   const recordVariableSelection = useCallback((variableId: string, selectedText: string) => {
     console.log("Recording variable selection:", variableId, selectedText);

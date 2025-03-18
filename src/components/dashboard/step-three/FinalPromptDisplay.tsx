@@ -135,11 +135,15 @@ export const FinalPromptDisplay = ({
       // Process the prompt to replace variable placeholders with their actual values
       let processedText = finalPrompt;
       
-      // First, replace all HTML variable placeholders with their actual values
+      // First, replace all HTML variable placeholders with the special format that preserves variable ID
       relevantVariables.forEach(variable => {
-        const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
+        // Use a more robust regex pattern with positive lookahead to match attributes regardless of order
+        const placeholderRegex = new RegExp(
+          `<span[^>]*data-variable-id=["']${variable.id}["'][^>]*>.*?</span>`, 
+          'g'
+        );
+        
         if (placeholderRegex.test(processedText)) {
-          // For editing mode, make variables marked with double braces and variable ID
           processedText = processedText.replace(placeholderRegex, `{{${variable.value || ""}::${variable.id}}}`);
         }
       });
@@ -148,7 +152,9 @@ export const FinalPromptDisplay = ({
       relevantVariables.forEach(variable => {
         if (variable.name) {
           const templateRegex = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
-          processedText = processedText.replace(templateRegex, `{{${variable.value || ""}::${variable.id}}}`);
+          if (templateRegex.test(processedText)) {
+            processedText = processedText.replace(templateRegex, `{{${variable.value || ""}::${variable.id}}}`);
+          }
         }
       });
       
@@ -245,7 +251,6 @@ export const FinalPromptDisplay = ({
     }
   };
   
-  // Create a variable from multiple selections
   const createMultiSelectionVariable = () => {
     if (multiSelections.length === 0) {
       toast({
@@ -326,7 +331,6 @@ export const FinalPromptDisplay = ({
     setIsMultiSelectMode(false);
   };
   
-  // Create a new variable from the selected text and update the prompt state
   const createVariableFromSelection = () => {
     if (!selectedText) return;
     
@@ -472,23 +476,35 @@ export const FinalPromptDisplay = ({
     if (editableContentRef.current) {
       // Get content directly from the DOM
       let newContent = editableContentRef.current.innerHTML;
+      console.log("Raw content before processing:", newContent);
       
-      // Convert the special format we used back to variable placeholders
+      // Convert the special variable format back to variable placeholders
       relevantVariables.forEach(variable => {
-        // First, find and convert any spans with our format
+        // Match the special format {{value::id}}
+        const varFormatRegex = new RegExp(`{{([^:}]*)::(${variable.id})}}`, 'g');
+        
+        if (varFormatRegex.test(newContent)) {
+          newContent = newContent.replace(
+            varFormatRegex, 
+            `<span data-variable-id="${variable.id}" contenteditable="false" class="variable-highlight">${variable.value || ""}</span>`
+          );
+        }
+        
+        // Also match any non-editable variable spans that might be present
         const spanRegex = new RegExp(
-          `<span[^>]*class=['"]non-editable-variable['"][^>]*>[^:]*::${variable.id}[^<]*</span>`, 
-          'gi'
+          `<span[^>]*class=["']non-editable-variable["'][^>]*data-variable-id=["']${variable.id}["'][^>]*>.*?</span>`, 
+          'g'
         );
         
-        newContent = newContent.replace(spanRegex, 
-          `<span data-variable-id="${variable.id}" contenteditable="false" class="variable-highlight">${variable.value || ""}</span>`);
-        
-        // Then find and convert any remaining text format {{content::id}}
-        const textFormatRegex = new RegExp(`{{[^:]*::${variable.id}}}`, 'g');
-        newContent = newContent.replace(textFormatRegex, 
-          `<span data-variable-id="${variable.id}" contenteditable="false" class="variable-highlight">${variable.value || ""}</span>`);
+        if (spanRegex.test(newContent)) {
+          newContent = newContent.replace(
+            spanRegex, 
+            `<span data-variable-id="${variable.id}" contenteditable="false" class="variable-highlight">${variable.value || ""}</span>`
+          );
+        }
       });
+      
+      console.log("Processed content after variable conversion:", newContent);
       
       // Update the final prompt with the new content
       updateFinalPrompt(newContent);
@@ -509,17 +525,15 @@ export const FinalPromptDisplay = ({
   const renderProcessedPrompt = () => {
     if (isEditing) {
       // In editing mode, create an uncontrolled editable div with special styling for variables
-      const processedEditablePrompt = editablePrompt.replace(
-        /{{([^}]+)}}/g,
-        (match, variableContent) => {
-          // Check if this has our special format with ::id at the end
-          const parts = variableContent.split('::');
-          if (parts.length === 2) {
-            const [value, variableId] = parts;
-            return `<span contentEditable="false" class="non-editable-variable" data-variable-id="${variableId}">${value}</span>`;
-          }
-          // Regular variable, just make it non-editable
-          return `<span contentEditable="false" class="non-editable-variable">${variableContent}</span>`;
+      let processedEditablePrompt = editablePrompt;
+      
+      // Replace {{value::id}} with visually distinct non-editable elements
+      processedEditablePrompt = processedEditablePrompt.replace(
+        /{{([^:}]*)::([\w-]+)}}/g,
+        (match, value, variableId) => {
+          const variable = relevantVariables.find(v => v.id === variableId);
+          const displayValue = variable ? variable.value : value;
+          return `<span contentEditable="false" class="non-editable-variable" data-variable-id="${variableId}">${displayValue}</span>`;
         }
       );
       
@@ -734,18 +748,19 @@ export const FinalPromptDisplay = ({
                 <PlusCircle className={`w-4 h-4 ${isCreatingVariable && !isMultiSelectMode ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
               </button>
             </div>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-accent">Edit Prompt</span>
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="p-2 rounded-full bg-white/80 hover:bg-white hover:text-[#33fea6] transition-colors"
+                aria-label="Edit prompt text"
+              >
+                <Edit className="w-4 h-4 text-accent hover:text-[#33fea6]" />
+              </button>
+            </div>
           </>
         )}
-        
-        {!isEditing ? (
-          <button 
-            onClick={() => setIsEditing(true)}
-            className="p-2 rounded-full edit-icon-button transition-colors"
-            aria-label="Edit prompt"
-          >
-            <Edit className="w-4 h-4 text-accent edit-icon" />
-          </button>
-        ) : null}
       </div>
       
       <div 
@@ -753,52 +768,11 @@ export const FinalPromptDisplay = ({
         style={{ backgroundSize: "400% 400%" }}
       />
       
-      <div className="relative h-full p-6 overflow-y-auto">
+      <div className={`relative h-full p-6 overflow-y-auto ${isEditing ? 'editing-mode' : ''}`}>
         <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
-        <div className="whitespace-pre-wrap text-card-foreground">
-          {renderProcessedPrompt()}
-        </div>
+        
+        {renderProcessedPrompt()}
       </div>
-      
-      <style>
-        {`
-        .variable-highlight {
-          background-color: rgba(51, 254, 166, 0.1);
-          border-bottom: 1px solid #33fea6;
-        }
-        .variable-placeholder {
-          background-color: rgba(51, 254, 166, 0.1);
-          border-bottom: 1px dashed #33fea6;
-        }
-        .multi-selection-marker {
-          background-color: rgba(51, 254, 166, 0.3);
-          border-bottom: 1px dashed #33fea6;
-        }
-        .animate-aurora {
-          animation: aurora 15s ease infinite;
-        }
-        @keyframes aurora {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        .non-editable-variable {
-          background-color: #ddfff0;
-          border: 1px solid #33fea6;
-          border-radius: 2px;
-          padding: 1px 4px;
-          margin: 0 1px;
-          font-weight: bold;
-          pointer-events: none;
-          user-select: none;
-        }
-        .editing-mode {
-          background-color: #ffffff;
-          border: 1px solid #33fea6;
-          outline: none;
-        }
-        `}
-      </style>
     </div>
   );
 };
