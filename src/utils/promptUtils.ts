@@ -72,7 +72,11 @@ export const stripHtml = (html: string): string => {
     return doc.body.textContent || "";
   } catch (error) {
     // Fallback - basic regex to strip HTML tags
-    return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+    return html
+      .replace(/<[^>]*>/g, "") // Remove all HTML tags
+      .replace(/&nbsp;/g, " ") // Replace HTML space entities
+      .replace(/\s+/g, " ")    // Normalize whitespace
+      .trim();                 // Trim leading/trailing whitespace
   }
 };
 

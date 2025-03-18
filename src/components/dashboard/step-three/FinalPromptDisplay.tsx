@@ -111,6 +111,7 @@ export const FinalPromptDisplay = ({
       // Normalize whitespace
       cleanText = cleanText.replace(/\s+/g, ' ').trim();
       
+      console.log("Generated clean text for API (length):", cleanText.length);
       return cleanText;
     } catch (error) {
       console.error("Error generating clean text for API:", error);
@@ -125,13 +126,14 @@ export const FinalPromptDisplay = ({
       return;
     }
     
+    // Only proceed if not already generated or if forced refresh
     if (jsonGenerated && !forceRefresh) return;
     
     setIsLoadingJson(true);
     setJsonError(null);
     
     try {
-      // Generate clean text for the API - this is the key change
+      // Generate clean text for the API
       const cleanTextForApi = generateCleanTextForApi();
       console.log("Clean text for API (first 100 chars):", cleanTextForApi.substring(0, 100));
       
@@ -203,12 +205,11 @@ export const FinalPromptDisplay = ({
     if (showJson && !jsonGenerated && !isLoadingJson) {
       convertPromptToJson();
     }
-  }, [showJson, finalPrompt, convertPromptToJson, jsonGenerated, isLoadingJson]);
+  }, [showJson, convertPromptToJson, jsonGenerated, isLoadingJson]);
   
   // Force refresh JSON when refreshJsonTrigger changes
   useEffect(() => {
     if (refreshJsonTrigger > 0 && showJson) {
-      setJsonGenerated(false); // Reset so we force a refresh
       convertPromptToJson(true); // Force refresh
     }
   }, [refreshJsonTrigger, showJson, convertPromptToJson]);
@@ -351,8 +352,8 @@ export const FinalPromptDisplay = ({
     exitMultiSelectionMode();
     cancelVariableCreation();
     
-    // Reset JSON generation flag so it will regenerate when refreshed
-    setJsonGenerated(false);
+    // Do not reset JSON generation flag - let user decide when to refresh
+    // setJsonGenerated(false);  <-- removed
     
     setRenderTrigger(prev => prev + 1); // Force re-render
   };
@@ -419,8 +420,8 @@ export const FinalPromptDisplay = ({
     const updatedPrompt = finalPrompt.replace(new RegExp(varPlaceholder, 'g'), currentValue);
     updateFinalPrompt(updatedPrompt);
     
-    // Reset JSON generation flag when variables change
-    setJsonGenerated(false);
+    // Do not reset JSON generation flag - let user decide when to refresh
+    // setJsonGenerated(false);  <-- removed
     
     toast({
       title: "Variable removed",
@@ -454,8 +455,8 @@ export const FinalPromptDisplay = ({
       setIsEditing(false);
       setEditablePrompt("");
       
-      // Reset JSON generation flag when content changes
-      setJsonGenerated(false);
+      // Do not reset JSON generation flag - let user decide when to refresh
+      // setJsonGenerated(false);  <-- removed
       
       toast({
         title: "Changes saved",

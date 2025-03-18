@@ -66,6 +66,7 @@ async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRet
   while (retries < maxRetries) {
     try {
       console.log(`Attempt ${retries + 1}: Calling OpenAI with cleaned prompt (first 100 chars): "${prompt.substring(0, 100)}..."`);
+      console.log(`Prompt length: ${prompt.length} characters`);
       
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -137,9 +138,11 @@ serve(async (req) => {
     }
     
     console.log("Original prompt length:", prompt.length);
+    console.log("Original prompt type:", typeof prompt);
     
-    // Clean the prompt to remove variable markers and source code
-    const cleanedPrompt = cleanPromptForAnalysis(prompt);
+    // The prompt should already be clean text when sent from the client
+    // No need for additional cleaning here
+    const cleanedPrompt = prompt;
     
     console.log("Cleaned prompt length:", cleanedPrompt.length);
     console.log("Converting prompt to JSON with o3-mini:", cleanedPrompt.substring(0, 100) + "...");
@@ -283,31 +286,4 @@ function extractVariablePlaceholders(text: string): string[] {
   }
   
   return placeholders;
-}
-
-// Updated helper function to clean the prompt of variable markers and source code for analysis
-function cleanPromptForAnalysis(text: string): string {
-  console.log("Cleaning prompt for analysis - Raw start:", text.substring(0, 50));
-  
-  // Replace variable markers in the format {{displayText::variableId}} with just the display text
-  let cleanedText = text.replace(/{{([^:}]+)::[\w-]+}}/g, '$1');
-  console.log("After displayText::variableId cleaning:", cleanedText.substring(0, 50));
-
-  // Handle any legacy markers
-  cleanedText = cleanedText.replace(/{{VAR:([^}]+)}}/g, '$1');
-  console.log("After VAR: cleaning:", cleanedText.substring(0, 50));
-
-  // Remove any HTML tags with data-variable-id attributes
-  cleanedText = cleanedText.replace(/<[^>]*data-variable-id=[^>]*>(.*?)<\/span>/g, '$1');
-  console.log("After data-variable-id cleaning:", cleanedText.substring(0, 50));
-
-  // Remove any remaining HTML tags
-  cleanedText = cleanedText.replace(/<[^>]*>/g, '');
-  console.log("After HTML tag cleaning:", cleanedText.substring(0, 50));
-
-  // Replace multiple spaces with a single space
-  cleanedText = cleanedText.replace(/\s+/g, ' ');
-  console.log("After whitespace normalization:", cleanedText.substring(0, 50));
-
-  return cleanedText;
 }
