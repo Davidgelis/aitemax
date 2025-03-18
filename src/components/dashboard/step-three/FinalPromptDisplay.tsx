@@ -61,6 +61,7 @@ export const FinalPromptDisplay = ({
   const [isCreatingVariable, setIsCreatingVariable] = useState(false);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [multiSelections, setMultiSelections] = useState<string[]>([]);
+  const [selectedTexts, setSelectedTexts] = useState<Map<string, string>>(new Map());
   const promptContainerRef = useRef<HTMLDivElement>(null);
   const editableContentRef = useRef<HTMLDivElement>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -70,6 +71,7 @@ export const FinalPromptDisplay = ({
   } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
   const [promptId, setPromptId] = useState<string | null>(null);
+  
   useEffect(() => {
     const getUserId = async () => {
       const {
@@ -286,10 +288,13 @@ export const FinalPromptDisplay = ({
       }
     }
   }, [finalPrompt, showJson, lastSavedPrompt, setLastSavedPrompt, jsonGenerated]);
+  
   const handleMouseUp = () => {
     if (!isCreatingVariable || isEditing) return;
+    
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0 || !selection.toString().trim()) return;
+    
     const range = selection.getRangeAt(0);
     const container = promptContainerRef.current;
     if (!container || !container.contains(range.commonAncestorContainer)) return;
@@ -298,8 +303,7 @@ export const FinalPromptDisplay = ({
     const selText = selection.toString().trim();
     if (!selText) return;
 
-    // Always use multi-selection mode
-    // Add to multi-selections
+    // Add to multi-selections and store selected text
     setMultiSelections(prev => [...prev, selText]);
 
     // Mark the selection with a temporary span
@@ -309,7 +313,13 @@ export const FinalPromptDisplay = ({
     try {
       range.surroundContents(tempSpan);
 
-      // Show a toast to indicate the selection was added
+      // Store the original selected text for later replacement
+      setSelectedTexts(prev => {
+        const updated = new Map(prev);
+        updated.set(selText, selText);
+        return updated;
+      });
+
       toast({
         title: "Selection added",
         description: `Added "${selText.substring(0, 20)}${selText.length > 20 ? '...' : ''}" to multi-selection`
@@ -326,6 +336,7 @@ export const FinalPromptDisplay = ({
     // Clear the selection
     selection.removeAllRanges();
   };
+  
   const createMultiSelectionVariable = () => {
     if (multiSelections.length === 0) {
       toast({
@@ -335,6 +346,7 @@ export const FinalPromptDisplay = ({
       });
       return;
     }
+    
     if (relevantVariables.length >= 15) {
       toast({
         title: "Variable limit reached",
@@ -348,22 +360,19 @@ export const FinalPromptDisplay = ({
     // Join all selections with a space for the variable value
     const combinedText = multiSelections.join(" ");
 
+    // Generate a unique ID for this variable
+    const variableId = uuidv4();
+    
     // Use a simple numeric name based on the number of existing variables
     const variableName = `${relevantVariables.length + 1}`;
-    const variableId = uuidv4();
+    
     const newVariable: Variable = {
       id: variableId,
       name: variableName,
       value: combinedText,
-      // Set the initial value to the combined selections
       isRelevant: true,
       category: 'Multi-Select'
     };
-
-    // Record the original selection (for later replacement in the prompt)
-    if (typeof recordVariableSelection === 'function') {
-      recordVariableSelection(variableId, combinedText);
-    }
 
     // Add the new variable to state
     setVariables(prev => [...prev, newVariable]);
@@ -375,10 +384,16 @@ export const FinalPromptDisplay = ({
     multiSelections.forEach(selection => {
       const varPlaceholder = toVariablePlaceholder(variableId);
       updatedPrompt = replaceVariableInPrompt(updatedPrompt, selection, varPlaceholder, variableName);
+      
+      // Store the original text for this variable ID
+      if (typeof recordVariableSelection === 'function') {
+        recordVariableSelection(variableId, selection);
+      }
     });
 
     // Update the prompt
     updateFinalPrompt(updatedPrompt);
+    
     toast({
       title: "Variable created",
       description: `Created variable: ${variableName} from ${multiSelections.length} selections`
@@ -396,6 +411,7 @@ export const FinalPromptDisplay = ({
       setJsonGenerated(false);
     }
   };
+  
   const exitMultiSelectionMode = () => {
     // Remove all temporary multi-selection markers
     const markers = document.querySelectorAll('.multi-selection-marker');
@@ -407,6 +423,7 @@ export const FinalPromptDisplay = ({
     setMultiSelections([]);
     setIsMultiSelectMode(false);
   };
+  
   const cancelVariableCreation = () => {
     setIsCreatingVariable(false);
     setMultiSelections([]);
@@ -417,6 +434,7 @@ export const FinalPromptDisplay = ({
     }
     window.getSelection()?.removeAllRanges();
   };
+  
   const toggleVariableCreation = () => {
     if (isEditing) return; // Don't allow variable creation while editing
 
@@ -432,13 +450,26 @@ export const FinalPromptDisplay = ({
       });
     }
   };
+  
   const removeVariable = (variableId: string) => {
     // Find the variable we're removing
     const variable = variables.find(v => v.id === variableId);
     if (!variable) return;
 
-    // Get the current value of the variable (to replace placeholder)
-    const currentValue = variable.value || "";
+    // Get the original selected text if it was stored
+    const originalSelections = Array.from(selectedTexts.keys());
+    let originalText = variable.value || "";
+    
+    // If we have the original selection, use that instead of the current value
+    if (typeof recordVariableSelection === 'function') {
+      const storedSelection = originalSelections.find(selection => 
+        variable.value && variable.value.includes(selection)
+      );
+      
+      if (storedSelection) {
+        originalText = storedSelection;
+      }
+    }
 
     // Mark variable as not relevant
     setVariables(prev => prev.map(v => v.id === variableId ? {
@@ -446,13 +477,14 @@ export const FinalPromptDisplay = ({
       isRelevant: false
     } : v));
 
-    // Replace the placeholder with the actual text in the finalPrompt
+    // Replace the placeholder with the original text in the finalPrompt
     const varPlaceholder = toVariablePlaceholder(variableId);
-    const updatedPrompt = finalPrompt.replace(new RegExp(varPlaceholder, 'g'), currentValue);
+    const updatedPrompt = finalPrompt.replace(new RegExp(varPlaceholder, 'g'), originalText);
     updateFinalPrompt(updatedPrompt);
+    
     toast({
       title: "Variable removed",
-      description: "Variable has been removed and replaced with its value"
+      description: "Variable has been removed and replaced with its original text"
     });
 
     // Force re-render and reset JSON if needed
@@ -461,6 +493,7 @@ export const FinalPromptDisplay = ({
       setJsonGenerated(false);
     }
   };
+  
   const renderVariablePlaceholder = (variable: Variable, uniqueKey: string) => {
     return <span key={uniqueKey} className="inline-block relative variable-placeholder">
         <span className="variable-highlight px-1 py-0 m-0 bg-[#33fea6]/10 border-b border-[#33fea6] text-foreground font-medium min-w-16 inline-block">
@@ -500,7 +533,6 @@ export const FinalPromptDisplay = ({
   // Modified renderProcessedPrompt function to handle HTML parsing and variable placeholders
   const renderProcessedPrompt = () => {
     if (isEditing) {
-      // In editing mode, create an uncontrolled editable div with special styling for variables
       let processedEditablePrompt = editablePrompt;
 
       // Replace {{value::id}} with visually distinct non-editable elements
