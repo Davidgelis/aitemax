@@ -133,7 +133,7 @@ export const StepThreeContent = ({
       setEditablePrompt("");
       setRenderTrigger(prev => prev + 1);
       
-      // Force refresh JSON after edit if needed
+      // Only manually refresh JSON if already showing
       if (showJson) {
         handleRefreshJson();
       }

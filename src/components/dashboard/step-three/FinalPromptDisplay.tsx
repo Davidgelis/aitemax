@@ -132,7 +132,7 @@ export const FinalPromptDisplay = ({
     }
   }, [getProcessedPrompt, relevantVariables]);
   
-  // Improved convertPromptToJson function to always use latest content
+  // Modified convertPromptToJson to handle initial generation vs. refresh differently
   const convertPromptToJson = useCallback(async (forceRefresh = false) => {
     if (!finalPrompt || finalPrompt.trim() === "") {
       setJsonError("No prompt text to convert");
@@ -146,7 +146,7 @@ export const FinalPromptDisplay = ({
     setIsLoadingJson(true);
     
     try {
-      // Generate clean text for the API - always use the latest finalPrompt
+      // Generate clean text for the API
       const cleanTextForApi = generateCleanTextForApi();
       
       if (!cleanTextForApi || cleanTextForApi.trim() === "") {
@@ -158,14 +158,21 @@ export const FinalPromptDisplay = ({
         length: cleanTextForApi.length
       });
       
+      const requestBody = {
+        prompt: cleanTextForApi,
+        masterCommand,
+        userId,
+        promptId,
+        forceRefresh: forceRefresh // Only force refresh when explicitly requested
+      };
+      
+      // If we're refreshing an existing JSON and have a previous structure, include it
+      if (forceRefresh && promptJson) {
+        requestBody.existingStructure = promptJson;
+      }
+      
       const { data, error } = await supabase.functions.invoke('prompt-to-json', {
-        body: {
-          prompt: cleanTextForApi,
-          masterCommand,
-          userId,
-          promptId,
-          forceRefresh: true // Always force refresh to ensure we get the latest content
-        }
+        body: requestBody
       });
       
       if (error) {
@@ -191,10 +198,18 @@ export const FinalPromptDisplay = ({
           });
         } else {
           setJsonError(null);
-          toast({
-            title: "JSON Updated",
-            description: "JSON structure has been refreshed with latest content",
-          });
+          
+          if (forceRefresh) {
+            toast({
+              title: "JSON Updated",
+              description: "JSON structure has been refreshed with your changes",
+            });
+          } else {
+            toast({
+              title: "JSON Generated",
+              description: "JSON structure has been created from your prompt",
+            });
+          }
         }
       }
     } catch (error) {
@@ -224,11 +239,12 @@ export const FinalPromptDisplay = ({
       // Force a re-render after JSON is updated
       setRenderTrigger(prev => prev + 1);
     }
-  }, [finalPrompt, masterCommand, toast, userId, promptId, generateCleanTextForApi, setIsRefreshing, setRenderTrigger]);
+  }, [finalPrompt, masterCommand, toast, userId, promptId, generateCleanTextForApi, setIsRefreshing, setRenderTrigger, promptJson]);
   
   // Handle JSON view toggling and initial generation
   useEffect(() => {
     if (showJson && !jsonGenerated && !isLoadingJson) {
+      // Only generate from scratch on first toggle
       convertPromptToJson(false);
     }
   }, [showJson, jsonGenerated, isLoadingJson, convertPromptToJson]);
@@ -236,6 +252,7 @@ export const FinalPromptDisplay = ({
   // Handle render trigger changes for JSON refreshing
   useEffect(() => {
     if (renderTrigger > 0 && showJson && isRefreshing) {
+      // Use forceRefresh:true to update existing structure
       convertPromptToJson(true);
     }
   }, [renderTrigger, showJson, isRefreshing, convertPromptToJson]);
@@ -265,14 +282,19 @@ export const FinalPromptDisplay = ({
   useEffect(() => {
     // When finalPrompt changes and JSON view is active, mark JSON as needing refresh
     if (showJson && finalPrompt !== lastSavedPrompt) {
-      setJsonGenerated(false);
+      if (jsonGenerated) {
+        // If JSON was already generated, don't regenerate automatically
+        // but allow manual refresh to update it
+      } else {
+        setJsonGenerated(false); // Force generation only if not already generated
+      }
+      
       if (setLastSavedPrompt) {
         setLastSavedPrompt(finalPrompt);
       }
     }
-  }, [finalPrompt, showJson, lastSavedPrompt, setLastSavedPrompt]);
+  }, [finalPrompt, showJson, lastSavedPrompt, setLastSavedPrompt, jsonGenerated]);
   
-  // Functions related to mouse selection and variable creation
   const handleMouseUp = () => {
     if (!isCreatingVariable || isEditing) return;
     
@@ -493,19 +515,15 @@ export const FinalPromptDisplay = ({
         description: "Your prompt has been updated successfully.",
       });
       
-      // Reset JSON generation to force refresh on next view
-      setJsonGenerated(false);
+      // Mark JSON as needing manual refresh but don't reset jsonGenerated flag
+      if (setLastSavedPrompt) {
+        setLastSavedPrompt(processedContent);
+      }
       
       // Force a re-render to show the updated content with variables
       setRenderTrigger(prev => prev + 1);
       
-      // If JSON view is active, immediately refresh it
-      if (showJson) {
-        // Set a small timeout to ensure state updates have propagated
-        setTimeout(() => {
-          convertPromptToJson(true);
-        }, 100);
-      }
+      // Don't automatically refresh JSON - wait for manual refresh
     }
   };
 
