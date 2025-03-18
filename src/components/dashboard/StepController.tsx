@@ -274,14 +274,13 @@ export const StepController = ({
   );
 
   const renderContent = () => {
-    if (isAnalyzing || isInitializingModels || isEnhancingPrompt || isEnhancing) {
-      let message = isInitializingModels 
-        ? "Initializing AI models..." 
-        : isEnhancingPrompt 
-          ? enhancingMessage
-          : isEnhancing
-            ? currentLoadingMessage
-            : currentLoadingMessage;
+    // Modified condition to exclude isInitializingModels from the loading state check
+    if (isAnalyzing || isEnhancingPrompt || isEnhancing) {
+      let message = isEnhancingPrompt 
+        ? enhancingMessage
+        : isEnhancing
+          ? currentLoadingMessage
+          : currentLoadingMessage;
           
       return <LoadingState currentLoadingMessage={message} />;
     }

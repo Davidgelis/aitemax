@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -6,7 +5,6 @@ import { AIModel } from "@/components/dashboard/types";
 import { UserSidebar } from "@/components/dashboard/UserSidebar";
 import { StepController } from "@/components/dashboard/StepController";
 import { usePromptState } from "@/hooks/usePromptState";
-import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -52,8 +50,6 @@ const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
   const [selectedCognitive, setSelectedCognitive] = useState<string | null>(null);
-  const [modelsInitialized, setModelsInitialized] = useState(false);
-  const [isUpdatingModels, setIsUpdatingModels] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -64,7 +60,6 @@ const Dashboard = () => {
     (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm.toLowerCase())
   );
   
-  // Save draft when navigating away
   useEffect(() => {
     const saveDraftBeforeNavigate = (nextPath: string) => {
       if (nextPath !== location.pathname && promptState.promptText && !promptState.isViewingSavedPrompt) {
@@ -111,30 +106,6 @@ const Dashboard = () => {
     
     getUser();
 
-    const forceUpdateModels = async () => {
-      try {
-        setIsUpdatingModels(true);
-        
-        const result = await triggerInitialModelUpdate();
-        
-        if (!result.success) {
-          console.log("Failed to update AI models. Using fallback data.");
-          insertFallbackModelsDirectly();
-        }
-        
-        setModelsInitialized(true);
-        setIsUpdatingModels(false);
-      } catch (error) {
-        console.error("Error updating models:", error);
-        insertFallbackModelsDirectly();
-        
-        setModelsInitialized(true);
-        setIsUpdatingModels(false);
-      }
-    };
-    
-    forceUpdateModels();
-
     return () => {
       authListener.subscription.unsubscribe();
     };
@@ -149,41 +120,6 @@ const Dashboard = () => {
         description: "Your prompts will now undergo an additional precision-driven refinement",
       });
     }
-  };
-
-  const insertFallbackModelsDirectly = async () => {
-    console.log('Inserting fallback models directly...');
-    let insertedCount = 0;
-    
-    const { data: existingModels } = await supabase
-      .from('ai_models')
-      .select('id')
-      .limit(1);
-      
-    if (existingModels && existingModels.length > 0) {
-      console.log('Models already exist, skipping direct insertion');
-      return;
-    }
-    
-    for (const model of fallbackModels) {
-      const { error: insertError } = await supabase
-        .from('ai_models')
-        .insert({
-          name: model.name,
-          provider: model.provider,
-          description: model.description,
-          strengths: model.strengths,
-          limitations: model.limitations,
-        });
-        
-      if (!insertError) {
-        insertedCount++;
-      } else {
-        console.error('Error inserting model:', model.name, insertError);
-      }
-    }
-    
-    console.log(`Inserted ${insertedCount} fallback models directly`);
   };
 
   useEffect(() => {
@@ -201,7 +137,6 @@ const Dashboard = () => {
               user={user} 
               selectedModel={selectedModel} 
               setSelectedModel={setSelectedModel}
-              isInitializingModels={isUpdatingModels}
               selectedCognitive={selectedCognitive}
               handleCognitiveToggle={handleCognitiveToggle}
               promptState={promptState}

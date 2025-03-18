@@ -6,6 +6,12 @@ interface LoadingStateProps {
 }
 
 export const LoadingState = ({ currentLoadingMessage }: LoadingStateProps) => {
+  // Special case: if the message is related to AI model initialization, 
+  // return null instead of showing the loading state
+  if (currentLoadingMessage === "Initializing AI models...") {
+    return null;
+  }
+  
   // If we have a string message, display it directly (like the enhance prompt message)
   if (typeof currentLoadingMessage === 'string') {
     return (
