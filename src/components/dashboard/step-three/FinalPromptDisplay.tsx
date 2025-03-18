@@ -139,15 +139,17 @@ export const FinalPromptDisplay = ({
       relevantVariables.forEach(variable => {
         const placeholderRegex = new RegExp(`<span[^>]*data-variable-id="${variable.id}"[^>]*>.*?</span>`, 'g');
         if (placeholderRegex.test(processedText)) {
-          // For editing mode, make variables bold but keep them in the text
-          processedText = processedText.replace(placeholderRegex, `{{${variable.value}}}`);
+          // For editing mode, make variables marked with double braces and variable ID
+          processedText = processedText.replace(placeholderRegex, `{{${variable.value || ""}::${variable.id}}}`);
         }
       });
       
-      // Then replace any remaining {{variable}} formats
+      // Then replace any remaining {{variable}} formats with variable ID if possible
       relevantVariables.forEach(variable => {
-        const regex = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
-        processedText = processedText.replace(regex, `{{${variable.value}}}`);
+        if (variable.name) {
+          const templateRegex = new RegExp(`{{\\s*${variable.name}\\s*}}`, 'g');
+          processedText = processedText.replace(templateRegex, `{{${variable.value || ""}::${variable.id}}}`);
+        }
       });
       
       setEditablePrompt(processedText);
@@ -156,7 +158,7 @@ export const FinalPromptDisplay = ({
       // Reset the initialization flag when exiting edit mode
       setHasInitializedEditMode(false);
     }
-  }, [isEditing, finalPrompt, setEditablePrompt, relevantVariables, hasInitializedEditMode]);
+  }, [isEditing, finalPrompt, relevantVariables, hasInitializedEditMode, setEditablePrompt]);
 
   const handleMouseUp = () => {
     if (!isCreatingVariable || isEditing) return;
@@ -465,14 +467,59 @@ export const FinalPromptDisplay = ({
     );
   };
 
+  // This function will be called when saving from edit mode
+  const handleSaveFromEditMode = () => {
+    if (editableContentRef.current) {
+      // Get content directly from the DOM
+      let newContent = editableContentRef.current.innerHTML;
+      
+      // Convert the special format we used back to variable placeholders
+      relevantVariables.forEach(variable => {
+        // First, find and convert any spans with our format
+        const spanRegex = new RegExp(
+          `<span[^>]*class=['"]non-editable-variable['"][^>]*>[^:]*::${variable.id}[^<]*</span>`, 
+          'gi'
+        );
+        
+        newContent = newContent.replace(spanRegex, 
+          `<span data-variable-id="${variable.id}" contenteditable="false" class="variable-highlight">${variable.value || ""}</span>`);
+        
+        // Then find and convert any remaining text format {{content::id}}
+        const textFormatRegex = new RegExp(`{{[^:]*::${variable.id}}}`, 'g');
+        newContent = newContent.replace(textFormatRegex, 
+          `<span data-variable-id="${variable.id}" contenteditable="false" class="variable-highlight">${variable.value || ""}</span>`);
+      });
+      
+      // Update the final prompt with the new content
+      updateFinalPrompt(newContent);
+      setIsEditing(false);
+      setEditablePrompt("");
+      
+      toast({
+        title: "Changes saved",
+        description: "Your prompt has been updated successfully.",
+      });
+      
+      // Force a re-render to show the updated content with variables
+      setRenderTrigger(prev => prev + 1);
+    }
+  };
+
   // Modified renderProcessedPrompt function to handle HTML parsing and variable placeholders
   const renderProcessedPrompt = () => {
     if (isEditing) {
       // In editing mode, create an uncontrolled editable div with special styling for variables
       const processedEditablePrompt = editablePrompt.replace(
         /{{([^}]+)}}/g,
-        (match, variableText) => {
-          return `<span contentEditable="false" class="non-editable-variable">${variableText}</span>`;
+        (match, variableContent) => {
+          // Check if this has our special format with ::id at the end
+          const parts = variableContent.split('::');
+          if (parts.length === 2) {
+            const [value, variableId] = parts;
+            return `<span contentEditable="false" class="non-editable-variable" data-variable-id="${variableId}">${value}</span>`;
+          }
+          // Regular variable, just make it non-editable
+          return `<span contentEditable="false" class="non-editable-variable">${variableContent}</span>`;
         }
       );
       
@@ -500,25 +547,7 @@ export const FinalPromptDisplay = ({
             </Button>
             <Button 
               className="edit-action-button edit-save-button"
-              onClick={() => {
-                if (editableContentRef.current) {
-                  // Read current content directly from the DOM
-                  const newContent = editableContentRef.current.innerHTML;
-                  
-                  // Replace non-editable spans with their proper placeholders
-                  const processedContent = newContent.replace(
-                    /<span(?=[^>]*\bcontentEditable=['"]false['"])(?=[^>]*\bclass=['"]non-editable-variable['"])[^>]*>(.*?)<\/span>/gi,
-                    (_, text) => `{{${text}}}`
-                  );
-                  
-                  // Update the editablePrompt with the processed content
-                  setEditablePrompt(processedContent);
-                  
-                  // Then trigger the save
-                  handleSaveEditedPrompt();
-                  setIsEditing(false);
-                }
-              }}
+              onClick={handleSaveFromEditMode}
             >
               Save Changes
             </Button>
@@ -560,7 +589,6 @@ export const FinalPromptDisplay = ({
         return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
       }
       
-      // Split the prompt into paragraphs
       const paragraphs = processedPrompt.split('\n\n');
       
       return (

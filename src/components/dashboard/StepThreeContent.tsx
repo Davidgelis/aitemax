@@ -120,11 +120,34 @@ export const StepThreeContent = ({
       // Apply the edited content to the finalPrompt
       setFinalPrompt(editablePrompt);
       
+      // Process the prompt to ensure variable placeholders are preserved
+      const relevantVars = variables.filter(v => v && v.isRelevant);
+      let processedPrompt = editablePrompt;
+      
+      // Convert {{value::id}} format back to proper variable placeholders
+      relevantVars.forEach(variable => {
+        const doubleVarRegex = new RegExp(`{{[^:}]*::${variable.id}}}`, 'g');
+        if (doubleVarRegex.test(processedPrompt)) {
+          processedPrompt = processedPrompt.replace(
+            doubleVarRegex, 
+            `<span data-variable-id="${variable.id}" contenteditable="false" class="variable-highlight">${variable.value || ""}</span>`
+          );
+        }
+      });
+      
+      // If any changes were made in the processing, update the prompt again
+      if (processedPrompt !== editablePrompt) {
+        setFinalPrompt(processedPrompt);
+      }
+      
       toast({
         title: "Success",
         description: "Prompt updated successfully",
         variant: "default",
       });
+      
+      // Force a re-render to ensure variables are displayed correctly
+      setRenderTrigger(prev => prev + 1);
     } catch (error) {
       console.error("Error saving edited prompt:", error);
       toast({
@@ -133,7 +156,7 @@ export const StepThreeContent = ({
         variant: "destructive",
       });
     }
-  }, [editablePrompt, setFinalPrompt, toast]);
+  }, [editablePrompt, setFinalPrompt, toast, variables]);
 
   const getProcessedPromptFunction = useCallback(() => {
     if (typeof externalGetProcessedPrompt === 'function') {
@@ -143,6 +166,7 @@ export const StepThreeContent = ({
   }, [externalGetProcessedPrompt, promptOperations.getProcessedPrompt]);
 
   const recordVariableSelection = useCallback((variableId: string, selectedText: string) => {
+    console.log("Recording variable selection:", variableId, selectedText);
     promptOperations.recordVariableSelection(variableId, selectedText);
   }, [promptOperations]);
   
