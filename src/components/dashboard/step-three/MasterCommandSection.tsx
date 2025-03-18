@@ -15,13 +15,13 @@ export const MasterCommandSection = ({
   handleRegenerate
 }: MasterCommandSectionProps) => {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 mb-4">
       <div className="flex-1">
         <Textarea
           value={masterCommand}
           onChange={(e) => setMasterCommand(e.target.value)}
           placeholder="Master command (optional): Use this to adapt the prompt for specific contexts or needs"
-          className="min-h-[80px] text-sm resize-none"
+          className="min-h-[80px] text-sm resize-none border-gray-200"
         />
       </div>
       <Button 

@@ -65,70 +65,67 @@ export const VariablesSection = ({
 
   if (!relevantVariables || relevantVariables.length === 0) {
     return (
-      <div className="mb-4 p-3 border rounded-lg bg-background/50">
-        <h4 className="text-sm font-medium mb-3">Variables</h4>
-        <p className="text-xs text-muted-foreground">No variables available. Select text in the prompt to create variables.</p>
+      <div className="mb-4 p-4 border rounded-lg bg-gray-50">
+        <h4 className="text-base font-medium mb-3">Variables</h4>
+        <p className="text-sm text-gray-500">No variables available. Select text in the prompt to create variables.</p>
       </div>
     );
   }
 
   return (
-    <div className="mb-4 p-3 border rounded-lg bg-background/50">
-      <h4 className="text-sm font-medium mb-3">Variables</h4>
+    <div className="mb-4 p-4 border rounded-lg bg-gray-50">
+      <h4 className="text-base font-medium mb-3">Variables</h4>
       <div className="flex flex-col space-y-3">
         {relevantVariables.map((variable, index) => (
           <div key={variable.id} className="variable-container flex gap-3 items-center">
-            <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
+            <div className="w-6 h-6 flex items-center justify-center rounded-full bg-teal-100 text-xs font-medium text-teal-800">
               {index + 1}
             </div>
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="sr-only">Variable name</div>
-              <div className="flex items-center w-full">
-                <Input 
-                  value={variable.value || ""}
-                  onChange={(e) => handleInputChange(variable.id, e.target.value)}
-                  className="h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
-                  data-variable-id={variable.id}
-                  data-source="variables-section"
-                  placeholder="Type here..."
-                  onInput={(e) => {
-                    // Dispatch a custom event when value changes from this component
-                    const customEvent = new CustomEvent('variable-value-changed', {
-                      detail: {
-                        variableId: variable.id,
-                        newValue: e.currentTarget.value
-                      }
-                    });
-                    document.dispatchEvent(customEvent);
-                  }}
-                />
-                
-                {onDeleteVariable && (
-                  <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
-                    <AlertDialogTrigger asChild>
-                      <button 
-                        onClick={() => setVariableToDelete(variable.id)}
-                        className="p-2 rounded-full hover:bg-[#33fea6]/20 ml-2"
-                        aria-label="Delete variable"
-                      >
-                        <Trash2 className="w-4 h-4 text-[#545454]" />
-                      </button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete variable?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this variable? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(variable.id)}>Delete</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-              </div>
+            <div className="flex-1 flex items-center w-full">
+              <Input 
+                value={variable.value || ""}
+                onChange={(e) => handleInputChange(variable.id, e.target.value)}
+                className="h-9 rounded-md border text-gray-700 focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                data-variable-id={variable.id}
+                data-source="variables-section"
+                placeholder="Type here..."
+                onInput={(e) => {
+                  // Dispatch a custom event when value changes from this component
+                  const customEvent = new CustomEvent('variable-value-changed', {
+                    detail: {
+                      variableId: variable.id,
+                      newValue: e.currentTarget.value
+                    }
+                  });
+                  document.dispatchEvent(customEvent);
+                }}
+              />
+              
+              {onDeleteVariable && (
+                <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
+                  <AlertDialogTrigger asChild>
+                    <button 
+                      onClick={() => setVariableToDelete(variable.id)}
+                      className="p-2 rounded-full hover:bg-teal-100 ml-2"
+                      aria-label="Delete variable"
+                    >
+                      <Trash2 className="w-4 h-4 text-gray-500" />
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete variable?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this variable? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(variable.id)}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </div>
         ))}

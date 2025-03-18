@@ -28,7 +28,7 @@ interface FinalPromptDisplayProps {
   setIsRefreshing?: (isRefreshing: boolean) => void;
   lastSavedPrompt?: string;
   setLastSavedPrompt?: (prompt: string) => void;
-  className?: string; // Add className prop
+  className?: string;
 }
 
 export const FinalPromptDisplay = ({
@@ -52,7 +52,7 @@ export const FinalPromptDisplay = ({
   setIsRefreshing,
   lastSavedPrompt = "",
   setLastSavedPrompt,
-  className = "" // Default to empty string
+  className = ""
 }: FinalPromptDisplayProps) => {
   const [processedPrompt, setProcessedPrompt] = useState("");
   const [promptJson, setPromptJson] = useState<PromptJsonStructure | null>(null);
@@ -452,7 +452,7 @@ export const FinalPromptDisplay = ({
     updateFinalPrompt(updatedPrompt);
     toast({
       title: "Variable removed",
-      description: "Variable has been removed"
+      description: "Variable has been removed and replaced with its value"
     });
 
     // Force re-render and reset JSON if needed
@@ -494,8 +494,6 @@ export const FinalPromptDisplay = ({
 
       // Force a re-render to show the updated content with variables
       setRenderTrigger(prev => prev + 1);
-
-      // Don't automatically refresh JSON - wait for manual refresh
     }
   };
 
@@ -584,31 +582,41 @@ export const FinalPromptDisplay = ({
       return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
     }
   };
+
   return <div className={`relative flex-1 mb-4 overflow-hidden rounded-lg ${className}`} style={{ minHeight: "500px" }}>
+      
       <div className="absolute top-2 right-2 z-10 flex items-center space-x-4">
-        {!isEditing && <>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-accent">Create Variable/s</span>
-              <button onClick={toggleVariableCreation} className={`p-2 rounded-full ${isCreatingVariable ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`} aria-label={isCreatingVariable ? "Exit variable creation mode" : "Create variable"}>
-                <PlusCircle className={`w-4 h-4 ${isCreatingVariable ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
-              </button>
-            </div>
+        {!isEditing && (
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={toggleVariableCreation} 
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md ${isCreatingVariable ? 'bg-[#33fea6] text-white' : 'bg-white/90 hover:bg-white hover:text-[#33fea6]'} transition-colors`}
+              aria-label={isCreatingVariable ? "Exit variable creation mode" : "Create variable"}
+            >
+              <PlusCircle className={`w-4 h-4 ${isCreatingVariable ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
+              <span className="text-sm">Create Variable</span>
+            </button>
             
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-accent">Edit Prompt</span>
-              <button onClick={() => setIsEditing(true)} className="p-2 rounded-full bg-white/80 hover:bg-white hover:text-[#33fea6] transition-colors" aria-label="Edit prompt text">
-                <Edit className="w-4 h-4 text-accent hover:text-[#33fea6]" />
-              </button>
-            </div>
-          </>}
+            <button 
+              onClick={() => setIsEditing(true)} 
+              className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/90 hover:bg-white hover:text-[#33fea6] transition-colors" 
+              aria-label="Edit prompt text"
+            >
+              <Edit className="w-4 h-4 text-accent hover:text-[#33fea6]" />
+              <span className="text-sm">Edit Prompt</span>
+            </button>
+          </div>
+        )}
       </div>
       
-      <div className="absolute inset-0 bg-gradient-to-br from-accent via-primary-dark to-primary animate-aurora opacity-10" style={{
-      backgroundSize: "400% 400%"
-    }} />
+      
+      <div className="absolute inset-0 bg-gradient-to-br from-accent via-primary-dark to-primary opacity-5" style={{
+        backgroundSize: "400% 400%"
+      }} />
+      
       
       <div className={`relative h-full p-6 overflow-y-auto ${isEditing ? 'editing-mode' : ''}`} style={{ minHeight: "500px" }}>
-        <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
+        <h3 className="text-lg font-medium mb-6">Final Prompt</h3>
         
         {renderProcessedPrompt()}
       </div>

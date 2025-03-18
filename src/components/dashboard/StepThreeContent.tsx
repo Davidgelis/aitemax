@@ -9,7 +9,6 @@ import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { useResponsive } from "@/hooks/useResponsive";
-import { Switch } from "@/components/ui/switch";
 import { replaceVariableInPrompt } from "@/utils/promptUtils";
 
 interface StepThreeContentProps {
@@ -75,6 +74,7 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
   const [value, copy] = useCopyToClipboard();
   const [renderTrigger, setRenderTrigger] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   
   const handleCopy = () => {
     copy(finalPrompt);
@@ -154,8 +154,8 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
         showJson={showJson}
         masterCommand={masterCommand}
         handleOpenEditPrompt={handleOpenEditPrompt}
-        isEditing={false}
-        setIsEditing={() => {}}
+        isEditing={isEditing}
+        setIsEditing={setIsEditing}
         editablePrompt={editingPrompt}
         setEditablePrompt={setEditingPrompt}
         handleSaveEditedPrompt={handleSaveEditedPrompt}
@@ -179,7 +179,6 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
         isCopied={isCopied}
         isPrivate={isPrivate}
         setIsPrivate={setIsPrivate}
-        useAuroraEffect={false}
       />
     </div>
   );
