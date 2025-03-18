@@ -490,8 +490,9 @@ export const FinalPromptDisplay = ({
             onInput={(e) => {
               // Extract the text content with placeholders preserved
               const content = e.currentTarget.innerHTML;
+              // Updated regex that uses lookahead assertions to match attributes regardless of order
               const textWithPlaceholders = content.replace(
-                /<span[^>]*contentEditable="false"[^>]*class="non-editable-variable">([^<]+)<\/span>/g,
+                /<span(?=[^>]*\bcontentEditable=['"]false['"])(?=[^>]*\bclass=['"]non-editable-variable['"])[^>]*>(.*?)<\/span>/gi,
                 (_, text) => `{{${text}}}`
               );
               setEditablePrompt(textWithPlaceholders);

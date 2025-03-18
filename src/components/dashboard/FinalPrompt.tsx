@@ -1,3 +1,4 @@
+
 import { Edit, Copy, Save, RotateCw, X, Check } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -109,7 +110,11 @@ export const FinalPrompt = ({
       
       // Replace non-editable variables with their original format
       variables.filter(v => v.isRelevant).forEach(variable => {
-        const nonEditableRegex = new RegExp(`<span[^>]*class="non-editable-variable"[^>]*data-variable-id="${variable.id}"[^>]*>[^<]*</span>`, 'g');
+        // Updated regex that uses lookahead assertions to match attributes regardless of order
+        const nonEditableRegex = new RegExp(
+          `<span(?=[^>]*\\bclass=['"]non-editable-variable['"])(?=[^>]*\\bdata-variable-id=["']${variable.id}["'])[^>]*>[^<]*</span>`,
+          'gi'
+        );
         
         // Convert back to the original format expected by the app
         newContent = newContent.replace(nonEditableRegex, 
