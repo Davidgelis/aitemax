@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.update-ai-models]
 verify_jwt = false
+
+[functions.get-prompt-counts-per-user]
+verify_jwt = false

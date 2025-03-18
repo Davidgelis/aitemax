@@ -126,6 +126,14 @@ Deno.serve(async (req) => {
       tokenData.forEach(item => {
         if (item.user_id && userStats[item.user_id]) {
           userStats[item.user_id].total_cost += Number(item.total_cost) || 0
+        } else if (item.user_id) {
+          // Create entry for users who only have token usage but no prompts
+          userStats[item.user_id] = { 
+            prompts_count: 0, 
+            drafts_count: 0, 
+            total_count: 0,
+            total_cost: Number(item.total_cost) || 0
+          }
         }
       })
     }
@@ -139,7 +147,7 @@ Deno.serve(async (req) => {
       total_cost: stats.total_cost
     }))
 
-    console.log(`Successfully fetched prompt counts: ${JSON.stringify(formattedData)}`)
+    console.log(`Successfully fetched prompt counts: ${formattedData.length} users found`)
     
     return new Response(JSON.stringify(formattedData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
