@@ -65,6 +65,8 @@ async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRet
   
   while (retries < maxRetries) {
     try {
+      console.log(`Attempt ${retries + 1}: Calling OpenAI with cleaned prompt (first 100 chars): "${prompt.substring(0, 100)}..."`);
+      
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -93,12 +95,16 @@ async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRet
       
       if (!response.ok) {
         const errorData = await response.text();
+        console.error(`OpenAI API error: Status ${response.status}, Response: ${errorData}`);
         throw new Error(`OpenAI API responded with status ${response.status}: ${errorData}`);
       }
       
-      return await response.json();
+      const responseData = await response.json();
+      console.log("OpenAI API response received successfully");
+      return responseData;
     } catch (error) {
       lastError = error;
+      console.error(`Error in OpenAI API call (attempt ${retries + 1}):`, error);
       
       // Only retry on rate limiting or network errors
       if (error.message && (error.message.includes('429') || error.message.includes('rate_limit') || error.message.includes('network'))) {
@@ -130,9 +136,12 @@ serve(async (req) => {
       throw new Error("Prompt is required");
     }
     
+    console.log("Original prompt length:", prompt.length);
+    
     // Clean the prompt to remove variable markers and source code
     const cleanedPrompt = cleanPromptForAnalysis(prompt);
     
+    console.log("Cleaned prompt length:", cleanedPrompt.length);
     console.log("Converting prompt to JSON with o3-mini:", cleanedPrompt.substring(0, 100) + "...");
     
     const systemMessage = `
@@ -163,6 +172,7 @@ serve(async (req) => {
     let data;
     try {
       data = await callOpenAIWithRetry(systemMessage, cleanedPrompt);
+      console.log("OpenAI API call successful");
     } catch (error) {
       console.error("Failed to call OpenAI after retries:", error);
       // Return a fallback JSON structure in case of failure
@@ -186,6 +196,7 @@ serve(async (req) => {
     
     try {
       // Parse the response content as JSON
+      console.log("Parsing OpenAI response to JSON");
       jsonResult = JSON.parse(data.choices[0].message.content);
       
       // Add master command if provided
@@ -220,7 +231,7 @@ serve(async (req) => {
       }
     } catch (parseError) {
       console.error("Error parsing JSON response:", parseError);
-      console.log("Raw response:", data.choices[0].message.content);
+      console.log("Raw response from OpenAI:", data.choices[0].message.content);
       
       // Create a minimal valid JSON if parsing failed
       jsonResult = {
@@ -276,20 +287,27 @@ function extractVariablePlaceholders(text: string): string[] {
 
 // Updated helper function to clean the prompt of variable markers and source code for analysis
 function cleanPromptForAnalysis(text: string): string {
+  console.log("Cleaning prompt for analysis - Raw start:", text.substring(0, 50));
+  
   // Replace variable markers in the format {{displayText::variableId}} with just the display text
   let cleanedText = text.replace(/{{([^:}]+)::[\w-]+}}/g, '$1');
-  
-  // Also handle any legacy markers if needed
+  console.log("After displayText::variableId cleaning:", cleanedText.substring(0, 50));
+
+  // Handle any legacy markers
   cleanedText = cleanedText.replace(/{{VAR:([^}]+)}}/g, '$1');
-  
+  console.log("After VAR: cleaning:", cleanedText.substring(0, 50));
+
   // Remove any HTML tags with data-variable-id attributes
   cleanedText = cleanedText.replace(/<[^>]*data-variable-id=[^>]*>(.*?)<\/span>/g, '$1');
-  
+  console.log("After data-variable-id cleaning:", cleanedText.substring(0, 50));
+
   // Remove any remaining HTML tags
   cleanedText = cleanedText.replace(/<[^>]*>/g, '');
-  
+  console.log("After HTML tag cleaning:", cleanedText.substring(0, 50));
+
   // Replace multiple spaces with a single space
   cleanedText = cleanedText.replace(/\s+/g, ' ');
-  
+  console.log("After whitespace normalization:", cleanedText.substring(0, 50));
+
   return cleanedText;
 }
