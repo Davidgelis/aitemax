@@ -23,7 +23,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Copy, Edit, Check, Download, RefreshCw, Plus, Trash, MoreVertical, CalendarIcon } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast"
 import { usePromptState } from "@/hooks/usePromptState";
-import { useUser } from "@clerk/clerk-react";
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -277,7 +276,6 @@ export function FinalPromptDisplay({
     setIsPrivate
   } = usePromptState();
   const { toast } = useToast();
-  const { user } = useUser();
   const promptRef = useRef<HTMLDivElement>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -291,6 +289,9 @@ export function FinalPromptDisplay({
   const navigate = (path: string) => {
     window.location.href = path;
   };
+
+  // Create a mock user object to avoid clerk errors
+  const user = { id: 'anonymous-user' };
 
   const {
     handleQuestionAnswer,
