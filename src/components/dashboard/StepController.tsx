@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -6,6 +5,7 @@ import { LoadingState } from "@/components/dashboard/LoadingState";
 import { StepOneContent } from "@/components/dashboard/StepOneContent";
 import { StepTwoContent } from "@/components/dashboard/StepTwoContent";
 import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
+import { PrivacyNoticePopup } from "@/components/dashboard/PrivacyNoticePopup";
 import { usePromptAnalysis } from "@/hooks/usePromptAnalysis";
 import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
@@ -368,6 +368,8 @@ export const StepController = ({
         onStepChange={handleDirectJump} 
         isViewingSavedPrompt={isViewingSavedPrompt}
       />
+      
+      <PrivacyNoticePopup user={user} currentStep={currentStep} />
     </div>
   );
 };
