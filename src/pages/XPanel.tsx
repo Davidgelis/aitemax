@@ -512,7 +512,7 @@ const XPanel = () => {
                               />
                             </div>
                             <Button 
-                              className="w-full" 
+                              className="w-full bg-[#64bf95] hover:bg-[#64bf95]/90 text-white" 
                               onClick={handleSharePrompt}
                               disabled={!shareEmail || isSharing || sharingPromptId !== prompt.id}
                             >
