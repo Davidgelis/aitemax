@@ -1,3 +1,4 @@
+
 import { Input } from "@/components/ui/input";
 import { Variable } from "../types";
 import { useEffect, useCallback, useState } from "react";
@@ -16,6 +17,7 @@ export const VariablesSection = ({
   onDeleteVariable
 }: VariablesSectionProps) => {
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
+  const maxCharacterLimit = 100; // Set character limit to 100
   
   // Optimize variable value changes
   const handleInputChange = useCallback((variableId: string, newValue: string) => {
@@ -82,14 +84,20 @@ export const VariablesSection = ({
             </div>
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sr-only">Variable name</div>
-              <div className="flex items-center w-full">
+              <div className="flex items-center w-full relative">
                 <Input 
                   value={variable.value || ""}
-                  onChange={(e) => handleInputChange(variable.id, e.target.value)}
-                  className="h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
+                  onChange={(e) => {
+                    // Limit input to maxCharacterLimit characters
+                    if (e.target.value.length <= maxCharacterLimit) {
+                      handleInputChange(variable.id, e.target.value);
+                    }
+                  }}
+                  className="h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16"
                   data-variable-id={variable.id}
                   data-source="variables-section"
                   placeholder="Type here..."
+                  maxLength={maxCharacterLimit}
                   onInput={(e) => {
                     // Dispatch a custom event when value changes from this component
                     const customEvent = new CustomEvent('variable-value-changed', {
@@ -101,6 +109,9 @@ export const VariablesSection = ({
                     document.dispatchEvent(customEvent);
                   }}
                 />
+                <div className="absolute right-12 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
+                  {(variable.value || "").length}/{maxCharacterLimit}
+                </div>
                 
                 {onDeleteVariable && (
                   <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>

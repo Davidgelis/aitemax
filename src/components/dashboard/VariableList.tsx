@@ -1,3 +1,4 @@
+
 import { Plus, Trash } from "lucide-react";
 import { Variable } from "./types";
 import { RefObject, useState, useEffect } from "react";
@@ -35,6 +36,7 @@ export const VariableList = ({
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [variableCodes, setVariableCodes] = useState<Record<string, string>>({});
   const { toast } = useToast();
+  const maxCharacterLimit = 100; // Set character limit to 100
   
   // Filter out category names and empty names for display
   const filteredVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
@@ -184,17 +186,28 @@ export const VariableList = ({
                     autoComplete="off"
                     aria-label={`Name for variable ${index + 1}`}
                   />
-                  <Input
-                    type="text"
-                    placeholder="Value"
-                    value={variableValues[variable.id] || ""}
-                    onChange={(e) => handleValueChange(variable.id, e.target.value)}
-                    className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
-                      highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''
-                    }`}
-                    autoComplete="off"
-                    aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
-                  />
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="Value"
+                      value={variableValues[variable.id] || ""}
+                      onChange={(e) => {
+                        // Limit input to maxCharacterLimit characters
+                        if (e.target.value.length <= maxCharacterLimit) {
+                          handleValueChange(variable.id, e.target.value);
+                        }
+                      }}
+                      className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16 ${
+                        highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''
+                      }`}
+                      autoComplete="off"
+                      aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
+                      maxLength={maxCharacterLimit}
+                    />
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
+                      {(variableValues[variable.id] || "").length}/{maxCharacterLimit}
+                    </div>
+                  </div>
                 </div>
                 <div className="flex">
                   <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
