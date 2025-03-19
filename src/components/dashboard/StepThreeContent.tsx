@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { FinalPromptDisplay } from "@/components/dashboard/step-three/FinalPromptDisplay";
 import { MasterCommandSection } from "@/components/dashboard/step-three/MasterCommandSection";
@@ -107,28 +106,29 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
     setRenderTrigger(prev => prev + 1);
   };
   
-  // Enhanced delete variable function that replaces the variable with its original text
+  // Enhanced delete variable function that uses the current variable value
   const handleDeleteVariable = (variableId: string) => {
     if (promptOperations.removeVariable) {
+      // Use the improved removeVariable function from the hook
       promptOperations.removeVariable(variableId);
     } else {
       // Fallback implementation if removeVariable is unavailable
       const variableToDelete = variables.find(v => v.id === variableId);
       
       if (variableToDelete) {
-        // Store the current text value of the variable
-        const originalText = variableToDelete.value || "";
+        // Use the current variable value
+        const currentValue = variableToDelete.value || "";
         
         // First mark it as not relevant
         setVariables(prev => prev.map(v => 
           v.id === variableId ? {...v, isRelevant: false} : v
         ));
         
-        // Replace all instances of the variable in the prompt with its current text value
+        // Replace all instances of the variable in the prompt with its current value
         const updatedPrompt = replaceVariableInPrompt(
           finalPrompt,
           `{{VAR::${variableId}}}`, // Placeholder format
-          originalText, // Replace with original text (not in a variable box)
+          currentValue, // Replace with current value
           variableToDelete.name
         );
         
@@ -140,7 +140,7 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
         
         toast({
           title: "Variable removed",
-          description: "The variable has been removed and replaced with its text value."
+          description: "The variable has been removed and replaced with its current value."
         });
       }
     }

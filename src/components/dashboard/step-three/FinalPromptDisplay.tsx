@@ -452,51 +452,30 @@ export const FinalPromptDisplay = ({
       });
     }
   };
-  
+
+  // Modified removeVariable function to use the current variable value instead of original text
   const removeVariable = (variableId: string) => {
     // Find the variable we're removing
     const variable = variables.find(v => v.id === variableId);
     if (!variable) return;
 
-    // Get the original selected text if it was stored
-    const originalSelections = Array.from(selectedTexts.keys());
-    let originalText = undefined;
+    // Use the current variable value, not the original selection
+    const replacementText = variable.value || "";
     
-    // If we have the original selection stored via recordVariableSelection, use that
-    if (typeof recordVariableSelection === 'function' && variableSelections) {
-      // Check if we have this selection in our variableSelections map (via the hook)
-      originalText = variableSelections.get(variableId);
-    }
-    
-    // If we don't have the original selection from recordVariableSelection,
-    // try to find it in our local selectedTexts map
-    if (!originalText) {
-      const storedSelection = originalSelections.find(selection => 
-        variable.value && variable.value.includes(selection)
-      );
-      
-      if (storedSelection) {
-        originalText = storedSelection;
-      } else {
-        // As a fallback, just use the variable's current value
-        originalText = variable.value || "";
-      }
-    }
-
     // Mark variable as not relevant
     setVariables(prev => prev.map(v => v.id === variableId ? {
       ...v,
       isRelevant: false
     } : v));
 
-    // Replace the placeholder with the original text in the finalPrompt
+    // Replace the placeholder with the current variable value in the finalPrompt
     const varPlaceholder = toVariablePlaceholder(variableId);
-    const updatedPrompt = finalPrompt.replace(new RegExp(varPlaceholder, 'g'), originalText);
+    const updatedPrompt = finalPrompt.replace(new RegExp(varPlaceholder, 'g'), replacementText);
     updateFinalPrompt(updatedPrompt);
     
     toast({
       title: "Variable removed",
-      description: "Variable has been removed and replaced with its original text"
+      description: "Variable has been removed and replaced with its current value"
     });
 
     // Force re-render and reset JSON if needed
