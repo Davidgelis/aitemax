@@ -30,6 +30,9 @@ export const WebScanDialog = ({
   const [instructions, setInstructions] = useState(savedInstructions);
   const { toast } = useToast();
   
+  // Character limit for instructions (approx. 250 words)
+  const instructionsMaxChar = 1250;
+  
   // Update state when props change
   useEffect(() => {
     if (open) {
@@ -37,6 +40,13 @@ export const WebScanDialog = ({
       setInstructions(savedInstructions);
     }
   }, [open, savedUrl, savedInstructions]);
+  
+  const handleInstructionsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    if (newValue.length <= instructionsMaxChar) {
+      setInstructions(newValue);
+    }
+  };
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,9 +126,11 @@ export const WebScanDialog = ({
             <Textarea 
               id="instructions"
               value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
+              onChange={handleInstructionsChange}
               placeholder="E.g., 'Extract best practices for landing pages' or 'Find information about pricing models'"
               className={`w-full min-h-[120px] resize-none ${!instructions.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
+              showCount
+              maxCount={instructionsMaxChar}
               required
             />
             <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">

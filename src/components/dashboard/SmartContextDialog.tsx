@@ -29,6 +29,10 @@ export const SmartContextDialog = ({
   const [usageInstructions, setUsageInstructions] = useState(savedUsageInstructions);
   const { toast } = useToast();
   
+  // Character limits
+  const contextMaxChar = 5000; // Approximately 1000 words
+  const instructionsMaxChar = 1250; // Approximately 250 words
+  
   // Update local state when props change
   useEffect(() => {
     if (open) {
@@ -36,6 +40,20 @@ export const SmartContextDialog = ({
       setUsageInstructions(savedUsageInstructions);
     }
   }, [open, savedContext, savedUsageInstructions]);
+  
+  const handleContextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    if (newValue.length <= contextMaxChar) {
+      setContext(newValue);
+    }
+  };
+  
+  const handleInstructionsChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    if (newValue.length <= instructionsMaxChar) {
+      setUsageInstructions(newValue);
+    }
+  };
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,9 +107,11 @@ export const SmartContextDialog = ({
             <Textarea 
               id="context"
               value={context}
-              onChange={(e) => setContext(e.target.value)}
+              onChange={handleContextChange}
               placeholder="E.g., 'This is for a technical audience' or 'The tone should be professional'. You can paste articles, explanations, descriptions, or even video transcripts to provide as much context as possible."
               className={`w-full min-h-[200px] resize-none ${!context.trim() ? 'border-red-500' : 'border-[#084b49]/30'}`}
+              showCount
+              maxCount={contextMaxChar}
               required
             />
             <div className="flex items-center gap-2 mt-2 text-xs text-[#545454]/80">
@@ -111,9 +131,11 @@ export const SmartContextDialog = ({
             <Textarea 
               id="usageInstructions"
               value={usageInstructions}
-              onChange={(e) => setUsageInstructions(e.target.value)}
+              onChange={handleInstructionsChange}
               placeholder="Explain how this context should be used and specify if all the data should be considered or only certain parts should be extracted."
               className="w-full min-h-[100px] resize-none border-[#084b49]/30"
+              showCount
+              maxCount={instructionsMaxChar}
             />
           </div>
           
