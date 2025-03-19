@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -102,8 +103,9 @@ const XPanel = () => {
         }
       });
       
-      setCategories(Array.from(allCategories));
-      setSubcategories(Array.from(allSubcategories));
+      // Convert to arrays and sort alphabetically
+      setCategories(Array.from(allCategories).sort((a, b) => a.localeCompare(b)));
+      setSubcategories(Array.from(allSubcategories).sort((a, b) => a.localeCompare(b)));
       
     } catch (error: any) {
       console.error("Error fetching prompts:", error.message);
