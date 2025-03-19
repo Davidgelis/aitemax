@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -10,8 +11,6 @@ import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
 import { AIModel, UploadedImage } from "@/components/dashboard/types";
 import { primaryToggles, secondaryToggles } from "./constants";
-import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
-import { X } from "lucide-react";
 
 interface StepControllerProps {
   user: any;
@@ -54,8 +53,6 @@ export const StepController = ({
     saveDraft
   } = promptState;
   
-  const [showPrivacyDialog, setShowPrivacyDialog] = useState(false);
-  
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
   const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with o3-mini...");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
@@ -65,25 +62,6 @@ export const StepController = ({
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
     : null;
-  
-  // Check if user is logged in and show privacy notice
-  useEffect(() => {
-    if (user && currentStep === 1) {
-      const hasSeenPrivacyNotice = localStorage.getItem(`privacy-notice-seen-${user.id}`);
-      if (!hasSeenPrivacyNotice) {
-        setShowPrivacyDialog(true);
-      }
-    }
-  }, [user, currentStep]);
-
-  // Mark privacy notice as seen when dialog is closed
-  const handlePrivacyDialogClose = () => {
-    if (user) {
-      localStorage.setItem(`privacy-notice-seen-${user.id}`, 'true');
-    }
-    setShowPrivacyDialog(false);
-  };
-
   
   const promptAnalysis = usePromptAnalysis(
     promptText,
@@ -135,7 +113,6 @@ export const StepController = ({
     editingPrompt
   );
   
-  
   const {
     getProcessedPrompt,
     handleVariableValueChange,
@@ -151,8 +128,6 @@ export const StepController = ({
       fetchSavedPrompts();
     }
   }, [user]);
-
-  
 
   const handlePrimaryToggle = (id: string) => {
     setSelectedPrimary(currentSelected => currentSelected === id ? null : id);
@@ -328,7 +303,6 @@ export const StepController = ({
           />
         );
 
-      
       case 2:
         return (
           <StepTwoContent
@@ -339,7 +313,7 @@ export const StepController = ({
             onVariableChange={handleVariableChange}
             onVariableRelevance={handleVariableRelevance}
             onAddVariable={addVariable}
-            onDeleteVariable={(variableId: string) => removeVariable(variableId)}
+            onDeleteVariable={removeVariable}
             variableToDelete={variableToDelete}
             setVariableToDelete={setVariableToDelete}
             canProceedToStep3={canProceedToStep3()}
@@ -362,7 +336,7 @@ export const StepController = ({
             showJson={showJson}
             setShowJson={setShowJson}
             finalPrompt={finalPrompt}
-            setFinalPrompt={setFinalPrompt}
+            setFinalPrompt={setFinalPrompt} // Pass the setFinalPrompt function explicitly
             variables={variables}
             setVariables={setVariables}
             handleVariableValueChange={handleVariableValueChange}
@@ -394,23 +368,6 @@ export const StepController = ({
         onStepChange={handleDirectJump} 
         isViewingSavedPrompt={isViewingSavedPrompt}
       />
-
-      <Dialog open={showPrivacyDialog} onOpenChange={setShowPrivacyDialog}>
-        <DialogContent className="sm:max-w-md" onInteractOutside={handlePrivacyDialogClose}>
-          <DialogClose asChild onClick={handlePrivacyDialogClose}>
-            <button className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </button>
-          </DialogClose>
-          <div className="text-center sm:text-left">
-            <h2 className="text-lg font-semibold mb-2">Privacy Notice</h2>
-            <p className="mb-4">
-              Your input information and final prompt will remain confidential within Aitema X and will not be shared externally or with any third parties.
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
