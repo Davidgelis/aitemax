@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,7 +20,7 @@ import {
 } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Copy, Edit, Check, Download } from 'lucide-react';
+import { Copy, Edit, Check, Download, RefreshCw } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast"
 import { usePromptState } from "@/hooks/usePromptState";
 import { useUser } from "@clerk/clerk-react";
@@ -49,7 +50,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer"
-import { ReloadIcon } from "@radix-ui/react-icons"
 import { Switch } from "@/components/ui/switch"
 import {
   AlertDialog,
@@ -208,18 +208,63 @@ function PromptVariable({ variable, handleVariableChange, handleVariableRelevanc
   );
 }
 
-export function FinalPromptDisplay() {
+// Define props interface for FinalPromptDisplay
+interface FinalPromptDisplayProps {
+  finalPrompt: string;
+  updateFinalPrompt: (prompt: string) => void;
+  getProcessedPrompt: () => string;
+  variables: Variable[];
+  setVariables: React.Dispatch<React.SetStateAction<Variable[]>>;
+  showJson: boolean;
+  masterCommand: string;
+  handleOpenEditPrompt: () => void;
+  recordVariableSelection: (variableId: string, selectedText: string) => void;
+  isEditing: boolean;
+  setIsEditing: React.Dispatch<React.SetStateAction<boolean>>;
+  editablePrompt: string;
+  setEditablePrompt: React.Dispatch<React.SetStateAction<string>>;
+  handleSaveEditedPrompt: () => void;
+  renderTrigger: number;
+  setRenderTrigger: React.Dispatch<React.SetStateAction<number>>;
+  isRefreshing: boolean;
+  setIsRefreshing: React.Dispatch<React.SetStateAction<boolean>>;
+  lastSavedPrompt: string;
+  setLastSavedPrompt: React.Dispatch<React.SetStateAction<string>>;
+}
+
+export function FinalPromptDisplay({
+  finalPrompt,
+  updateFinalPrompt,
+  getProcessedPrompt,
+  variables,
+  setVariables,
+  showJson,
+  masterCommand,
+  handleOpenEditPrompt,
+  recordVariableSelection,
+  isEditing,
+  setIsEditing,
+  editablePrompt,
+  setEditablePrompt,
+  handleSaveEditedPrompt,
+  renderTrigger,
+  setRenderTrigger,
+  isRefreshing,
+  setIsRefreshing,
+  lastSavedPrompt,
+  setLastSavedPrompt
+}: FinalPromptDisplayProps) {
   const {
     promptText,
     setPromptText,
     questions,
     setQuestions,
-    variables,
-    setVariables,
-    finalPrompt,
-    setFinalPrompt,
-    masterCommand,
-    setMasterCommand,
+    variables: promptStateVariables,
+    setVariables: setPromptStateVariables,
+    finalPrompt: promptStateFinalPrompt,
+    setFinalPrompt: setPromptStateFinalPrompt,
+    masterCommand: promptStateMasterCommand,
+    setMasterCommand: setPromptStateMasterCommand,
     selectedPrimary,
     setSelectedPrimary,
     selectedSecondary,
@@ -240,7 +285,7 @@ export function FinalPromptDisplay() {
   const promptRef = useRef<HTMLDivElement>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [showJson, setShowJson] = useState(false);
+  const [showLocalJson, setShowLocalJson] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [isGeneratingJson, setIsGeneratingJson] = useState(false);
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
@@ -265,8 +310,8 @@ export function FinalPromptDisplay() {
   } = useQuestionsAndVariables(
     questions,
     setQuestions,
-    variables,
-    setVariables,
+    promptStateVariables,
+    setPromptStateVariables,
     variableToDelete,
     setVariableToDelete,
     user
@@ -357,10 +402,10 @@ export function FinalPromptDisplay() {
     // Prepare data and update state
     const { updatedQuestions, updatedVariables } = prepareDataForEnhancement();
     setQuestions(updatedQuestions);
-    setVariables(updatedVariables);
+    setPromptStateVariables(updatedVariables);
 
     // Call the enhancePromptWithGPT function
-    enhancePromptWithGPT(promptText, selectedPrimary, selectedSecondary, setFinalPrompt);
+    enhancePromptWithGPT(promptText, selectedPrimary, selectedSecondary, setPromptStateFinalPrompt);
   };
 
   const handleGenerateJson = async () => {
@@ -443,7 +488,7 @@ export function FinalPromptDisplay() {
             <Textarea
               placeholder="Write your master command here..."
               value={masterCommand}
-              onChange={(e) => setMasterCommand(e.target.value)}
+              onChange={(e) => setPromptStateMasterCommand(e.target.value)}
               className="min-h-[80px]"
             />
           </CardContent>
@@ -490,7 +535,7 @@ export function FinalPromptDisplay() {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4">
-              {variables.map((variable) => (
+              {promptStateVariables.map((variable) => (
                 <PromptVariable
                   key={variable.id}
                   variable={variable}
@@ -600,7 +645,7 @@ export function FinalPromptDisplay() {
             <Textarea
               placeholder="Your final prompt will appear here..."
               value={finalPrompt}
-              onChange={(e) => setFinalPrompt(e.target.value)}
+              onChange={(e) => updateFinalPrompt(e.target.value)}
               className="min-h-[120px]"
             />
           </CardContent>
@@ -608,7 +653,7 @@ export function FinalPromptDisplay() {
             <Button onClick={handleEnhancePrompt} disabled={isEnhancing}>
               {isEnhancing ? (
                 <>
-                  <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                   Enhancing...
                 </>
               ) : (
@@ -632,7 +677,7 @@ export function FinalPromptDisplay() {
               <Button variant="outline" size="sm" onClick={downloadPrompt} disabled={isDownloading}>
                 {isDownloading ? (
                   <>
-                    <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                     Downloading...
                   </>
                 ) : (
@@ -658,7 +703,7 @@ export function FinalPromptDisplay() {
               <Button variant="secondary" onClick={handleGenerateJson} disabled={isGeneratingJson}>
                 {isGeneratingJson ? (
                   <>
-                    <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                     Generating JSON...
                   </>
                 ) : (
