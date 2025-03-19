@@ -1,3 +1,4 @@
+
 import { X, FileText, Edit } from "lucide-react";
 import { Question } from "./types";
 import { RefObject, useState } from "react";
@@ -24,6 +25,7 @@ export const QuestionList = ({
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [editResponseSheet, setEditResponseSheet] = useState(false);
   const [currentAnswer, setCurrentAnswer] = useState("");
+  const maxCharacterLimit = 1000; // Set the character limit to 1000
 
   // Display placeholder test questions if no questions are provided
   const displayQuestions = questions.length > 0 ? questions : placeholderTestQuestions;
@@ -189,12 +191,23 @@ export const QuestionList = ({
             <div className="text-base font-medium">
               {editingQuestion?.text}
             </div>
-            <textarea 
-              value={currentAnswer} 
-              onChange={(e) => setCurrentAnswer(e.target.value)} 
-              placeholder="Type your answer here..." 
-              className="w-full p-4 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[200px] focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent" 
-            />
+            <div className="relative">
+              <textarea 
+                value={currentAnswer} 
+                onChange={(e) => {
+                  // Limit input to maxCharacterLimit characters
+                  if (e.target.value.length <= maxCharacterLimit) {
+                    setCurrentAnswer(e.target.value);
+                  }
+                }} 
+                placeholder="Type your answer here..." 
+                className="w-full p-4 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[200px] focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent" 
+                maxLength={maxCharacterLimit}
+              />
+              <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                {currentAnswer.length}/{maxCharacterLimit}
+              </div>
+            </div>
             <div className="flex justify-end">
               <button 
                 onClick={handleSaveResponse}
