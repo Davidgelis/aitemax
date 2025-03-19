@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -654,15 +653,7 @@ const XPanel = () => {
               </DropdownMenu>
             </div>
 
-            <div className="flex justify-center my-3">
-              <button
-                onClick={() => navigate("/dashboard")}
-                className="aurora-button w-[70%] inline-flex items-center justify-center gap-2"
-              >
-                <FileText className="w-4 h-4" />
-                <span className="font-medium">New Prompt</span>
-              </button>
-            </div>
+            
 
             <div className="p-4 border-b">
               <div className="relative">
