@@ -223,6 +223,7 @@ interface FinalPromptDisplayProps {
   setIsRefreshing: React.Dispatch<React.SetStateAction<boolean>>;
   lastSavedPrompt: string;
   setLastSavedPrompt: React.Dispatch<React.SetStateAction<string>>;
+  tempVariableToDelete?: string | null;
 }
 
 export function FinalPromptDisplay({
@@ -245,8 +246,10 @@ export function FinalPromptDisplay({
   isRefreshing,
   setIsRefreshing,
   lastSavedPrompt,
-  setLastSavedPrompt
+  setLastSavedPrompt,
+  tempVariableToDelete
 }: FinalPromptDisplayProps) {
+  
   const {
     promptText,
     setPromptText,
@@ -280,7 +283,7 @@ export function FinalPromptDisplay({
   const [showLocalJson, setShowLocalJson] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [isGeneratingJson, setIsGeneratingJson] = useState(false);
-  const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
+  const [variableToDelete, setVariableToDelete] = useState<string | null>(tempVariableToDelete || null);
   const [uploadedImages, setUploadedImages] = useState<any[]>([]);
   
   // Using window.location for navigation instead of next/router
@@ -404,7 +407,7 @@ export function FinalPromptDisplay({
       return;
     }
 
-    // FIX #1: Pass an empty object to prepareDataForEnhancement to match its expected signature
+    // Fix: Pass an empty object to prepareDataForEnhancement
     const { updatedQuestions, updatedVariables } = prepareDataForEnhancement({});
     setQuestions(updatedQuestions);
     setPromptStateVariables(updatedVariables);
@@ -568,7 +571,7 @@ export function FinalPromptDisplay({
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => removeVariable(variableToDelete as string)}>
+                      <AlertDialogAction onClick={() => removeVariable(variableToDelete)}>
                         Continue
                       </AlertDialogAction>
                     </AlertDialogFooter>

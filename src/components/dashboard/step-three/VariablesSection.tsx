@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 interface VariablesSectionProps {
   variables: Variable[];
   handleVariableValueChange: (variableId: string, newValue: string) => void;
-  onDeleteVariable: (variableId: string) => void;  // Updated signature to expect variableId
+  onDeleteVariable: (variableId: string) => void;
 }
 
 export const VariablesSection = ({ 

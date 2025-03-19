@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -74,6 +75,7 @@ export const StepThreeContent = ({
   const [isRefreshingJson, setIsRefreshingJson] = useState(false);
   const [lastSavedPrompt, setLastSavedPrompt] = useState(finalPrompt);
   const [uploadedImages, setUploadedImages] = useState<any[]>([]);
+  const [tempVariableToDelete, setTempVariableToDelete] = useState<string | null>(null);
   
   // Get the promptOperations
   const promptOperations = usePromptOperations(
@@ -162,6 +164,7 @@ export const StepThreeContent = ({
   
   const handleDeleteVariable = useCallback((variableId: string) => {
     if (promptOperations.removeVariable) {
+      setTempVariableToDelete(variableId);
       promptOperations.removeVariable(variableId);
       toast({
         title: "Variable deleted",
@@ -199,13 +202,6 @@ export const StepThreeContent = ({
     return null;
   };
 
-  // Create a wrapper function that adapts the function signature
-  const handleDeleteVariableWrapper = useCallback(() => {
-    if (variableToDelete) {
-      handleDeleteVariable(variableToDelete);
-    }
-  }, [handleDeleteVariable, variableToDelete]);
-
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
       <ToggleSection 
@@ -238,6 +234,7 @@ export const StepThreeContent = ({
           setIsRefreshing={setIsRefreshingJson}
           lastSavedPrompt={lastSavedPrompt}
           setLastSavedPrompt={setLastSavedPrompt}
+          tempVariableToDelete={tempVariableToDelete}
         />
       </div>
 
@@ -246,7 +243,7 @@ export const StepThreeContent = ({
       <VariablesSection 
         variables={safeVariables}
         handleVariableValueChange={enhancedHandleVariableValueChange}
-        onDeleteVariable={handleDeleteVariable} // This is correct now as it expects a variableId
+        onDeleteVariable={handleDeleteVariable}
       />
 
       <ActionButtons 
