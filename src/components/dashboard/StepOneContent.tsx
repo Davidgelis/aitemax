@@ -202,18 +202,25 @@ export const StepOneContent: React.FC<StepOneContentProps> = ({
         </div>
       </div>
 
-      <div>
-        <ModelSelector
-          selectedModel={selectedModel}
-          onSelect={setSelectedModel} // Fixed prop name from onModelSelect to onSelect
-        />
-        <ModelRefreshButton />
-      </div>
+      {/* Use a conditional rendering approach to prevent errors from the ModelSelector */}
+      {typeof selectedModel === 'object' ? (
+        <div>
+          <ModelSelector
+            selectedModel={selectedModel}
+            onSelect={setSelectedModel}
+          />
+          <ModelRefreshButton />
+        </div>
+      ) : (
+        <div className="my-4">
+          <p className="text-sm text-muted-foreground">Loading model selector...</p>
+        </div>
+      )}
 
       <div className="space-y-4">
         <PrivacyCheckbox 
           isPrivate={isPrivate}
-          onChange={setIsPrivate} // Fixed prop name to match what PrivacyCheckbox expects
+          onChange={setIsPrivate}
         />
         
         <Button 
@@ -226,17 +233,21 @@ export const StepOneContent: React.FC<StepOneContentProps> = ({
         </Button>
       </div>
 
-      {(isLoading || isAnalyzing) && <LoadingState currentLoadingMessage={currentLoadingMessage} />}
+      {(isLoading || isAnalyzing) && (
+        <LoadingState 
+          currentLoadingMessage={currentLoadingMessage || "Analyzing your prompt..."}
+        />
+      )}
 
       {showWebScanner && (
         <WebScanner
-          onWebsiteScan={handleWebsiteScan} // Use correct prop for WebScanner
+          onWebsiteScan={handleWebsiteScan}
         />
       )}
 
       {showSmartContext && (
         <SmartContext
-          onSmartContext={handleSmartContext} // Use correct prop for SmartContext
+          onSmartContext={handleSmartContext}
         />
       )}
 
