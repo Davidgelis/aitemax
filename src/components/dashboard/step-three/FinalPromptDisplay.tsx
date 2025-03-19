@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Copy, Edit, Check, Download } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast"
 import { usePromptState } from "@/hooks/usePromptState";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/clerk-react";
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -122,22 +122,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreVertical, Plus, Trash } from "lucide-react"
-import { SliderDemo } from "@/components/ui/slider"
-import { ProgressDemo } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { InputJsonValue, OutputJsonValue } from "@/components/ui/json-input"
 import { PromptJsonStructure, Variable } from "../types";
 import { jsonToVariables } from "../types";
-import { UploadButton } from "@/lib/uploadthing";
-import { useUploadThing } from "@/lib/uploadthing";
-import { Upload } from "lucide-react";
-import { UploadedImageList } from "./UploadedImageList";
-import { UploadedImage } from "../types";
-import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
 import { v4 as uuidv4 } from 'uuid';
 import { useCompletion } from 'ai/react';
-import { useRouter } from 'next/router';
+import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
+
+// Removed unused or problematic imports that were causing errors
 
 interface DataTableProps {
   data: any[]
@@ -249,11 +242,14 @@ export function FinalPromptDisplay() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [showJson, setShowJson] = useState(false);
   const [jsonError, setJsonError] = useState<string | null>(null);
-  const [jsonOutput, setJsonOutput] = useState<OutputJsonValue | undefined>(undefined);
   const [isGeneratingJson, setIsGeneratingJson] = useState(false);
-  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
-  const router = useRouter();
+  const [uploadedImages, setUploadedImages] = useState<any[]>([]); // Changed type to any[] to avoid UploadedImage imports
+  
+  // Using window.location for navigation instead of next/router
+  const navigate = (path: string) => {
+    window.location.href = path;
+  };
 
   const {
     handleQuestionAnswer,
@@ -276,22 +272,16 @@ export function FinalPromptDisplay() {
     user
   );
 
-  const { theme } = useTheme()
-  const [isMounted, setIsMounted] = React.useState(false)
+  const { theme } = useTheme();
+  const [isMounted, setIsMounted] = React.useState(false);
 
   useEffect(() => {
-    setIsMounted(true)
-  }, [])
+    setIsMounted(true);
+  }, []);
 
   const { complete, completion, setInput, stop, isLoading: isAICompleting } = useCompletion({
     api: '/api/completion',
-    // initialInput: promptText,
-    // onFinish: (completion) => {
-    //   // This will be called when the completion is done
-    //   console.log(`Completion finished: ${completion}`);
-    // },
     onError: (error) => {
-      // This will be called if there is an error
       console.error('Completion error:', error);
       toast({
         title: "AI Completion Error",
@@ -373,10 +363,6 @@ export function FinalPromptDisplay() {
     enhancePromptWithGPT(promptText, selectedPrimary, selectedSecondary, setFinalPrompt);
   };
 
-  const handleJsonChange = (value: OutputJsonValue | undefined) => {
-    setJsonOutput(value);
-  };
-
   const handleGenerateJson = async () => {
     if (!finalPrompt) {
       toast({
@@ -428,7 +414,15 @@ export function FinalPromptDisplay() {
     }
   };
 
-  const dummyVariable = { id: "sample", name: "Sample", description: "", value: "", isRelevant: true, category: "test" };
+  // This dummy variable should include the description field
+  const dummyVariable = { 
+    id: "sample", 
+    name: "Sample", 
+    description: "Sample description", 
+    value: "", 
+    isRelevant: true, 
+    category: "test" 
+  };
 
   return (
     <div className="container relative pb-4">
@@ -704,7 +698,7 @@ export function FinalPromptDisplay() {
       </div>
 
       <div className="flex justify-end space-x-2">
-        <Button variant="outline" onClick={() => router.push('/dashboard')}>Cancel</Button>
+        <Button variant="outline" onClick={() => navigate('/dashboard')}>Cancel</Button>
         <Button onClick={handleSavePrompt}>Save Prompt</Button>
       </div>
     </div>

@@ -1,3 +1,4 @@
+
 export interface Question {
   id: string;
   text: string;
@@ -36,6 +37,7 @@ export interface Toggle {
   id: string;
   label: string;
   definition: string;
+  prompt?: string; // Added prompt property
 }
 
 export interface SavedPrompt {
