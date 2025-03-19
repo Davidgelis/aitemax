@@ -42,16 +42,18 @@ export const StepController: React.FC<StepControllerProps> = ({
   const handleAnalyze = useCallback(async () => {
     setIsAnalyzing(true);
     try {
-      // Check if we have the necessary context properties for analysis
+      // Check if the promptAnalyzer exists in promptState
       if (promptState.promptAnalyzer && typeof promptState.promptAnalyzer.handleAnalyze === 'function') {
-        // Use the prompt analyzer's handleAnalyze function with all context
+        console.log("Using prompt analyzer for analysis");
         await promptState.promptAnalyzer.handleAnalyze(uploadedImages, websiteContext, smartContext);
       } else {
-        // Fallback to simple step change if the analyzer isn't available
+        console.log("Analyzer not available, directly setting to step 2");
         promptState.setCurrentStep(2);
       }
     } catch (error) {
       console.error("Error during analysis:", error);
+      // Fallback to step 2 even if there's an error
+      promptState.setCurrentStep(2);
     } finally {
       setIsAnalyzing(false);
     }
