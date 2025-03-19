@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface AIModel {
@@ -54,6 +53,7 @@ export interface SavedPrompt {
   secondaryToggle: string | null;
   variables: Variable[];
   jsonStructure?: PromptJsonStructure;
+  tags?: Array<{category: string, subcategory: string}>;
 }
 
 export interface PromptJsonStructure {

@@ -125,6 +125,7 @@ export type Database = {
           primary_toggle: string | null
           prompt_text: string | null
           secondary_toggle: string | null
+          tags: Json | null
           title: string
           updated_at: string | null
           user_id: string | null
@@ -140,6 +141,7 @@ export type Database = {
           primary_toggle?: string | null
           prompt_text?: string | null
           secondary_toggle?: string | null
+          tags?: Json | null
           title?: string
           updated_at?: string | null
           user_id?: string | null
@@ -155,6 +157,7 @@ export type Database = {
           primary_toggle?: string | null
           prompt_text?: string | null
           secondary_toggle?: string | null
+          tags?: Json | null
           title?: string
           updated_at?: string | null
           user_id?: string | null

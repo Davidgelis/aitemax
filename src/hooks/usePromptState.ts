@@ -201,6 +201,33 @@ export const usePromptState = (user: any) => {
         }
       }
       
+      // Generate tags for the prompt
+      let tags = null;
+      try {
+        setIsLoadingPrompts(true);
+        toast({
+          title: "Generating tags...",
+          description: "Analyzing your prompt to generate relevant tags.",
+        });
+        
+        const { data: tagsData, error: tagsError } = await supabase.functions.invoke('generate-prompt-tags', {
+          body: {
+            promptText: plainTextPrompt
+          }
+        });
+        
+        if (tagsError) {
+          console.error("Error generating tags:", tagsError);
+        } else if (tagsData && tagsData.tags) {
+          tags = tagsData.tags;
+          console.log("Generated tags:", tags);
+        }
+      } catch (tagsError) {
+        console.error("Error invoking tags function:", tagsError);
+      } finally {
+        setIsLoadingPrompts(false);
+      }
+      
       const relevantVariables = variables.filter(v => v.isRelevant === true);
       const promptData = {
         user_id: user.id,
@@ -211,7 +238,8 @@ export const usePromptState = (user: any) => {
         secondary_toggle: selectedSecondary,
         variables: variablesToJson(relevantVariables),
         current_step: currentStep,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        tags: tags // Add the generated tags
       };
 
       const { data, error } = await supabase
@@ -233,6 +261,7 @@ export const usePromptState = (user: any) => {
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
           variables: jsonToVariables(data[0].variables as Json),
+          tags: data[0].tags
         };
         
         if (jsonStructure) {
@@ -247,7 +276,7 @@ export const usePromptState = (user: any) => {
       
       toast({
         title: "Success",
-        description: "Prompt saved successfully",
+        description: "Prompt saved successfully with generated tags",
       });
     } catch (error: any) {
       console.error("Error saving prompt:", error.message);

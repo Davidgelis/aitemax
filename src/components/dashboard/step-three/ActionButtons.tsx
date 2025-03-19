@@ -15,6 +15,7 @@ export const ActionButtons = ({
 }: ActionButtonsProps) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   const safeHandleCopyPrompt = async (e: React.MouseEvent) => {
     if (isProcessing) return;
@@ -41,11 +42,17 @@ export const ActionButtons = ({
   };
   
   const safeHandleSavePrompt = async (e: React.MouseEvent) => {
-    if (isProcessing) return;
+    if (isProcessing || isSaving) return;
     
     try {
       e.preventDefault();
       setIsProcessing(true);
+      setIsSaving(true);
+      
+      toast({
+        title: "Saving prompt",
+        description: "Your prompt is being saved and analyzed for tags...",
+      });
       
       if (typeof handleSavePrompt === 'function') {
         await handleSavePrompt();
@@ -61,6 +68,7 @@ export const ActionButtons = ({
       });
     } finally {
       setIsProcessing(false);
+      setIsSaving(false);
     }
   };
   
@@ -79,12 +87,12 @@ export const ActionButtons = ({
       <Button
         onClick={safeHandleSavePrompt}
         variant="aurora"
-        disabled={isProcessing}
+        disabled={isProcessing || isSaving}
         aria-label="Save prompt"
         className="gap-2"
       >
         <Save className="w-4 h-4" />
-        Save
+        {isSaving ? "Saving & Generating Tags..." : "Save"}
       </Button>
     </div>
   );
