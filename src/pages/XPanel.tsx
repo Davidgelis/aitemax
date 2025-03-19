@@ -370,7 +370,14 @@ const XPanel = () => {
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <h1 className="text-3xl font-bold">
-                  <span className="bg-gradient-to-r from-[#041524] via-[#33fea6] to-white bg-clip-text text-transparent animate-aurora">X Panel</span>
+                  <span 
+                    className="bg-aurora-gradient bg-aurora animate-aurora bg-clip-text text-transparent"
+                    style={{
+                      backgroundSize: "400% 400%",
+                    }}
+                  >
+                    X Panel
+                  </span>
                 </h1>
               </div>
               

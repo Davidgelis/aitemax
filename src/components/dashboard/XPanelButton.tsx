@@ -15,7 +15,14 @@ const XPanelButton = () => {
     >
       <PanelTopClose className="w-4 h-4" />
       <span className="relative overflow-hidden">
-        <span className="bg-gradient-to-r from-[#041524] via-[#33fea6] to-white bg-clip-text text-transparent animate-aurora">X Panel</span>
+        <span 
+          className="bg-aurora-gradient bg-aurora animate-aurora bg-clip-text text-transparent"
+          style={{
+            backgroundSize: "400% 400%",
+          }}
+        >
+          X Panel
+        </span>
       </span>
     </Button>
   );
