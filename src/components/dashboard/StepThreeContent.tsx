@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -200,6 +199,13 @@ export const StepThreeContent = ({
     return null;
   };
 
+  // Create a wrapper function that adapts the function signature
+  const handleDeleteVariableWrapper = useCallback(() => {
+    if (variableToDelete) {
+      handleDeleteVariable(variableToDelete);
+    }
+  }, [handleDeleteVariable, variableToDelete]);
+
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
       <ToggleSection 
@@ -240,7 +246,7 @@ export const StepThreeContent = ({
       <VariablesSection 
         variables={safeVariables}
         handleVariableValueChange={enhancedHandleVariableValueChange}
-        onDeleteVariable={handleDeleteVariable}
+        onDeleteVariable={handleDeleteVariable} // This is correct now as it expects a variableId
       />
 
       <ActionButtons 
