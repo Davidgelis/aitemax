@@ -380,7 +380,7 @@ export const FinalPromptDisplay = ({
     // Create a copy of the prompt to work with
     let updatedPrompt = finalPrompt;
 
-    // Replace each selection with a standardized placeholder
+    // Replace each selection with a standardized placeholder and record the original text
     multiSelections.forEach(selection => {
       const varPlaceholder = toVariablePlaceholder(variableId);
       updatedPrompt = replaceVariableInPrompt(updatedPrompt, selection, varPlaceholder, variableName);
@@ -458,16 +458,26 @@ export const FinalPromptDisplay = ({
 
     // Get the original selected text if it was stored
     const originalSelections = Array.from(selectedTexts.keys());
-    let originalText = variable.value || "";
+    let originalText = undefined;
     
-    // If we have the original selection, use that instead of the current value
+    // If we have the original selection stored via recordVariableSelection, use that
     if (typeof recordVariableSelection === 'function') {
+      // Check if we have this selection in our variableSelections map (via the hook)
+      originalText = variableSelections?.get(variableId);
+    }
+    
+    // If we don't have the original selection from recordVariableSelection,
+    // try to find it in our local selectedTexts map
+    if (!originalText) {
       const storedSelection = originalSelections.find(selection => 
         variable.value && variable.value.includes(selection)
       );
       
       if (storedSelection) {
         originalText = storedSelection;
+      } else {
+        // As a fallback, just use the variable's current value
+        originalText = variable.value || "";
       }
     }
 

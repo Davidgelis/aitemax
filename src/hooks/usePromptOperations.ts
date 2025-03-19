@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Variable } from "../components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -108,7 +109,12 @@ export const usePromptOperations = (
     if (!variable) return;
     
     // First try to get the original selected text if it was stored
-    let originalText = variableSelections.get(variableId) || variable.value || "";
+    let originalText = variableSelections.get(variableId);
+    
+    // If we don't have the original selection stored, fall back to the variable's value
+    if (!originalText) {
+      originalText = variable.value || "";
+    }
     
     console.log("Original text for variable removal:", originalText);
     
@@ -141,8 +147,13 @@ export const usePromptOperations = (
     const variable = variables.find(v => v.id === variableId);
     if (!variable) return;
     
-    // Try to get original text if available
-    let originalText = variableSelections.get(variableId) || variable.value || "";
+    // Try to get original text if available (prioritize the stored selection)
+    let originalText = variableSelections.get(variableId);
+    
+    // If we don't have the original selection stored, fall back to the variable's value
+    if (!originalText) {
+      originalText = variable.value || "";
+    }
     
     // Mark the variable as not relevant
     setVariables(currentVars => 
