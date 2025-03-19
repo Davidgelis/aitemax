@@ -202,18 +202,13 @@ export const StepOneContent: React.FC<StepOneContentProps> = ({
         </div>
       </div>
 
-      {/* Use a conditional rendering approach to prevent errors from the ModelSelector */}
-      {typeof selectedModel === 'object' ? (
+      {selectedModel && (
         <div>
           <ModelSelector
             selectedModel={selectedModel}
             onSelect={setSelectedModel}
           />
           <ModelRefreshButton />
-        </div>
-      ) : (
-        <div className="my-4">
-          <p className="text-sm text-muted-foreground">Loading model selector...</p>
         </div>
       )}
 
