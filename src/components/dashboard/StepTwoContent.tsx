@@ -1,6 +1,6 @@
 
-import React, { RefObject } from "react";
 import { Question, Variable } from "./types";
+import { RefObject } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
 import { Info } from "lucide-react";
@@ -23,7 +23,7 @@ interface StepTwoContentProps {
   originalPrompt: string;
 }
 
-export const StepTwoContent: React.FC<StepTwoContentProps> = ({
+export const StepTwoContent = ({
   questions,
   variables,
   onQuestionRelevance,
@@ -39,7 +39,7 @@ export const StepTwoContent: React.FC<StepTwoContentProps> = ({
   questionsContainerRef,
   variablesContainerRef,
   originalPrompt
-}) => {
+}: StepTwoContentProps) => {
   return (
     <div className="border rounded-xl p-6 bg-card">
       <div className="mb-6">

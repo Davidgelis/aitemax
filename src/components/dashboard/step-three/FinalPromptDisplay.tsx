@@ -6,7 +6,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
 import { replaceVariableInPrompt, convertEditedContentToPlaceholders, convertPlaceholdersToEditableFormat, convertPlaceholdersToSpans, toVariablePlaceholder, stripHtml } from "@/utils/promptUtils";
-
 interface FinalPromptDisplayProps {
   finalPrompt: string;
   updateFinalPrompt: (newPrompt: string) => void;
@@ -17,7 +16,6 @@ interface FinalPromptDisplayProps {
   masterCommand: string;
   handleOpenEditPrompt: () => void;
   recordVariableSelection?: (variableId: string, selectedText: string) => void;
-  variableSelections?: Map<string, string>; // Add this prop to receive variable selections
   isEditing: boolean;
   setIsEditing: (setIsEditing: boolean) => void;
   editablePrompt: string;
@@ -29,9 +27,7 @@ interface FinalPromptDisplayProps {
   setIsRefreshing?: (isRefreshing: boolean) => void;
   lastSavedPrompt?: string;
   setLastSavedPrompt?: (prompt: string) => void;
-  className?: string;
 }
-
 export const FinalPromptDisplay = ({
   finalPrompt,
   updateFinalPrompt,
@@ -42,7 +38,6 @@ export const FinalPromptDisplay = ({
   masterCommand,
   handleOpenEditPrompt,
   recordVariableSelection,
-  variableSelections = new Map(), // Provide default empty Map
   isEditing,
   setIsEditing,
   editablePrompt,
@@ -53,8 +48,7 @@ export const FinalPromptDisplay = ({
   isRefreshing = false,
   setIsRefreshing,
   lastSavedPrompt = "",
-  setLastSavedPrompt,
-  className = ""
+  setLastSavedPrompt
 }: FinalPromptDisplayProps) => {
   const [processedPrompt, setProcessedPrompt] = useState("");
   const [promptJson, setPromptJson] = useState<PromptJsonStructure | null>(null);
@@ -63,7 +57,6 @@ export const FinalPromptDisplay = ({
   const [isCreatingVariable, setIsCreatingVariable] = useState(false);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const [multiSelections, setMultiSelections] = useState<string[]>([]);
-  const [selectedTexts, setSelectedTexts] = useState<Map<string, string>>(new Map());
   const promptContainerRef = useRef<HTMLDivElement>(null);
   const editableContentRef = useRef<HTMLDivElement>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -73,7 +66,6 @@ export const FinalPromptDisplay = ({
   } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
   const [promptId, setPromptId] = useState<string | null>(null);
-  
   useEffect(() => {
     const getUserId = async () => {
       const {
@@ -290,13 +282,10 @@ export const FinalPromptDisplay = ({
       }
     }
   }, [finalPrompt, showJson, lastSavedPrompt, setLastSavedPrompt, jsonGenerated]);
-  
   const handleMouseUp = () => {
     if (!isCreatingVariable || isEditing) return;
-    
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0 || !selection.toString().trim()) return;
-    
     const range = selection.getRangeAt(0);
     const container = promptContainerRef.current;
     if (!container || !container.contains(range.commonAncestorContainer)) return;
@@ -305,7 +294,8 @@ export const FinalPromptDisplay = ({
     const selText = selection.toString().trim();
     if (!selText) return;
 
-    // Add to multi-selections and store selected text
+    // Always use multi-selection mode
+    // Add to multi-selections
     setMultiSelections(prev => [...prev, selText]);
 
     // Mark the selection with a temporary span
@@ -315,13 +305,7 @@ export const FinalPromptDisplay = ({
     try {
       range.surroundContents(tempSpan);
 
-      // Store the original selected text for later replacement
-      setSelectedTexts(prev => {
-        const updated = new Map(prev);
-        updated.set(selText, selText);
-        return updated;
-      });
-
+      // Show a toast to indicate the selection was added
       toast({
         title: "Selection added",
         description: `Added "${selText.substring(0, 20)}${selText.length > 20 ? '...' : ''}" to multi-selection`
@@ -338,7 +322,6 @@ export const FinalPromptDisplay = ({
     // Clear the selection
     selection.removeAllRanges();
   };
-  
   const createMultiSelectionVariable = () => {
     if (multiSelections.length === 0) {
       toast({
@@ -348,7 +331,6 @@ export const FinalPromptDisplay = ({
       });
       return;
     }
-    
     if (relevantVariables.length >= 15) {
       toast({
         title: "Variable limit reached",
@@ -362,19 +344,22 @@ export const FinalPromptDisplay = ({
     // Join all selections with a space for the variable value
     const combinedText = multiSelections.join(" ");
 
-    // Generate a unique ID for this variable
-    const variableId = uuidv4();
-    
     // Use a simple numeric name based on the number of existing variables
     const variableName = `${relevantVariables.length + 1}`;
-    
+    const variableId = uuidv4();
     const newVariable: Variable = {
       id: variableId,
       name: variableName,
       value: combinedText,
+      // Set the initial value to the combined selections
       isRelevant: true,
       category: 'Multi-Select'
     };
+
+    // Record the original selection (for later replacement in the prompt)
+    if (typeof recordVariableSelection === 'function') {
+      recordVariableSelection(variableId, combinedText);
+    }
 
     // Add the new variable to state
     setVariables(prev => [...prev, newVariable]);
@@ -382,20 +367,14 @@ export const FinalPromptDisplay = ({
     // Create a copy of the prompt to work with
     let updatedPrompt = finalPrompt;
 
-    // Replace each selection with a standardized placeholder and record the original text
+    // Replace each selection with a standardized placeholder
     multiSelections.forEach(selection => {
       const varPlaceholder = toVariablePlaceholder(variableId);
       updatedPrompt = replaceVariableInPrompt(updatedPrompt, selection, varPlaceholder, variableName);
-      
-      // Store the original text for this variable ID
-      if (typeof recordVariableSelection === 'function') {
-        recordVariableSelection(variableId, selection);
-      }
     });
 
     // Update the prompt
     updateFinalPrompt(updatedPrompt);
-    
     toast({
       title: "Variable created",
       description: `Created variable: ${variableName} from ${multiSelections.length} selections`
@@ -413,7 +392,6 @@ export const FinalPromptDisplay = ({
       setJsonGenerated(false);
     }
   };
-  
   const exitMultiSelectionMode = () => {
     // Remove all temporary multi-selection markers
     const markers = document.querySelectorAll('.multi-selection-marker');
@@ -425,7 +403,6 @@ export const FinalPromptDisplay = ({
     setMultiSelections([]);
     setIsMultiSelectMode(false);
   };
-  
   const cancelVariableCreation = () => {
     setIsCreatingVariable(false);
     setMultiSelections([]);
@@ -436,7 +413,6 @@ export const FinalPromptDisplay = ({
     }
     window.getSelection()?.removeAllRanges();
   };
-  
   const toggleVariableCreation = () => {
     if (isEditing) return; // Don't allow variable creation while editing
 
@@ -452,30 +428,27 @@ export const FinalPromptDisplay = ({
       });
     }
   };
-
-  // Modified removeVariable function to use the current variable value instead of original text
   const removeVariable = (variableId: string) => {
     // Find the variable we're removing
     const variable = variables.find(v => v.id === variableId);
     if (!variable) return;
 
-    // Use the current variable value, not the original selection
-    const replacementText = variable.value || "";
-    
+    // Get the current value of the variable (to replace placeholder)
+    const currentValue = variable.value || "";
+
     // Mark variable as not relevant
     setVariables(prev => prev.map(v => v.id === variableId ? {
       ...v,
       isRelevant: false
     } : v));
 
-    // Replace the placeholder with the current variable value in the finalPrompt
+    // Replace the placeholder with the actual text in the finalPrompt
     const varPlaceholder = toVariablePlaceholder(variableId);
-    const updatedPrompt = finalPrompt.replace(new RegExp(varPlaceholder, 'g'), replacementText);
+    const updatedPrompt = finalPrompt.replace(new RegExp(varPlaceholder, 'g'), currentValue);
     updateFinalPrompt(updatedPrompt);
-    
     toast({
       title: "Variable removed",
-      description: "Variable has been removed and replaced with its current value"
+      description: "Variable has been removed"
     });
 
     // Force re-render and reset JSON if needed
@@ -484,7 +457,6 @@ export const FinalPromptDisplay = ({
       setJsonGenerated(false);
     }
   };
-  
   const renderVariablePlaceholder = (variable: Variable, uniqueKey: string) => {
     return <span key={uniqueKey} className="inline-block relative variable-placeholder">
         <span className="variable-highlight px-1 py-0 m-0 bg-[#33fea6]/10 border-b border-[#33fea6] text-foreground font-medium min-w-16 inline-block">
@@ -518,12 +490,15 @@ export const FinalPromptDisplay = ({
 
       // Force a re-render to show the updated content with variables
       setRenderTrigger(prev => prev + 1);
+
+      // Don't automatically refresh JSON - wait for manual refresh
     }
   };
 
   // Modified renderProcessedPrompt function to handle HTML parsing and variable placeholders
   const renderProcessedPrompt = () => {
     if (isEditing) {
+      // In editing mode, create an uncontrolled editable div with special styling for variables
       let processedEditablePrompt = editablePrompt;
 
       // Replace {{value::id}} with visually distinct non-editable elements
@@ -605,41 +580,31 @@ export const FinalPromptDisplay = ({
       return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
     }
   };
-
-  return <div className={`relative flex-1 mb-4 overflow-hidden rounded-lg ${className}`} style={{ minHeight: "500px" }}>
-      
+  return <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
       <div className="absolute top-2 right-2 z-10 flex items-center space-x-4">
-        {!isEditing && (
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={toggleVariableCreation} 
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md ${isCreatingVariable ? 'bg-[#33fea6] text-white' : 'bg-white/90 hover:bg-white hover:text-[#33fea6]'} transition-colors`}
-              aria-label={isCreatingVariable ? "Exit variable creation mode" : "Create variable"}
-            >
-              <PlusCircle className={`w-4 h-4 ${isCreatingVariable ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
-              <span className="text-sm">Create Variable</span>
-            </button>
+        {!isEditing && <>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-accent">Create Variable/s</span>
+              <button onClick={toggleVariableCreation} className={`p-2 rounded-full ${isCreatingVariable ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`} aria-label={isCreatingVariable ? "Exit variable creation mode" : "Create variable"}>
+                <PlusCircle className={`w-4 h-4 ${isCreatingVariable ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
+              </button>
+            </div>
             
-            <button 
-              onClick={() => setIsEditing(true)} 
-              className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-white/90 hover:bg-white hover:text-[#33fea6] transition-colors" 
-              aria-label="Edit prompt text"
-            >
-              <Edit className="w-4 h-4 text-accent hover:text-[#33fea6]" />
-              <span className="text-sm">Edit Prompt</span>
-            </button>
-          </div>
-        )}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-accent">Edit Prompt</span>
+              <button onClick={() => setIsEditing(true)} className="p-2 rounded-full bg-white/80 hover:bg-white hover:text-[#33fea6] transition-colors" aria-label="Edit prompt text">
+                <Edit className="w-4 h-4 text-accent hover:text-[#33fea6]" />
+              </button>
+            </div>
+          </>}
       </div>
       
+      <div className="absolute inset-0 bg-gradient-to-br from-accent via-primary-dark to-primary animate-aurora opacity-10" style={{
+      backgroundSize: "400% 400%"
+    }} />
       
-      <div className="absolute inset-0 bg-gradient-to-br from-accent via-primary-dark to-primary opacity-5" style={{
-        backgroundSize: "400% 400%"
-      }} />
-      
-      
-      <div className={`relative h-full p-6 overflow-y-auto ${isEditing ? 'editing-mode' : ''}`} style={{ minHeight: "500px" }}>
-        <h3 className="text-lg font-medium mb-6">Final Prompt</h3>
+      <div className={`relative h-full p-6 overflow-y-auto ${isEditing ? 'editing-mode' : ''}`}>
+        <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
         
         {renderProcessedPrompt()}
       </div>

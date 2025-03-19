@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Variable } from "../components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -99,18 +100,16 @@ export const usePromptOperations = (
     });
   }, [setVariables]);
 
-  // Modified removeVariable function to use the current variable value instead of original text
+  // Improved removeVariable function to ensure clean text replacement
   const removeVariable = useCallback((variableId: string) => {
-    console.log(`Removing variable ${variableId} and replacing with its current value`);
+    console.log(`Marking variable ${variableId} as not relevant`);
     
     // Find the variable we're removing
     const variable = variables.find(v => v.id === variableId);
     if (!variable) return;
     
-    // Always use the current variable value, not the original selection
-    const replacementText = variable.value || "";
-    
-    console.log("Using current variable value for replacement:", replacementText);
+    // Get the current value of the variable (to replace placeholder)
+    const currentValue = variable.value || "";
     
     // Mark the variable as not relevant
     setVariables(currentVars => 
@@ -119,30 +118,18 @@ export const usePromptOperations = (
       )
     );
     
-    // Replace the placeholder with the variable's current value in the finalPrompt
+    // Replace the placeholder with the actual text in the finalPrompt
     const placeholder = toVariablePlaceholder(variableId);
-    const updatedPrompt = finalPrompt.replace(new RegExp(escapeRegExp(placeholder), 'g'), replacementText);
+    const updatedPrompt = finalPrompt.replace(new RegExp(escapeRegExp(placeholder), 'g'), currentValue);
     setFinalPrompt(updatedPrompt);
-    
-    toast({
-      title: "Variable removed",
-      description: "The variable has been replaced with its current value in the prompt."
-    });
     
     // Force re-render to ensure changes propagate
     setRenderKey(prev => prev + 1);
-  }, [variables, finalPrompt, setVariables, setFinalPrompt, toast]);
+  }, [variables, finalPrompt, setVariables, setFinalPrompt]);
 
   // Delete a variable
   const handleDeleteVariable = useCallback((variableId: string) => {
-    console.log(`Deleting variable ${variableId} and replacing with its current value`);
-    
-    // Find the variable we're removing
-    const variable = variables.find(v => v.id === variableId);
-    if (!variable) return;
-    
-    // Always use the current variable value, not the original selection
-    const replacementText = variable.value || "";
+    console.log(`Marking variable ${variableId} as not relevant`);
     
     // Mark the variable as not relevant
     setVariables(currentVars => 
@@ -151,21 +138,17 @@ export const usePromptOperations = (
       )
     );
     
-    // Replace the placeholder with the variable's current value in the finalPrompt
-    const placeholder = toVariablePlaceholder(variableId);
-    const updatedPrompt = finalPrompt.replace(new RegExp(escapeRegExp(placeholder), 'g'), replacementText);
-    setFinalPrompt(updatedPrompt);
-    
     // Force re-render to ensure changes propagate
     setRenderKey(prev => prev + 1);
     
     toast({
       title: "Variable removed",
-      description: "The variable has been replaced with its current value in the prompt.",
+      description: "The variable has been removed from your prompt.",
       variant: "default",
     });
-  }, [variables, finalPrompt, setVariables, setFinalPrompt, toast]);
+  }, [setVariables, toast]);
 
+  // Open the edit prompt sheet
   const handleOpenEditPrompt = useCallback(() => {
     try {
       setEditingPrompt(finalPrompt);

@@ -1,16 +1,17 @@
 
-import React, { useState, useEffect } from "react";
-import { FinalPromptDisplay } from "@/components/dashboard/step-three/FinalPromptDisplay";
-import { MasterCommandSection } from "@/components/dashboard/step-three/MasterCommandSection";
-import { ToggleSection } from "@/components/dashboard/step-three/ToggleSection";
-import { VariablesSection } from "@/components/dashboard/step-three/VariablesSection";
-import { ActionButtons } from "@/components/dashboard/step-three/ActionButtons";
-import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import { Variable } from "@/components/dashboard/types";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Variable } from "./types";
+import { ToggleSection } from "./step-three/ToggleSection";
+import { FinalPromptDisplay } from "./step-three/FinalPromptDisplay";
+import { VariablesSection } from "./step-three/VariablesSection";
+import { ActionButtons } from "./step-three/ActionButtons";
+import { StepThreeStyles } from "./step-three/StepThreeStyles";
 import { useToast } from "@/hooks/use-toast";
-import { useResponsive } from "@/hooks/useResponsive";
-import { replaceVariableInPrompt } from "@/utils/promptUtils";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
+import { 
+  convertEditedContentToPlaceholders, 
+  convertPlaceholdersToSpans 
+} from "@/utils/promptUtils";
 
 interface StepThreeContentProps {
   masterCommand: string;
@@ -25,7 +26,6 @@ interface StepThreeContentProps {
   setFinalPrompt: (prompt: string) => void;
   variables: Variable[];
   setVariables: React.Dispatch<React.SetStateAction<Variable[]>>;
-  handleVariableValueChange: (id: string, value: string) => void;
   handleCopyPrompt: () => void;
   handleSavePrompt: () => void;
   handleRegenerate: () => void;
@@ -35,13 +35,12 @@ interface StepThreeContentProps {
   setShowEditPromptSheet: (show: boolean) => void;
   handleOpenEditPrompt: () => void;
   handleSaveEditedPrompt: () => void;
-  handleAdaptPrompt: (prompt: string) => void;
-  getProcessedPrompt: () => string;
-  isPrivate?: boolean;
-  setIsPrivate?: (isPrivate: boolean) => void;
+  handleAdaptPrompt: () => void;
+  getProcessedPrompt?: () => string;
+  handleVariableValueChange?: (variableId: string, newValue: string) => void;
 }
 
-export const StepThreeContent: React.FC<StepThreeContentProps> = ({
+export const StepThreeContent = ({
   masterCommand,
   setMasterCommand,
   selectedPrimary,
@@ -54,30 +53,28 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
   setFinalPrompt,
   variables,
   setVariables,
-  handleVariableValueChange,
-  handleCopyPrompt,
+  handleCopyPrompt: externalHandleCopyPrompt,
   handleSavePrompt,
-  handleRegenerate,
+  handleRegenerate: externalHandleRegenerate,
   editingPrompt,
   setEditingPrompt,
   showEditPromptSheet,
   setShowEditPromptSheet,
-  handleOpenEditPrompt,
-  handleSaveEditedPrompt,
-  handleAdaptPrompt,
-  getProcessedPrompt,
-  isPrivate = false,
-  setIsPrivate = () => {}
-}) => {
-  const [isCopied, setCopied] = useState(false);
-  const { isMobile, isTablet, isDesktop } = useResponsive();
+  handleOpenEditPrompt: externalHandleOpenEditPrompt,
+  handleSaveEditedPrompt: externalHandleSaveEditedPrompt,
+  handleAdaptPrompt: externalHandleAdaptPrompt,
+  getProcessedPrompt: externalGetProcessedPrompt,
+  handleVariableValueChange: externalHandleVariableValueChange
+}: StepThreeContentProps) => {
   const { toast } = useToast();
-  const [value, copy] = useCopyToClipboard();
-  const [renderTrigger, setRenderTrigger] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [editablePrompt, setEditablePrompt] = useState("");
+  const [renderTrigger, setRenderTrigger] = useState(0);
+  const [isRefreshingJson, setIsRefreshingJson] = useState(false);
+  const [lastSavedPrompt, setLastSavedPrompt] = useState(finalPrompt);
   
-  // Create a new promptOperations instance to access variableSelections
+  // Get the promptOperations
   const promptOperations = usePromptOperations(
     variables,
     setVariables,
@@ -90,115 +87,148 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
     editingPrompt
   );
   
-  const handleCopy = () => {
-    copy(finalPrompt);
-    setCopied(true);
-    toast({
-      title: "Copied!",
-      description: "Prompt copied to clipboard.",
-    });
-    setTimeout(() => {
-      setCopied(false);
-    }, 2000);
-  };
-  
-  const refreshJson = () => {
-    setIsRefreshing(true);
+  useEffect(() => {
     setRenderTrigger(prev => prev + 1);
-  };
+  }, [variables]);
   
-  // Enhanced delete variable function that uses the current variable value
-  const handleDeleteVariable = (variableId: string) => {
-    if (promptOperations.removeVariable) {
-      // Use the improved removeVariable function from the hook
-      promptOperations.removeVariable(variableId);
-    } else {
-      // Fallback implementation if removeVariable is unavailable
-      const variableToDelete = variables.find(v => v.id === variableId);
-      
-      if (variableToDelete) {
-        // Use the current variable value
-        const currentValue = variableToDelete.value || "";
-        
-        // First mark it as not relevant
-        setVariables(prev => prev.map(v => 
-          v.id === variableId ? {...v, isRelevant: false} : v
-        ));
-        
-        // Replace all instances of the variable in the prompt with its current value
-        const updatedPrompt = replaceVariableInPrompt(
-          finalPrompt,
-          `{{VAR::${variableId}}}`, // Placeholder format
-          currentValue, // Replace with current value
-          variableToDelete.name
-        );
-        
-        // Update the prompt
-        setFinalPrompt(updatedPrompt);
-        
-        // Trigger re-render to reflect changes
-        setRenderTrigger(prev => prev + 1);
-        
-        toast({
-          title: "Variable removed",
-          description: "The variable has been removed and replaced with its current value."
-        });
-      }
+  // Update lastSavedPrompt when finalPrompt changes
+  useEffect(() => {
+    setLastSavedPrompt(finalPrompt);
+  }, [finalPrompt]);
+  
+  useEffect(() => {
+    if (!variables || !Array.isArray(variables)) {
+      console.error("Invalid variables provided to StepThreeContent:", variables);
+      setSafeVariables([]);
+      return;
     }
-  };
+    
+    const validVariables = variables.filter(v => v && typeof v === 'object');
+    setSafeVariables(validVariables);
+  }, [variables]);
   
-  return (
-    <div className="w-full space-y-6">
-      {masterCommand && (
-        <MasterCommandSection 
-          masterCommand={masterCommand}
-          setMasterCommand={setMasterCommand}
-        />
-      )}
+  const enhancedHandleVariableValueChange = useCallback((variableId: string, newValue: string) => {
+    try {
+      if (typeof externalHandleVariableValueChange === 'function') {
+        externalHandleVariableValueChange(variableId, newValue);
+      } else {
+        promptOperations.handleVariableValueChange(variableId, newValue);
+      }
       
+      setRenderTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error("Error changing variable value:", error);
+      toast({
+        title: "Error updating variable",
+        description: "An error occurred while trying to update the variable",
+        variant: "destructive"
+      });
+    }
+  }, [externalHandleVariableValueChange, promptOperations, toast]);
+
+  // Handle saving edited content from the FinalPromptDisplay
+  const handleSaveInlineEdit = useCallback(() => {
+    try {
+      setIsEditing(false);
+      setEditablePrompt("");
+      setRenderTrigger(prev => prev + 1);
+      
+      // Only manually refresh JSON if already showing
+      if (showJson) {
+        handleRefreshJson();
+      }
+    } catch (error) {
+      console.error("Error saving edited prompt:", error);
+      toast({
+        title: "Error",
+        description: "Could not save edited prompt. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [toast, showJson]);
+
+  const getProcessedPromptFunction = useCallback(() => {
+    if (typeof externalGetProcessedPrompt === 'function') {
+      return externalGetProcessedPrompt();
+    }
+    return promptOperations.getProcessedPrompt();
+  }, [externalGetProcessedPrompt, promptOperations]);
+
+  const recordVariableSelection = useCallback((variableId: string, selectedText: string) => {
+    console.log("Recording variable selection:", variableId, selectedText);
+    promptOperations.recordVariableSelection(variableId, selectedText);
+  }, [promptOperations]);
+  
+  const handleDeleteVariable = useCallback((variableId: string) => {
+    if (promptOperations.removeVariable) {
+      promptOperations.removeVariable(variableId);
+      toast({
+        title: "Variable deleted",
+        description: "The variable has been removed from your prompt",
+      });
+    }
+  }, [promptOperations, toast]);
+
+  // Improved handleRefreshJson function to use the latest finalPrompt
+  const handleRefreshJson = useCallback(() => {
+    if (isRefreshingJson) return;
+    
+    setIsRefreshingJson(true);
+    toast({
+      title: "Refreshing JSON",
+      description: "Updating JSON structure with current content...",
+    });
+    
+    // Force re-render of the JSON view with latest content
+    setTimeout(() => {
+      setRenderTrigger(prev => prev + 1);
+    }, 100);
+  }, [toast, isRefreshingJson]);
+
+  return (
+    <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
       <ToggleSection 
         showJson={showJson}
         setShowJson={setShowJson}
-        refreshJson={refreshJson}
-        isRefreshing={isRefreshing}
+        refreshJson={handleRefreshJson}
+        isRefreshing={isRefreshingJson}
       />
-      
-      <FinalPromptDisplay
-        finalPrompt={finalPrompt}
+
+      <FinalPromptDisplay 
+        finalPrompt={finalPrompt || ""}
         updateFinalPrompt={setFinalPrompt}
-        getProcessedPrompt={getProcessedPrompt}
-        variables={variables}
+        getProcessedPrompt={getProcessedPromptFunction}
+        variables={safeVariables}
         setVariables={setVariables}
         showJson={showJson}
-        masterCommand={masterCommand}
-        handleOpenEditPrompt={handleOpenEditPrompt}
-        recordVariableSelection={promptOperations.recordVariableSelection}
-        variableSelections={promptOperations.variableSelections}
+        masterCommand={masterCommand || ""}
+        handleOpenEditPrompt={externalHandleOpenEditPrompt}
+        recordVariableSelection={recordVariableSelection}
         isEditing={isEditing}
         setIsEditing={setIsEditing}
-        editablePrompt={editingPrompt}
-        setEditablePrompt={setEditingPrompt}
-        handleSaveEditedPrompt={handleSaveEditedPrompt}
+        editablePrompt={editablePrompt}
+        setEditablePrompt={setEditablePrompt}
+        handleSaveEditedPrompt={handleSaveInlineEdit}
         renderTrigger={renderTrigger}
         setRenderTrigger={setRenderTrigger}
-        isRefreshing={isRefreshing}
-        setIsRefreshing={setIsRefreshing}
-        className="min-h-[500px]" 
+        isRefreshing={isRefreshingJson}
+        setIsRefreshing={setIsRefreshingJson}
+        lastSavedPrompt={lastSavedPrompt}
+        setLastSavedPrompt={setLastSavedPrompt}
       />
-      
+
       <VariablesSection 
-        variables={variables}
-        handleVariableValueChange={handleVariableValueChange}
+        variables={safeVariables}
+        handleVariableValueChange={enhancedHandleVariableValueChange}
         onDeleteVariable={handleDeleteVariable}
       />
-      
-      <ActionButtons
-        onCopyPrompt={handleCopyPrompt}
-        onSavePrompt={handleSavePrompt}
-        isCopied={isCopied}
-        isPrivate={isPrivate}
-        setIsPrivate={setIsPrivate}
+
+      <ActionButtons 
+        handleCopyPrompt={externalHandleCopyPrompt}
+        handleSavePrompt={handleSavePrompt}
       />
+
+      <StepThreeStyles />
     </div>
   );
 };

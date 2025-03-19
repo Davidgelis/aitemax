@@ -85,7 +85,7 @@ textarea::placeholder {
 
 /* Variable highlighting in prompts */
 .variable-highlight {
-  background-color: #f0fdf9;
+  background-color: white;
   border: 1px solid #64bf95;
   border-radius: 2px;
   padding: 1px 2px;
@@ -190,67 +190,4 @@ textarea::placeholder {
 
 .tooltip-icon {
   transition: color 0.2s ease;
-}
-
-/* Non-editable variable styling in edit mode */
-.non-editable-variable {
-  background-color: #f0fdf9;
-  border: 1px solid #64bf95;
-  border-radius: 2px;
-  padding: 1px 4px;
-  margin: 0 1px;
-  display: inline-block;
-  cursor: default;
-  user-select: none;
-}
-
-/* Editing mode styles */
-.editing-mode {
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  padding: 0.75rem;
-  min-height: 200px;
-  outline: none;
-  background-color: white;
-}
-
-.editing-mode:focus {
-  border-color: #64bf95;
-  box-shadow: 0 0 0 2px rgba(100, 191, 149, 0.2);
-}
-
-/* Edit action buttons */
-.edit-action-button {
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-}
-
-.edit-save-button {
-  background-color: #084b49;
-  color: white;
-}
-
-.edit-save-button:hover {
-  background-color: #064241;
-}
-
-.edit-cancel-button {
-  border: 1px solid #d1d5db;
-  background-color: white;
-  color: #4b5563;
-}
-
-.edit-cancel-button:hover {
-  background-color: #f9fafb;
-}
-
-/* Multi-selection marker styling */
-.multi-selection-marker {
-  background-color: rgba(51, 254, 166, 0.3);
-  border-radius: 2px;
 }

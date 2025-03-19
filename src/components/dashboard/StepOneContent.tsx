@@ -10,7 +10,6 @@ import { HelpCircle, ImageUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "./ImageUploader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { PrivacyCheckbox } from "@/components/dashboard/PrivacyCheckbox";
 
 interface StepOneContentProps {
   promptText: string;
@@ -28,8 +27,6 @@ interface StepOneContentProps {
   onImagesChange?: (images: UploadedImage[]) => void;
   onWebsiteScan?: (url: string, instructions: string) => void;
   onSmartContext?: (context: string, usageInstructions: string) => void;
-  isPrivate?: boolean;
-  setIsPrivate?: (isPrivate: boolean) => void;
 }
 
 export const StepOneContent = ({
@@ -47,9 +44,7 @@ export const StepOneContent = ({
   handleCognitiveToggle,
   onImagesChange = () => {},
   onWebsiteScan = () => {},
-  onSmartContext = () => {},
-  isPrivate = false,
-  setIsPrivate = () => {}
+  onSmartContext = () => {}
 }: StepOneContentProps) => {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
@@ -92,7 +87,6 @@ export const StepOneContent = ({
       selectedSecondary
     });
     
-    // Call the parent's onAnalyze function
     onAnalyze();
   };
 
@@ -112,22 +106,21 @@ export const StepOneContent = ({
             onSmartContext={handleSmartContext}
             variant="modelReplacement"
           />
-          <div>
-            <button 
-              onClick={handleOpenUploadDialog}
-              className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
-              title="Upload and analyze images with specific context"
-            >
-              <span className="truncate ml-1">Image Smart Scan</span>
-              <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
-            </button>
+          <div className="w-full">
+            <div className="flex items-center">
+              <button 
+                onClick={handleOpenUploadDialog}
+                className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
+                title="Upload and analyze images with specific context"
+              >
+                <span className="truncate ml-1">Image Smart Scan</span>
+                <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
+              </button>
+            </div>
           </div>
         </div>
         
-        <PrivacyCheckbox
-          isPrivate={isPrivate}
-          onChange={setIsPrivate}
-        />
+        {/* Removed the Cognitive Prompt Perfection Model toggle and text */}
       </div>
 
       {uploadedImages.length > 0 && (
