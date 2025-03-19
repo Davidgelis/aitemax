@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
@@ -91,6 +92,7 @@ export const StepOneContent = ({
       selectedSecondary
     });
     
+    // Call the parent's onAnalyze function
     onAnalyze();
   };
 

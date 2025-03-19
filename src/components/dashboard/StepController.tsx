@@ -40,7 +40,9 @@ export const StepController: React.FC<StepControllerProps> = ({
   };
 
   const handleAnalyze = useCallback(async () => {
+    console.log("StepController: handleAnalyze called");
     setIsAnalyzing(true);
+    
     try {
       // Check if the promptAnalyzer exists in promptState
       if (promptState.promptAnalyzer && typeof promptState.promptAnalyzer.handleAnalyze === 'function') {
