@@ -5,7 +5,6 @@ import { StepTwoContent } from "@/components/dashboard/StepTwoContent";
 import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
 import { AIModel, UploadedImage } from "@/components/dashboard/types";
-import { usePromptAnalysis } from "@/hooks/usePromptAnalysis";
 
 interface StepControllerProps {
   user: any;
@@ -26,20 +25,6 @@ export const StepController: React.FC<StepControllerProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedCognitive, setSelectedCognitive] = useState<string | null>(null);
 
-  // Initialize the promptAnalysis hook with the current state
-  const { isLoading: isAnalysisLoading, handleAnalyze: triggerAnalysis } = usePromptAnalysis(
-    promptState.promptText,
-    promptState.setQuestions,
-    promptState.setVariables,
-    promptState.setMasterCommand,
-    promptState.setFinalPrompt,
-    promptState.setCurrentStep,
-    promptState.selectedPrimary,
-    promptState.selectedSecondary,
-    user,
-    promptState.promptId
-  );
-
   const handlePrimaryToggle = (id: string) => {
     promptState.setSelectedPrimary(promptState.selectedPrimary === id ? null : id);
   };
@@ -52,13 +37,9 @@ export const StepController: React.FC<StepControllerProps> = ({
     setSelectedCognitive(selectedCognitive === id ? null : id);
   };
 
-  // Fix the analyze handler to properly trigger the analysis
   const handleAnalyze = useCallback(async () => {
     setIsAnalyzing(true);
     try {
-      // When the user clicks "Analyze with AI", this function is called from StepOneContent
-      // The actual analysis is triggered in StepOneContent first, then this is called
-      // which advances to the next step
       promptState.setCurrentStep(2);
     } catch (error) {
       console.error("Error during analysis:", error);
@@ -103,7 +84,7 @@ export const StepController: React.FC<StepControllerProps> = ({
             handlePrimaryToggle={handlePrimaryToggle}
             handleSecondaryToggle={handleSecondaryToggle}
             onAnalyze={handleAnalyze}
-            isLoading={isAnalyzing || isAnalysisLoading}
+            isLoading={isAnalyzing}
             selectedModel={selectedModel}
             setSelectedModel={setSelectedModel}
             selectedCognitive={selectedCognitive}
