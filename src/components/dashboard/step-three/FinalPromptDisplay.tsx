@@ -22,9 +22,9 @@ interface FinalPromptDisplayProps {
   setEditablePrompt: (prompt: string) => void;
   handleSaveEditedPrompt: () => void;
   renderTrigger?: number;
-  setRenderTrigger: (callback: (prev: number) => number) => number;
+  setRenderTrigger: React.Dispatch<React.SetStateAction<number>>;
   isRefreshing?: boolean;
-  setIsRefreshing?: (isRefreshing: boolean) => setIsRefreshing;
+  setIsRefreshing?: React.Dispatch<React.SetStateAction<boolean>>;
   lastSavedPrompt?: string;
   setLastSavedPrompt?: (prompt: string) => void;
 }
