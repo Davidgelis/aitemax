@@ -1,16 +1,16 @@
-
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
 import { SmartContext } from "@/components/dashboard/SmartContext";
-import { primaryToggles, secondaryToggles } from "./constants";
-import { AIModel, UploadedImage } from "./types";
-import { Switch } from "@/components/ui/switch";
-import { HelpCircle, ImageUp } from "lucide-react";
+import { ImageUploader } from "@/components/dashboard/ImageUploader";
+import { primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
+import { UploadedImage, AIModel } from "@/components/dashboard/types";
+import { ModelSelector } from "@/components/dashboard/model-selector";
+import { ModelRefreshButton } from "@/components/dashboard/ModelRefreshButton";
 import { Button } from "@/components/ui/button";
-import { ImageUploader } from "./ImageUploader";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PrivacyCheckbox } from "@/components/dashboard/PrivacyCheckbox";
+import { usePromptAnalysis } from "@/hooks/usePromptAnalysis";
+import { LoadingState } from "@/components/dashboard/LoadingState";
 
 interface StepOneContentProps {
   promptText: string;
@@ -25,14 +25,14 @@ interface StepOneContentProps {
   setSelectedModel: (model: AIModel | null) => void;
   selectedCognitive: string | null;
   handleCognitiveToggle: (id: string) => void;
-  onImagesChange?: (images: UploadedImage[]) => void;
-  onWebsiteScan?: (url: string, instructions: string) => void;
-  onSmartContext?: (context: string, usageInstructions: string) => void;
+  onImagesChange: (images: UploadedImage[]) => void;
+  onWebsiteScan: (url: string, instructions: string) => void;
+  onSmartContext: (context: string, instructions: string) => void;
   isPrivate?: boolean;
   setIsPrivate?: (isPrivate: boolean) => void;
 }
 
-export const StepOneContent = ({
+export const StepOneContent: React.FC<StepOneContentProps> = ({
   promptText,
   setPromptText,
   selectedPrimary,
@@ -45,209 +45,211 @@ export const StepOneContent = ({
   setSelectedModel,
   selectedCognitive,
   handleCognitiveToggle,
-  onImagesChange = () => {},
-  onWebsiteScan = () => {},
-  onSmartContext = () => {},
+  onImagesChange,
+  onWebsiteScan,
+  onSmartContext,
   isPrivate = false,
   setIsPrivate = () => {}
-}: StepOneContentProps) => {
+}) => {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
-  const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
-  const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [websiteUrl, setWebsiteUrl] = useState<string>("");
+  const [websiteInstructions, setWebsiteInstructions] = useState<string>("");
+  const [showWebScanner, setShowWebScanner] = useState<boolean>(false);
+  const [smartContextText, setSmartContextText] = useState<string>("");
+  const [smartContextInstructions, setSmartContextInstructions] = useState<string>("");
+  const [showSmartContext, setShowSmartContext] = useState<boolean>(false);
+  const [showImageUploader, setShowImageUploader] = useState<boolean>(false);
+  
+  // This is key - we need to use the usePromptAnalysis hook here
+  const { isLoading: isAnalyzing, handleAnalyze } = usePromptAnalysis(
+    promptText,
+    () => {}, // This will be handled by StepController
+    () => {}, // This will be handled by StepController
+    () => {}, // This will be handled by StepController
+    () => {}, // This will be handled by StepController
+    () => {}, // This will be handled by StepController
+    selectedPrimary,
+    selectedSecondary
+  );
 
+  // Handle image uploads
   const handleImagesChange = (images: UploadedImage[]) => {
     setUploadedImages(images);
-    console.log("StepOneContent: Images updated:", images);
-    // Pass the images up to the parent component without triggering analysis
     onImagesChange(images);
   };
 
-  const handleWebsiteScan = (url: string, instructions: string = "") => {
-    const contextData = { url, instructions };
-    setWebsiteContext(contextData);
-    console.log("StepOneContent: Website context set:", contextData);
-    
+  // Handle website scan
+  const handleWebsiteScan = (url: string, instructions: string) => {
+    setWebsiteUrl(url);
+    setWebsiteInstructions(instructions);
     onWebsiteScan(url, instructions);
+    setShowWebScanner(false);
   };
 
-  const handleSmartContext = (context: string, usageInstructions: string = "") => {
-    const contextData = { context, usageInstructions };
-    setSmartContext(contextData);
-    console.log("StepOneContent: Smart context set:", {
-      context: context.substring(0, 100) + (context.length > 100 ? "..." : ""),
-      usageInstructions: usageInstructions.substring(0, 100) + (usageInstructions.length > 100 ? "..." : "")
-    });
+  // Handle smart context
+  const handleSmartContext = (context: string, instructions: string) => {
+    setSmartContextText(context);
+    setSmartContextInstructions(instructions);
+    onSmartContext(context, instructions);
+    setShowSmartContext(false);
+  };
+
+  // Fix the analyze function to properly trigger the analysis
+  const handleAnalyzeClick = async () => {
+    // Get any website context data if available
+    const websiteData = websiteUrl 
+      ? { url: websiteUrl, instructions: websiteInstructions }
+      : null;
     
-    onSmartContext(context, usageInstructions);
-  };
+    // Get any smart context data if available
+    const smartContextData = smartContextText
+      ? { context: smartContextText, usageInstructions: smartContextInstructions }
+      : null;
 
-  const handleAnalyzeWithContext = () => {
-    console.log("StepOneContent: Analyzing with context:", {
-      promptText,
-      uploadedImages: uploadedImages.length,
-      websiteContext,
-      smartContext: smartContext ? "Provided" : "None",
-      selectedPrimary,
-      selectedSecondary
-    });
-    
-    onAnalyze();
-  };
-
-  const handleOpenUploadDialog = () => {
-    setDialogOpen(true);
+    try {
+      // First trigger the actual analysis with all our context
+      await handleAnalyze(uploadedImages, websiteData, smartContextData);
+      
+      // Then call the onAnalyze callback to advance to the next step
+      onAnalyze();
+    } catch (error) {
+      console.error("Error during analysis:", error);
+      // Still move to the next step even if there was an error
+      onAnalyze();
+    }
   };
 
   return (
-    <div className="border rounded-xl p-6 bg-card">
-      <div className="mb-4 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <WebScanner 
-            onWebsiteScan={handleWebsiteScan}
-            variant="modelReplacement"
-          />
-          <SmartContext
-            onSmartContext={handleSmartContext}
-            variant="modelReplacement"
-          />
-          <div>
-            <button 
-              onClick={handleOpenUploadDialog}
-              className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
-              title="Upload and analyze images with specific context"
-            >
-              <span className="truncate ml-1">Image Smart Scan</span>
-              <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
-            </button>
-          </div>
-        </div>
-        
-        <PrivacyCheckbox
-          isPrivate={isPrivate}
-          onChange={setIsPrivate}
-        />
+    <div className="flex flex-col gap-8 w-full">
+      <div className="w-full space-y-4">
+        <h1 className="text-3xl font-bold">Create Prompt</h1>
+        <p className="text-gray-500 dark:text-gray-400">
+          Enter your prompt below and we'll help you enhance it
+        </p>
       </div>
 
-      {uploadedImages.length > 0 && (
-        <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
-          <h3 className="text-sm font-medium text-[#545454] mb-2">Uploaded Images</h3>
-          <ImageUploader
-            images={uploadedImages}
-            onImagesChange={handleImagesChange}
-            open={dialogOpen}
-            onOpenChange={setDialogOpen}
-          />
-        </div>
-      )}
-
-      {smartContext && smartContext.context && (
-        <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
-          <h3 className="text-sm font-medium text-[#545454] mb-2">Smart Context Added</h3>
-          <p className="text-xs text-[#545454] italic truncate">
-            {smartContext.context.substring(0, 100)}
-            {smartContext.context.length > 100 ? "..." : ""}
-          </p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {primaryToggles.map(toggle => (
-          <div 
-            key={toggle.id}
-            className="border rounded-lg p-3 flex justify-between items-center"
-            data-variant="primary"
-          >
-            <div className="text-[#545454] text-sm">
-              {toggle.label}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch 
-                checked={selectedPrimary === toggle.id}
-                onCheckedChange={() => handlePrimaryToggle(toggle.id)}
-                variant="primary"  
-              />
-              <TooltipProvider>
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <button 
-                      className="tooltip-trigger text-[#545454] opacity-70 hover:opacity-100"
-                      aria-label={`Learn more about ${toggle.label}`}
-                    >
-                      <HelpCircle className="h-4 w-4 tooltip-icon" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs text-xs">
-                    {toggle.definition}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {secondaryToggles.map(toggle => (
-          <div 
-            key={toggle.id}
-            className="border rounded-lg p-3 flex justify-between items-center"
-            data-variant="secondary"
-          >
-            <div className="text-[#545454] text-sm">
-              {toggle.label}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch 
-                checked={selectedSecondary === toggle.id}
-                onCheckedChange={() => handleSecondaryToggle(toggle.id)}
-                variant="secondary"
-              />
-              <TooltipProvider>
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <button 
-                      className="tooltip-trigger text-[#545454] opacity-70 hover:opacity-100"
-                      aria-label={`Learn more about ${toggle.label}`}
-                    >
-                      <HelpCircle className="h-4 w-4 tooltip-icon" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs text-xs">
-                    {toggle.definition}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mb-6">
+      <div>
         <PromptInput 
-          value={promptText}
-          onChange={setPromptText}
-          onSubmit={handleAnalyzeWithContext}
-          className="w-full"
-          images={uploadedImages}
-          onImagesChange={handleImagesChange}
-          isLoading={isLoading}
-          onOpenUploadDialog={handleOpenUploadDialog}
-          dialogOpen={dialogOpen}
-          setDialogOpen={setDialogOpen}
+          value={promptText} 
+          onChange={setPromptText} 
+          placeholder="Describe what you want the AI to do..."
+          className="min-h-[200px]"
         />
       </div>
 
-      <div className="flex justify-end mt-8">
-        <Button
-          onClick={handleAnalyzeWithContext}
-          disabled={isLoading || !promptText.trim()}
-          variant="aurora"
-          className="ml-2"
+      <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col space-y-2 w-full">
+          <span className="text-sm font-medium text-muted-foreground">Smart Tools</span>
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowWebScanner(true)}
+              className={websiteUrl ? "border-[#33fea6] text-[#33fea6]" : ""}
+            >
+              {websiteUrl ? "Web Smart Scan ✓" : "Web Smart Scan"}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowSmartContext(true)}
+              className={smartContextText ? "border-[#33fea6] text-[#33fea6]" : ""}
+            >
+              {smartContextText ? "Smart Context ✓" : "Smart Context"}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowImageUploader(true)}
+              className={uploadedImages.length > 0 ? "border-[#33fea6] text-[#33fea6]" : ""}
+            >
+              {uploadedImages.length > 0 ? `Image Smart Scan (${uploadedImages.length}) ✓` : "Image Smart Scan"}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col space-y-2 w-full">
+          <span className="text-sm font-medium text-muted-foreground">Add Context</span>
+          <div className="flex gap-2">
+            {primaryToggles.map((toggle) => (
+              <Button
+                key={toggle.id}
+                variant={selectedPrimary === toggle.id ? "aurora" : "outline"}
+                onClick={() => handlePrimaryToggle(toggle.id)}
+              >
+                {toggle.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col space-y-2 w-full">
+          <span className="text-sm font-medium text-muted-foreground">Format Options</span>
+          <div className="flex gap-2">
+            {secondaryToggles.map((toggle) => (
+              <Button
+                key={toggle.id}
+                variant={selectedSecondary === toggle.id ? "aurora" : "outline"}
+                onClick={() => handleSecondaryToggle(toggle.id)}
+              >
+                {toggle.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <ModelSelector
+          selectedModel={selectedModel}
+          setSelectedModel={setSelectedModel}
+        />
+        <ModelRefreshButton />
+      </div>
+
+      <div className="space-y-4">
+        <PrivacyCheckbox 
+          isPrivate={isPrivate}
+          setIsPrivate={setIsPrivate}
+        />
+        
+        <Button 
+          className="w-full aurora-button dark:aurora-button-dark"
+          size="lg"
+          disabled={!promptText.trim() || isLoading || isAnalyzing}
+          onClick={handleAnalyzeClick}
         >
-          {isLoading ? "Analyzing..." : "Analyze with AI"}
+          {isLoading || isAnalyzing ? "Analyzing..." : "Analyze with AI"}
         </Button>
       </div>
+
+      {(isLoading || isAnalyzing) && <LoadingState />}
+
+      {showWebScanner && (
+        <WebScanner
+          open={showWebScanner}
+          onOpenChange={setShowWebScanner}
+          onSubmit={handleWebsiteScan}
+        />
+      )}
+
+      {showSmartContext && (
+        <SmartContext
+          open={showSmartContext}
+          onOpenChange={setShowSmartContext}
+          onSubmit={handleSmartContext}
+        />
+      )}
+
+      {showImageUploader && (
+        <ImageUploader
+          open={showImageUploader}
+          onOpenChange={setShowImageUploader}
+          onImagesChange={handleImagesChange}
+          images={uploadedImages}
+        />
+      )}
     </div>
   );
 };
