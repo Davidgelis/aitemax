@@ -483,9 +483,9 @@ const XPanel = () => {
                             <Share2 className="h-4 w-4" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-80 p-4">
+                        <PopoverContent className="w-80 p-4 bg-white border border-gray-200 shadow-md">
                           <div className="space-y-4">
-                            <h4 className="font-medium text-sm">Share Prompt</h4>
+                            <h4 className="font-medium text-sm">Share "{getPlainText(prompt.title)}"</h4>
                             <div className="space-y-2">
                               <Label htmlFor={`share-email-${prompt.id}`}>
                                 Email address
@@ -508,9 +508,6 @@ const XPanel = () => {
                             >
                               {isSharing && sharingPromptId === prompt.id ? "Sharing..." : "Share"}
                             </Button>
-                            <p className="text-xs text-muted-foreground">
-                              Recipients will need an account to view the prompt.
-                            </p>
                           </div>
                         </PopoverContent>
                       </Popover>
