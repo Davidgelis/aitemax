@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
