@@ -22,9 +22,9 @@ interface FinalPromptDisplayProps {
   setEditablePrompt: (prompt: string) => void;
   handleSaveEditedPrompt: () => void;
   renderTrigger?: number;
-  setRenderTrigger: React.Dispatch<React.SetStateAction<number>>;
+  setRenderTrigger: (callback: (prev: number) => number) => void;
   isRefreshing?: boolean;
-  setIsRefreshing?: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsRefreshing?: (isRefreshing: boolean) => void;
   lastSavedPrompt?: string;
   setLastSavedPrompt?: (prompt: string) => void;
 }
@@ -350,7 +350,6 @@ export const FinalPromptDisplay = ({
     const newVariable: Variable = {
       id: variableId,
       name: variableName,
-      description: '',
       value: combinedText,
       // Set the initial value to the combined selections
       isRelevant: true,

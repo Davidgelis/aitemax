@@ -90,11 +90,10 @@ export const useQuestionsAndVariables = (
         {
           id: newVariableId,
           name: '',
-          description: '', // Add required description field
           value: '',
           isRelevant: null,
           category: 'Custom',
-          code: newCode
+          code: newCode // This will be used internally for matching in step 3
         }
       ];
     });

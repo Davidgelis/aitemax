@@ -1,10 +1,8 @@
-
 export interface Question {
   id: string;
   text: string;
   isRelevant: boolean | null;
   answer?: string;
-  category?: string;
 }
 
 export interface Variable {
@@ -13,32 +11,20 @@ export interface Variable {
   description: string;
   value: string;
   isRelevant: boolean | null;
-  category?: string;
-  code?: string;
-}
-
-export interface Toggle {
-  id: string;
-  label: string;
-  definition?: string;
-  prompt?: string;
 }
 
 export interface AIModel {
-  id: string;
   name: string;
   provider: string;
   description: string;
   strengths: string[];
   limitations: string[];
-  updated_at?: string;
 }
 
 export interface UploadedImage {
   id: string;
   url: string;
   file: File;
-  context?: string;
 }
 
 export interface SavedPrompt {
