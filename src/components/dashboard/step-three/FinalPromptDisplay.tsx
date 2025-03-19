@@ -22,9 +22,9 @@ interface FinalPromptDisplayProps {
   setEditablePrompt: (prompt: string) => void;
   handleSaveEditedPrompt: () => void;
   renderTrigger?: number;
-  setRenderTrigger: (callback: (prev: number) => number) => void;
+  setRenderTrigger: (callback: (prev: number) => number) => number;
   isRefreshing?: boolean;
-  setIsRefreshing?: (isRefreshing: boolean) => void;
+  setIsRefreshing?: (isRefreshing: boolean) => setIsRefreshing;
   lastSavedPrompt?: string;
   setLastSavedPrompt?: (prompt: string) => void;
 }
@@ -350,6 +350,7 @@ export const FinalPromptDisplay = ({
     const newVariable: Variable = {
       id: variableId,
       name: variableName,
+      description: '',
       value: combinedText,
       // Set the initial value to the combined selections
       isRelevant: true,

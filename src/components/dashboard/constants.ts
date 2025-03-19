@@ -1,10 +1,11 @@
 
-import { Toggle, Variable } from "./types";
+import { Question, Variable, Toggle } from "./types";
 
 export const defaultVariables: Variable[] = [
   {
     id: "v-1",
     name: "Input",
+    description: "", // Add required description field
     value: "",
     isRelevant: null,
     category: "General",
@@ -13,6 +14,7 @@ export const defaultVariables: Variable[] = [
   {
     id: "v-2",
     name: "Output Format",
+    description: "", // Add required description field
     value: "",
     isRelevant: null,
     category: "General",
@@ -21,6 +23,7 @@ export const defaultVariables: Variable[] = [
   {
     id: "v-3",
     name: "Context",
+    description: "", // Add required description field
     value: "",
     isRelevant: null,
     category: "General",

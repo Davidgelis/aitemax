@@ -43,7 +43,14 @@ export const ModelSelectorDialog = ({
   const displayModelsArray = useMemo(() => {
     if (hasNoneOption) {
       return [
-        { id: 'none', name: '-', provider: null } as AIModel,
+        { 
+          id: 'none', 
+          name: '-', 
+          provider: 'None',
+          description: 'No model selected',
+          strengths: [],
+          limitations: []
+        } as AIModel,
         ...sortedModels
       ];
     }
