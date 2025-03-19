@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { SavedPrompt, variablesToJson, jsonToVariables } from '@/components/dashboard/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -55,7 +54,7 @@ export class PromptService {
         secondaryToggle: data.secondary_toggle,
         masterCommand: data.master_command || '',
         variables: data.variables ? jsonToVariables(data.variables) : [],
-        jsonStructure: data.json_structure || null,
+        jsonStructure: null,
         isPrivate: data.is_private || false
       };
     } catch (error) {
@@ -84,7 +83,6 @@ export class PromptService {
           primary_toggle: promptData.primaryToggle,
           secondary_toggle: promptData.secondaryToggle,
           user_id: promptData.userId,
-          json_structure: promptData.jsonStructure || null,
           is_private: promptData.isPrivate
         })
         .select()
@@ -125,7 +123,6 @@ export class PromptService {
         primary_toggle: prompt.primaryToggle,
         secondary_toggle: prompt.secondaryToggle,
         user_id: (await supabase.auth.getSession()).data.session?.user.id,
-        json_structure: prompt.jsonStructure || null,
         is_private: prompt.isPrivate || false
       };
       
@@ -146,7 +143,7 @@ export class PromptService {
         secondaryToggle: data.secondary_toggle,
         masterCommand: data.master_command || '',
         variables: data.variables ? jsonToVariables(data.variables) : [],
-        jsonStructure: data.json_structure || null,
+        jsonStructure: null,
         isPrivate: data.is_private || false
       };
     } catch (error) {
