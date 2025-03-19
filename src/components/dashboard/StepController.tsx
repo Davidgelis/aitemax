@@ -5,6 +5,7 @@ import { StepTwoContent } from "@/components/dashboard/StepTwoContent";
 import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
 import { AIModel, UploadedImage } from "@/components/dashboard/types";
+import { useResponsive } from "@/hooks/useResponsive";
 
 interface StepControllerProps {
   user: any;
@@ -24,6 +25,7 @@ export const StepController: React.FC<StepControllerProps> = ({
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedCognitive, setSelectedCognitive] = useState<string | null>(null);
+  const { isMobile } = useResponsive();
 
   const handlePrimaryToggle = (id: string) => {
     promptState.setSelectedPrimary(promptState.selectedPrimary === id ? null : id);
@@ -40,13 +42,25 @@ export const StepController: React.FC<StepControllerProps> = ({
   const handleAnalyze = useCallback(async () => {
     setIsAnalyzing(true);
     try {
-      promptState.setCurrentStep(2);
+      // Check if we have the necessary context properties for analysis
+      if (promptState.promptAnalyzer && typeof promptState.promptAnalyzer.handleAnalyze === 'function') {
+        // Use the prompt analyzer's handleAnalyze function with all context
+        await promptState.promptAnalyzer.handleAnalyze(uploadedImages, websiteContext, smartContext);
+      } else {
+        // Fallback to simple step change if the analyzer isn't available
+        promptState.setCurrentStep(2);
+      }
     } catch (error) {
       console.error("Error during analysis:", error);
     } finally {
       setIsAnalyzing(false);
     }
-  }, [promptState]);
+  }, [
+    promptState, 
+    uploadedImages, 
+    websiteContext, 
+    smartContext
+  ]);
 
   const handleImagesChange = (images: UploadedImage[]) => {
     setUploadedImages(images);
