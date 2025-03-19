@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -8,6 +7,7 @@ import { StepController } from "@/components/dashboard/StepController";
 import { usePromptState } from "@/hooks/usePromptState";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
+import XPanelButton from "@/components/dashboard/XPanelButton";
 
 const fallbackModels = [
   {
@@ -29,7 +29,7 @@ const fallbackModels = [
     provider: "Meta",
     description: "Meta's latest open-source large language model with improved reasoning and instruction following.",
     strengths: ["Open-source architecture", "Strong performance for its size", "Active community development", "Multiple size variants"],
-    limitations: ["Smaller context window than some competitors", "Less training data than closed models", "May require more explicit prompting"]
+    limitations: ["Smaller context window than some competitors", "Less training data than closed models", "Less training data than closed models", "May require more explicit prompting"]
   },
   {
     name: "GPT-4o mini",
@@ -150,6 +150,7 @@ const Dashboard = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
+        <XPanelButton />
         <main className="flex-1 p-6">
           <div className="max-w-6xl mx-auto min-h-screen flex flex-col items-center justify-center gap-8">
             <StepController 
