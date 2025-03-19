@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -243,7 +244,7 @@ export const usePromptState = (user: any) => {
         variables: variablesToJson(relevantVariables),
         current_step: currentStep,
         updated_at: new Date().toISOString(),
-        tags: generatedTags // Now typed correctly
+        tags: generatedTags as unknown as Json // Cast to Json for Supabase compatibility
       };
 
       const { data, error } = await supabase
@@ -265,7 +266,7 @@ export const usePromptState = (user: any) => {
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
           variables: jsonToVariables(data[0].variables as Json),
-          tags: data[0].tags as PromptTag[] // Cast to the correct type
+          tags: (data[0].tags as unknown as PromptTag[]) || [] // Safely cast to PromptTag[]
         };
         
         if (jsonStructure) {
