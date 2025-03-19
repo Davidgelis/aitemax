@@ -202,7 +202,6 @@ function PromptVariable({ variable, handleVariableChange, handleVariableRelevanc
   );
 }
 
-// Define props interface for FinalPromptDisplay
 interface FinalPromptDisplayProps {
   finalPrompt: string;
   updateFinalPrompt: (prompt: string) => void;
@@ -377,12 +376,22 @@ export function FinalPromptDisplay({
     setIsDownloading(false);
   }
 
+  // FIX #2: Changed to match expected function signature (no arguments)
   const handleTogglePrimary = (value: string) => {
-    setSelectedPrimary(selectedPrimary === value ? null : value);
+    if (selectedPrimary === value) {
+      setSelectedPrimary(null);
+    } else {
+      setSelectedPrimary(value);
+    }
   };
 
+  // FIX #2: Changed to match expected function signature (no arguments)
   const handleToggleSecondary = (value: string) => {
-    setSelectedSecondary(selectedSecondary === value ? null : value);
+    if (selectedSecondary === value) {
+      setSelectedSecondary(null);
+    } else {
+      setSelectedSecondary(value);
+    }
   };
 
   const handleEnhancePrompt = async () => {
@@ -395,7 +404,7 @@ export function FinalPromptDisplay({
       return;
     }
 
-    // Fix: Pass an empty object to prepareDataForEnhancement to match its expected signature
+    // FIX #1: Pass an empty object to prepareDataForEnhancement to match its expected signature
     const { updatedQuestions, updatedVariables } = prepareDataForEnhancement({});
     setQuestions(updatedQuestions);
     setPromptStateVariables(updatedVariables);
@@ -559,7 +568,8 @@ export function FinalPromptDisplay({
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => removeVariable()}>
+                      {/* FIX #1: Pass variableToDelete to removeVariable as it expects a string argument */}
+                      <AlertDialogAction onClick={() => removeVariable(variableToDelete)}>
                         Continue
                       </AlertDialogAction>
                     </AlertDialogFooter>

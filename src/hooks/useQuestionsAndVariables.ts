@@ -100,14 +100,12 @@ export const useQuestionsAndVariables = (
     });
   }, [setVariables]);
 
-  const removeVariable = useCallback((id: string = variableToDelete || "") => {
-    const varId = id || variableToDelete;
-    if (!varId) return;
+  // FIX: Updated to expect a variableId parameter 
+  const removeVariable = useCallback((variableId: string) => {
+    console.log(`Removing variable ${variableId}`);
+    setVariables(variables.filter((v) => v.id !== variableId));
     
-    console.log(`Removing variable ${varId}`);
-    setVariables(variables.filter((v) => v.id !== varId));
-    
-    if (id === variableToDelete) {
+    if (variableId === variableToDelete) {
       setVariableToDelete(null);
     }
   }, [variables, variableToDelete, setVariables, setVariableToDelete]);
@@ -116,7 +114,8 @@ export const useQuestionsAndVariables = (
     return true;
   };
 
-  const prepareDataForEnhancement = () => {
+  // FIX: Updated to expect an object parameter (even empty)
+  const prepareDataForEnhancement = (options: any = {}) => {
     // Mark all unanswered or unreviewed questions as not relevant
     const updatedQuestions = questions.map(q => {
       if (q.isRelevant === null || (q.isRelevant === true && (!q.answer || q.answer.trim() === ""))) {
