@@ -394,8 +394,8 @@ export function FinalPromptDisplay({
       return;
     }
 
-    // Fix: Pass an empty object to prepareDataForEnhancement since it expects an argument
-    const { updatedQuestions, updatedVariables } = prepareDataForEnhancement({});
+    // Fix: Call prepareDataForEnhancement without arguments since it doesn't expect any
+    const { updatedQuestions, updatedVariables } = prepareDataForEnhancement();
     setQuestions(updatedQuestions);
     setPromptStateVariables(updatedVariables);
 
