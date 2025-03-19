@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
@@ -61,7 +62,7 @@ export const StepOneContent: React.FC<StepOneContentProps> = ({
   const [showImageUploader, setShowImageUploader] = useState<boolean>(false);
   
   // This is key - we need to use the usePromptAnalysis hook here
-  const { isLoading: isAnalyzing, handleAnalyze } = usePromptAnalysis(
+  const { isLoading: isAnalyzing, handleAnalyze, currentLoadingMessage } = usePromptAnalysis(
     promptText,
     () => {}, // This will be handled by StepController
     () => {}, // This will be handled by StepController
@@ -134,6 +135,7 @@ export const StepOneContent: React.FC<StepOneContentProps> = ({
           onChange={setPromptText} 
           placeholder="Describe what you want the AI to do..."
           className="min-h-[200px]"
+          onSubmit={() => {}} // Added empty onSubmit function to satisfy required prop
         />
       </div>
 
@@ -203,7 +205,7 @@ export const StepOneContent: React.FC<StepOneContentProps> = ({
       <div>
         <ModelSelector
           selectedModel={selectedModel}
-          setSelectedModel={setSelectedModel}
+          onModelSelect={setSelectedModel} // Fixed prop name to match what ModelSelector expects
         />
         <ModelRefreshButton />
       </div>
@@ -211,7 +213,7 @@ export const StepOneContent: React.FC<StepOneContentProps> = ({
       <div className="space-y-4">
         <PrivacyCheckbox 
           isPrivate={isPrivate}
-          setIsPrivate={setIsPrivate}
+          onChange={setIsPrivate} // Fixed prop name to match what PrivacyCheckbox expects
         />
         
         <Button 
@@ -224,21 +226,17 @@ export const StepOneContent: React.FC<StepOneContentProps> = ({
         </Button>
       </div>
 
-      {(isLoading || isAnalyzing) && <LoadingState />}
+      {(isLoading || isAnalyzing) && <LoadingState currentLoadingMessage={currentLoadingMessage} />}
 
       {showWebScanner && (
         <WebScanner
-          open={showWebScanner}
-          onOpenChange={setShowWebScanner}
-          onSubmit={handleWebsiteScan}
+          onWebsiteScan={handleWebsiteScan} // Use correct prop for WebScanner
         />
       )}
 
       {showSmartContext && (
         <SmartContext
-          open={showSmartContext}
-          onOpenChange={setShowSmartContext}
-          onSubmit={handleSmartContext}
+          onSmartContext={handleSmartContext} // Use correct prop for SmartContext
         />
       )}
 
