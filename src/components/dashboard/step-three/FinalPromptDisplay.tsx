@@ -17,6 +17,7 @@ interface FinalPromptDisplayProps {
   masterCommand: string;
   handleOpenEditPrompt: () => void;
   recordVariableSelection?: (variableId: string, selectedText: string) => void;
+  variableSelections?: Map<string, string>; // Add this prop to receive variable selections
   isEditing: boolean;
   setIsEditing: (setIsEditing: boolean) => void;
   editablePrompt: string;
@@ -41,6 +42,7 @@ export const FinalPromptDisplay = ({
   masterCommand,
   handleOpenEditPrompt,
   recordVariableSelection,
+  variableSelections = new Map(), // Provide default empty Map
   isEditing,
   setIsEditing,
   editablePrompt,
@@ -461,9 +463,9 @@ export const FinalPromptDisplay = ({
     let originalText = undefined;
     
     // If we have the original selection stored via recordVariableSelection, use that
-    if (typeof recordVariableSelection === 'function') {
+    if (typeof recordVariableSelection === 'function' && variableSelections) {
       // Check if we have this selection in our variableSelections map (via the hook)
-      originalText = variableSelections?.get(variableId);
+      originalText = variableSelections.get(variableId);
     }
     
     // If we don't have the original selection from recordVariableSelection,

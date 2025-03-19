@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { FinalPromptDisplay } from "@/components/dashboard/step-three/FinalPromptDisplay";
 import { MasterCommandSection } from "@/components/dashboard/step-three/MasterCommandSection";
@@ -9,6 +10,7 @@ import { Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { useResponsive } from "@/hooks/useResponsive";
 import { replaceVariableInPrompt } from "@/utils/promptUtils";
+import { usePromptOperations } from "@/hooks/usePromptOperations";
 
 interface StepThreeContentProps {
   masterCommand: string;
@@ -75,6 +77,19 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   
+  // Create a new promptOperations instance to access variableSelections
+  const promptOperations = usePromptOperations(
+    variables,
+    setVariables,
+    finalPrompt,
+    setFinalPrompt,
+    showJson,
+    setEditingPrompt,
+    setShowEditPromptSheet,
+    masterCommand,
+    editingPrompt
+  );
+  
   const handleCopy = () => {
     copy(finalPrompt);
     setCopied(true);
@@ -94,36 +109,40 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
   
   // Enhanced delete variable function that replaces the variable with its original text
   const handleDeleteVariable = (variableId: string) => {
-    // Find the variable to delete
-    const variableToDelete = variables.find(v => v.id === variableId);
-    
-    if (variableToDelete) {
-      // Store the current text value of the variable
-      const originalText = variableToDelete.value || "";
+    if (promptOperations.removeVariable) {
+      promptOperations.removeVariable(variableId);
+    } else {
+      // Fallback implementation if removeVariable is unavailable
+      const variableToDelete = variables.find(v => v.id === variableId);
       
-      // First mark it as not relevant
-      setVariables(prev => prev.map(v => 
-        v.id === variableId ? {...v, isRelevant: false} : v
-      ));
-      
-      // Replace all instances of the variable in the prompt with its current text value
-      const updatedPrompt = replaceVariableInPrompt(
-        finalPrompt,
-        `{{VAR::${variableId}}}`, // Placeholder format
-        originalText, // Replace with original text (not in a variable box)
-        variableToDelete.name
-      );
-      
-      // Update the prompt
-      setFinalPrompt(updatedPrompt);
-      
-      // Trigger re-render to reflect changes
-      setRenderTrigger(prev => prev + 1);
-      
-      toast({
-        title: "Variable removed",
-        description: "The variable has been removed and replaced with its text value."
-      });
+      if (variableToDelete) {
+        // Store the current text value of the variable
+        const originalText = variableToDelete.value || "";
+        
+        // First mark it as not relevant
+        setVariables(prev => prev.map(v => 
+          v.id === variableId ? {...v, isRelevant: false} : v
+        ));
+        
+        // Replace all instances of the variable in the prompt with its current text value
+        const updatedPrompt = replaceVariableInPrompt(
+          finalPrompt,
+          `{{VAR::${variableId}}}`, // Placeholder format
+          originalText, // Replace with original text (not in a variable box)
+          variableToDelete.name
+        );
+        
+        // Update the prompt
+        setFinalPrompt(updatedPrompt);
+        
+        // Trigger re-render to reflect changes
+        setRenderTrigger(prev => prev + 1);
+        
+        toast({
+          title: "Variable removed",
+          description: "The variable has been removed and replaced with its text value."
+        });
+      }
     }
   };
   
@@ -152,6 +171,8 @@ export const StepThreeContent: React.FC<StepThreeContentProps> = ({
         showJson={showJson}
         masterCommand={masterCommand}
         handleOpenEditPrompt={handleOpenEditPrompt}
+        recordVariableSelection={promptOperations.recordVariableSelection}
+        variableSelections={promptOperations.variableSelections}
         isEditing={isEditing}
         setIsEditing={setIsEditing}
         editablePrompt={editingPrompt}
