@@ -569,7 +569,7 @@ export function FinalPromptDisplay({
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       {/* FIX #1: Pass variableToDelete to removeVariable as it expects a string argument */}
-                      <AlertDialogAction onClick={() => removeVariable(variableToDelete)}>
+                      <AlertDialogAction onClick={() => removeVariable(variableToDelete as string)}>
                         Continue
                       </AlertDialogAction>
                     </AlertDialogFooter>
