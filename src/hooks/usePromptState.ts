@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
+import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { defaultVariables, mockQuestions, sampleFinalPrompt } from "@/components/dashboard/constants";
 import { supabase } from "@/integrations/supabase/client";
@@ -202,7 +201,7 @@ export const usePromptState = (user: any) => {
       }
       
       // Generate tags for the prompt
-      let tags = null;
+      let generatedTags: PromptTag[] = [];
       try {
         setIsLoadingPrompts(true);
         toast({
@@ -219,8 +218,13 @@ export const usePromptState = (user: any) => {
         if (tagsError) {
           console.error("Error generating tags:", tagsError);
         } else if (tagsData && tagsData.tags) {
-          tags = tagsData.tags;
-          console.log("Generated tags:", tags);
+          // Ensure tags match the expected format
+          if (Array.isArray(tagsData.tags)) {
+            generatedTags = tagsData.tags as PromptTag[];
+            console.log("Generated tags:", generatedTags);
+          } else {
+            console.error("Tags are not in the expected format:", tagsData.tags);
+          }
         }
       } catch (tagsError) {
         console.error("Error invoking tags function:", tagsError);
@@ -239,7 +243,7 @@ export const usePromptState = (user: any) => {
         variables: variablesToJson(relevantVariables),
         current_step: currentStep,
         updated_at: new Date().toISOString(),
-        tags: tags // Add the generated tags
+        tags: generatedTags // Now typed correctly
       };
 
       const { data, error } = await supabase
@@ -261,7 +265,7 @@ export const usePromptState = (user: any) => {
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
           variables: jsonToVariables(data[0].variables as Json),
-          tags: data[0].tags
+          tags: data[0].tags as PromptTag[] // Cast to the correct type
         };
         
         if (jsonStructure) {

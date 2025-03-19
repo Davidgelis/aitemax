@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 
 export interface AIModel {
@@ -43,6 +44,12 @@ export interface Toggle {
   prompt: string;
 }
 
+// Define a proper type for the tag structure
+export interface PromptTag {
+  category: string;
+  subcategory: string;
+}
+
 export interface SavedPrompt {
   id?: string;
   title: string;
@@ -53,7 +60,7 @@ export interface SavedPrompt {
   secondaryToggle: string | null;
   variables: Variable[];
   jsonStructure?: PromptJsonStructure;
-  tags?: Array<{category: string, subcategory: string}>;
+  tags?: PromptTag[]; // Update this to use the proper type
 }
 
 export interface PromptJsonStructure {
