@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -49,8 +50,7 @@ export const StepController = ({
     fetchSavedPrompts, handleNewPrompt, handleSavePrompt,
     handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt,
     loadSavedPrompt, isViewingSavedPrompt, setIsViewingSavedPrompt,
-    saveDraft,
-    isPrivate, setIsPrivate
+    saveDraft
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
@@ -163,8 +163,7 @@ export const StepController = ({
       hasWebsiteContext: !!websiteContext,
       hasSmartContext: !!smartContext,
       websiteUrl: websiteContext?.url || "none",
-      websiteInstructions: websiteContext?.instructions || "none",
-      isPrivate
+      websiteInstructions: websiteContext?.instructions || "none"
     });
     
     handleAnalyze(uploadedImages, websiteContext, smartContext);
@@ -301,8 +300,6 @@ export const StepController = ({
             onImagesChange={handleImagesChange}
             onWebsiteScan={handleWebsiteScan}
             onSmartContext={handleSmartContext}
-            isPrivate={isPrivate}
-            setIsPrivate={setIsPrivate}
           />
         );
 
@@ -339,7 +336,7 @@ export const StepController = ({
             showJson={showJson}
             setShowJson={setShowJson}
             finalPrompt={finalPrompt}
-            setFinalPrompt={setFinalPrompt}
+            setFinalPrompt={setFinalPrompt} // Pass the setFinalPrompt function explicitly
             variables={variables}
             setVariables={setVariables}
             handleVariableValueChange={handleVariableValueChange}

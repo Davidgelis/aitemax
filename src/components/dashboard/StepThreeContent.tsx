@@ -12,7 +12,6 @@ import {
   convertEditedContentToPlaceholders, 
   convertPlaceholdersToSpans 
 } from "@/utils/promptUtils";
-import { UploadedImageList } from "./step-three/UploadedImageList";
 
 interface StepThreeContentProps {
   masterCommand: string;
@@ -74,8 +73,6 @@ export const StepThreeContent = ({
   const [renderTrigger, setRenderTrigger] = useState(0);
   const [isRefreshingJson, setIsRefreshingJson] = useState(false);
   const [lastSavedPrompt, setLastSavedPrompt] = useState(finalPrompt);
-  const [uploadedImages, setUploadedImages] = useState<any[]>([]);
-  const [tempVariableToDelete, setTempVariableToDelete] = useState<string | null>(null);
   
   // Get the promptOperations
   const promptOperations = usePromptOperations(
@@ -164,7 +161,6 @@ export const StepThreeContent = ({
   
   const handleDeleteVariable = useCallback((variableId: string) => {
     if (promptOperations.removeVariable) {
-      setTempVariableToDelete(variableId);
       promptOperations.removeVariable(variableId);
       toast({
         title: "Variable deleted",
@@ -186,21 +182,8 @@ export const StepThreeContent = ({
     // Force re-render of the JSON view with latest content
     setTimeout(() => {
       setRenderTrigger(prev => prev + 1);
-      setIsRefreshingJson(false);
     }, 100);
   }, [toast, isRefreshingJson]);
-
-  // Show the uploaded images if there are any
-  const renderUploadedImages = () => {
-    if (uploadedImages && uploadedImages.length > 0) {
-      return (
-        <UploadedImageList images={uploadedImages} onRemove={(id) => {
-          setUploadedImages(uploadedImages.filter(img => img.id !== id));
-        }} />
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
@@ -211,34 +194,28 @@ export const StepThreeContent = ({
         isRefreshing={isRefreshingJson}
       />
 
-      {/* Pass proper props to FinalPromptDisplay */}
-      <div className="flex-1 overflow-auto">
-        <FinalPromptDisplay 
-          finalPrompt={finalPrompt}
-          updateFinalPrompt={setFinalPrompt}
-          getProcessedPrompt={getProcessedPromptFunction}
-          variables={safeVariables}
-          setVariables={setVariables}
-          showJson={showJson}
-          masterCommand={masterCommand}
-          handleOpenEditPrompt={externalHandleOpenEditPrompt || (() => {})}
-          recordVariableSelection={recordVariableSelection}
-          isEditing={isEditing}
-          setIsEditing={setIsEditing}
-          editablePrompt={editablePrompt}
-          setEditablePrompt={setEditablePrompt}
-          handleSaveEditedPrompt={handleSaveInlineEdit}
-          renderTrigger={renderTrigger}
-          setRenderTrigger={setRenderTrigger}
-          isRefreshing={isRefreshingJson}
-          setIsRefreshing={setIsRefreshingJson}
-          lastSavedPrompt={lastSavedPrompt}
-          setLastSavedPrompt={setLastSavedPrompt}
-          tempVariableToDelete={tempVariableToDelete}
-        />
-      </div>
-
-      {renderUploadedImages()}
+      <FinalPromptDisplay 
+        finalPrompt={finalPrompt || ""}
+        updateFinalPrompt={setFinalPrompt}
+        getProcessedPrompt={getProcessedPromptFunction}
+        variables={safeVariables}
+        setVariables={setVariables}
+        showJson={showJson}
+        masterCommand={masterCommand || ""}
+        handleOpenEditPrompt={externalHandleOpenEditPrompt}
+        recordVariableSelection={recordVariableSelection}
+        isEditing={isEditing}
+        setIsEditing={setIsEditing}
+        editablePrompt={editablePrompt}
+        setEditablePrompt={setEditablePrompt}
+        handleSaveEditedPrompt={handleSaveInlineEdit}
+        renderTrigger={renderTrigger}
+        setRenderTrigger={setRenderTrigger}
+        isRefreshing={isRefreshingJson}
+        setIsRefreshing={setIsRefreshingJson}
+        lastSavedPrompt={lastSavedPrompt}
+        setLastSavedPrompt={setLastSavedPrompt}
+      />
 
       <VariablesSection 
         variables={safeVariables}

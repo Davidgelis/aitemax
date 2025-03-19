@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -64,7 +65,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (promptState.savedPrompts.length > 0) {
       console.log(`User has ${promptState.savedPrompts.length} saved prompts`, 
-        promptState.savedPrompts.map(p => ({id: p.id, title: p.title, isPrivate: p.isPrivate})));
+        promptState.savedPrompts.map(p => ({id: p.id, title: p.title})));
     }
     
     if (promptState.drafts.length > 0) {

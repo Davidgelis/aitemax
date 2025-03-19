@@ -83,14 +83,13 @@ export const useQuestionsAndVariables = (
 
   const addVariable = useCallback(() => {
     const newVariableId = `v-${Date.now()}`;
-    setVariables((current) => {
+    setVariables((current: Variable[]) => {
       const newCode = `VAR_${current.length + 1}`;
       return [
         ...current,
         {
           id: newVariableId,
           name: '',
-          description: '', // Add required description field
           value: '',
           isRelevant: null,
           category: 'Custom',
@@ -100,12 +99,14 @@ export const useQuestionsAndVariables = (
     });
   }, [setVariables]);
 
-  // FIX: Updated to expect a variableId parameter 
-  const removeVariable = useCallback((variableId: string) => {
-    console.log(`Removing variable ${variableId}`);
-    setVariables(variables.filter((v) => v.id !== variableId));
+  const removeVariable = useCallback((id: string = variableToDelete || "") => {
+    const varId = id || variableToDelete;
+    if (!varId) return;
     
-    if (variableId === variableToDelete) {
+    console.log(`Removing variable ${varId}`);
+    setVariables(variables.filter((v) => v.id !== varId));
+    
+    if (id === variableToDelete) {
       setVariableToDelete(null);
     }
   }, [variables, variableToDelete, setVariables, setVariableToDelete]);
@@ -114,8 +115,7 @@ export const useQuestionsAndVariables = (
     return true;
   };
 
-  // FIX: Updated to expect an object parameter (even empty)
-  const prepareDataForEnhancement = (options: any = {}) => {
+  const prepareDataForEnhancement = () => {
     // Mark all unanswered or unreviewed questions as not relevant
     const updatedQuestions = questions.map(q => {
       if (q.isRelevant === null || (q.isRelevant === true && (!q.answer || q.answer.trim() === ""))) {

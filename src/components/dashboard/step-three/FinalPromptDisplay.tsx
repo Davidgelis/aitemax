@@ -1,232 +1,34 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Copy, Edit, Check, Download, RefreshCw, Plus, Trash, MoreVertical, CalendarIcon } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast"
-import { usePromptState } from "@/hooks/usePromptState";
-import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Slider } from "@/components/ui/slider"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar"
-import { cn } from "@/lib/utils"
-import { format } from "date-fns"
-import {
-  PopoverAnchor,
-} from "@radix-ui/react-popover"
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer"
-import { Switch } from "@/components/ui/switch"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { useForm } from "react-hook-form"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { useTheme } from 'next-themes'
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { PromptJsonStructure, Variable } from "../types";
-import { jsonToVariables } from "../types";
-import { v4 as uuidv4 } from 'uuid';
-import { useCompletion } from 'ai/react';
-import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
-
-interface DataTableProps {
-  data: any[]
-}
-
-export function DataTable({
-  data,
-}: DataTableProps) {
-  return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[100px]">Invoice</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Method</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data?.map((row) => (
-            <TableRow key={row.id}>
-              <TableCell className="font-medium">{row.invoice}</TableCell>
-              <TableCell>{row.status}</TableCell>
-              <TableCell>{row.method}</TableCell>
-              <TableCell className="text-right">{row.amount}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  )
-}
-
-interface DashboardHeaderProps {
-  title: string;
-  description?: string;
-  children?: React.ReactNode;
-}
-
-export function DashboardHeader({
-  title,
-  description,
-  children,
-}: DashboardHeaderProps) {
-  return (
-    <div className="space-y-2">
-      <h2 className="text-3xl font-bold tracking-tight">{title}</h2>
-      {description && <p className="text-muted-foreground">{description}</p>}
-      {children}
-    </div>
-  );
-}
-
-function PromptVariable({ variable, handleVariableChange, handleVariableRelevance }: any) {
-  return (
-    <div key={variable.id} className="grid gap-2 py-2">
-      <div className="grid grid-cols-[100px_2fr_1fr] items-center gap-4">
-        <Label htmlFor={variable.id}>{variable.name || 'New Variable'}</Label>
-        <Input
-          id={variable.id}
-          value={variable.value}
-          onChange={(e) => handleVariableChange(variable.id, 'value', e.target.value)}
-          className="h-8"
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleVariableRelevance(variable.id, !variable.isRelevant)}
-        >
-          {variable.isRelevant === true ? 'Relevant' : 'Irrelevant'}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
+import { Edit, PlusCircle, Check, X, Lasso } from "lucide-react";
+import { Variable, PromptJsonStructure } from "../types";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { v4 as uuidv4 } from "uuid";
+import { replaceVariableInPrompt, convertEditedContentToPlaceholders, convertPlaceholdersToEditableFormat, convertPlaceholdersToSpans, toVariablePlaceholder, stripHtml } from "@/utils/promptUtils";
 interface FinalPromptDisplayProps {
   finalPrompt: string;
-  updateFinalPrompt: (prompt: string) => void;
+  updateFinalPrompt: (newPrompt: string) => void;
   getProcessedPrompt: () => string;
   variables: Variable[];
   setVariables: React.Dispatch<React.SetStateAction<Variable[]>>;
   showJson: boolean;
   masterCommand: string;
   handleOpenEditPrompt: () => void;
-  recordVariableSelection: (variableId: string, selectedText: string) => void;
+  recordVariableSelection?: (variableId: string, selectedText: string) => void;
   isEditing: boolean;
-  setIsEditing: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsEditing: (setIsEditing: boolean) => void;
   editablePrompt: string;
-  setEditablePrompt: React.Dispatch<React.SetStateAction<string>>;
+  setEditablePrompt: (prompt: string) => void;
   handleSaveEditedPrompt: () => void;
-  renderTrigger: number;
-  setRenderTrigger: React.Dispatch<React.SetStateAction<number>>;
-  isRefreshing: boolean;
-  setIsRefreshing: React.Dispatch<React.SetStateAction<boolean>>;
-  lastSavedPrompt: string;
-  setLastSavedPrompt: React.Dispatch<React.SetStateAction<string>>;
-  tempVariableToDelete?: string | null;
+  renderTrigger?: number;
+  setRenderTrigger: (callback: (prev: number) => number) => void;
+  isRefreshing?: boolean;
+  setIsRefreshing?: (isRefreshing: boolean) => void;
+  lastSavedPrompt?: string;
+  setLastSavedPrompt?: (prompt: string) => void;
 }
-
-export function FinalPromptDisplay({
+export const FinalPromptDisplay = ({
   finalPrompt,
   updateFinalPrompt,
   getProcessedPrompt,
@@ -241,519 +43,570 @@ export function FinalPromptDisplay({
   editablePrompt,
   setEditablePrompt,
   handleSaveEditedPrompt,
-  renderTrigger,
+  renderTrigger = 0,
   setRenderTrigger,
-  isRefreshing,
+  isRefreshing = false,
   setIsRefreshing,
-  lastSavedPrompt,
-  setLastSavedPrompt,
-  tempVariableToDelete
-}: FinalPromptDisplayProps) {
-  
-  const {
-    promptText,
-    setPromptText,
-    questions,
-    setQuestions,
-    variables: promptStateVariables,
-    setVariables: setPromptStateVariables,
-    finalPrompt: promptStateFinalPrompt,
-    setFinalPrompt: setPromptStateFinalPrompt,
-    masterCommand: promptStateMasterCommand,
-    setMasterCommand: setPromptStateMasterCommand,
-    selectedPrimary,
-    setSelectedPrimary,
-    selectedSecondary,
-    setSelectedSecondary,
-    showEditPromptSheet,
-    setShowEditPromptSheet,
-    handleSavePrompt,
-    loadSavedPrompt,
-    isViewingSavedPrompt,
-    setIsViewingSavedPrompt,
-    promptJsonStructure,
-    setPromptJsonStructure,
-    isPrivate,
-    setIsPrivate
-  } = usePromptState();
-  const { toast } = useToast();
-  const promptRef = useRef<HTMLDivElement>(null);
-  const [isCopied, setIsCopied] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [showLocalJson, setShowLocalJson] = useState(false);
+  lastSavedPrompt = "",
+  setLastSavedPrompt
+}: FinalPromptDisplayProps) => {
+  const [processedPrompt, setProcessedPrompt] = useState("");
+  const [promptJson, setPromptJson] = useState<PromptJsonStructure | null>(null);
+  const [isLoadingJson, setIsLoadingJson] = useState(false);
+  const [jsonGenerated, setJsonGenerated] = useState(false);
+  const [isCreatingVariable, setIsCreatingVariable] = useState(false);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [multiSelections, setMultiSelections] = useState<string[]>([]);
+  const promptContainerRef = useRef<HTMLDivElement>(null);
+  const editableContentRef = useRef<HTMLDivElement>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
-  const [isGeneratingJson, setIsGeneratingJson] = useState(false);
-  const [variableToDelete, setVariableToDelete] = useState<string | null>(tempVariableToDelete || null);
-  const [uploadedImages, setUploadedImages] = useState<any[]>([]);
-  
-  // Using window.location for navigation instead of next/router
-  const navigate = (path: string) => {
-    window.location.href = path;
-  };
-
-  // Create a mock user object to avoid clerk errors
-  const user = { id: 'anonymous-user' };
-
+  const [currentPromptHash, setCurrentPromptHash] = useState<string>("");
   const {
-    handleQuestionAnswer,
-    handleQuestionRelevance,
-    handleVariableChange,
-    handleVariableRelevance,
-    addVariable,
-    removeVariable,
-    canProceedToStep3,
-    enhancePromptWithGPT,
-    isEnhancing,
-    prepareDataForEnhancement
-  } = useQuestionsAndVariables(
-    questions,
-    setQuestions,
-    promptStateVariables,
-    setPromptStateVariables,
-    variableToDelete,
-    setVariableToDelete,
-    user
-  );
-
-  const { theme } = useTheme();
-  const [isMounted, setIsMounted] = React.useState(false);
-
+    toast
+  } = useToast();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [promptId, setPromptId] = useState<string | null>(null);
   useEffect(() => {
-    setIsMounted(true);
+    const getUserId = async () => {
+      const {
+        data
+      } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        setUserId(data.session.user.id);
+      }
+    };
+    getUserId();
   }, []);
 
-  const { complete, completion, setInput, stop, isLoading: isAICompleting } = useCompletion({
-    api: '/api/completion',
-    onError: (error) => {
-      console.error('Completion error:', error);
-      toast({
-        title: "AI Completion Error",
-        description: "There was an error generating the completion. Please try again.",
-        variant: "destructive",
+  // Filter to only get relevant variables
+  const relevantVariables = Array.isArray(variables) ? variables.filter(v => v && typeof v === 'object' && v?.isRelevant === true) : [];
+
+  // Generate a clean text representation for the API
+  const generateCleanTextForApi = useCallback(() => {
+    try {
+      // Get the processed HTML that includes all variable spans
+      const processedHtml = getProcessedPrompt();
+
+      // Create a temporary element to parse the HTML
+      const temp = document.createElement('div');
+      temp.innerHTML = processedHtml;
+
+      // Replace all variable spans with their text content
+      const variableSpans = temp.querySelectorAll('[data-variable-id]');
+      variableSpans.forEach(span => {
+        const variableId = span.getAttribute('data-variable-id');
+        const variable = relevantVariables.find(v => v.id === variableId);
+        if (variable) {
+          span.textContent = variable.value || '';
+        }
       });
-    },
-  });
 
-  const handleEditPrompt = () => {
-    setShowEditPromptSheet(true);
-  };
+      // Get the text content (strips all HTML)
+      let cleanText = temp.textContent || '';
 
-  const handlePromptTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setPromptText(e.target.value);
-  };
+      // Normalize whitespace
+      cleanText = cleanText.replace(/\s+/g, ' ').trim();
 
-  const copyToClipboard = async () => {
-    if (promptRef.current) {
-      try {
-        await navigator.clipboard.writeText(promptRef.current.innerText);
-        setIsCopied(true);
-        toast({
-          title: "Copied!",
-          description: "Prompt copied to clipboard.",
-        });
-        setTimeout(() => setIsCopied(false), 3000); // Reset after 3 seconds
-      } catch (err) {
-        console.error("Failed to copy text: ", err);
-        toast({
-          title: "Error",
-          description: "Failed to copy prompt to clipboard.",
-          variant: "destructive",
-        });
-      }
+      // Generate a simple hash to track if content has changed
+      const simpleHash = btoa(cleanText.substring(0, 50) + cleanText.length);
+      setCurrentPromptHash(simpleHash);
+      console.log("Generated clean text for API, length:", cleanText.length);
+      return cleanText;
+    } catch (error) {
+      console.error("Error generating clean text for API:", error);
+      // Fallback: strip HTML directly from the processed prompt
+      return stripHtml(getProcessedPrompt());
     }
-  };
+  }, [getProcessedPrompt, relevantVariables]);
 
-  const downloadPrompt = () => {
-    setIsDownloading(true);
-    const element = document.createElement("a");
-    const file = new Blob([finalPrompt], { type: 'text/plain' });
-    element.href = URL.createObjectURL(file);
-    element.download = "prompt.txt";
-    document.body.appendChild(element); // Required for this to work in FireFox
-    element.click();
-    document.body.removeChild(element);
-    toast({
-      title: "Downloaded!",
-      description: "Prompt downloaded as prompt.txt.",
-    });
-    setIsDownloading(false);
-  }
-
-  // FIX #2: Changed to match expected function signature (no arguments)
-  const handleTogglePrimary = (value: string) => {
-    if (selectedPrimary === value) {
-      setSelectedPrimary(null);
-    } else {
-      setSelectedPrimary(value);
-    }
-  };
-
-  // FIX #2: Changed to match expected function signature (no arguments)
-  const handleToggleSecondary = (value: string) => {
-    if (selectedSecondary === value) {
-      setSelectedSecondary(null);
-    } else {
-      setSelectedSecondary(value);
-    }
-  };
-
-  const handleEnhancePrompt = async () => {
-    if (!promptText || promptText.trim() === "") {
-      toast({
-        title: "Error",
-        description: "Please enter a prompt to enhance.",
-        variant: "destructive",
-      });
+  // Modified convertPromptToJson to handle initial generation vs. refresh differently
+  const convertPromptToJson = useCallback(async (forceRefresh = false) => {
+    if (!finalPrompt || finalPrompt.trim() === "") {
+      setJsonError("No prompt text to convert");
       return;
     }
 
-    // Fix: Pass an empty object to prepareDataForEnhancement
-    const { updatedQuestions, updatedVariables } = prepareDataForEnhancement({});
-    setQuestions(updatedQuestions);
-    setPromptStateVariables(updatedVariables);
-
-    // Call the enhancePromptWithGPT function
-    enhancePromptWithGPT(promptText, selectedPrimary, selectedSecondary, setPromptStateFinalPrompt);
-  };
-
-  const handleGenerateJson = async () => {
-    if (!finalPrompt) {
-      toast({
-        title: "Error",
-        description: "Please enter a prompt to convert to JSON.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsGeneratingJson(true);
+    // Clear any existing error
     setJsonError(null);
 
+    // Set loading state
+    setIsLoadingJson(true);
     try {
-      const response = await fetch('/api/prompt-to-json', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt: finalPrompt, masterCommand, userId: user?.id }),
+      // Generate clean text for the API
+      const cleanTextForApi = generateCleanTextForApi();
+      if (!cleanTextForApi || cleanTextForApi.trim() === "") {
+        throw new Error("Generated clean text is empty");
+      }
+      console.log("Sending to API:", {
+        promptText: cleanTextForApi.substring(0, 100) + "...",
+        length: cleanTextForApi.length
+      });
+      const requestBody: {
+        prompt: string;
+        masterCommand: string;
+        userId: string | null;
+        promptId: string | null;
+        forceRefresh: boolean;
+        existingStructure?: PromptJsonStructure;
+      } = {
+        prompt: cleanTextForApi,
+        masterCommand,
+        userId,
+        promptId,
+        forceRefresh // Only force refresh when explicitly requested
+      };
+
+      // If we're refreshing an existing JSON and have a previous structure, include it
+      if (forceRefresh && promptJson) {
+        requestBody.existingStructure = promptJson;
+      }
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('prompt-to-json', {
+        body: requestBody
+      });
+      if (error) {
+        throw new Error(`Error calling prompt-to-json: ${error.message}`);
+      }
+      if (data && data.jsonStructure) {
+        // Remove timestamp if it exists
+        if (data.jsonStructure.timestamp) {
+          delete data.jsonStructure.timestamp;
+        }
+        setPromptJson(data.jsonStructure);
+        setJsonGenerated(true);
+
+        // Handle any generation errors in the response
+        if (data.jsonStructure.generationError) {
+          setJsonError(data.jsonStructure.generationError);
+          toast({
+            title: "JSON Generation Notice",
+            description: data.jsonStructure.generationError,
+            variant: "destructive"
+          });
+        } else {
+          setJsonError(null);
+          if (forceRefresh) {
+            toast({
+              title: "JSON Updated",
+              description: "JSON structure has been refreshed with your changes"
+            });
+          } else {
+            toast({
+              title: "JSON Generated",
+              description: "JSON structure has been created from your prompt"
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error converting prompt to JSON:", error);
+      setJsonError(error instanceof Error ? error.message : "Unknown error");
+      toast({
+        title: "Error generating JSON",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setPromptJsonStructure(data.jsonStructure);
-        toast({
-          title: "Success",
-          description: "Prompt converted to JSON successfully!",
-        });
-      } else {
-        setJsonError(data.error || 'Failed to convert prompt to JSON.');
-        toast({
-          title: "Error",
-          description: data.error || 'Failed to convert prompt to JSON.',
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error("Error converting prompt to JSON:", error);
-      setJsonError(error.message || 'An unexpected error occurred.');
-      toast({
+      // Set fallback JSON
+      setPromptJson({
         title: "Error",
-        description: error.message || 'An unexpected error occurred.',
-        variant: "destructive",
+        summary: "Failed to process prompt",
+        sections: [{
+          title: "Content",
+          content: "Could not generate JSON structure"
+        }],
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     } finally {
-      setIsGeneratingJson(false);
+      setIsLoadingJson(false);
+      if (setIsRefreshing) {
+        setIsRefreshing(false);
+      }
+
+      // Force a re-render after JSON is updated
+      setRenderTrigger(prev => prev + 1);
+    }
+  }, [finalPrompt, masterCommand, toast, userId, promptId, generateCleanTextForApi, setIsRefreshing, setRenderTrigger, promptJson]);
+
+  // Handle JSON view toggling and initial generation
+  useEffect(() => {
+    if (showJson && !jsonGenerated && !isLoadingJson) {
+      // Only generate from scratch on first toggle
+      convertPromptToJson(false);
+    }
+  }, [showJson, jsonGenerated, isLoadingJson, convertPromptToJson]);
+
+  // Handle render trigger changes for JSON refreshing
+  useEffect(() => {
+    if (renderTrigger > 0 && showJson && isRefreshing) {
+      // Use forceRefresh:true to update existing structure
+      convertPromptToJson(true);
+    }
+  }, [renderTrigger, showJson, isRefreshing, convertPromptToJson]);
+
+  // Update processed prompt when props change
+  useEffect(() => {
+    try {
+      if (typeof getProcessedPrompt === 'function') {
+        const result = getProcessedPrompt();
+        setProcessedPrompt(result || "");
+      }
+    } catch (error) {
+      console.error("Error processing prompt:", error);
+      setProcessedPrompt(finalPrompt || "");
+    }
+  }, [getProcessedPrompt, finalPrompt, variables, renderTrigger]);
+
+  // Initialize edit mode
+  useEffect(() => {
+    if (isEditing && editablePrompt === "") {
+      const processedPrompt = convertPlaceholdersToEditableFormat(finalPrompt, relevantVariables);
+      setEditablePrompt(processedPrompt);
+    }
+  }, [isEditing, finalPrompt, relevantVariables, editablePrompt, setEditablePrompt]);
+
+  // Keep track of prompt changes to force JSON refresh
+  useEffect(() => {
+    // When finalPrompt changes and JSON view is active, mark JSON as needing refresh
+    if (showJson && finalPrompt !== lastSavedPrompt) {
+      if (jsonGenerated) {
+        // If JSON was already generated, don't regenerate automatically
+        // but allow manual refresh to update it
+      } else {
+        setJsonGenerated(false); // Force generation only if not already generated
+      }
+      if (setLastSavedPrompt) {
+        setLastSavedPrompt(finalPrompt);
+      }
+    }
+  }, [finalPrompt, showJson, lastSavedPrompt, setLastSavedPrompt, jsonGenerated]);
+  const handleMouseUp = () => {
+    if (!isCreatingVariable || isEditing) return;
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || !selection.toString().trim()) return;
+    const range = selection.getRangeAt(0);
+    const container = promptContainerRef.current;
+    if (!container || !container.contains(range.commonAncestorContainer)) return;
+
+    // Get the selected text
+    const selText = selection.toString().trim();
+    if (!selText) return;
+
+    // Always use multi-selection mode
+    // Add to multi-selections
+    setMultiSelections(prev => [...prev, selText]);
+
+    // Mark the selection with a temporary span
+    const tempSpan = document.createElement('span');
+    tempSpan.setAttribute('class', 'multi-selection-marker');
+    tempSpan.style.backgroundColor = 'rgba(51, 254, 166, 0.3)';
+    try {
+      range.surroundContents(tempSpan);
+
+      // Show a toast to indicate the selection was added
+      toast({
+        title: "Selection added",
+        description: `Added "${selText.substring(0, 20)}${selText.length > 20 ? '...' : ''}" to multi-selection`
+      });
+    } catch (e) {
+      console.error("Error highlighting multi-selection:", e);
+      toast({
+        title: "Selection error",
+        description: "Could not select text. Try selecting a simpler text segment.",
+        variant: "destructive"
+      });
+    }
+
+    // Clear the selection
+    selection.removeAllRanges();
+  };
+  const createMultiSelectionVariable = () => {
+    if (multiSelections.length === 0) {
+      toast({
+        title: "No selections",
+        description: "Please select at least one text segment first",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (relevantVariables.length >= 15) {
+      toast({
+        title: "Variable limit reached",
+        description: "You can create up to 15 variables",
+        variant: "destructive"
+      });
+      cancelVariableCreation();
+      return;
+    }
+
+    // Join all selections with a space for the variable value
+    const combinedText = multiSelections.join(" ");
+
+    // Use a simple numeric name based on the number of existing variables
+    const variableName = `${relevantVariables.length + 1}`;
+    const variableId = uuidv4();
+    const newVariable: Variable = {
+      id: variableId,
+      name: variableName,
+      value: combinedText,
+      // Set the initial value to the combined selections
+      isRelevant: true,
+      category: 'Multi-Select'
+    };
+
+    // Record the original selection (for later replacement in the prompt)
+    if (typeof recordVariableSelection === 'function') {
+      recordVariableSelection(variableId, combinedText);
+    }
+
+    // Add the new variable to state
+    setVariables(prev => [...prev, newVariable]);
+
+    // Create a copy of the prompt to work with
+    let updatedPrompt = finalPrompt;
+
+    // Replace each selection with a standardized placeholder
+    multiSelections.forEach(selection => {
+      const varPlaceholder = toVariablePlaceholder(variableId);
+      updatedPrompt = replaceVariableInPrompt(updatedPrompt, selection, varPlaceholder, variableName);
+    });
+
+    // Update the prompt
+    updateFinalPrompt(updatedPrompt);
+    toast({
+      title: "Variable created",
+      description: `Created variable: ${variableName} from ${multiSelections.length} selections`
+    });
+
+    // Reset multi-selection mode
+    exitMultiSelectionMode();
+    cancelVariableCreation();
+
+    // Force re-render
+    setRenderTrigger(prev => prev + 1);
+
+    // Reset JSON generation to force refresh if needed
+    if (showJson) {
+      setJsonGenerated(false);
+    }
+  };
+  const exitMultiSelectionMode = () => {
+    // Remove all temporary multi-selection markers
+    const markers = document.querySelectorAll('.multi-selection-marker');
+    markers.forEach(marker => {
+      if (marker instanceof HTMLElement) {
+        marker.outerHTML = marker.textContent || "";
+      }
+    });
+    setMultiSelections([]);
+    setIsMultiSelectMode(false);
+  };
+  const cancelVariableCreation = () => {
+    setIsCreatingVariable(false);
+    setMultiSelections([]);
+
+    // Also exit multi-selection mode if active
+    if (isMultiSelectMode) {
+      exitMultiSelectionMode();
+    }
+    window.getSelection()?.removeAllRanges();
+  };
+  const toggleVariableCreation = () => {
+    if (isEditing) return; // Don't allow variable creation while editing
+
+    if (isCreatingVariable) {
+      cancelVariableCreation();
+    } else {
+      setIsCreatingVariable(true);
+      setIsMultiSelectMode(true);
+      setMultiSelections([]);
+      toast({
+        title: "Variable creation mode",
+        description: "Select text segments to create a variable"
+      });
+    }
+  };
+  const removeVariable = (variableId: string) => {
+    // Find the variable we're removing
+    const variable = variables.find(v => v.id === variableId);
+    if (!variable) return;
+
+    // Get the current value of the variable (to replace placeholder)
+    const currentValue = variable.value || "";
+
+    // Mark variable as not relevant
+    setVariables(prev => prev.map(v => v.id === variableId ? {
+      ...v,
+      isRelevant: false
+    } : v));
+
+    // Replace the placeholder with the actual text in the finalPrompt
+    const varPlaceholder = toVariablePlaceholder(variableId);
+    const updatedPrompt = finalPrompt.replace(new RegExp(varPlaceholder, 'g'), currentValue);
+    updateFinalPrompt(updatedPrompt);
+    toast({
+      title: "Variable removed",
+      description: "Variable has been removed"
+    });
+
+    // Force re-render and reset JSON if needed
+    setRenderTrigger(prev => prev + 1);
+    if (showJson) {
+      setJsonGenerated(false);
+    }
+  };
+  const renderVariablePlaceholder = (variable: Variable, uniqueKey: string) => {
+    return <span key={uniqueKey} className="inline-block relative variable-placeholder">
+        <span className="variable-highlight px-1 py-0 m-0 bg-[#33fea6]/10 border-b border-[#33fea6] text-foreground font-medium min-w-16 inline-block">
+          {variable.value || ""}
+        </span>
+      </span>;
+  };
+
+  // This function will be called when saving from edit mode
+  const handleSaveFromEditMode = () => {
+    if (editableContentRef.current) {
+      // Get content directly from the DOM
+      let newContent = editableContentRef.current.innerHTML;
+
+      // Convert the edited content back to the standardized placeholder format
+      const processedContent = convertEditedContentToPlaceholders(newContent, relevantVariables);
+
+      // Update the final prompt with the processed content
+      updateFinalPrompt(processedContent);
+      setIsEditing(false);
+      setEditablePrompt("");
+      toast({
+        title: "Changes saved",
+        description: "Your prompt has been updated successfully."
+      });
+
+      // Mark JSON as needing manual refresh but don't reset jsonGenerated flag
+      if (setLastSavedPrompt) {
+        setLastSavedPrompt(processedContent);
+      }
+
+      // Force a re-render to show the updated content with variables
+      setRenderTrigger(prev => prev + 1);
+
+      // Don't automatically refresh JSON - wait for manual refresh
     }
   };
 
-  // This dummy variable includes the description field
-  const dummyVariable = { 
-    id: "sample", 
-    name: "Sample", 
-    description: "Sample description", 
-    value: "", 
-    isRelevant: true, 
-    category: "test" 
-  };
+  // Modified renderProcessedPrompt function to handle HTML parsing and variable placeholders
+  const renderProcessedPrompt = () => {
+    if (isEditing) {
+      // In editing mode, create an uncontrolled editable div with special styling for variables
+      let processedEditablePrompt = editablePrompt;
 
-  return (
-    <div className="container relative pb-4">
-      <DashboardHeader
-        title="Final Prompt"
-        description="Review and refine your prompt before saving."
-      />
-
-      <div className="grid gap-4 py-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Master Command</CardTitle>
-            <CardDescription>
-              This is the core instruction that guides the AI.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="Write your master command here..."
-              value={masterCommand}
-              onChange={(e) => setPromptStateMasterCommand(e.target.value)}
-              className="min-h-[80px]"
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Questions</CardTitle>
-            <CardDescription>
-              Answer these questions to provide more context to the AI.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4">
-              {questions.map((question) => (
-                <div key={question.id} className="grid gap-2">
-                  <Label htmlFor={question.id}>{question.text}</Label>
-                  <Input
-                    id={question.id}
-                    value={question.answer || ""}
-                    onChange={(e) => handleQuestionAnswer(question.id, e.target.value)}
-                    placeholder="Your answer"
-                    className="h-8"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuestionRelevance(question.id, !question.isRelevant)}
-                  >
-                    {question.isRelevant === true ? 'Relevant' : 'Irrelevant'}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Variables</CardTitle>
-            <CardDescription>
-              Define variables to make your prompt more dynamic.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4">
-              {promptStateVariables.map((variable) => (
-                <PromptVariable
-                  key={variable.id}
-                  variable={variable}
-                  handleVariableChange={handleVariableChange}
-                  handleVariableRelevance={handleVariableRelevance}
-                />
-              ))}
-              <Button variant="secondary" size="sm" onClick={addVariable}>
-                Add Variable
-              </Button>
-              {variableToDelete && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm">
-                      Delete Variable
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete
-                        the variable and remove it from your prompt.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => removeVariable(variableToDelete)}>
-                        Continue
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Primary Toggle</CardTitle>
-            <CardDescription>
-              Select a primary toggle to apply a specific focus to your prompt.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ToggleGroup type="single" value={selectedPrimary} onValueChange={handleTogglePrimary}>
-              <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
-                {primaryToggles.map((toggle) => (
-                  <ToggleGroupItem key={toggle.id} value={toggle.id} aria-label={toggle.label} className="h-10">
-                    {toggle.label}
-                  </ToggleGroupItem>
-                ))}
-              </div>
-            </ToggleGroup>
-            {selectedPrimary && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium">
-                  {primaryToggles.find((toggle) => toggle.id === selectedPrimary)?.label} Definition
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  {primaryToggles.find((toggle) => toggle.id === selectedPrimary)?.definition}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Secondary Toggle</CardTitle>
-            <CardDescription>
-              Select a secondary toggle to further refine your prompt.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ToggleGroup type="single" value={selectedSecondary} onValueChange={handleToggleSecondary}>
-              <div className="grid gap-2 grid-cols-2 md:grid-cols-4">
-                {secondaryToggles.map((toggle) => (
-                  <ToggleGroupItem key={toggle.id} value={toggle.id} aria-label={toggle.label} className="h-10">
-                    {toggle.label}
-                  </ToggleGroupItem>
-                ))}
-              </div>
-            </ToggleGroup>
-            {selectedSecondary && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium">
-                  {secondaryToggles.find((toggle) => toggle.id === selectedSecondary)?.label} Definition
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  {secondaryToggles.find((toggle) => toggle.id === selectedSecondary)?.definition}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Final Prompt</CardTitle>
-            <CardDescription>
-              This is the final prompt that will be sent to the AI.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="Your final prompt will appear here..."
-              value={finalPrompt}
-              onChange={(e) => updateFinalPrompt(e.target.value)}
-              className="min-h-[120px]"
-            />
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button onClick={handleEnhancePrompt} disabled={isEnhancing}>
-              {isEnhancing ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Enhancing...
-                </>
-              ) : (
-                "Enhance Prompt"
-              )}
+      // Replace {{value::id}} with visually distinct non-editable elements
+      processedEditablePrompt = processedEditablePrompt.replace(/{{([^:}]*)::([\w-]+)}}/g, (match, value, variableId) => {
+        const variable = relevantVariables.find(v => v.id === variableId);
+        const displayValue = variable ? variable.value : value;
+        return `<span contentEditable="false" class="non-editable-variable" data-variable-id="${variableId}">${displayValue}</span>`;
+      });
+      return <div className="h-full w-full">
+          <div className="editing-mode w-full h-full min-h-[300px] p-4 rounded-md font-sans text-sm" contentEditable="true" suppressContentEditableWarning={true} ref={editableContentRef} dangerouslySetInnerHTML={{
+          __html: processedEditablePrompt
+        }} />
+          <div className="flex justify-end space-x-2 mt-2">
+            <Button variant="outline" className="edit-action-button edit-cancel-button" onClick={() => {
+            setIsEditing(false);
+            setEditablePrompt(""); // Clear the editable prompt on cancel
+          }}>
+              Cancel
             </Button>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm" onClick={copyToClipboard} disabled={isCopied}>
-                {isCopied ? (
-                  <>
-                    <Check className="mr-2 h-4 w-4" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="mr-2 h-4 w-4" />
-                    Copy
-                  </>
-                )}
-              </Button>
-              <Button variant="outline" size="sm" onClick={downloadPrompt} disabled={isDownloading}>
-                {isDownloading ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Downloading...
-                  </>
-                ) : (
-                  <>
-                    <Download className="mr-2 h-4 w-4" />
-                    Download
-                  </>
-                )}
-              </Button>
+            <Button className="edit-action-button edit-save-button" onClick={handleSaveFromEditMode}>
+              Save Changes
+            </Button>
+          </div>
+        </div>;
+    }
+    if (showJson) {
+      if (isLoadingJson || isRefreshing) {
+        return <div className="text-xs flex flex-col items-center justify-center h-full min-h-[200px]">
+            <div className="animate-pulse flex flex-col items-center">
+              <div className="mb-2 text-accent">Generating JSON structure...</div>
+              <div className="text-xs text-muted-foreground">This may take a moment</div>
             </div>
-          </CardFooter>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>JSON Structure</CardTitle>
-            <CardDescription>
-              View and generate the JSON structure of your prompt.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Button variant="secondary" onClick={handleGenerateJson} disabled={isGeneratingJson}>
-                {isGeneratingJson ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Generating JSON...
-                  </>
-                ) : (
-                  "Generate JSON"
-                )}
+          </div>;
+      }
+      if (jsonError) {
+        return <div className="flex flex-col items-center justify-center h-full min-h-[200px]">
+            <div className="text-xs text-destructive mb-2">Error generating JSON: {jsonError}</div>
+            <Button variant="outline" size="sm" onClick={() => convertPromptToJson(true)} className="mt-2">
+              Try Again
+            </Button>
+          </div>;
+      }
+      if (promptJson) {
+        return <pre className="text-xs font-mono overflow-x-auto">
+            {JSON.stringify(promptJson, null, 2)}
+          </pre>;
+      }
+      return <pre className="text-xs font-mono">
+          {JSON.stringify({
+          prompt: finalPrompt || "",
+          masterCommand: masterCommand || ""
+        }, null, 2)}
+        </pre>;
+    }
+    try {
+      // Convert standardized placeholders to HTML spans for display
+      const htmlContent = convertPlaceholdersToSpans(finalPrompt, relevantVariables);
+      const paragraphs = htmlContent.split('\n\n');
+      return <div className="prose prose-sm max-w-none" ref={promptContainerRef} onMouseUp={handleMouseUp} key={`prompt-content-${renderTrigger}`}>
+          {isCreatingVariable && multiSelections.length > 0 && <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20 bg-white shadow-lg rounded-lg p-2 flex gap-2">
+              <Button size="sm" variant="outline" className="h-8 p-2 hover:border-[#33fea6] hover:text-[#33fea6] hover:bg-white" onClick={createMultiSelectionVariable}>
+                <Check className="h-4 w-4 mr-1" />
+                Create Variable ({multiSelections.length})
               </Button>
-              {jsonError && (
-                <div className="text-red-500">Error: {jsonError}</div>
-              )}
-              {promptJsonStructure ? (
-                <div className="border rounded-md p-2 bg-muted">
-                  <pre className="whitespace-pre-wrap break-words">
-                    {JSON.stringify(promptJsonStructure, null, 2)}
-                  </pre>
-                </div>
-              ) : (
-                <p className="text-muted-foreground">No JSON structure generated yet.</p>
-              )}
+              <Button size="sm" variant="outline" className="h-8 w-8 p-0 hover:border-[#33fea6] hover:text-[#33fea6] hover:bg-white" onClick={cancelVariableCreation}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>}
+          
+          {paragraphs.map((paragraph, pIndex) => {
+          if (!paragraph.trim()) return null;
+          return <p key={`paragraph-${pIndex}`} dangerouslySetInnerHTML={{
+            __html: paragraph
+          }} />;
+        })}
+        </div>;
+    } catch (error) {
+      console.error("Error rendering processed prompt:", error);
+      return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
+    }
+  };
+  return <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
+      <div className="absolute top-2 right-2 z-10 flex items-center space-x-4">
+        {!isEditing && <>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-accent">Create Variable/s</span>
+              <button onClick={toggleVariableCreation} className={`p-2 rounded-full ${isCreatingVariable ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`} aria-label={isCreatingVariable ? "Exit variable creation mode" : "Create variable"}>
+                <PlusCircle className={`w-4 h-4 ${isCreatingVariable ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
+              </button>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Privacy</CardTitle>
-            <CardDescription>
-              Make this prompt private so only you can see it.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center space-x-2">
-              <Switch id="private" checked={isPrivate} onCheckedChange={setIsPrivate} />
-              <Label htmlFor="private">Make this prompt private</Label>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-accent">Edit Prompt</span>
+              <button onClick={() => setIsEditing(true)} className="p-2 rounded-full bg-white/80 hover:bg-white hover:text-[#33fea6] transition-colors" aria-label="Edit prompt text">
+                <Edit className="w-4 h-4 text-accent hover:text-[#33fea6]" />
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </>}
       </div>
-
-      <div className="flex justify-end space-x-2">
-        <Button variant="outline" onClick={() => navigate('/dashboard')}>Cancel</Button>
-        <Button onClick={handleSavePrompt}>Save Prompt</Button>
+      
+      <div className="absolute inset-0 bg-gradient-to-br from-accent via-primary-dark to-primary animate-aurora opacity-10" style={{
+      backgroundSize: "400% 400%"
+    }} />
+      
+      <div className={`relative h-full p-6 overflow-y-auto ${isEditing ? 'editing-mode' : ''}`}>
+        <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
+        
+        {renderProcessedPrompt()}
       </div>
-    </div>
-  );
-}
+    </div>;
+};

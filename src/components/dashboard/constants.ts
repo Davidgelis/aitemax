@@ -1,10 +1,10 @@
+
 import { Toggle, Variable } from "./types";
 
 export const defaultVariables: Variable[] = [
   {
     id: "v-1",
     name: "Input",
-    description: "Input data for the prompt",
     value: "",
     isRelevant: null,
     category: "General",
@@ -13,7 +13,6 @@ export const defaultVariables: Variable[] = [
   {
     id: "v-2",
     name: "Output Format",
-    description: "Desired format for the output",
     value: "",
     isRelevant: null,
     category: "General",
@@ -22,7 +21,6 @@ export const defaultVariables: Variable[] = [
   {
     id: "v-3",
     name: "Context",
-    description: "Additional context for the prompt",
     value: "",
     isRelevant: null,
     category: "General",
@@ -96,7 +94,6 @@ Conditions: The story must be engaging and concise.
 Instructions: Craft a narrative that captivates the reader from start to finish.
 `;
 
-// Fix the Toggle interface usage by updating the property name from 'prompt' to 'definition'
 export const primaryToggles: Toggle[] = [
   { 
     id: "video", 

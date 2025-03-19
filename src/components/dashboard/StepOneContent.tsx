@@ -6,11 +6,10 @@ import { SmartContext } from "@/components/dashboard/SmartContext";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { AIModel, UploadedImage } from "./types";
 import { Switch } from "@/components/ui/switch";
-import { HelpCircle, ImageUp, Lock } from "lucide-react";
+import { HelpCircle, ImageUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "./ImageUploader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Checkbox } from "@/components/ui/checkbox";
 
 interface StepOneContentProps {
   promptText: string;
@@ -28,8 +27,6 @@ interface StepOneContentProps {
   onImagesChange?: (images: UploadedImage[]) => void;
   onWebsiteScan?: (url: string, instructions: string) => void;
   onSmartContext?: (context: string, usageInstructions: string) => void;
-  isPrivate?: boolean;
-  setIsPrivate?: (isPrivate: boolean) => void;
 }
 
 export const StepOneContent = ({
@@ -47,9 +44,7 @@ export const StepOneContent = ({
   handleCognitiveToggle,
   onImagesChange = () => {},
   onWebsiteScan = () => {},
-  onSmartContext = () => {},
-  isPrivate = false,
-  setIsPrivate = () => {}
+  onSmartContext = () => {}
 }: StepOneContentProps) => {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
@@ -89,8 +84,7 @@ export const StepOneContent = ({
       websiteContext,
       smartContext: smartContext ? "Provided" : "None",
       selectedPrimary,
-      selectedSecondary,
-      isPrivate
+      selectedSecondary
     });
     
     onAnalyze();
@@ -98,11 +92,6 @@ export const StepOneContent = ({
 
   const handleOpenUploadDialog = () => {
     setDialogOpen(true);
-  };
-
-  const handlePrivacyChange = (checked: boolean) => {
-    console.log("Privacy setting changed:", checked);
-    setIsPrivate(checked);
   };
 
   return (
@@ -131,31 +120,7 @@ export const StepOneContent = ({
           </div>
         </div>
         
-        <div className="flex items-center gap-2 ml-auto">
-          <div className="border rounded-md px-4 py-2 flex items-center gap-2">
-            <span className="text-sm text-[#545454]">Privacy</span>
-            <Checkbox 
-              id="privacy-checkbox" 
-              checked={isPrivate}
-              onCheckedChange={handlePrivacyChange}
-            />
-            <TooltipProvider>
-              <Tooltip delayDuration={0}>
-                <TooltipTrigger asChild>
-                  <button 
-                    className="tooltip-trigger text-[#545454] opacity-70 hover:opacity-100"
-                    aria-label="Learn more about Privacy settings"
-                  >
-                    <HelpCircle className="h-4 w-4 tooltip-icon" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-xs text-xs">
-                  When enabled, your prompt will be marked as private in the knowledge base.
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
+        {/* Removed the Cognitive Prompt Perfection Model toggle and text */}
       </div>
 
       {uploadedImages.length > 0 && (
