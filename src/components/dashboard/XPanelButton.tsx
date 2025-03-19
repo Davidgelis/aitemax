@@ -14,7 +14,9 @@ const XPanelButton = () => {
       onClick={() => navigate("/x-panel")}
     >
       <PanelTopClose className="w-4 h-4" />
-      <span>X Panel</span>
+      <span className="relative overflow-hidden">
+        <span className="bg-gradient-to-r from-[#041524] via-[#33fea6] to-white bg-clip-text text-transparent animate-aurora">X Panel</span>
+      </span>
     </Button>
   );
 };
