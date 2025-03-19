@@ -18,6 +18,7 @@ interface PromptInputProps {
   onOpenUploadDialog?: () => void;
   dialogOpen?: boolean;
   setDialogOpen?: (open: boolean) => void;
+  maxLength?: number;
 }
 
 const PromptInput = ({ 
@@ -32,7 +33,8 @@ const PromptInput = ({
   isLoading = false,
   onOpenUploadDialog,
   dialogOpen = false,
-  setDialogOpen = () => {}
+  setDialogOpen = () => {},
+  maxLength = 3000
 }: PromptInputProps) => {
   const [inputValue, setInputValue] = useState(value || "");
   const [carouselOpen, setCarouselOpen] = useState(false);
@@ -54,10 +56,14 @@ const PromptInput = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
-    setInputValue(newValue);
     
-    if (onChange) {
-      onChange(newValue);
+    // Only update if the new value is within the character limit
+    if (newValue.length <= maxLength) {
+      setInputValue(newValue);
+      
+      if (onChange) {
+        onChange(newValue);
+      }
     }
   };
 
@@ -258,12 +264,17 @@ const PromptInput = ({
 
   // Reduce icon size by 20%
   const iconSize = 6.8; // Reduced from 8.5 (20% smaller)
+  
+  // Calculate character count percentage for the progress indicator
+  const characterPercentage = Math.min((inputValue.length / maxLength) * 100, 100);
+  const isNearLimit = inputValue.length > maxLength * 0.8;
+  const isAtLimit = inputValue.length >= maxLength;
 
   return (
     <form onSubmit={handleSubmit} className={`w-full mx-auto ${className}`}>
       <div className="relative group">
         <div className="relative">
-          <div className="flex flex-wrap items-start gap-4 mb-1 p-4 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-1 p-4 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
             <div className="flex gap-4 items-start self-start">
               <button 
                 type="button" 
@@ -282,6 +293,17 @@ const PromptInput = ({
                 <ListOrdered style={{ width: `${iconSize * 4}px`, height: `${iconSize * 4}px` }} />
               </button>
             </div>
+            
+            {/* Character counter */}
+            <div className={`text-xs flex items-center gap-2 ${isNearLimit ? (isAtLimit ? 'text-red-500' : 'text-amber-500') : 'text-gray-500'}`}>
+              <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full ${isAtLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-500' : 'bg-green-500'}`}
+                  style={{ width: `${characterPercentage}%` }}
+                ></div>
+              </div>
+              <span>{inputValue.length}/{maxLength}</span>
+            </div>
           </div>
           
           <textarea
@@ -298,6 +320,7 @@ const PromptInput = ({
               fontSize: "1.2rem"
             }}
             ref={textareaRef}
+            maxLength={maxLength}
           />
           
           <div className="hidden">

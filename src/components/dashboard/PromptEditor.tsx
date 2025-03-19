@@ -1,4 +1,3 @@
-
 import { List, ListOrdered } from "lucide-react";
 import { useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +18,7 @@ interface PromptEditorProps {
   images?: UploadedImage[];
   onImagesChange?: (images: UploadedImage[]) => void;
   websiteContext?: { url: string; instructions: string } | null;
+  maxLength?: number;
 }
 
 export const PromptEditor = ({ 
@@ -30,7 +30,8 @@ export const PromptEditor = ({
   isLoading,
   images = [],
   onImagesChange,
-  websiteContext
+  websiteContext,
+  maxLength = 3000
 }: PromptEditorProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
@@ -98,6 +99,13 @@ export const PromptEditor = ({
       title: "Added numbered list",
       description: "Numbers have been added to your text",
     });
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    if (newValue.length <= maxLength) {
+      setPromptText(newValue);
+    }
   };
 
   const analyzeWithAI = async () => {
@@ -239,6 +247,11 @@ export const PromptEditor = ({
     onImagesChange(updatedImages);
   };
 
+  // Calculate character count percentage for the progress indicator
+  const characterPercentage = Math.min((promptText.length / maxLength) * 100, 100);
+  const isNearLimit = promptText.length > maxLength * 0.8;
+  const isAtLimit = promptText.length >= maxLength;
+
   return (
     <div className="border rounded-xl p-6 bg-card min-h-[400px] relative">
       <div className="flex justify-between mb-2">
@@ -257,6 +270,17 @@ export const PromptEditor = ({
           >
             <ListOrdered className="w-5 h-5" style={{ color: "#64bf95" }} />
           </button>
+        </div>
+        
+        {/* Character counter */}
+        <div className={`text-xs flex items-center gap-2 ${isNearLimit ? (isAtLimit ? 'text-red-500' : 'text-amber-500') : 'text-muted-foreground'}`}>
+          <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+            <div 
+              className={`h-full ${isAtLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-500' : 'bg-green-500'}`}
+              style={{ width: `${characterPercentage}%` }}
+            ></div>
+          </div>
+          <span>{promptText.length}/{maxLength}</span>
         </div>
         
         {/* Show website context indicator if available */}
@@ -294,10 +318,11 @@ export const PromptEditor = ({
         <textarea 
           ref={textareaRef}
           value={promptText}
-          onChange={(e) => setPromptText(e.target.value)}
+          onChange={handleChange}
           onKeyDown={handleKeyDown}
           className="w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
           placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
+          maxLength={maxLength}
         />
       </div>
       

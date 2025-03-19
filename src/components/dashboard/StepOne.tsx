@@ -25,6 +25,8 @@ export const StepOne = ({
   onAnalyze,
   isLoading
 }: StepOneProps) => {
+  const maxCharacterLimit = 3000; // Set the character limit to 3000
+
   return (
     <>
       <ToggleSection 
@@ -52,6 +54,7 @@ export const StepOne = ({
         selectedPrimary={selectedPrimary}
         selectedSecondary={selectedSecondary}
         isLoading={isLoading}
+        maxLength={maxCharacterLimit}
       />
     </>
   );

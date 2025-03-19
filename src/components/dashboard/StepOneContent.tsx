@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
@@ -50,6 +49,7 @@ export const StepOneContent = ({
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const maxCharacterLimit = 3000; // Set the character limit to 3000
 
   const handleImagesChange = (images: UploadedImage[]) => {
     setUploadedImages(images);
@@ -229,6 +229,7 @@ export const StepOneContent = ({
           onOpenUploadDialog={handleOpenUploadDialog}
           dialogOpen={dialogOpen}
           setDialogOpen={setDialogOpen}
+          maxLength={maxCharacterLimit}
         />
       </div>
 
