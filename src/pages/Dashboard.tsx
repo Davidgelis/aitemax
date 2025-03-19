@@ -65,7 +65,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (promptState.savedPrompts.length > 0) {
       console.log(`User has ${promptState.savedPrompts.length} saved prompts`, 
-        promptState.savedPrompts.map(p => ({id: p.id, title: p.title})));
+        promptState.savedPrompts.map(p => ({id: p.id, title: p.title, isPrivate: p.isPrivate})));
     }
     
     if (promptState.drafts.length > 0) {

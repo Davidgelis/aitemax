@@ -50,7 +50,8 @@ export const StepController = ({
     fetchSavedPrompts, handleNewPrompt, handleSavePrompt,
     handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt,
     loadSavedPrompt, isViewingSavedPrompt, setIsViewingSavedPrompt,
-    saveDraft
+    saveDraft,
+    isPrivate, setIsPrivate
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
@@ -163,7 +164,8 @@ export const StepController = ({
       hasWebsiteContext: !!websiteContext,
       hasSmartContext: !!smartContext,
       websiteUrl: websiteContext?.url || "none",
-      websiteInstructions: websiteContext?.instructions || "none"
+      websiteInstructions: websiteContext?.instructions || "none",
+      isPrivate
     });
     
     handleAnalyze(uploadedImages, websiteContext, smartContext);
@@ -300,6 +302,8 @@ export const StepController = ({
             onImagesChange={handleImagesChange}
             onWebsiteScan={handleWebsiteScan}
             onSmartContext={handleSmartContext}
+            isPrivate={isPrivate}
+            setIsPrivate={setIsPrivate}
           />
         );
 
@@ -336,7 +340,7 @@ export const StepController = ({
             showJson={showJson}
             setShowJson={setShowJson}
             finalPrompt={finalPrompt}
-            setFinalPrompt={setFinalPrompt} // Pass the setFinalPrompt function explicitly
+            setFinalPrompt={setFinalPrompt}
             variables={variables}
             setVariables={setVariables}
             handleVariableValueChange={handleVariableValueChange}
