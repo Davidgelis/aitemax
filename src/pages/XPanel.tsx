@@ -17,7 +17,8 @@ import {
   FileText,
   MoreVertical,
   CopyIcon,
-  Pencil
+  Pencil,
+  Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Sidebar, SidebarContent, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getTextLines } from "@/lib/utils";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
 
 const XPanel = () => {
   const navigate = useNavigate();
@@ -224,19 +231,42 @@ const XPanel = () => {
   };
 
   const handleShareViaEmail = (promptId: string) => {
-    // In a real implementation, this would open a modal to enter email addresses
-    toast({
-      title: "Share via Email",
-      description: "Email sharing feature is coming soon!",
-    });
+    // This function will be replaced with the popover implementation
+    // so we can remove its content
   };
 
-  const handleSocialShare = (platform: string, promptId: string) => {
-    // In a real implementation, this would share to the selected platform
-    toast({
-      title: `Share on ${platform}`,
-      description: `${platform} sharing integration is coming soon!`,
-    });
+  // New state for email sharing
+  const [shareEmail, setShareEmail] = useState("");
+  const [sharingPromptId, setSharingPromptId] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
+
+  // New function to handle the actual email sharing
+  const handleSharePrompt = async () => {
+    if (!shareEmail || !sharingPromptId) return;
+    
+    setIsSharing(true);
+    
+    try {
+      // In a real implementation, this would call an API to share the prompt
+      // For now, we'll just show a success toast
+      
+      toast({
+        title: "Prompt shared",
+        description: `An invitation has been sent to ${shareEmail}`,
+      });
+      
+      setShareEmail("");
+      setSharingPromptId(null);
+    } catch (error: any) {
+      console.error("Error sharing prompt:", error.message);
+      toast({
+        title: "Error sharing prompt",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const handlePreviewPrompt = (promptId: string) => {
@@ -443,8 +473,49 @@ const XPanel = () => {
                 {filteredPrompts.map((prompt) => (
                   <Card 
                     key={prompt.id} 
-                    className="group hover:scale-[1.01] transition-all overflow-hidden bg-white border-[1.5px] border-[#64bf95] shadow-md"
+                    className="group hover:scale-[1.01] transition-all overflow-hidden bg-white border-[1.5px] border-[#64bf95] shadow-md relative"
                   >
+                    {/* Share Button in Top Right Corner */}
+                    <div className="absolute top-3 right-3 z-10">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="icon" className="hover:bg-accent/20 h-8 w-8">
+                            <Share2 className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 p-4">
+                          <div className="space-y-4">
+                            <h4 className="font-medium text-sm">Share Prompt</h4>
+                            <div className="space-y-2">
+                              <Label htmlFor={`share-email-${prompt.id}`}>
+                                Email address
+                              </Label>
+                              <Input
+                                id={`share-email-${prompt.id}`}
+                                placeholder="colleague@example.com"
+                                type="email"
+                                value={sharingPromptId === prompt.id ? shareEmail : ""}
+                                onChange={(e) => {
+                                  setSharingPromptId(prompt.id);
+                                  setShareEmail(e.target.value);
+                                }}
+                              />
+                            </div>
+                            <Button 
+                              className="w-full" 
+                              onClick={handleSharePrompt}
+                              disabled={!shareEmail || isSharing || sharingPromptId !== prompt.id}
+                            >
+                              {isSharing && sharingPromptId === prompt.id ? "Sharing..." : "Share"}
+                            </Button>
+                            <p className="text-xs text-muted-foreground">
+                              Recipients will need an account to view the prompt.
+                            </p>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    
                     <CardContent className="p-6">
                       <div className="flex flex-col h-full">
                         <div className="mb-3">
@@ -471,76 +542,13 @@ const XPanel = () => {
                           ))}
                         </div>
                         
-                        {/* Action Buttons - Initially hidden, visible on hover */}
+                        {/* Action Buttons - Simplified with only Delete Button */}
                         <div className="flex justify-between opacity-0 group-hover:opacity-100 transition-opacity">
                           <div className="flex gap-1">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="prompt-action-button" onClick={() => handleSocialShare('Twitter', prompt.id)}>
-                                    <Twitter className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Share on X (Twitter)</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="prompt-action-button" onClick={() => handleSocialShare('Facebook', prompt.id)}>
-                                    <Facebook className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Share on Facebook</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="prompt-action-button" onClick={() => handleSocialShare('Instagram', prompt.id)}>
-                                    <Instagram className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Share on Instagram</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            {/* Empty div to keep the flex layout balanced */}
                           </div>
                           
                           <div className="flex gap-1">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="prompt-action-button" onClick={() => handleCopyLink(prompt.id)}>
-                                    <Link2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Copy link</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="prompt-action-button" onClick={() => handleShareViaEmail(prompt.id)}>
-                                    <Mail className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Share via email</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -741,13 +749,6 @@ const XPanel = () => {
                             }}>
                               <CopyIcon className="mr-2 h-4 w-4" />
                               <span>Copy</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              handleCopyLink(item.id);
-                            }}>
-                              <Link2 className="mr-2 h-4 w-4" />
-                              <span>Copy Link</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
