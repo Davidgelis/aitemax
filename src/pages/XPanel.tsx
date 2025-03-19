@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -339,7 +338,10 @@ const XPanel = () => {
         ) : filteredPrompts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPrompts.map((prompt) => (
-              <Card key={prompt.id} className="group hover-scale overflow-hidden border animate-aurora-border">
+              <Card 
+                key={prompt.id} 
+                className="group hover:scale-[1.01] transition-all overflow-hidden bg-white border-[1.5px] border-[#64bf95] shadow-md"
+              >
                 <CardContent className="p-6">
                   <div className="flex flex-col h-full">
                     <div className="mb-3">
@@ -354,7 +356,7 @@ const XPanel = () => {
                     {/* Tags */}
                     <div className="flex flex-wrap gap-2 mb-4">
                       {prompt.tags && prompt.tags.map((tag, index) => (
-                        <div key={index} className="bg-accent/10 text-xs rounded-full px-2.5 py-1 flex items-center gap-1">
+                        <div key={index} className="bg-[#64bf95]/10 text-xs rounded-full px-2.5 py-1 flex items-center gap-1">
                           <span className="font-medium">{tag.category}</span>
                           {tag.subcategory && (
                             <>
