@@ -448,9 +448,7 @@ const XPanel = () => {
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Delete prompt</p>
-                                </TooltipContent>
+                                
                               </Tooltip>
                             </TooltipProvider>
                           </div>
