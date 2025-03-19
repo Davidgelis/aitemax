@@ -384,7 +384,6 @@ export function FinalPromptDisplay({
     setSelectedSecondary(selectedSecondary === value ? null : value);
   };
 
-  // Fixed the issue by passing an empty object as default
   const handleEnhancePrompt = async () => {
     if (!promptText || promptText.trim() === "") {
       toast({
@@ -395,8 +394,7 @@ export function FinalPromptDisplay({
       return;
     }
 
-    // Prepare data and update state - passing an empty object as the default parameter
-    const { updatedQuestions, updatedVariables } = prepareDataForEnhancement({});
+    const { updatedQuestions, updatedVariables } = prepareDataForEnhancement();
     setQuestions(updatedQuestions);
     setPromptStateVariables(updatedVariables);
 
