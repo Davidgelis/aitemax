@@ -83,13 +83,14 @@ export const useQuestionsAndVariables = (
 
   const addVariable = useCallback(() => {
     const newVariableId = `v-${Date.now()}`;
-    setVariables((current: Variable[]) => {
+    setVariables((current) => {
       const newCode = `VAR_${current.length + 1}`;
       return [
         ...current,
         {
           id: newVariableId,
           name: '',
+          description: '', // Add required description field
           value: '',
           isRelevant: null,
           category: 'Custom',
