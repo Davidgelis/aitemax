@@ -205,7 +205,7 @@ export const StepOneContent: React.FC<StepOneContentProps> = ({
       <div>
         <ModelSelector
           selectedModel={selectedModel}
-          onModelSelect={setSelectedModel} // Fixed prop name to match what ModelSelector expects
+          onSelect={setSelectedModel} // Fixed prop name from onModelSelect to onSelect
         />
         <ModelRefreshButton />
       </div>
