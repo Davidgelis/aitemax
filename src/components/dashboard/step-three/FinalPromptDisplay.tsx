@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -284,7 +285,7 @@ export function FinalPromptDisplay({
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [isGeneratingJson, setIsGeneratingJson] = useState(false);
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
-  const [uploadedImages, setUploadedImages] = useState<any[]>([]); // Changed type to any[] to avoid UploadedImage imports
+  const [uploadedImages, setUploadedImages] = useState<any[]>([]);
   
   // Using window.location for navigation instead of next/router
   const navigate = (path: string) => {
@@ -394,8 +395,8 @@ export function FinalPromptDisplay({
       return;
     }
 
-    // Fix: Call prepareDataForEnhancement without arguments since it doesn't expect any
-    const { updatedQuestions, updatedVariables } = prepareDataForEnhancement();
+    // Fix: Pass an empty object to prepareDataForEnhancement to match its expected signature
+    const { updatedQuestions, updatedVariables } = prepareDataForEnhancement({});
     setQuestions(updatedQuestions);
     setPromptStateVariables(updatedVariables);
 
