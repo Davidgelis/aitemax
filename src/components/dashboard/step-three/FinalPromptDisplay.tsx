@@ -395,8 +395,8 @@ export function FinalPromptDisplay({
       return;
     }
 
-    // Prepare data and update state
-    const { updatedQuestions, updatedVariables } = prepareDataForEnhancement();
+    // Prepare data and update state - passing an empty object as the default parameter
+    const { updatedQuestions, updatedVariables } = prepareDataForEnhancement({});
     setQuestions(updatedQuestions);
     setPromptStateVariables(updatedVariables);
 
