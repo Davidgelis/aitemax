@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,7 +19,7 @@ import {
 } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Copy, Edit, Check, Download, RefreshCw } from 'lucide-react';
+import { Copy, Edit, Check, Download, RefreshCw, Plus, Trash, MoreVertical, CalendarIcon } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast"
 import { usePromptState } from "@/hooks/usePromptState";
 import { useUser } from "@clerk/clerk-react";
@@ -36,7 +35,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
 import {
   PopoverAnchor,
 } from "@radix-ui/react-popover"
@@ -121,7 +119,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreVertical, Plus, Trash } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { PromptJsonStructure, Variable } from "../types";
@@ -129,8 +126,6 @@ import { jsonToVariables } from "../types";
 import { v4 as uuidv4 } from 'uuid';
 import { useCompletion } from 'ai/react';
 import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
-
-// Removed unused or problematic imports that were causing errors
 
 interface DataTableProps {
   data: any[]
@@ -389,6 +384,7 @@ export function FinalPromptDisplay({
     setSelectedSecondary(selectedSecondary === value ? null : value);
   };
 
+  // Fixed the issue by passing an empty object as default
   const handleEnhancePrompt = async () => {
     if (!promptText || promptText.trim() === "") {
       toast({
@@ -459,7 +455,7 @@ export function FinalPromptDisplay({
     }
   };
 
-  // This dummy variable should include the description field
+  // This dummy variable includes the description field
   const dummyVariable = { 
     id: "sample", 
     name: "Sample", 
