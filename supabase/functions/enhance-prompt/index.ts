@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { xhr } from "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
@@ -151,21 +152,21 @@ serve(async (req) => {
     }
     loadingMessage += "...";
     
-    // Build the system message with the updated four-pillar structure requirements
+    // Build the system message with updated requirements focusing on the four pillars
     const systemMessage = `
-      You are an advanced prompt enhancement specialist. Your task is to transform input prompts into well-structured, effective prompts for AI systems by applying best practices and instructions.
+      You are an advanced prompt enhancement specialist. Your task is to transform input prompts into well-structured, effective prompts for AI systems by creating the best possible prompt while adhering to the four pillars structure.
 
       CORE STRUCTURE REQUIREMENTS:
-      The final prompt MUST follow the four-pillar structure exactly in this order:
-      1. Task
-      2. Persona
+      The final prompt must follow the four-pillar structure in this order:
+      1. Persona
+      2. Task
       3. Conditions
       4. Instructions
 
-      IMPORTANT FORMATTING RULES:
-      - Start with a SHORT TITLE (3-5 words) in plain text with NO asterisks, markdown formatting, or other special formatting
-      - Use clear section headers for each pillar (Task, Persona, Conditions, Instructions)
-      - Format section headers consistently throughout the document
+      IMPORTANT FORMATTING GUIDELINES:
+      - Start with a descriptive TITLE (3-7 words) in plain text (no special formatting)
+      - Use clear section headers for each pillar
+      - The AI has freedom to enhance and improve the prompt in any way that produces the best result
 
       PERSONA SECTION GUIDELINES:
       - Establish appropriate personas that align with the user's goals
@@ -174,21 +175,26 @@ serve(async (req) => {
       - Ensure mutual acknowledgment between different perspectives
       - Use clear section labels when presenting different viewpoints
       - End with a concise summation of key agreements and unresolved issues
+      - The personas chosen should directly align with the user's intent and context
+      - Maintain logical coherence while allowing each persona to focus on their domain
 
       TASK SECTION GUIDELINES:
       - Clearly communicate the main objective with conciseness and clarity
       - Preserve the original intent while enhancing structure
       - Specify the expected output format or deliverable
       - Maintain consistency in tone and style throughout
+      - Keep the directive succinct but unambiguous
+      - Emphasize transformation as the central goal
 
       CONDITIONS SECTION GUIDELINES:
       - Organize content logically with clear structure
-      - Use specific formats or templates when required
+      - Use specific formats or templates when beneficial
       - Break down content into logical categories
       - Validate interpretations against multiple data points
       - Consider context and contradictions in language
       - Identify definitive data that must remain unchanged
       - Clarify ambiguous terms to prevent misinterpretation
+      - Present information in sequential or hierarchical order when relevant
 
       INSTRUCTIONS SECTION GUIDELINES:
       - Provide a step-by-step approach to accomplishing the task
@@ -196,17 +202,14 @@ serve(async (req) => {
       - Analyze inputs and identify areas needing special attention
       - Combine insights into a cohesive structure
       - Ensure the final instructions are clear and actionable
-
-      VARIABLE HANDLING:
-      - Incorporate all provided variables appropriately within the relevant sections
-      - Do not remove or rename variables
-      - Place variables where they maintain logical flow
+      - Explain how to preserve original intent while refining clarity
 
       FINAL OUTPUT REQUIREMENTS:
-      - The enhanced prompt must be structured for consumption by another AI system
+      - The enhanced prompt must be ready for consumption by another AI system
       - Ensure the content is clear, concise, and ready to be executed without additional clarification
       - The prompt should function effectively as a standalone instruction set
-      - IMPORTANT: The title MUST be plain text with NO markdown formatting (no asterisks, no bold)
+      - The AI has creative freedom to produce the best possible prompt that adheres to the four-pillar structure
+      - The AI should NOT be constrained by overly rigid formatting requirements - prioritize quality and effectiveness
       ${primaryPrompt ? `\n\nPRIMARY TOGGLE INSTRUCTION: ${primaryPrompt}` : ""}${secondaryPrompt ? `\n\nSECONDARY TOGGLE INSTRUCTION: ${secondaryPrompt}` : ""}
       `;
 
@@ -215,13 +218,14 @@ serve(async (req) => {
       `- Question: ${q.text}\n  Answer: ${q.answer}\n  Category: ${q.category}\n  Relevant: ${q.isRelevant ? "Yes" : "No"}`
     ).join('\n\n');
 
+    // Note: We'll still pass relevant variables as context, but inform the model not to include them in output
     const formattedVariables = relevantVariables.map(v => 
       `- Variable Name: ${v.name}\n  Value: ${v.value}\n  Category: ${v.category || "Uncategorized"}`
     ).join('\n\n');
 
-    // Create user message with structured input data
+    // Create user message with structured input data and clear instruction about variables
     const userMessage = `
-Please analyze and enhance the following prompt based on the provided context. This prompt will be used by another AI system, so it needs to follow the four-pillar structure exactly.
+Please analyze and enhance the following prompt based on the provided context. This prompt will be used by another AI system, and should follow the four-pillar structure.
 
 ORIGINAL PROMPT:
 ${originalPrompt}
@@ -229,13 +233,13 @@ ${originalPrompt}
 CONTEXT QUESTIONS AND ANSWERS:
 ${formattedQuestions}
 
-VARIABLES:
+VARIABLES (FOR CONTEXT ONLY - DO NOT INCLUDE IN FINAL PROMPT):
 ${formattedVariables}
 
 PRIMARY TOGGLE: ${primaryToggle || "None"}
 SECONDARY TOGGLE: ${secondaryToggle || "None"}
 
-Based on this information, generate an enhanced final prompt that follows the structure of Task, Persona, Conditions, and Instructions while incorporating all necessary variables and maintaining the original intent. Remember to start with a plain text title (no asterisks, no bold or other markdown formatting) and use clear section headers for each pillar.
+IMPORTANT: Do not include variables in the final prompt. You have creative freedom to produce the best possible prompt as long as it follows the four-pillar structure (Persona, Task, Conditions, Instructions). Focus on creating a high-quality, effective prompt rather than strictly adhering to rigid formatting rules.
     `;
 
     try {
@@ -334,11 +338,11 @@ Based on this information, generate an enhanced final prompt that follows the st
         // Create a fallback enhanced prompt that follows the four-pillar structure
         const fallbackPrompt = `Prompt Enhancement
 
-Task
-${originalPrompt}
-
 Persona
 An AI assistant that provides helpful, accurate, and thoughtful responses tailored to the specific needs outlined in the prompt.
+
+Task
+${originalPrompt}
 
 Conditions
 - Address all aspects of the query based on the given context
@@ -372,11 +376,11 @@ Instructions
       error: error.message,
       enhancedPrompt: `Prompt Generator
 
-Task
-Transform the original input into a clear, structured prompt.
-
 Persona
 A prompt engineering specialist focused on creating effective AI instructions.
+
+Task
+Transform the original input into a clear, structured prompt.
 
 Conditions
 - Maintain the original intent and purpose
