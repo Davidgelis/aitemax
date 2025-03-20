@@ -140,6 +140,7 @@ export const StepThreeContent = ({
         setIsEditing={setIsEditing}
         editablePrompt={editablePrompt}
         setEditablePrompt={setEditablePrompt}
+        handleSaveEditedPrompt={externalHandleSaveEditedPrompt} // Fix: Pass the missing prop
         renderTrigger={renderTrigger}
         setRenderTrigger={setRenderTrigger}
         isRefreshing={isRefreshingJson}
