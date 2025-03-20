@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -198,6 +197,7 @@ export const StepController = ({
       return;
     }
 
+    // Only save draft when moving from step 1 to step 2, not when moving to step 3
     if (step === 2 && currentStep === 1 && user && !isViewingSavedPrompt) {
       saveDraft();
     }
@@ -374,4 +374,3 @@ export const StepController = ({
     </div>
   );
 };
-
