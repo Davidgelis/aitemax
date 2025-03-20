@@ -301,4 +301,3 @@ export const usePromptOperations = (
     removeVariable // Export the removeVariable function
   };
 };
-

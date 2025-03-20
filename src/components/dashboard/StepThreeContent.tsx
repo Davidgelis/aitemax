@@ -7,6 +7,7 @@ import { ActionButtons } from "./step-three/ActionButtons";
 import { StepThreeStyles } from "./step-three/StepThreeStyles";
 import { useToast } from "@/hooks/use-toast";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
+import { VariablesSection } from "./step-three/VariablesSection";
 import { 
   convertEditedContentToPlaceholders, 
   convertPlaceholdersToSpans 
@@ -118,6 +119,22 @@ export const StepThreeContent = ({
     }, 100);
   }, [toast, isRefreshingJson]);
 
+  // Function to handle variable value changes
+  const handleVariableValueChangeFunction = useCallback((variableId: string, newValue: string) => {
+    if (typeof externalHandleVariableValueChange === 'function') {
+      externalHandleVariableValueChange(variableId, newValue);
+    } else {
+      promptOperations.handleVariableValueChange(variableId, newValue);
+    }
+  }, [externalHandleVariableValueChange, promptOperations]);
+
+  // Function to handle variable deletion
+  const handleDeleteVariable = useCallback((variableId: string) => {
+    if (typeof promptOperations.handleDeleteVariable === 'function') {
+      promptOperations.handleDeleteVariable(variableId);
+    }
+  }, [promptOperations]);
+
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
       <ToggleSection 
@@ -140,13 +157,20 @@ export const StepThreeContent = ({
         setIsEditing={setIsEditing}
         editablePrompt={editablePrompt}
         setEditablePrompt={setEditablePrompt}
-        handleSaveEditedPrompt={externalHandleSaveEditedPrompt} // Fix: Pass the missing prop
+        handleSaveEditedPrompt={externalHandleSaveEditedPrompt}
         renderTrigger={renderTrigger}
         setRenderTrigger={setRenderTrigger}
         isRefreshing={isRefreshingJson}
         setIsRefreshing={setIsRefreshingJson}
         lastSavedPrompt={lastSavedPrompt}
         setLastSavedPrompt={setLastSavedPrompt}
+      />
+
+      {/* Add VariablesSection component here */}
+      <VariablesSection 
+        variables={variables} 
+        handleVariableValueChange={handleVariableValueChangeFunction}
+        onDeleteVariable={handleDeleteVariable}
       />
 
       <ActionButtons 
