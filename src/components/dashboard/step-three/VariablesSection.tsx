@@ -21,8 +21,6 @@ export const VariablesSection = ({
   
   // Optimize variable value changes
   const handleInputChange = useCallback((variableId: string, newValue: string) => {
-    console.log("Variable section changing value:", variableId, newValue);
-    
     try {
       if (typeof handleVariableValueChange === 'function') {
         handleVariableValueChange(variableId, newValue);
@@ -93,85 +91,65 @@ export const VariablesSection = ({
       <h4 className="text-sm font-medium mb-3">Variables</h4>
       <div className="flex flex-col space-y-3">
         {relevantVariables.map((variable, index) => (
-          <div key={variable.id} className="variable-container flex gap-3 items-center">
+          <div key={variable.id} className="variable-container flex items-center gap-2">
             <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
               {index + 1}
             </div>
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="relative">
-                <Input 
-                  value={variable.name || ""}
-                  onChange={(e) => {
-                    // Limit input to maxCharacterLimit characters
-                    if (e.target.value.length <= maxCharacterLimit) {
-                      handleNameChange(variable.id, e.target.value);
+            
+            <div className="relative flex-grow">
+              <Input 
+                value={variable.value || ""}
+                onChange={(e) => {
+                  // Limit input to maxCharacterLimit characters
+                  if (e.target.value.length <= maxCharacterLimit) {
+                    handleInputChange(variable.id, e.target.value);
+                  }
+                }}
+                className="h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16"
+                data-variable-id={variable.id}
+                data-source="variables-section"
+                placeholder={variable.name || "Value..."}
+                maxLength={maxCharacterLimit}
+                onInput={(e) => {
+                  // Dispatch a custom event when value changes from this component
+                  const customEvent = new CustomEvent('variable-value-changed', {
+                    detail: {
+                      variableId: variable.id,
+                      newValue: e.currentTarget.value
                     }
-                  }}
-                  className="h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16"
-                  data-variable-name-id={variable.id}
-                  data-source="variables-section"
-                  placeholder="Variable name..."
-                  maxLength={maxCharacterLimit}
-                />
-                <div className="absolute right-12 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
-                  {(variable.name || "").length}/{maxCharacterLimit}
-                </div>
+                  });
+                  document.dispatchEvent(customEvent);
+                }}
+              />
+              <div className="absolute right-12 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
+                {(variable.value || "").length}/{maxCharacterLimit}
               </div>
-              <div className="relative">
-                <Input 
-                  value={variable.value || ""}
-                  onChange={(e) => {
-                    // Limit input to maxCharacterLimit characters
-                    if (e.target.value.length <= maxCharacterLimit) {
-                      handleInputChange(variable.id, e.target.value);
-                    }
-                  }}
-                  className="h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16"
-                  data-variable-id={variable.id}
-                  data-source="variables-section"
-                  placeholder="Value..."
-                  maxLength={maxCharacterLimit}
-                  onInput={(e) => {
-                    // Dispatch a custom event when value changes from this component
-                    const customEvent = new CustomEvent('variable-value-changed', {
-                      detail: {
-                        variableId: variable.id,
-                        newValue: e.currentTarget.value
-                      }
-                    });
-                    document.dispatchEvent(customEvent);
-                  }}
-                />
-                <div className="absolute right-12 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
-                  {(variable.value || "").length}/{maxCharacterLimit}
-                </div>
-                
-                {onDeleteVariable && (
-                  <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
-                    <AlertDialogTrigger asChild>
-                      <button 
-                        onClick={() => setVariableToDelete(variable.id)}
-                        className="p-2 rounded-full hover:bg-[#33fea6]/20 ml-2 absolute right-0 top-1/2 transform -translate-y-1/2"
-                        aria-label="Delete variable"
-                      >
-                        <Trash2 className="w-4 h-4 text-[#545454]" />
-                      </button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete variable?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this variable? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(variable.id)}>Delete</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-              </div>
+              
+              {onDeleteVariable && (
+                <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
+                  <AlertDialogTrigger asChild>
+                    <button 
+                      onClick={() => setVariableToDelete(variable.id)}
+                      className="p-2 rounded-full hover:bg-[#33fea6]/20 ml-2 absolute right-0 top-1/2 transform -translate-y-1/2"
+                      aria-label="Delete variable"
+                    >
+                      <Trash2 className="w-4 h-4 text-[#545454]" />
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete variable?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this variable? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(variable.id)}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </div>
         ))}

@@ -130,16 +130,21 @@ export const usePromptOperations = (
     });
   }, [setVariables]);
 
-  // Improved removeVariable function to ensure clean text replacement
+  // Improved removeVariable function to restore original text when removing a variable
   const removeVariable = useCallback((variableId: string) => {
-    console.log(`Marking variable ${variableId} as not relevant`);
+    console.log(`Removing variable ${variableId}`);
     
     // Find the variable we're removing
     const variable = variables.find(v => v.id === variableId);
     if (!variable) return;
     
-    // Get the current value of the variable (to replace placeholder)
-    const currentValue = variable.value || "";
+    // Get the original selected text if available, or use the current value as fallback
+    const originalText = variableSelections.get(variableId) || variable.name || variable.value || "";
+    
+    // Replace the placeholder with the original text in the finalPrompt
+    const placeholder = toVariablePlaceholder(variableId);
+    const updatedPrompt = finalPrompt.replace(new RegExp(escapeRegExp(placeholder), 'g'), originalText);
+    setFinalPrompt(updatedPrompt);
     
     // Mark the variable as not relevant
     setVariables(currentVars => 
@@ -148,35 +153,30 @@ export const usePromptOperations = (
       )
     );
     
-    // Replace the placeholder with the actual text in the finalPrompt
-    const placeholder = toVariablePlaceholder(variableId);
-    const updatedPrompt = finalPrompt.replace(new RegExp(escapeRegExp(placeholder), 'g'), currentValue);
-    setFinalPrompt(updatedPrompt);
+    // Remove from selections map
+    setVariableSelections(prev => {
+      const updated = new Map(prev);
+      updated.delete(variableId);
+      return updated;
+    });
     
     // Force re-render to ensure changes propagate
     setRenderKey(prev => prev + 1);
-  }, [variables, finalPrompt, setVariables, setFinalPrompt]);
+  }, [variables, finalPrompt, setVariables, setFinalPrompt, variableSelections]);
 
   // Delete a variable
   const handleDeleteVariable = useCallback((variableId: string) => {
-    console.log(`Marking variable ${variableId} as not relevant`);
+    console.log(`Deleting variable ${variableId}`);
     
-    // Mark the variable as not relevant
-    setVariables(currentVars => 
-      currentVars.map(v => 
-        v.id === variableId ? { ...v, isRelevant: false } : v
-      )
-    );
-    
-    // Force re-render to ensure changes propagate
-    setRenderKey(prev => prev + 1);
+    // First remove the variable from the prompt (replaces with original text)
+    removeVariable(variableId);
     
     toast({
       title: "Variable removed",
       description: "The variable has been removed from your prompt.",
       variant: "default",
     });
-  }, [setVariables, toast]);
+  }, [removeVariable, toast]);
 
   // Open the edit prompt sheet
   const handleOpenEditPrompt = useCallback(() => {

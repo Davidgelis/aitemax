@@ -91,7 +91,7 @@ export const convertPlaceholdersToSpans = (
     /{{([^:}]*)::([\w-]+)}}/g,
     (match, value, variableId) => {
       const variable = variables.find(v => v.id === variableId);
-      const displayValue = variable ? variable.value : value;
+      const displayValue = variable ? variable.value || variable.name : value;
       return `<span data-variable-id="${variableId}" contenteditable="false" class="variable-highlight">${displayValue}</span>`;
     }
   );
