@@ -47,7 +47,7 @@ const PromptView = () => {
     if (id) {
       fetchPrompt(id);
     }
-  }, [id, user]);
+  }, [id]);
 
   const fetchPrompt = async (promptId: string) => {
     setIsLoading(true);
@@ -72,6 +72,22 @@ const PromptView = () => {
         return;
       }
       
+      // Ensure we have valid data for variables by providing defaults
+      let parsedVariables: Variable[] = [];
+      try {
+        if (data.variables) {
+          // Handle both array and JSON object formats
+          if (Array.isArray(data.variables)) {
+            parsedVariables = data.variables;
+          } else if (typeof data.variables === 'object') {
+            parsedVariables = jsonToVariables(data.variables);
+          }
+        }
+      } catch (parseError) {
+        console.error("Error parsing variables:", parseError);
+        // If parsing fails, start with empty variables array
+      }
+      
       const formattedPrompt: SavedPrompt = {
         id: data.id,
         title: data.title || 'Untitled Prompt',
@@ -80,7 +96,7 @@ const PromptView = () => {
         masterCommand: data.master_command || '',
         primaryToggle: data.primary_toggle,
         secondaryToggle: data.secondary_toggle,
-        variables: data.variables ? JSON.parse(JSON.stringify(data.variables)) : [],
+        variables: parsedVariables,
         tags: (data.tags as unknown as Array<{category: string, subcategory: string}>) || []
       };
       
@@ -89,7 +105,10 @@ const PromptView = () => {
       setMasterCommand(formattedPrompt.masterCommand);
       setVariables(formattedPrompt.variables || []);
       setLastSavedPrompt(formattedPrompt.promptText);
-      setIsOwner(user && data.user_id === user.id);
+      
+      if (user) {
+        setIsOwner(data.user_id === user.id);
+      }
       
     } catch (error: any) {
       console.error("Error fetching prompt:", error.message);
@@ -102,6 +121,29 @@ const PromptView = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Import the jsonToVariables utility if it doesn't exist
+  const jsonToVariables = (jsonData: any): Variable[] => {
+    if (!jsonData) return [];
+    
+    // If it's already an array of Variables, return it
+    if (Array.isArray(jsonData) && jsonData.length > 0 && 'id' in jsonData[0]) {
+      return jsonData as Variable[];
+    }
+    
+    // Otherwise, convert from JSON object format
+    return Object.keys(jsonData).map(key => {
+      const varData = jsonData[key];
+      return {
+        id: key,
+        name: varData.name || key,
+        description: varData.description || '',
+        defaultValue: varData.defaultValue || '',
+        currentValue: varData.currentValue || varData.defaultValue || '',
+        isRelevant: varData.isRelevant !== undefined ? varData.isRelevant : true,
+      };
+    });
   };
 
   // Get the promptOperations utilities
@@ -132,9 +174,16 @@ const PromptView = () => {
 
   const handleSavePrompt = useCallback(async () => {
     try {
-      if (!prompt?.id) return;
+      if (!prompt?.id || !user) {
+        toast({
+          title: "Cannot save prompt",
+          description: "You must be logged in to save prompts.",
+          variant: "destructive",
+        });
+        return;
+      }
       
-      // Convert variables array to proper JSON format using the utility function
+      // Convert variables array to proper JSON format
       const variablesJson = variablesToJson(variables);
       
       const { error } = await supabase
@@ -142,7 +191,7 @@ const PromptView = () => {
         .update({
           prompt_text: finalPrompt,
           master_command: masterCommand,
-          variables: variablesJson // Use the converted JSON instead of the variables array directly
+          variables: variablesJson
         })
         .eq('id', prompt.id);
       
@@ -152,6 +201,8 @@ const PromptView = () => {
         title: "Prompt saved",
         description: "Your changes have been saved successfully.",
       });
+      
+      setLastSavedPrompt(finalPrompt);
     } catch (error: any) {
       console.error("Error saving prompt:", error.message);
       toast({
@@ -160,7 +211,7 @@ const PromptView = () => {
         variant: "destructive",
       });
     }
-  }, [finalPrompt, masterCommand, variables, prompt?.id, toast]);
+  }, [finalPrompt, masterCommand, variables, prompt?.id, user, toast]);
 
   const handleOpenEditPrompt = useCallback(() => {
     if (typeof promptOperations.handleOpenEditPrompt === 'function') {
@@ -192,6 +243,8 @@ const PromptView = () => {
   const handleDeleteVariable = useCallback((variableId: string) => {
     if (typeof promptOperations.handleDeleteVariable === 'function') {
       promptOperations.handleDeleteVariable(variableId);
+    } else {
+      setVariables(prev => prev.filter(v => v.id !== variableId));
     }
   }, [promptOperations]);
 
