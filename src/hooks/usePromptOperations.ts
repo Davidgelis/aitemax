@@ -43,17 +43,17 @@ export const usePromptOperations = (
 
   // Listen for variable name changes
   useEffect(() => {
-    const handleVariableNameChange = (event: CustomEvent) => {
+    const handleVariableNameChangeEvent = (event: CustomEvent) => {
       const { variableId, newName } = event.detail;
       if (variableId) {
         handleVariableNameChange(variableId, newName);
       }
     };
 
-    document.addEventListener('variable-name-changed', handleVariableNameChange as EventListener);
+    document.addEventListener('variable-name-changed', handleVariableNameChangeEvent as EventListener);
     
     return () => {
-      document.removeEventListener('variable-name-changed', handleVariableNameChange as EventListener);
+      document.removeEventListener('variable-name-changed', handleVariableNameChangeEvent as EventListener);
     };
   }, []);
 
@@ -301,3 +301,4 @@ export const usePromptOperations = (
     removeVariable // Export the removeVariable function
   };
 };
+
