@@ -154,7 +154,7 @@ serve(async (req) => {
     
     // Build the system message with updated requirements focusing on the four pillars
     const systemMessage = `
-      You are an advanced prompt enhancement specialist. Your task is to transform input prompts into well-structured, effective prompts for AI systems by creating the best possible prompt while adhering to the four pillars structure.
+      You are an advanced prompt creator. Your task is to create a well-structured, effective prompt for AI systems following the four-pillar structure. This is NOT a prompt about creating prompts - this IS the actual prompt that will be used directly by the user.
 
       CORE STRUCTURE REQUIREMENTS:
       The final prompt must follow the four-pillar structure in this order:
@@ -166,7 +166,7 @@ serve(async (req) => {
       IMPORTANT FORMATTING GUIDELINES:
       - Start with a descriptive TITLE (3-7 words) in plain text (no special formatting)
       - Use clear section headers for each pillar
-      - The AI has freedom to enhance and improve the prompt in any way that produces the best result
+      - You have full creative freedom to craft the best possible prompt while following the four-pillar structure
 
       PERSONA SECTION GUIDELINES:
       - Establish appropriate personas that align with the user's goals
@@ -205,11 +205,14 @@ serve(async (req) => {
       - Explain how to preserve original intent while refining clarity
 
       FINAL OUTPUT REQUIREMENTS:
-      - The enhanced prompt must be ready for consumption by another AI system
+      - The prompt must be ready to be used directly by the user with an AI system
+      - CRITICAL: This is NOT a prompt asking an AI to create a prompt - this IS the final prompt itself
+      - DO NOT include meta-instructions like "I will create a prompt for you" - just write the actual prompt
       - Ensure the content is clear, concise, and ready to be executed without additional clarification
       - The prompt should function effectively as a standalone instruction set
-      - The AI has creative freedom to produce the best possible prompt that adheres to the four-pillar structure
-      - The AI should NOT be constrained by overly rigid formatting requirements - prioritize quality and effectiveness
+      - DO NOT include any variables or placeholders in the final prompt - they are handled separately
+      - You have creative freedom to produce the best possible prompt that adheres to the four-pillar structure
+      - Prioritize effectiveness and quality over rigid formatting requirements
       ${primaryPrompt ? `\n\nPRIMARY TOGGLE INSTRUCTION: ${primaryPrompt}` : ""}${secondaryPrompt ? `\n\nSECONDARY TOGGLE INSTRUCTION: ${secondaryPrompt}` : ""}
       `;
 
@@ -218,14 +221,9 @@ serve(async (req) => {
       `- Question: ${q.text}\n  Answer: ${q.answer}\n  Category: ${q.category}\n  Relevant: ${q.isRelevant ? "Yes" : "No"}`
     ).join('\n\n');
 
-    // Note: We'll still pass relevant variables as context, but inform the model not to include them in output
-    const formattedVariables = relevantVariables.map(v => 
-      `- Variable Name: ${v.name}\n  Value: ${v.value}\n  Category: ${v.category || "Uncategorized"}`
-    ).join('\n\n');
-
     // Create user message with structured input data and clear instruction about variables
     const userMessage = `
-Please analyze and enhance the following prompt based on the provided context. This prompt will be used by another AI system, and should follow the four-pillar structure.
+Please create a high-quality prompt based on the provided context. Follow the four-pillar structure (Persona, Task, Conditions, Instructions).
 
 ORIGINAL PROMPT:
 ${originalPrompt}
@@ -233,13 +231,16 @@ ${originalPrompt}
 CONTEXT QUESTIONS AND ANSWERS:
 ${formattedQuestions}
 
-VARIABLES (FOR CONTEXT ONLY - DO NOT INCLUDE IN FINAL PROMPT):
-${formattedVariables}
-
 PRIMARY TOGGLE: ${primaryToggle || "None"}
 SECONDARY TOGGLE: ${secondaryToggle || "None"}
 
-IMPORTANT: Do not include variables in the final prompt. You have creative freedom to produce the best possible prompt as long as it follows the four-pillar structure (Persona, Task, Conditions, Instructions). Focus on creating a high-quality, effective prompt rather than strictly adhering to rigid formatting rules.
+IMPORTANT: 
+- This is NOT a prompt asking an AI to create a prompt - this IS the final prompt itself that will be used directly
+- DO NOT include any instructions about creating prompts - just write the actual prompt
+- DO NOT include any variables or placeholders in your output - they are handled separately by the system
+- DO NOT include any references to "the original prompt" or "enhancing a prompt" - this should be a standalone prompt
+- You have creative freedom to produce the best possible prompt as long as it follows the four-pillar structure
+- Focus on creating a high-quality, effective prompt rather than strictly adhering to rigid formatting rules
     `;
 
     try {
@@ -252,7 +253,7 @@ IMPORTANT: Do not include variables in the final prompt. You have creative freed
       
       // Prepare the message structure
       const messages = [
-        { role: "assistant", content: systemMessage },
+        { role: "system", content: systemMessage },
         { role: "user", content: userMessage }
       ];
       
@@ -311,7 +312,7 @@ IMPORTANT: Do not include variables in the final prompt. You have creative freed
         const completion = await openai.chat.completions.create({
           model: "o3-mini",
           messages: [
-            { role: "assistant", content: systemMessage },
+            { role: "system", content: systemMessage },
             { role: "user", content: userMessage }
           ],
           reasoning_effort: "medium",
@@ -336,25 +337,27 @@ IMPORTANT: Do not include variables in the final prompt. You have creative freed
         console.error("Error on retry attempt:", retryError);
         
         // Create a fallback enhanced prompt that follows the four-pillar structure
-        const fallbackPrompt = `Prompt Enhancement
+        const fallbackPrompt = `AI Task Instructions
 
-Persona
-An AI assistant that provides helpful, accurate, and thoughtful responses tailored to the specific needs outlined in the prompt.
+# Persona
+An expert assistant specialized in providing clear, detailed, and accurate information based on your specific needs.
 
-Task
+# Task
 ${originalPrompt}
 
-Conditions
-- Address all aspects of the query based on the given context
-- Consider all relevant factors mentioned in the prompt
-- Maintain a balanced and objective perspective
-- Follow any specific formatting or structure requirements
+# Conditions
+- Respond with comprehensive information addressing all aspects of the query
+- Consider multiple perspectives and potential use cases
+- Present information in a well-structured, logical format
+- Prioritize accuracy and relevance in all responses
+- Balance detail with clarity to ensure understandability
 
-Instructions
-- Begin by analyzing the key requirements and objectives
-- Break down complex concepts into manageable components
-- Provide clear and structured information with examples where appropriate
-- Conclude with actionable insights that address the core needs
+# Instructions
+- Begin by analyzing the core requirements of the request
+- Address the main points systematically and thoroughly
+- Include relevant examples where appropriate
+- Provide actionable recommendations when applicable
+- Conclude with a concise summary of key points
 `;
         
         return new Response(JSON.stringify({
@@ -374,24 +377,26 @@ Instructions
     // Return a generic fallback that follows the four-pillar structure
     return new Response(JSON.stringify({
       error: error.message,
-      enhancedPrompt: `Prompt Generator
+      enhancedPrompt: `AI Task Instructions
 
-Persona
-A prompt engineering specialist focused on creating effective AI instructions.
+# Persona
+A specialized assistant focused on providing accurate and helpful information.
 
-Task
-Transform the original input into a clear, structured prompt.
+# Task
+Respond to the user's request with comprehensive, well-structured information.
 
-Conditions
-- Maintain the original intent and purpose
-- Structure content logically and coherently
-- Use formal, professional language throughout
+# Conditions
+- Address all aspects of the query with relevant details
+- Organize information in a logical, easy-to-follow format
+- Use clear, precise language appropriate to the subject
+- Provide a balanced perspective considering different viewpoints
 
-Instructions
-- Analyze the core requirements of the original text
-- Organize information into a clear framework
-- Ensure all critical elements are preserved
-- Present the final prompt in a format optimized for AI processing
+# Instructions
+- Analyze the key requirements of the request
+- Research thoroughly to ensure accuracy
+- Present information in a systematic way
+- Include examples or references when helpful
+- Conclude with actionable insights or recommendations
 `,
       loadingMessage: "Error enhancing prompt..."
     }), {

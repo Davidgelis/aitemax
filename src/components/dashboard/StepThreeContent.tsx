@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
 import { FinalPromptDisplay } from "./step-three/FinalPromptDisplay";
-import { VariablesSection } from "./step-three/VariablesSection";
 import { ActionButtons } from "./step-three/ActionButtons";
 import { StepThreeStyles } from "./step-three/StepThreeStyles";
 import { useToast } from "@/hooks/use-toast";
@@ -67,7 +66,6 @@ export const StepThreeContent = ({
   handleVariableValueChange: externalHandleVariableValueChange
 }: StepThreeContentProps) => {
   const { toast } = useToast();
-  const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState("");
   const [renderTrigger, setRenderTrigger] = useState(0);
@@ -96,78 +94,12 @@ export const StepThreeContent = ({
     setLastSavedPrompt(finalPrompt);
   }, [finalPrompt]);
   
-  useEffect(() => {
-    if (!variables || !Array.isArray(variables)) {
-      console.error("Invalid variables provided to StepThreeContent:", variables);
-      setSafeVariables([]);
-      return;
-    }
-    
-    const validVariables = variables.filter(v => v && typeof v === 'object');
-    setSafeVariables(validVariables);
-  }, [variables]);
-  
-  const enhancedHandleVariableValueChange = useCallback((variableId: string, newValue: string) => {
-    try {
-      if (typeof externalHandleVariableValueChange === 'function') {
-        externalHandleVariableValueChange(variableId, newValue);
-      } else {
-        promptOperations.handleVariableValueChange(variableId, newValue);
-      }
-      
-      setRenderTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error("Error changing variable value:", error);
-      toast({
-        title: "Error updating variable",
-        description: "An error occurred while trying to update the variable",
-        variant: "destructive"
-      });
-    }
-  }, [externalHandleVariableValueChange, promptOperations, toast]);
-
-  // Handle saving edited content from the FinalPromptDisplay
-  const handleSaveInlineEdit = useCallback(() => {
-    try {
-      setIsEditing(false);
-      setEditablePrompt("");
-      setRenderTrigger(prev => prev + 1);
-      
-      // Only manually refresh JSON if already showing
-      if (showJson) {
-        handleRefreshJson();
-      }
-    } catch (error) {
-      console.error("Error saving edited prompt:", error);
-      toast({
-        title: "Error",
-        description: "Could not save edited prompt. Please try again.",
-        variant: "destructive",
-      });
-    }
-  }, [toast, showJson]);
-
   const getProcessedPromptFunction = useCallback(() => {
     if (typeof externalGetProcessedPrompt === 'function') {
       return externalGetProcessedPrompt();
     }
     return promptOperations.getProcessedPrompt();
   }, [externalGetProcessedPrompt, promptOperations]);
-
-  const recordVariableSelection = useCallback((variableId: string, selectedText: string) => {
-    console.log("Recording variable selection:", variableId, selectedText);
-    promptOperations.recordVariableSelection(variableId, selectedText);
-  }, [promptOperations]);
-  
-  const handleDeleteVariable = useCallback((variableId: string) => {
-    if (promptOperations.removeVariable) {
-      promptOperations.removeVariable(variableId);
-      toast({
-        title: "Variable deleted",
-        description: "The variable has been removed from your prompt",
-      });
-    }
-  }, [promptOperations, toast]);
 
   // Improved handleRefreshJson function to use the latest finalPrompt
   const handleRefreshJson = useCallback(() => {
@@ -182,6 +114,7 @@ export const StepThreeContent = ({
     // Force re-render of the JSON view with latest content
     setTimeout(() => {
       setRenderTrigger(prev => prev + 1);
+      setIsRefreshingJson(false);
     }, 100);
   }, [toast, isRefreshingJson]);
 
@@ -198,29 +131,21 @@ export const StepThreeContent = ({
         finalPrompt={finalPrompt || ""}
         updateFinalPrompt={setFinalPrompt}
         getProcessedPrompt={getProcessedPromptFunction}
-        variables={safeVariables}
+        variables={variables}
         setVariables={setVariables}
         showJson={showJson}
         masterCommand={masterCommand || ""}
         handleOpenEditPrompt={externalHandleOpenEditPrompt}
-        recordVariableSelection={recordVariableSelection}
         isEditing={isEditing}
         setIsEditing={setIsEditing}
         editablePrompt={editablePrompt}
         setEditablePrompt={setEditablePrompt}
-        handleSaveEditedPrompt={handleSaveInlineEdit}
         renderTrigger={renderTrigger}
         setRenderTrigger={setRenderTrigger}
         isRefreshing={isRefreshingJson}
         setIsRefreshing={setIsRefreshingJson}
         lastSavedPrompt={lastSavedPrompt}
         setLastSavedPrompt={setLastSavedPrompt}
-      />
-
-      <VariablesSection 
-        variables={safeVariables}
-        handleVariableValueChange={enhancedHandleVariableValueChange}
-        onDeleteVariable={handleDeleteVariable}
       />
 
       <ActionButtons 
