@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { xhr } from "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
@@ -122,7 +121,7 @@ serve(async (req) => {
       promptId
     } = await req.json();
     
-    console.log(`Enhancing prompt with o3-mini analysis...`);
+    console.log(`Enhancing prompt with Aitema X analysis...`);
     console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
     console.log(`Questions answered: ${answeredQuestions.length}`);
     console.log(`Relevant variables: ${relevantVariables.length}`);
@@ -150,7 +149,7 @@ serve(async (req) => {
     } else if (secondaryToggle) {
       loadingMessage += ` to be ${toggleLabels[secondaryToggle]}`;
     }
-    loadingMessage += "...";
+    loadingMessage += " with Aitema X...";
     
     // Build the system message with updated requirements focusing on the four pillars
     const systemMessage = `
@@ -244,7 +243,7 @@ IMPORTANT:
     `;
 
     try {
-      console.log("Using modern OpenAI client with o3-mini model...");
+      console.log("Using modern OpenAI client with Aitema X model...");
       
       // Initialize the OpenAI client
       const openai = new OpenAI({
@@ -267,7 +266,7 @@ IMPORTANT:
       // Extract the enhanced prompt from the response
       const enhancedPrompt = completion.choices[0].message.content;
       
-      console.log("Prompt enhancement completed successfully with o3-mini");
+      console.log("Prompt enhancement completed successfully with Aitema X");
       
       // Estimate token usage for reporting (exact counts may not be available)
       const estimatedUsage = {

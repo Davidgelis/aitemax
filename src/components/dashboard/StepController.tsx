@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -218,12 +219,12 @@ export const StepController = ({
         const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
         message += ` to be ${secondaryLabel}`;
       }
-      message += " with o3-mini...";
+      message += " with Aitema X...";
       
       setEnhancingMessage(message);
       
       try {
-        console.log("StepController: Enhancing prompt for step 3 with o3-mini...");
+        console.log("StepController: Enhancing prompt for step 3 with Aitema X...");
         
         // Use the enhancePromptWithGPT function to get an enhanced prompt
         await promptAnalysis.enhancePromptWithGPT(
@@ -373,3 +374,4 @@ export const StepController = ({
     </div>
   );
 };
+
