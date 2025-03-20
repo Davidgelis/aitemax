@@ -1,9 +1,8 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SavedPrompt, Variable } from "@/components/dashboard/types";
+import { SavedPrompt, Variable, variablesToJson } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
@@ -135,12 +134,15 @@ const PromptView = () => {
     try {
       if (!prompt?.id) return;
       
+      // Convert variables array to proper JSON format using the utility function
+      const variablesJson = variablesToJson(variables);
+      
       const { error } = await supabase
         .from('prompts')
         .update({
           prompt_text: finalPrompt,
           master_command: masterCommand,
-          variables: variables
+          variables: variablesJson // Use the converted JSON instead of the variables array directly
         })
         .eq('id', prompt.id);
       
