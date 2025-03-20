@@ -35,6 +35,25 @@ const PromptView = () => {
   const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
   const [lastSavedPrompt, setLastSavedPrompt] = useState("");
 
+  // Set up a listener for variable name changes
+  useEffect(() => {
+    const handleVariableNameChange = (event: CustomEvent) => {
+      const { variableId, newName } = event.detail;
+      if (variableId) {
+        setVariables(prevVariables => 
+          prevVariables.map(v => 
+            v.id === variableId ? { ...v, name: newName } : v
+          )
+        );
+      }
+    };
+
+    document.addEventListener('variable-name-changed', handleVariableNameChange as EventListener);
+    return () => {
+      document.removeEventListener('variable-name-changed', handleVariableNameChange as EventListener);
+    };
+  }, []);
+
   useEffect(() => {
     const getUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();

@@ -41,6 +41,22 @@ export const usePromptOperations = (
     }
   }, [variables, lastProcessedVariables]);
 
+  // Listen for variable name changes
+  useEffect(() => {
+    const handleVariableNameChange = (event: CustomEvent) => {
+      const { variableId, newName } = event.detail;
+      if (variableId) {
+        handleVariableNameChange(variableId, newName);
+      }
+    };
+
+    document.addEventListener('variable-name-changed', handleVariableNameChange as EventListener);
+    
+    return () => {
+      document.removeEventListener('variable-name-changed', handleVariableNameChange as EventListener);
+    };
+  }, []);
+
   // Process the prompt with variables - with placeholder conversion
   const getProcessedPrompt = useCallback((): string => {
     if (!finalPrompt) return "";
@@ -92,6 +108,20 @@ export const usePromptOperations = (
       
       // Update lastProcessedVariables to prevent unnecessary re-processing
       setLastProcessedVariables(updatedVars);
+      
+      // Force re-render to ensure changes propagate
+      setRenderKey(prev => prev + 1);
+      
+      return updatedVars;
+    });
+  }, [setVariables]);
+
+  // Update a variable's name
+  const handleVariableNameChange = useCallback((id: string, newName: string) => {
+    setVariables(currentVars => {
+      const updatedVars = currentVars.map(v => 
+        v.id === id ? { ...v, name: newName } : v
+      );
       
       // Force re-render to ensure changes propagate
       setRenderKey(prev => prev + 1);
@@ -257,6 +287,7 @@ export const usePromptOperations = (
     getProcessedPrompt,
     getCleanTextForCopy,
     handleVariableValueChange,
+    handleVariableNameChange,
     handleOpenEditPrompt,
     handleSaveEditedPrompt,
     handleAdaptPrompt,

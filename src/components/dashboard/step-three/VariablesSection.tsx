@@ -31,6 +31,21 @@ export const VariablesSection = ({
       console.error("Error changing variable value:", error);
     }
   }, [handleVariableValueChange]);
+
+  // Edit variable name
+  const handleNameChange = useCallback((variableId: string, newName: string) => {
+    try {
+      const event = new CustomEvent('variable-name-changed', {
+        detail: {
+          variableId,
+          newName
+        }
+      });
+      document.dispatchEvent(event);
+    } catch (error) {
+      console.error("Error changing variable name:", error);
+    }
+  }, []);
   
   // Only handle synchronization of variable inputs with the same ID
   useEffect(() => {
@@ -83,8 +98,26 @@ export const VariablesSection = ({
               {index + 1}
             </div>
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="sr-only">Variable name</div>
-              <div className="flex items-center w-full relative">
+              <div className="relative">
+                <Input 
+                  value={variable.name || ""}
+                  onChange={(e) => {
+                    // Limit input to maxCharacterLimit characters
+                    if (e.target.value.length <= maxCharacterLimit) {
+                      handleNameChange(variable.id, e.target.value);
+                    }
+                  }}
+                  className="h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16"
+                  data-variable-name-id={variable.id}
+                  data-source="variables-section"
+                  placeholder="Variable name..."
+                  maxLength={maxCharacterLimit}
+                />
+                <div className="absolute right-12 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
+                  {(variable.name || "").length}/{maxCharacterLimit}
+                </div>
+              </div>
+              <div className="relative">
                 <Input 
                   value={variable.value || ""}
                   onChange={(e) => {
@@ -96,7 +129,7 @@ export const VariablesSection = ({
                   className="h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16"
                   data-variable-id={variable.id}
                   data-source="variables-section"
-                  placeholder="Type here..."
+                  placeholder="Value..."
                   maxLength={maxCharacterLimit}
                   onInput={(e) => {
                     // Dispatch a custom event when value changes from this component
@@ -118,7 +151,7 @@ export const VariablesSection = ({
                     <AlertDialogTrigger asChild>
                       <button 
                         onClick={() => setVariableToDelete(variable.id)}
-                        className="p-2 rounded-full hover:bg-[#33fea6]/20 ml-2"
+                        className="p-2 rounded-full hover:bg-[#33fea6]/20 ml-2 absolute right-0 top-1/2 transform -translate-y-1/2"
                         aria-label="Delete variable"
                       >
                         <Trash2 className="w-4 h-4 text-[#545454]" />
