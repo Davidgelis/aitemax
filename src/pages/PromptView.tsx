@@ -1,8 +1,9 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SavedPrompt, Variable, variablesToJson } from "@/components/dashboard/types";
+import { SavedPrompt, Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
@@ -78,8 +79,17 @@ const PromptView = () => {
         if (data.variables) {
           // Handle both array and JSON object formats
           if (Array.isArray(data.variables)) {
-            parsedVariables = data.variables;
+            // Use the jsonToVariables utility to properly convert the data
+            parsedVariables = data.variables.map((v: any) => ({
+              id: v.id || "",
+              name: v.name || "",
+              value: v.value || v.currentValue || "",
+              isRelevant: v.isRelevant !== undefined ? v.isRelevant : true,
+              category: v.category || "Other",
+              code: v.code || ""
+            }));
           } else if (typeof data.variables === 'object') {
+            // Use the existing jsonToVariables utility
             parsedVariables = jsonToVariables(data.variables);
           }
         }
@@ -121,29 +131,6 @@ const PromptView = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Import the jsonToVariables utility if it doesn't exist
-  const jsonToVariables = (jsonData: any): Variable[] => {
-    if (!jsonData) return [];
-    
-    // If it's already an array of Variables, return it
-    if (Array.isArray(jsonData) && jsonData.length > 0 && 'id' in jsonData[0]) {
-      return jsonData as Variable[];
-    }
-    
-    // Otherwise, convert from JSON object format
-    return Object.keys(jsonData).map(key => {
-      const varData = jsonData[key];
-      return {
-        id: key,
-        name: varData.name || key,
-        description: varData.description || '',
-        defaultValue: varData.defaultValue || '',
-        currentValue: varData.currentValue || varData.defaultValue || '',
-        isRelevant: varData.isRelevant !== undefined ? varData.isRelevant : true,
-      };
-    });
   };
 
   // Get the promptOperations utilities
