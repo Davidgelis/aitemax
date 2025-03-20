@@ -39,10 +39,22 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: `You are a tag generator for AI prompts. Analyze the given prompt and generate 3 main category tags, 
-            each with a specific subcategory tag. Each tag should be a single word that categorizes the prompt by the main 
-            task or type of work it's used for. Respond with a JSON array of objects, each with 'category' and 'subcategory' 
-            properties. Be concise and accurate.`
+            content: `You are a prompt categorization expert. Your task is to analyze the given prompt and generate EXACTLY 3 main categories with 1 subcategory for each. 
+
+Each main category should represent a distinct aspect or use case of the prompt. For example, categories might include writing, coding, business, education, marketing, creative, technical, etc.
+
+Each subcategory should be more specific within its main category. For example, if the main category is "writing", the subcategory might be "blog", "essay", "story", etc.
+
+Respond with a JSON array containing exactly 3 objects, each with 'category' and 'subcategory' properties. Use single words for both category and subcategory whenever possible.
+
+Example response format:
+[
+  {"category": "writing", "subcategory": "blog"},
+  {"category": "marketing", "subcategory": "social"},
+  {"category": "business", "subcategory": "strategy"}
+]
+
+Make your categorization diverse across different domains to capture the full range of potential uses for this prompt.`
           },
           { role: 'user', content: promptText }
         ],
@@ -66,16 +78,47 @@ serve(async (req) => {
       const content = openAIData.choices[0].message.content.trim();
       tags = JSON.parse(content);
       
+      // Ensure we have exactly 3 categories
+      if (Array.isArray(tags)) {
+        if (tags.length > 3) {
+          tags = tags.slice(0, 3);
+        } else if (tags.length < 3) {
+          // Fill with default tags if we have fewer than 3
+          const defaultCategories = [
+            { category: "writing", subcategory: "creative" },
+            { category: "business", subcategory: "strategy" },
+            { category: "technical", subcategory: "coding" }
+          ];
+          
+          while (tags.length < 3) {
+            const defaultTag = defaultCategories[tags.length];
+            if (!tags.some(t => t.category === defaultTag.category)) {
+              tags.push(defaultTag);
+            } else {
+              // Find another default tag that's not already used
+              for (const backup of defaultCategories) {
+                if (!tags.some(t => t.category === backup.category)) {
+                  tags.push(backup);
+                  break;
+                }
+              }
+              
+              // If we still need more tags, create generic ones
+              if (tags.length < 3) {
+                tags.push({ category: `category${tags.length + 1}`, subcategory: `subcategory${tags.length + 1}` });
+              }
+            }
+          }
+        }
+      }
+      
       console.log('Tags generated successfully:', tags);
     } catch (parseError) {
       console.error('Failed to parse OpenAI response as JSON:', parseError);
       console.log('Raw content:', openAIData.choices[0].message.content);
       
-      // If parsing fails, attempt to extract the tags using regex or other means
-      const content = openAIData.choices[0].message.content;
-      
-      // Create a structured format by extracting information using a simpler approach
-      tags = extractTagsFromText(content);
+      // If parsing fails, create structured tags using a fallback approach
+      tags = extractTagsFromText(openAIData.choices[0].message.content);
       console.log('Tags extracted from text:', tags);
     }
 
@@ -110,6 +153,17 @@ function extractTagsFromText(text: string): Array<{category: string, subcategory
       try {
         const parsed = JSON.parse(jsonMatch[0]);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // Ensure we have exactly 3 tags
+          if (parsed.length > 3) {
+            return parsed.slice(0, 3);
+          } else if (parsed.length < 3) {
+            const result = [...parsed];
+            // Fill with default tags if we have fewer than 3
+            for (let i = parsed.length; i < 3; i++) {
+              result.push(defaultTags[i]);
+            }
+            return result;
+          }
           return parsed;
         }
       } catch (e) {
@@ -130,7 +184,29 @@ function extractTagsFromText(text: string): Array<{category: string, subcategory
           subcategory: categorySubcategoryMatch[2].toLowerCase()
         });
         if (pairs.length >= 3) break;
+      } else {
+        // Try to match numbered items with main categories and subcategories
+        const numberedMatch = line.match(/^\s*\d+\.\s*([\w\s]+)(?:-|:)\s*([\w\s]+)/i);
+        if (numberedMatch) {
+          pairs.push({
+            category: numberedMatch[1].trim().toLowerCase().split(/\s+/)[0], // Take first word of category
+            subcategory: numberedMatch[2].trim().toLowerCase().split(/\s+/)[0] // Take first word of subcategory
+          });
+          if (pairs.length >= 3) break;
+        }
       }
+    }
+    
+    // Ensure we have exactly 3 tags
+    if (pairs.length > 3) {
+      return pairs.slice(0, 3);
+    } else if (pairs.length < 3) {
+      const result = [...pairs];
+      // Fill with default tags if we have fewer than 3
+      for (let i = pairs.length; i < 3; i++) {
+        result.push(defaultTags[i]);
+      }
+      return result;
     }
     
     return pairs.length > 0 ? pairs : defaultTags;
