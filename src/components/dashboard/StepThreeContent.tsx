@@ -72,8 +72,7 @@ export const StepThreeContent = ({
   const [renderTrigger, setRenderTrigger] = useState(0);
   const [isRefreshingJson, setIsRefreshingJson] = useState(false);
   const [lastSavedPrompt, setLastSavedPrompt] = useState(finalPrompt);
-  const [multiSelections, setMultiSelections] = useState<{text: string, range: Range}[]>([]);
-  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
   
   // Get the promptOperations
   const promptOperations = usePromptOperations(
@@ -156,43 +155,13 @@ export const StepThreeContent = ({
     };
   }, [promptOperations]);
 
-  // Toggle multi-select mode
-  const toggleMultiSelectMode = useCallback(() => {
-    setIsMultiSelectMode(prev => !prev);
-    // Clear selections when toggling off
-    if (isMultiSelectMode) {
-      setMultiSelections([]);
+  // Handle creating a variable
+  const handleCreateVariable = useCallback((text: string) => {
+    if (promptOperations.createVariable && text) {
+      promptOperations.createVariable(text);
+      setSelectedText("");
     }
-  }, [isMultiSelectMode]);
-
-  // Add or remove a selection from multiSelections
-  const handleMultiSelection = useCallback((text: string, range: Range) => {
-    if (isMultiSelectMode) {
-      setMultiSelections(prev => [...prev, { text, range }]);
-    }
-  }, [isMultiSelectMode]);
-
-  // Create a single variable from multiple selections
-  const createCombinedVariable = useCallback(() => {
-    if (multiSelections.length > 0) {
-      // Create a single variable with combined text
-      const combinedText = multiSelections.map(selection => selection.text).join(' ');
-      
-      // Use existing function to create variable
-      if (promptOperations.createVariable) {
-        promptOperations.createVariable(combinedText);
-      }
-      
-      // Clear selections and exit multi-select mode
-      setMultiSelections([]);
-      setIsMultiSelectMode(false);
-      
-      toast({
-        title: "Variable created",
-        description: "Created a single variable from multiple selections",
-      });
-    }
-  }, [multiSelections, promptOperations, toast]);
+  }, [promptOperations]);
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
@@ -224,12 +193,9 @@ export const StepThreeContent = ({
         setIsRefreshing={setIsRefreshingJson}
         lastSavedPrompt={lastSavedPrompt}
         setLastSavedPrompt={setLastSavedPrompt}
-        isMultiSelectMode={isMultiSelectMode}
-        toggleMultiSelectMode={toggleMultiSelectMode}
-        handleMultiSelection={handleMultiSelection}
-        multiSelections={multiSelections}
-        setMultiSelections={setMultiSelections}
-        createCombinedVariable={createCombinedVariable}
+        selectedText={selectedText}
+        setSelectedText={setSelectedText}
+        onCreateVariable={handleCreateVariable}
       />
 
       {/* Add VariablesSection component here */}

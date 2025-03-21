@@ -8,6 +8,7 @@ import {
   toVariablePlaceholder,
   convertPlaceholdersToSpans 
 } from "@/utils/promptUtils";
+import { v4 as uuidv4 } from 'uuid';
 
 export const usePromptOperations = (
   variables: Variable[],
@@ -98,6 +99,46 @@ export const usePromptOperations = (
     });
     setRenderKey(prev => prev + 1); // Force re-render
   }, []);
+
+  // Create a new variable from selected text
+  const createVariable = useCallback((selectedText: string) => {
+    if (!selectedText) return null;
+    
+    try {
+      // Create a new variable with a unique ID
+      const variableId = uuidv4();
+      const variableName = `Variable ${variables.filter(v => v.isRelevant).length + 1}`;
+      
+      // Create placeholder for the variable
+      const placeholder = `{{value::${variableId}}}`;
+      
+      // Replace the selected text with the placeholder in the prompt
+      let updatedPrompt = finalPrompt;
+      
+      // Simple replace (works for plain text)
+      updatedPrompt = updatedPrompt.replace(selectedText, placeholder);
+      
+      // Add the new variable to the variables array
+      const newVariable: Variable = {
+        id: variableId,
+        name: variableName,
+        value: selectedText,
+        isRelevant: true,
+        category: "Other"
+      };
+      
+      setVariables(prev => [...prev, newVariable]);
+      setFinalPrompt(updatedPrompt);
+      
+      // Force re-render the prompt with updated variables
+      setRenderKey(prev => prev + 1);
+      
+      return variableId;
+    } catch (error) {
+      console.error("Error creating variable:", error);
+      return null;
+    }
+  }, [finalPrompt, variables, setVariables, setFinalPrompt]);
 
   // Update a variable's value with real-time synchronization
   const handleVariableValueChange = useCallback((id: string, newValue: string) => {
@@ -299,6 +340,7 @@ export const usePromptOperations = (
     renderKey,
     recordVariableSelection,
     variableSelections,
-    removeVariable // Export the removeVariable function
+    removeVariable,
+    createVariable // Export the createVariable function
   };
 };
