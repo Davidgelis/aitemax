@@ -1,4 +1,3 @@
-
 import { Edit, Copy, Save, RotateCw, X, Check, RefreshCw } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -247,13 +246,13 @@ export const FinalPrompt = ({
           style={{ backgroundSize: "400% 400%" }}
         />
         
-        <div className={`relative h-full p-6 overflow-y-auto ${isEditing ? 'editing-mode' : ''}`}>
+        <div className="relative h-full p-6 overflow-auto">
           <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
           
           {!isEditing ? (
-            <div className="whitespace-pre-wrap text-card-foreground">
+            <div className="whitespace-pre-wrap text-card-foreground overflow-auto">
               {showJson ? (
-                <pre className="text-xs font-mono">
+                <pre className="text-xs font-mono overflow-x-auto">
                   {JSON.stringify({ 
                     prompt: finalPrompt, 
                     masterCommand,
@@ -261,7 +260,7 @@ export const FinalPrompt = ({
                   }, null, 2)}
                 </pre>
               ) : (
-                <div className="prose prose-sm max-w-none">
+                <div className="prose prose-sm max-w-none overflow-auto">
                   <div dangerouslySetInnerHTML={{ __html: getProcessedPrompt().split('\n\n').map(p => `<p>${p}</p>`).join('') }} />
                 </div>
               )}
@@ -269,7 +268,7 @@ export const FinalPrompt = ({
           ) : (
             <div 
               ref={promptContainerRef}
-              className="whitespace-pre-wrap text-card-foreground editable-content" 
+              className="whitespace-pre-wrap text-card-foreground editable-content overflow-auto" 
               contentEditable="true"
               suppressContentEditableWarning={true}
               dangerouslySetInnerHTML={{ __html: currentEditingContent }}
