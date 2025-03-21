@@ -1,18 +1,17 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, Share2, Globe, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SavedPrompt, Variable } from "@/components/dashboard/types";
+import { SavedPrompt, Variable, variablesToJson } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
-import { XPanelButton } from "@/components/dashboard/XPanelButton";
+import XPanelButton from "@/components/dashboard/XPanelButton";
 import { convertPlaceholdersToSpans } from "@/utils/promptUtils";
 
 const PromptView = () => {
@@ -168,7 +167,6 @@ const PromptView = () => {
     return text ? text.replace(/<[^>]*>/g, '') : '';
   };
 
-  // Step 3 event handlers
   const handlePrimaryToggle = (id: string) => {
     setSelectedPrimary(selectedPrimary === id ? null : id);
   };
@@ -188,12 +186,15 @@ const PromptView = () => {
     if (!prompt) return;
     
     try {
+      // Convert variables array to JSON format expected by Supabase
+      const variablesJson = variablesToJson(variables);
+      
       const { error } = await supabase
         .from('prompts')
         .update({
           prompt_text: finalPrompt,
           master_command: masterCommand,
-          variables: variables,
+          variables: variablesJson,
           primary_toggle: selectedPrimary,
           secondary_toggle: selectedSecondary,
         })
@@ -397,6 +398,9 @@ const PromptView = () => {
               handleAdaptPrompt={handleAdaptPrompt}
               getProcessedPrompt={getProcessedPrompt}
               handleVariableValueChange={handleVariableValueChange}
+              selectedText={selectedText}
+              setSelectedText={setSelectedText}
+              onCreateVariable={handleCreateVariable}
             />
           </TabsContent>
           
