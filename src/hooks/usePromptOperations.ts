@@ -130,7 +130,7 @@ export const usePromptOperations = (
     });
   }, [setVariables]);
 
-  // Improved removeVariable function to restore original text when removing a variable
+  // Improved removeVariable function to use the current variable value when removing
   const removeVariable = useCallback((variableId: string) => {
     console.log(`Removing variable ${variableId}`);
     
@@ -138,14 +138,13 @@ export const usePromptOperations = (
     const variable = variables.find(v => v.id === variableId);
     if (!variable) return;
     
-    // Get the original selected text if available, or use the current value as fallback
-    // IMPORTANT: Use the original selection text stored in variableSelections, NOT the variable name
-    const originalText = variableSelections.get(variableId) || variable.value || "";
-    console.log(`Original text for variable ${variableId}:`, originalText);
+    // Use the current variable value instead of the original selection text
+    const currentValue = variable.value || "";
+    console.log(`Current value for variable ${variableId}:`, currentValue);
     
-    // Replace the placeholder with the original text in the finalPrompt
+    // Replace the placeholder with the current value in the finalPrompt
     const placeholder = toVariablePlaceholder(variableId);
-    const updatedPrompt = finalPrompt.replace(new RegExp(escapeRegExp(placeholder), 'g'), originalText);
+    const updatedPrompt = finalPrompt.replace(new RegExp(escapeRegExp(placeholder), 'g'), currentValue);
     setFinalPrompt(updatedPrompt);
     
     // Mark the variable as not relevant
@@ -170,7 +169,7 @@ export const usePromptOperations = (
   const handleDeleteVariable = useCallback((variableId: string) => {
     console.log(`Deleting variable ${variableId}`);
     
-    // First remove the variable from the prompt (replaces with original text)
+    // First remove the variable from the prompt (replaces with current value)
     removeVariable(variableId);
     
     toast({
