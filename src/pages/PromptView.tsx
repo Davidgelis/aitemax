@@ -5,7 +5,7 @@ import { ArrowLeft, Copy, Share2, Globe, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SavedPrompt, Variable, variablesToJson } from "@/components/dashboard/types";
+import { SavedPrompt, Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -57,9 +57,8 @@ const PromptView = () => {
     if (prompt && prompt.variables) {
       setFinalPrompt(prompt.promptText || "");
       setMasterCommand(prompt.masterCommand || "");
-      // Ensure variables is always an array
-      const validVariables = Array.isArray(prompt.variables) ? prompt.variables : [];
-      setVariables(validVariables);
+      // Ensure variables is always an array and properly typed
+      setVariables(prompt.variables);
       setSelectedPrimary(prompt.primaryToggle || null);
       setSelectedSecondary(prompt.secondaryToggle || null);
     }
@@ -88,6 +87,32 @@ const PromptView = () => {
         return;
       }
       
+      // Convert the variables from JSON to the Variable type array
+      let processedVariables: Variable[] = [];
+      if (data.variables) {
+        if (Array.isArray(data.variables)) {
+          // If it's already an array, map it to ensure it matches the Variable type
+          processedVariables = data.variables.map(v => ({
+            id: typeof v.id === 'string' ? v.id : String(v.id),
+            name: v.name || '',
+            value: v.value || '',
+            isRelevant: v.isRelevant === undefined ? null : v.isRelevant,
+            category: v.category || 'Other',
+            code: v.code || ''
+          }));
+        } else if (typeof data.variables === 'object' && data.variables !== null) {
+          // If it's an object with variable IDs as keys
+          processedVariables = Object.keys(data.variables).map(id => ({
+            id,
+            name: data.variables[id]?.name || '',
+            value: data.variables[id]?.value || '',
+            isRelevant: data.variables[id]?.isRelevant === undefined ? null : data.variables[id]?.isRelevant,
+            category: data.variables[id]?.category || 'Other',
+            code: data.variables[id]?.code || ''
+          }));
+        }
+      }
+      
       const formattedPrompt: SavedPrompt = {
         id: data.id,
         title: data.title || 'Untitled Prompt',
@@ -96,18 +121,7 @@ const PromptView = () => {
         masterCommand: data.master_command || '',
         primaryToggle: data.primary_toggle,
         secondaryToggle: data.secondary_toggle,
-        variables: Array.isArray(data.variables) 
-          ? data.variables 
-          : (typeof data.variables === 'object' && data.variables 
-            ? Object.keys(data.variables).map(id => ({
-                id,
-                name: data.variables[id]?.name || '',
-                value: data.variables[id]?.value || '',
-                isRelevant: data.variables[id]?.isRelevant === undefined ? null : data.variables[id]?.isRelevant,
-                category: data.variables[id]?.category || 'Other',
-                code: data.variables[id]?.code || ''
-              }))
-            : []),
+        variables: processedVariables,
         tags: (data.tags as unknown as Array<{category: string, subcategory: string}>) || []
       };
       
@@ -118,7 +132,7 @@ const PromptView = () => {
       if (formattedPrompt.variables && formattedPrompt.variables.length > 0) {
         const jsonObj = {
           prompt: formattedPrompt.promptText,
-          variables: formattedPrompt.variables.reduce((acc: any, v: any) => {
+          variables: formattedPrompt.variables.reduce((acc: any, v: Variable) => {
             if (v.name && v.value) {
               acc[v.name] = v.value;
             }
@@ -200,7 +214,7 @@ const PromptView = () => {
     if (!prompt) return;
     
     try {
-      // Ensure variables is always an array before converting to JSON
+      // Ensure variables is properly formatted before saving
       const safeVariables = Array.isArray(variables) ? variables : [];
       // Convert variables array to JSON format expected by Supabase
       const variablesJson = variablesToJson(safeVariables);
