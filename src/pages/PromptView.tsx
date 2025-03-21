@@ -34,6 +34,8 @@ const PromptView = () => {
   const [editablePrompt, setEditablePrompt] = useState("");
   const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
   const [lastSavedPrompt, setLastSavedPrompt] = useState("");
+  // Add the missing states required by FinalPromptDisplay
+  const [selectedText, setSelectedText] = useState("");
 
   // Set up a listener for variable name changes
   useEffect(() => {
@@ -254,6 +256,14 @@ const PromptView = () => {
     }
   }, [promptOperations]);
 
+  // Add the function to create variables from selected text
+  const handleCreateVariable = useCallback((text: string) => {
+    if (promptOperations.createVariable && text) {
+      promptOperations.createVariable(text);
+      setSelectedText("");
+    }
+  }, [promptOperations]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex justify-center items-center">
@@ -333,6 +343,9 @@ const PromptView = () => {
             setIsRefreshing={setIsRefreshingJson}
             lastSavedPrompt={lastSavedPrompt}
             setLastSavedPrompt={setLastSavedPrompt}
+            selectedText={selectedText}
+            setSelectedText={setSelectedText}
+            onCreateVariable={handleCreateVariable}
           />
 
           {/* Variables section */}
