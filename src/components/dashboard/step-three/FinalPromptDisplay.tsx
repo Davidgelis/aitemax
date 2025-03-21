@@ -1,4 +1,4 @@
-import { Edit, PlusCircle, Check, X } from "lucide-react";
+import { Edit, PlusCircle, Check, X, Layers, Clipboard, BookMarked } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
 import { replaceVariableInPrompt, convertEditedContentToPlaceholders, convertPlaceholdersToEditableFormat, convertPlaceholdersToSpans, toVariablePlaceholder, stripHtml } from "@/utils/promptUtils";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface FinalPromptDisplayProps {
   finalPrompt: string;
@@ -57,6 +58,8 @@ export const FinalPromptDisplay = ({
   const [isLoadingJson, setIsLoadingJson] = useState(false);
   const [jsonGenerated, setJsonGenerated] = useState(false);
   const [isCreatingVariable, setIsCreatingVariable] = useState(false);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [multiSelections, setMultiSelections] = useState<string[]>([]);
   const promptContainerRef = useRef<HTMLDivElement>(null);
   const editableContentRef = useRef<HTMLDivElement>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -64,6 +67,7 @@ export const FinalPromptDisplay = ({
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
   const [promptId, setPromptId] = useState<string | null>(null);
+  
   useEffect(() => {
     const getUserId = async () => {
       const {
@@ -295,11 +299,118 @@ export const FinalPromptDisplay = ({
     const selText = selection.toString().trim();
     if (!selText) return;
 
-    // Create variable from selection
-    createVariable(selText, range);
+    if (isMultiSelectMode) {
+      // Add to multi selections
+      if (!multiSelections.includes(selText)) {
+        setMultiSelections(prev => [...prev, selText]);
+        
+        // Apply temporary highlight
+        const span = document.createElement('span');
+        span.className = 'selection-highlight';
+        span.textContent = selText;
+        
+        try {
+          // Temporary highlight for visual feedback
+          const rangeClone = range.cloneRange();
+          rangeClone.surroundContents(span);
+          selection.removeAllRanges();
+        } catch (e) {
+          console.error("Error highlighting selection:", e);
+        }
+        
+        toast({
+          title: "Selection added",
+          description: `Added "${selText.substring(0, 20)}${selText.length > 20 ? '...' : ''}" to selections`,
+        });
+      }
+    } else {
+      // Create variable from single selection
+      createVariable(selText, range);
 
-    // Clear the selection
-    selection.removeAllRanges();
+      // Clear the selection
+      selection.removeAllRanges();
+    }
+  };
+
+  const createAllVariables = () => {
+    if (multiSelections.length === 0) {
+      toast({
+        title: "No selections",
+        description: "Please select text portions before creating variables",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    let updatedPrompt = finalPrompt;
+    
+    // Process all selections and create variables
+    multiSelections.forEach((selText, index) => {
+      if (relevantVariables.length >= 15) {
+        toast({
+          title: "Variable limit reached",
+          description: "You can create up to 15 variables",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Use a simple numeric name based on the number of existing variables + index
+      const variableName = `${relevantVariables.length + index + 1}`;
+      const variableId = uuidv4();
+      const newVariable: Variable = {
+        id: variableId,
+        name: variableName,
+        value: selText,
+        isRelevant: true,
+        category: 'Selection'
+      };
+
+      // Record the original selection (for later replacement in the prompt)
+      if (typeof recordVariableSelection === 'function') {
+        // Store the original text that was selected
+        recordVariableSelection(variableId, selText);
+      }
+
+      // Add the new variable to the list to be set later
+      setVariables(prev => [...prev, newVariable]);
+
+      // Replace the selection with a placeholder
+      const varPlaceholder = toVariablePlaceholder(variableId);
+      updatedPrompt = replaceVariableInPrompt(updatedPrompt, selText, varPlaceholder, variableName);
+    });
+
+    // Update the prompt once with all replacements
+    updateFinalPrompt(updatedPrompt);
+    
+    toast({
+      title: "Variables created",
+      description: `Created ${multiSelections.length} variables from your selections`
+    });
+
+    // Clear selections and exit multi-select mode
+    setMultiSelections([]);
+    setIsMultiSelectMode(false);
+    
+    // Clear any highlighting in the DOM
+    if (promptContainerRef.current) {
+      const highlights = promptContainerRef.current.querySelectorAll('.selection-highlight');
+      highlights.forEach(el => {
+        const parent = el.parentNode;
+        if (parent) {
+          parent.replaceChild(document.createTextNode(el.textContent || ""), el);
+          parent.normalize(); // Merge adjacent text nodes
+        }
+      });
+    }
+
+    // Force re-render
+    setRenderTrigger(prev => prev + 1);
+
+    // Reset JSON generation to force refresh if needed
+    if (showJson) {
+      setJsonGenerated(false);
+    }
   };
 
   // Simplified variable creation function
@@ -357,7 +468,21 @@ export const FinalPromptDisplay = ({
   };
 
   const cancelVariableCreation = () => {
+    // Clear any temporary highlights
+    if (promptContainerRef.current && isMultiSelectMode) {
+      const highlights = promptContainerRef.current.querySelectorAll('.selection-highlight');
+      highlights.forEach(el => {
+        const parent = el.parentNode;
+        if (parent) {
+          parent.replaceChild(document.createTextNode(el.textContent || ""), el);
+          parent.normalize(); // Merge adjacent text nodes
+        }
+      });
+    }
+    
     setIsCreatingVariable(false);
+    setIsMultiSelectMode(false);
+    setMultiSelections([]);
     window.getSelection()?.removeAllRanges();
   };
 
@@ -373,6 +498,34 @@ export const FinalPromptDisplay = ({
         description: "Select text to create a variable. Click the button again to exit."
       });
     }
+  };
+
+  const toggleMultiSelectMode = () => {
+    if (!isCreatingVariable) {
+      setIsCreatingVariable(true);
+    }
+    
+    setIsMultiSelectMode(prev => !prev);
+    setMultiSelections([]);
+    
+    // Remove any existing highlights when toggling
+    if (promptContainerRef.current) {
+      const highlights = promptContainerRef.current.querySelectorAll('.selection-highlight');
+      highlights.forEach(el => {
+        const parent = el.parentNode;
+        if (parent) {
+          parent.replaceChild(document.createTextNode(el.textContent || ""), el);
+          parent.normalize();
+        }
+      });
+    }
+    
+    toast({
+      title: isMultiSelectMode ? "Single selection mode" : "Multi-selection mode",
+      description: isMultiSelectMode 
+        ? "Now creating individual variables" 
+        : "Select multiple text portions, then click 'Create All'"
+    });
   };
 
   const removeVariable = (variableId: string) => {
@@ -519,15 +672,42 @@ export const FinalPromptDisplay = ({
     }
   };
 
-  return <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
+  return <div className={`relative flex-1 mb-4 overflow-hidden rounded-lg ${isMultiSelectMode ? 'multi-select-mode' : ''}`}>
       <div className="absolute top-2 right-2 z-10 flex items-center space-x-4">
         {!isEditing && <>
             <div className="flex items-center gap-2">
               <span className="text-sm text-accent">Create Variable</span>
-              <button onClick={toggleVariableCreation} className={`p-2 rounded-full ${isCreatingVariable ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`} aria-label={isCreatingVariable ? "Exit variable creation mode" : "Create variable"}>
+              <button 
+                onClick={toggleVariableCreation} 
+                className={`p-2 rounded-full ${isCreatingVariable ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`} 
+                aria-label={isCreatingVariable ? "Exit variable creation mode" : "Create variable"}
+              >
                 <PlusCircle className={`w-4 h-4 ${isCreatingVariable ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
               </button>
             </div>
+            
+            {isCreatingVariable && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-accent">Multi-select</span>
+                <button 
+                  onClick={toggleMultiSelectMode} 
+                  className={`p-2 rounded-full ${isMultiSelectMode ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`} 
+                  aria-label={isMultiSelectMode ? "Disable multi-selection" : "Enable multi-selection"}
+                >
+                  <Layers className={`w-4 h-4 ${isMultiSelectMode ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
+                </button>
+              </div>
+            )}
+            
+            {isMultiSelectMode && multiSelections.length > 0 && (
+              <button 
+                onClick={createAllVariables}
+                className="create-all-button flex items-center gap-1"
+              >
+                <Clipboard className="w-3 h-3" />
+                <span>Create {multiSelections.length} {multiSelections.length === 1 ? 'Variable' : 'Variables'}</span>
+              </button>
+            )}
             
             <div className="flex items-center gap-2">
               <span className="text-sm text-accent">Edit Prompt</span>

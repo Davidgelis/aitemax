@@ -76,6 +76,27 @@ export const StepThreeStyles = () => {
     .edit-icon-button:hover .edit-icon {
       color: #33fea6;
     }
+
+    .multi-select-mode {
+      background-color: rgba(51, 254, 166, 0.05);
+    }
+
+    .selection-highlight {
+      background-color: rgba(51, 254, 166, 0.2);
+      border-radius: 0.125rem;
+    }
+    
+    .create-all-button {
+      background-color: #33fea6;
+      color: white;
+      border-radius: 0.25rem;
+      padding: 0.375rem 0.75rem;
+      transition: all 0.2s ease;
+    }
+    
+    .create-all-button:hover {
+      background-color: #22e696;
+    }
   `;
 
   return <style dangerouslySetInnerHTML={{ __html: styles }} />;
