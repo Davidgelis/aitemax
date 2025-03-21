@@ -139,7 +139,9 @@ export const usePromptOperations = (
     if (!variable) return;
     
     // Get the original selected text if available, or use the current value as fallback
-    const originalText = variableSelections.get(variableId) || variable.name || variable.value || "";
+    // IMPORTANT: Use the original selection text stored in variableSelections, NOT the variable name
+    const originalText = variableSelections.get(variableId) || variable.value || "";
+    console.log(`Original text for variable ${variableId}:`, originalText);
     
     // Replace the placeholder with the original text in the finalPrompt
     const placeholder = toVariablePlaceholder(variableId);
@@ -162,7 +164,7 @@ export const usePromptOperations = (
     
     // Force re-render to ensure changes propagate
     setRenderKey(prev => prev + 1);
-  }, [variables, finalPrompt, setVariables, setFinalPrompt, variableSelections]);
+  }, [variables, finalPrompt, setFinalPrompt, setVariables, variableSelections]);
 
   // Delete a variable
   const handleDeleteVariable = useCallback((variableId: string) => {

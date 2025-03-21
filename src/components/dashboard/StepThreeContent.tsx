@@ -132,6 +132,9 @@ export const StepThreeContent = ({
   const handleDeleteVariable = useCallback((variableId: string) => {
     if (typeof promptOperations.handleDeleteVariable === 'function') {
       promptOperations.handleDeleteVariable(variableId);
+      
+      // Force a re-render to update the UI after deletion
+      setRenderTrigger(prev => prev + 1);
     }
   }, [promptOperations]);
 
@@ -169,6 +172,7 @@ export const StepThreeContent = ({
         showJson={showJson}
         masterCommand={masterCommand || ""}
         handleOpenEditPrompt={externalHandleOpenEditPrompt}
+        recordVariableSelection={promptOperations.recordVariableSelection}
         isEditing={isEditing}
         setIsEditing={setIsEditing}
         editablePrompt={editablePrompt}

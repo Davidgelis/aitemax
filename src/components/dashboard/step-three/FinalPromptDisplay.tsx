@@ -358,6 +358,7 @@ export const FinalPromptDisplay = ({
 
     // Record the original selection (for later replacement in the prompt)
     if (typeof recordVariableSelection === 'function') {
+      // Store the original text that was selected
       recordVariableSelection(variableId, combinedText);
     }
 
