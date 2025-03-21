@@ -54,10 +54,12 @@ const PromptView = () => {
   }, [id, user]);
 
   useEffect(() => {
-    if (prompt) {
+    if (prompt && prompt.variables) {
       setFinalPrompt(prompt.promptText || "");
       setMasterCommand(prompt.masterCommand || "");
-      setVariables(prompt.variables ? [...prompt.variables] : []);
+      // Ensure variables is always an array
+      const validVariables = Array.isArray(prompt.variables) ? prompt.variables : [];
+      setVariables(validVariables);
       setSelectedPrimary(prompt.primaryToggle || null);
       setSelectedSecondary(prompt.secondaryToggle || null);
     }
@@ -94,7 +96,18 @@ const PromptView = () => {
         masterCommand: data.master_command || '',
         primaryToggle: data.primary_toggle,
         secondaryToggle: data.secondary_toggle,
-        variables: data.variables ? JSON.parse(JSON.stringify(data.variables)) : [],
+        variables: Array.isArray(data.variables) 
+          ? data.variables 
+          : (typeof data.variables === 'object' && data.variables 
+            ? Object.keys(data.variables).map(id => ({
+                id,
+                name: data.variables[id]?.name || '',
+                value: data.variables[id]?.value || '',
+                isRelevant: data.variables[id]?.isRelevant === undefined ? null : data.variables[id]?.isRelevant,
+                category: data.variables[id]?.category || 'Other',
+                code: data.variables[id]?.code || ''
+              }))
+            : []),
         tags: (data.tags as unknown as Array<{category: string, subcategory: string}>) || []
       };
       
@@ -187,8 +200,10 @@ const PromptView = () => {
     if (!prompt) return;
     
     try {
+      // Ensure variables is always an array before converting to JSON
+      const safeVariables = Array.isArray(variables) ? variables : [];
       // Convert variables array to JSON format expected by Supabase
-      const variablesJson = variablesToJson(variables);
+      const variablesJson = variablesToJson(safeVariables);
       
       const { error } = await supabase
         .from('prompts')
@@ -240,10 +255,17 @@ const PromptView = () => {
 
   const getProcessedPrompt = () => {
     if (!finalPrompt) return "";
-    return convertPlaceholdersToSpans(finalPrompt, variables.filter(v => v.isRelevant === true));
+    // Ensure we're only using variables that are actually in the array
+    const safeVariables = Array.isArray(variables) ? variables.filter(v => v && v.isRelevant === true) : [];
+    return convertPlaceholdersToSpans(finalPrompt, safeVariables);
   };
 
   const handleVariableValueChange = (variableId: string, newValue: string) => {
+    if (!Array.isArray(variables)) {
+      console.error("Variables is not an array:", variables);
+      return;
+    }
+    
     setVariables(prevVars => 
       prevVars.map(v => 
         v.id === variableId ? { ...v, value: newValue } : v
@@ -374,35 +396,41 @@ const PromptView = () => {
           </TabsList>
           
           <TabsContent value="prompt" className="mt-4">
-            <StepThreeContent
-              masterCommand={masterCommand}
-              setMasterCommand={setMasterCommand}
-              selectedPrimary={selectedPrimary}
-              selectedSecondary={selectedSecondary}
-              handlePrimaryToggle={handlePrimaryToggle}
-              handleSecondaryToggle={handleSecondaryToggle}
-              showJson={showJson}
-              setShowJson={setShowJson}
-              finalPrompt={finalPrompt}
-              setFinalPrompt={setFinalPrompt}
-              variables={variables}
-              setVariables={setVariables}
-              handleCopyPrompt={handleCopyPrompt}
-              handleSavePrompt={handleSavePrompt}
-              handleRegenerate={handleRegenerate}
-              editingPrompt={editingPrompt}
-              setEditingPrompt={setEditingPrompt}
-              showEditPromptSheet={showEditPromptSheet}
-              setShowEditPromptSheet={setShowEditPromptSheet}
-              handleOpenEditPrompt={handleOpenEditPrompt}
-              handleSaveEditedPrompt={handleSaveEditedPrompt}
-              handleAdaptPrompt={handleAdaptPrompt}
-              getProcessedPrompt={getProcessedPrompt}
-              handleVariableValueChange={handleVariableValueChange}
-              selectedText={selectedText}
-              setSelectedText={setSelectedText}
-              onCreateVariable={handleCreateVariable}
-            />
+            {Array.isArray(variables) ? (
+              <StepThreeContent
+                masterCommand={masterCommand}
+                setMasterCommand={setMasterCommand}
+                selectedPrimary={selectedPrimary}
+                selectedSecondary={selectedSecondary}
+                handlePrimaryToggle={handlePrimaryToggle}
+                handleSecondaryToggle={handleSecondaryToggle}
+                showJson={showJson}
+                setShowJson={setShowJson}
+                finalPrompt={finalPrompt}
+                setFinalPrompt={setFinalPrompt}
+                variables={variables}
+                setVariables={setVariables}
+                handleCopyPrompt={handleCopyPrompt}
+                handleSavePrompt={handleSavePrompt}
+                handleRegenerate={handleRegenerate}
+                editingPrompt={editingPrompt}
+                setEditingPrompt={setEditingPrompt}
+                showEditPromptSheet={showEditPromptSheet}
+                setShowEditPromptSheet={setShowEditPromptSheet}
+                handleOpenEditPrompt={handleOpenEditPrompt}
+                handleSaveEditedPrompt={handleSaveEditedPrompt}
+                handleAdaptPrompt={handleAdaptPrompt}
+                getProcessedPrompt={getProcessedPrompt}
+                handleVariableValueChange={handleVariableValueChange}
+                selectedText={selectedText}
+                setSelectedText={setSelectedText}
+                onCreateVariable={handleCreateVariable}
+              />
+            ) : (
+              <div className="p-4 bg-yellow-50 rounded-md border border-yellow-200">
+                <p>Unable to display prompt editor: Variables data is not in the expected format.</p>
+              </div>
+            )}
           </TabsContent>
           
           <TabsContent value="json" className="mt-4">
