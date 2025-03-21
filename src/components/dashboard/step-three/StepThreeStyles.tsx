@@ -3,7 +3,8 @@ import React from "react";
 
 export const StepThreeStyles = () => {
   return (
-    <style jsx global>{`
+    <style dangerouslySetInnerHTML={{
+      __html: `
       .variable-placeholder {
         position: relative;
         border-radius: 4px;
@@ -70,6 +71,6 @@ export const StepThreeStyles = () => {
         background-color: rgba(51, 254, 166, 0.05);
         border-radius: 6px;
       }
-    `}</style>
+    `}} />
   );
 };
