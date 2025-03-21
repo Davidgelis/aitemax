@@ -294,9 +294,7 @@ const XPanel = () => {
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="bg-gray-100/0">
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
+                
                 <h1 className="text-3xl font-bold">
                   <span className="bg-aurora-gradient bg-aurora animate-aurora bg-clip-text text-transparent" style={{
                   backgroundSize: "400% 400%"
