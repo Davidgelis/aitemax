@@ -97,6 +97,17 @@ export const StepThreeStyles = () => {
     .create-all-button:hover {
       background-color: #22e696;
     }
+
+    .multi-selection-active {
+      background-color: rgba(51, 254, 166, 0.1);
+      border: 1px dashed #33fea6;
+    }
+
+    .combined-selection-highlight {
+      background-color: rgba(51, 254, 166, 0.3);
+      border-radius: 0.125rem;
+      border-bottom: 1px solid #33fea6;
+    }
   `;
 
   return <style dangerouslySetInnerHTML={{ __html: styles }} />;
