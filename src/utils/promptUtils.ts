@@ -1,4 +1,3 @@
-
 /**
  * Replaces a variable placeholder in the prompt with a new placeholder,
  * ensuring that the replacement is done correctly by escaping special
@@ -156,4 +155,26 @@ export const stripHtml = (html: string): string => {
     // Fallback to regex-based stripping if DOM approach fails
     return html.replace(/<[^>]*>?/gm, '');
   }
+};
+
+/**
+ * Creates a clean, plain text version of the prompt with variables replaced by their values.
+ * This is suitable for copying to clipboard without any HTML tags or variable placeholders.
+ */
+export const createPlainTextPrompt = (prompt: string, variables: any[]): string => {
+  if (!prompt) return "";
+  
+  let plainText = prompt;
+  
+  // Replace all variable placeholders with their values
+  variables.forEach(variable => {
+    if (variable && variable.id) {
+      const placeholder = `{{value::${variable.id}}}`;
+      const value = variable.value || "";
+      plainText = plainText.replace(new RegExp(escapeRegExp(placeholder), 'g'), value);
+    }
+  });
+  
+  // Remove any HTML tags that might be present
+  return stripHtml(plainText);
 };

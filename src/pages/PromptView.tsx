@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, Share2, Globe, Lock } from "lucide-react";
@@ -13,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
 import XPanelButton from "@/components/dashboard/XPanelButton";
-import { convertPlaceholdersToSpans } from "@/utils/promptUtils";
+import { convertPlaceholdersToSpans, createPlainTextPrompt } from "@/utils/promptUtils";
 
 const PromptView = () => {
   const { id } = useParams();
@@ -209,7 +208,8 @@ const PromptView = () => {
 
   const handleCopyPrompt = () => {
     if (prompt) {
-      const textToCopy = getProcessedPrompt();
+      // Use our new utility to get clean plain text without HTML or placeholders
+      const textToCopy = createPlainTextPrompt(finalPrompt, variables.filter(v => v && v.isRelevant === true));
       handleCopyContent(textToCopy);
     }
   };
