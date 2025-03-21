@@ -295,10 +295,10 @@ const XPanel = () => {
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
-                {/* Simple logo without effects */}
+                {/* Updated logo to use the provided image */}
                 <div className="w-10 h-10">
                   <img
-                    src="/lovable-uploads/fadbfaa4-8431-4d47-bff3-c38a1517cfe1.png"
+                    src="/lovable-uploads/c0991d84-ffed-4450-ab0d-f6dfc51bb4be.png"
                     alt="Aitema X Logo"
                     className="w-full h-full"
                   />
