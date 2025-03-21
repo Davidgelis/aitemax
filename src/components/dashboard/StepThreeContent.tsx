@@ -38,6 +38,9 @@ interface StepThreeContentProps {
   handleAdaptPrompt: () => void;
   getProcessedPrompt?: () => string;
   handleVariableValueChange?: (variableId: string, newValue: string) => void;
+  selectedText?: string;
+  setSelectedText?: React.Dispatch<React.SetStateAction<string>>;
+  onCreateVariable?: (selectedText: string) => void;
 }
 
 export const StepThreeContent = ({

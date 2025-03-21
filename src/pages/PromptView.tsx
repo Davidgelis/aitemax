@@ -380,7 +380,7 @@ const PromptView = () => {
               selectedSecondary={selectedSecondary}
               handlePrimaryToggle={handlePrimaryToggle}
               handleSecondaryToggle={handleSecondaryToggle}
-              showJson={false}
+              showJson={showJson}
               setShowJson={setShowJson}
               finalPrompt={finalPrompt}
               setFinalPrompt={setFinalPrompt}
