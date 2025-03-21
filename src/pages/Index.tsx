@@ -32,9 +32,9 @@ const Index = () => {
       <nav className="fixed top-0 w-full max-w-7xl mx-auto p-6 flex justify-between items-center animate-fade-in">
         <button 
           className="aurora-button"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/x-panel")}
         >
-          Dashboard
+          X Panel
         </button>
         <button 
           className="aurora-button"
