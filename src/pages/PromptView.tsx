@@ -1,16 +1,19 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, Share2, Globe, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SavedPrompt } from "@/components/dashboard/types";
+import { SavedPrompt, Variable } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
+import { XPanelButton } from "@/components/dashboard/XPanelButton";
+import { convertPlaceholdersToSpans } from "@/utils/promptUtils";
 
 const PromptView = () => {
   const { id } = useParams();
@@ -23,6 +26,17 @@ const PromptView = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [shareEmail, setShareEmail] = useState("");
   const [isSharing, setIsSharing] = useState(false);
+  
+  // Step 3 related states
+  const [finalPrompt, setFinalPrompt] = useState("");
+  const [masterCommand, setMasterCommand] = useState("");
+  const [variables, setVariables] = useState<Variable[]>([]);
+  const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
+  const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
+  const [showJson, setShowJson] = useState(false);
+  const [editingPrompt, setEditingPrompt] = useState("");
+  const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
 
   useEffect(() => {
     const getUser = async () => {
@@ -38,6 +52,16 @@ const PromptView = () => {
       fetchPrompt(id);
     }
   }, [id, user]);
+
+  useEffect(() => {
+    if (prompt) {
+      setFinalPrompt(prompt.promptText || "");
+      setMasterCommand(prompt.masterCommand || "");
+      setVariables(prompt.variables ? [...prompt.variables] : []);
+      setSelectedPrimary(prompt.primaryToggle || null);
+      setSelectedSecondary(prompt.secondaryToggle || null);
+    }
+  }, [prompt]);
 
   const fetchPrompt = async (promptId: string) => {
     setIsLoading(true);
@@ -144,6 +168,95 @@ const PromptView = () => {
     return text ? text.replace(/<[^>]*>/g, '') : '';
   };
 
+  // Step 3 event handlers
+  const handlePrimaryToggle = (id: string) => {
+    setSelectedPrimary(selectedPrimary === id ? null : id);
+  };
+
+  const handleSecondaryToggle = (id: string) => {
+    setSelectedSecondary(selectedSecondary === id ? null : id);
+  };
+
+  const handleCopyPrompt = () => {
+    if (prompt) {
+      const textToCopy = getProcessedPrompt();
+      handleCopyContent(textToCopy);
+    }
+  };
+
+  const handleSavePrompt = async () => {
+    if (!prompt) return;
+    
+    try {
+      const { error } = await supabase
+        .from('prompts')
+        .update({
+          prompt_text: finalPrompt,
+          master_command: masterCommand,
+          variables: variables,
+          primary_toggle: selectedPrimary,
+          secondary_toggle: selectedSecondary,
+        })
+        .eq('id', prompt.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Prompt saved",
+        description: "Your changes have been saved successfully.",
+      });
+    } catch (error: any) {
+      console.error("Error saving prompt:", error.message);
+      toast({
+        title: "Error saving prompt",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRegenerate = () => {
+    toast({
+      title: "Regenerate feature",
+      description: "This feature is not yet implemented in the Prompt View.",
+    });
+  };
+
+  const handleOpenEditPrompt = () => {
+    setEditingPrompt(finalPrompt);
+    setShowEditPromptSheet(true);
+  };
+
+  const handleSaveEditedPrompt = () => {
+    setFinalPrompt(editingPrompt);
+    setShowEditPromptSheet(false);
+  };
+
+  const handleAdaptPrompt = () => {
+    handleRegenerate();
+  };
+
+  const getProcessedPrompt = () => {
+    if (!finalPrompt) return "";
+    return convertPlaceholdersToSpans(finalPrompt, variables.filter(v => v.isRelevant === true));
+  };
+
+  const handleVariableValueChange = (variableId: string, newValue: string) => {
+    setVariables(prevVars => 
+      prevVars.map(v => 
+        v.id === variableId ? { ...v, value: newValue } : v
+      )
+    );
+  };
+
+  const handleCreateVariable = (selectedText: string) => {
+    // In this view we're just displaying, not creating new variables
+    toast({
+      title: "Create variable",
+      description: "Creating new variables is not enabled in the Prompt View.",
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex justify-center items-center">
@@ -167,8 +280,9 @@ const PromptView = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-8 px-4">
-        <div className="flex items-center justify-between mb-8">
+      <XPanelButton />
+      <div className="container mx-auto py-4 px-4">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -233,7 +347,7 @@ const PromptView = () => {
           </div>
         </div>
         
-        <div className="mb-6">
+        <div className="mb-4">
           <div className="flex flex-wrap gap-2 mb-4">
             {prompt.tags && prompt.tags.map((tag, index) => (
               <div key={index} className="bg-accent/10 text-xs rounded-full px-2.5 py-1 flex items-center gap-1">
@@ -253,49 +367,40 @@ const PromptView = () => {
         
         <Tabs defaultValue="prompt" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="prompt">Prompt Text</TabsTrigger>
+            <TabsTrigger value="prompt">Prompt Editor</TabsTrigger>
             <TabsTrigger value="json">JSON View</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="prompt" className="mt-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="mb-4">
-                  {prompt.masterCommand && (
-                    <div className="bg-gray-50 p-4 rounded-md mb-4 border">
-                      <h3 className="text-sm font-medium mb-2">Master Command</h3>
-                      <p className="text-sm">{prompt.masterCommand}</p>
-                    </div>
-                  )}
-                  
-                  <div className="whitespace-pre-wrap mb-4">
-                    {getPlainText(prompt.promptText)}
-                  </div>
-                  
-                  {prompt.variables && prompt.variables.length > 0 && (
-                    <div className="bg-gray-50 p-4 rounded-md border">
-                      <h3 className="text-sm font-medium mb-2">Variables</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {prompt.variables.map((variable: any, index) => (
-                          <div key={index} className="flex flex-col gap-1">
-                            <label className="text-xs text-muted-foreground">{variable.name}</label>
-                            <Input value={variable.value} readOnly className="text-sm" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <Button onClick={() => handleCopyContent(getPlainText(prompt.promptText))}>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy Prompt
-                </Button>
-              </CardContent>
-            </Card>
+          <TabsContent value="prompt" className="mt-4">
+            <StepThreeContent
+              masterCommand={masterCommand}
+              setMasterCommand={setMasterCommand}
+              selectedPrimary={selectedPrimary}
+              selectedSecondary={selectedSecondary}
+              handlePrimaryToggle={handlePrimaryToggle}
+              handleSecondaryToggle={handleSecondaryToggle}
+              showJson={false}
+              setShowJson={setShowJson}
+              finalPrompt={finalPrompt}
+              setFinalPrompt={setFinalPrompt}
+              variables={variables}
+              setVariables={setVariables}
+              handleCopyPrompt={handleCopyPrompt}
+              handleSavePrompt={handleSavePrompt}
+              handleRegenerate={handleRegenerate}
+              editingPrompt={editingPrompt}
+              setEditingPrompt={setEditingPrompt}
+              showEditPromptSheet={showEditPromptSheet}
+              setShowEditPromptSheet={setShowEditPromptSheet}
+              handleOpenEditPrompt={handleOpenEditPrompt}
+              handleSaveEditedPrompt={handleSaveEditedPrompt}
+              handleAdaptPrompt={handleAdaptPrompt}
+              getProcessedPrompt={getProcessedPrompt}
+              handleVariableValueChange={handleVariableValueChange}
+            />
           </TabsContent>
           
-          <TabsContent value="json" className="mt-6">
+          <TabsContent value="json" className="mt-4">
             <Card>
               <CardContent className="p-6">
                 <pre className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto text-sm">
