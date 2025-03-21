@@ -1,4 +1,4 @@
-import { Edit, PlusCircle, Check, X, Lasso } from "lucide-react";
+import { Edit, PlusCircle, Check, X } from "lucide-react";
 import { Variable, PromptJsonStructure } from "../types";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
 import { replaceVariableInPrompt, convertEditedContentToPlaceholders, convertPlaceholdersToEditableFormat, convertPlaceholdersToSpans, toVariablePlaceholder, stripHtml } from "@/utils/promptUtils";
+
 interface FinalPromptDisplayProps {
   finalPrompt: string;
   updateFinalPrompt: (newPrompt: string) => void;
@@ -28,6 +29,7 @@ interface FinalPromptDisplayProps {
   lastSavedPrompt?: string;
   setLastSavedPrompt?: (prompt: string) => void;
 }
+
 export const FinalPromptDisplay = ({
   finalPrompt,
   updateFinalPrompt,
@@ -55,15 +57,11 @@ export const FinalPromptDisplay = ({
   const [isLoadingJson, setIsLoadingJson] = useState(false);
   const [jsonGenerated, setJsonGenerated] = useState(false);
   const [isCreatingVariable, setIsCreatingVariable] = useState(false);
-  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
-  const [multiSelections, setMultiSelections] = useState<string[]>([]);
   const promptContainerRef = useRef<HTMLDivElement>(null);
   const editableContentRef = useRef<HTMLDivElement>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [currentPromptHash, setCurrentPromptHash] = useState<string>("");
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
   const [promptId, setPromptId] = useState<string | null>(null);
   useEffect(() => {
@@ -230,7 +228,6 @@ export const FinalPromptDisplay = ({
     }
   }, [finalPrompt, masterCommand, toast, userId, promptId, generateCleanTextForApi, setIsRefreshing, setRenderTrigger, promptJson]);
 
-  // Handle JSON view toggling and initial generation
   useEffect(() => {
     if (showJson && !jsonGenerated && !isLoadingJson) {
       // Only generate from scratch on first toggle
@@ -282,10 +279,14 @@ export const FinalPromptDisplay = ({
       }
     }
   }, [finalPrompt, showJson, lastSavedPrompt, setLastSavedPrompt, jsonGenerated]);
+
+  // Handle mouse up for variable creation
   const handleMouseUp = () => {
     if (!isCreatingVariable || isEditing) return;
+    
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0 || !selection.toString().trim()) return;
+    
     const range = selection.getRangeAt(0);
     const container = promptContainerRef.current;
     if (!container || !container.contains(range.commonAncestorContainer)) return;
@@ -294,41 +295,15 @@ export const FinalPromptDisplay = ({
     const selText = selection.toString().trim();
     if (!selText) return;
 
-    // Add to multi-selections (but only if we're in multi-selection mode)
-    if (isMultiSelectMode) {
-      setMultiSelections(prev => [...prev, selText]);
-
-      // Mark the selection with a temporary span
-      const tempSpan = document.createElement('span');
-      tempSpan.setAttribute('class', 'multi-selection-marker');
-      tempSpan.style.backgroundColor = 'rgba(51, 254, 166, 0.3)';
-      try {
-        range.surroundContents(tempSpan);
-
-        // Show a toast to indicate the selection was added
-        toast({
-          title: "Selection added",
-          description: `Added "${selText.substring(0, 20)}${selText.length > 20 ? '...' : ''}" to multi-selection`
-        });
-      } catch (e) {
-        console.error("Error highlighting multi-selection:", e);
-        toast({
-          title: "Selection error",
-          description: "Could not select text. Try selecting a simpler text segment.",
-          variant: "destructive"
-        });
-      }
-    } else {
-      // If not in multi-selection mode, immediately create a variable from the selection
-      createSingleSelectionVariable(selText, range);
-    }
+    // Create variable from selection
+    createVariable(selText, range);
 
     // Clear the selection
     selection.removeAllRanges();
   };
 
-  // New function to handle creating a variable from a single selection
-  const createSingleSelectionVariable = (selText: string, range: Range) => {
+  // Simplified variable creation function
+  const createVariable = (selText: string, range: Range) => {
     if (relevantVariables.length >= 15) {
       toast({
         title: "Variable limit reached",
@@ -346,7 +321,7 @@ export const FinalPromptDisplay = ({
       name: variableName,
       value: selText,
       isRelevant: true,
-      category: 'Single-Select'
+      category: 'Selection'
     };
 
     // Record the original selection (for later replacement in the prompt)
@@ -381,98 +356,8 @@ export const FinalPromptDisplay = ({
     }
   };
 
-  const createMultiSelectionVariable = () => {
-    if (multiSelections.length === 0) {
-      toast({
-        title: "No selections",
-        description: "Please select at least one text segment first",
-        variant: "destructive"
-      });
-      return;
-    }
-    if (relevantVariables.length >= 15) {
-      toast({
-        title: "Variable limit reached",
-        description: "You can create up to 15 variables",
-        variant: "destructive"
-      });
-      cancelVariableCreation();
-      return;
-    }
-
-    // Join all selections with a space for the variable value
-    const combinedText = multiSelections.join(" ");
-
-    // Use a simple numeric name based on the number of existing variables
-    const variableName = `${relevantVariables.length + 1}`;
-    const variableId = uuidv4();
-    const newVariable: Variable = {
-      id: variableId,
-      name: variableName,
-      value: combinedText,
-      // Set the initial value to the combined selections
-      isRelevant: true,
-      category: 'Multi-Select'
-    };
-
-    // Record the original selection (for later replacement in the prompt)
-    if (typeof recordVariableSelection === 'function') {
-      // Store the original text that was selected
-      recordVariableSelection(variableId, combinedText);
-    }
-
-    // Add the new variable to state
-    setVariables(prev => [...prev, newVariable]);
-
-    // Create a copy of the prompt to work with
-    let updatedPrompt = finalPrompt;
-
-    // Replace each selection with a standardized placeholder
-    multiSelections.forEach(selection => {
-      const varPlaceholder = toVariablePlaceholder(variableId);
-      updatedPrompt = replaceVariableInPrompt(updatedPrompt, selection, varPlaceholder, variableName);
-    });
-
-    // Update the prompt
-    updateFinalPrompt(updatedPrompt);
-    toast({
-      title: "Variable created",
-      description: `Created variable: ${variableName} from ${multiSelections.length} selections`
-    });
-
-    // Reset multi-selection mode
-    exitMultiSelectionMode();
-    cancelVariableCreation();
-
-    // Force re-render
-    setRenderTrigger(prev => prev + 1);
-
-    // Reset JSON generation to force refresh if needed
-    if (showJson) {
-      setJsonGenerated(false);
-    }
-  };
-
-  const exitMultiSelectionMode = () => {
-    // Remove all temporary multi-selection markers
-    const markers = document.querySelectorAll('.multi-selection-marker');
-    markers.forEach(marker => {
-      if (marker instanceof HTMLElement) {
-        marker.outerHTML = marker.textContent || "";
-      }
-    });
-    setMultiSelections([]);
-    setIsMultiSelectMode(false);
-  };
-
   const cancelVariableCreation = () => {
     setIsCreatingVariable(false);
-    setMultiSelections([]);
-
-    // Also exit multi-selection mode if active
-    if (isMultiSelectMode) {
-      exitMultiSelectionMode();
-    }
     window.getSelection()?.removeAllRanges();
   };
 
@@ -483,43 +368,10 @@ export const FinalPromptDisplay = ({
       cancelVariableCreation();
     } else {
       setIsCreatingVariable(true);
-      // By default, don't activate multi-selection mode
-      setIsMultiSelectMode(false);
-      setMultiSelections([]);
       toast({
         title: "Variable creation mode",
         description: "Select text to create a variable. Click the button again to exit."
       });
-    }
-  };
-
-  // Add a new function to toggle multi-selection mode
-  const toggleMultiSelectionMode = () => {
-    if (!isCreatingVariable) {
-      // If not in variable creation mode, enter it first
-      setIsCreatingVariable(true);
-      setIsMultiSelectMode(true);
-      setMultiSelections([]);
-      toast({
-        title: "Multi-selection mode",
-        description: "Select multiple text segments to create a variable"
-      });
-    } else {
-      // Toggle multi-selection mode
-      setIsMultiSelectMode(!isMultiSelectMode);
-      setMultiSelections([]);
-      
-      if (!isMultiSelectMode) {
-        toast({
-          title: "Multi-selection mode",
-          description: "Select multiple text segments to create a variable"
-        });
-      } else {
-        toast({
-          title: "Single-selection mode",
-          description: "Select text to create a variable"
-        });
-      }
     }
   };
 
@@ -552,13 +404,6 @@ export const FinalPromptDisplay = ({
       setJsonGenerated(false);
     }
   };
-  const renderVariablePlaceholder = (variable: Variable, uniqueKey: string) => {
-    return <span key={uniqueKey} className="inline-block relative variable-placeholder">
-        <span className="variable-highlight px-1 py-0 m-0 bg-[#33fea6]/10 border-b border-[#33fea6] text-foreground font-medium min-w-16 inline-block">
-          {variable.value || ""}
-        </span>
-      </span>;
-  };
 
   // This function will be called when saving from edit mode
   const handleSaveFromEditMode = () => {
@@ -588,6 +433,14 @@ export const FinalPromptDisplay = ({
 
       // Don't automatically refresh JSON - wait for manual refresh
     }
+  };
+
+  const renderVariablePlaceholder = (variable: Variable, uniqueKey: string) => {
+    return <span key={uniqueKey} className="inline-block relative variable-placeholder">
+        <span className="variable-highlight px-1 py-0 m-0 bg-[#33fea6]/10 border-b border-[#33fea6] text-foreground font-medium min-w-16 inline-block">
+          {variable.value || ""}
+        </span>
+      </span>;
   };
 
   // Modified renderProcessedPrompt function to handle HTML parsing and variable placeholders
@@ -653,16 +506,6 @@ export const FinalPromptDisplay = ({
       const htmlContent = convertPlaceholdersToSpans(finalPrompt, relevantVariables);
       const paragraphs = htmlContent.split('\n\n');
       return <div className="prose prose-sm max-w-none" ref={promptContainerRef} onMouseUp={handleMouseUp} key={`prompt-content-${renderTrigger}`}>
-          {isCreatingVariable && multiSelections.length > 0 && <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20 bg-white shadow-lg rounded-lg p-2 flex gap-2">
-              <Button size="sm" variant="outline" className="h-8 p-2 hover:border-[#33fea6] hover:text-[#33fea6] hover:bg-white" onClick={createMultiSelectionVariable}>
-                <Check className="h-4 w-4 mr-1" />
-                Create Variable ({multiSelections.length})
-              </Button>
-              <Button size="sm" variant="outline" className="h-8 w-8 p-0 hover:border-[#33fea6] hover:text-[#33fea6] hover:bg-white" onClick={cancelVariableCreation}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>}
-          
           {paragraphs.map((paragraph, pIndex) => {
           if (!paragraph.trim()) return null;
           return <p key={`paragraph-${pIndex}`} dangerouslySetInnerHTML={{
@@ -675,6 +518,7 @@ export const FinalPromptDisplay = ({
       return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
     }
   };
+
   return <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
       <div className="absolute top-2 right-2 z-10 flex items-center space-x-4">
         {!isEditing && <>
@@ -684,15 +528,6 @@ export const FinalPromptDisplay = ({
                 <PlusCircle className={`w-4 h-4 ${isCreatingVariable ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
               </button>
             </div>
-            
-            {isCreatingVariable && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-accent">Multi-select</span>
-                <button onClick={toggleMultiSelectionMode} className={`p-2 rounded-full ${isMultiSelectMode ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`} aria-label={isMultiSelectMode ? "Switch to single selection" : "Switch to multi selection"}>
-                  <Lasso className={`w-4 h-4 ${isMultiSelectMode ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
-                </button>
-              </div>
-            )}
             
             <div className="flex items-center gap-2">
               <span className="text-sm text-accent">Edit Prompt</span>
@@ -712,17 +547,5 @@ export const FinalPromptDisplay = ({
         
         {renderProcessedPrompt()}
       </div>
-      
-      {isCreatingVariable && isMultiSelectMode && multiSelections.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20 bg-white shadow-lg rounded-lg p-2 flex gap-2">
-          <Button size="sm" variant="outline" className="h-8 p-2 hover:border-[#33fea6] hover:text-[#33fea6] hover:bg-white" onClick={createMultiSelectionVariable}>
-            <Check className="h-4 w-4 mr-1" />
-            Create Variable ({multiSelections.length})
-          </Button>
-          <Button size="sm" variant="outline" className="h-8 w-8 p-0 hover:border-[#33fea6] hover:text-[#33fea6] hover:bg-white" onClick={cancelVariableCreation}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
     </div>;
 };

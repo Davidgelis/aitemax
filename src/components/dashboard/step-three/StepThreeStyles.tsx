@@ -1,76 +1,82 @@
 
-import React from "react";
+import React from 'react';
 
 export const StepThreeStyles = () => {
-  return (
-    <style dangerouslySetInnerHTML={{
-      __html: `
-      .variable-placeholder {
-        position: relative;
-        border-radius: 4px;
-        transition: background-color 0.3s ease;
-      }
+  const styles = `
+    .editing-mode {
+      border: 1px solid #e2e8f0;
+      border-radius: 0.375rem;
+      background-color: white;
+      transition: border-color 0.2s ease;
+    }
 
-      .variable-placeholder:hover {
-        background-color: rgba(51, 254, 166, 0.2);
-      }
+    .editing-mode:focus {
+      outline: none;
+      border-color: #33fea6;
+      box-shadow: 0 0 0 1px rgba(51, 254, 166, 0.3);
+    }
 
-      .variable-highlight {
-        position: relative;
-        display: inline-block;
-      }
+    .variable-highlight {
+      background-color: rgba(51, 254, 166, 0.1);
+      border-bottom: 1px solid #33fea6;
+      display: inline-block;
+      min-width: 4rem;
+      font-weight: 500;
+      color: inherit;
+      padding: 0 0.25rem;
+    }
 
-      .editing-mode {
-        outline: none;
-        white-space: pre-wrap;
-      }
+    .non-editable-variable {
+      background-color: rgba(51, 254, 166, 0.1);
+      border-bottom: 1px solid #33fea6;
+      display: inline-block;
+      padding: 0 0.25rem;
+      border-radius: 0.125rem;
+      user-select: none;
+      position: relative;
+      font-weight: 500;
+    }
 
-      .editing-mode:focus {
-        outline: none;
-      }
+    .edit-action-button {
+      padding: 0.375rem 0.75rem;
+      border-radius: 0.25rem;
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+      transition: all 0.2s ease;
+    }
 
-      .non-editable-variable {
-        background-color: rgba(51, 254, 166, 0.15);
-        padding: 2px 4px;
-        border-radius: 4px;
-        border-bottom: 1px solid rgba(51, 254, 166, 0.7);
-        font-weight: 500;
-        display: inline-block;
-        margin: 0 2px;
-      }
+    .edit-save-button {
+      background-color: #33fea6;
+      color: white;
+    }
 
-      /* Ensure that multi-selection works well */
-      .multi-selection-marker {
-        background-color: rgba(51, 254, 166, 0.3);
-        border-radius: 2px;
-      }
+    .edit-save-button:hover {
+      background-color: #22e696;
+    }
 
-      /* Add better styling for action buttons */
-      .edit-action-button {
-        font-size: 14px;
-        padding: 6px 16px;
-        transition: all 0.2s ease;
-      }
+    .edit-cancel-button {
+      border: 1px solid #e2e8f0;
+    }
 
-      .edit-save-button {
-        background-color: rgba(51, 254, 166, 0.8);
-        color: #000;
-        border: none;
-      }
+    .edit-cancel-button:hover {
+      border-color: #cbd5e1;
+      background-color: #f8fafc;
+    }
 
-      .edit-save-button:hover {
-        background-color: rgba(51, 254, 166, 1);
-      }
+    .edit-icon-button {
+      opacity: 0.5;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
 
-      /* Variable styling */
-      .variable-container {
-        transition: all 0.2s ease;
-      }
+    .edit-icon-button:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
 
-      .variable-container:hover {
-        background-color: rgba(51, 254, 166, 0.05);
-        border-radius: 6px;
-      }
-    `}} />
-  );
+    .edit-icon-button:hover .edit-icon {
+      color: #33fea6;
+    }
+  `;
+
+  return <style dangerouslySetInnerHTML={{ __html: styles }} />;
 };
