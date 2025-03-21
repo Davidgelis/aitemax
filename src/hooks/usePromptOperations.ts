@@ -8,7 +8,6 @@ import {
   toVariablePlaceholder,
   convertPlaceholdersToSpans 
 } from "@/utils/promptUtils";
-import { v4 as uuidv4 } from 'uuid';
 
 export const usePromptOperations = (
   variables: Variable[],
@@ -41,22 +40,6 @@ export const usePromptOperations = (
       setRenderKey(prev => prev + 1); // Force re-render when variables change
     }
   }, [variables, lastProcessedVariables]);
-
-  // Listen for variable name changes
-  useEffect(() => {
-    const handleVariableNameChangeEvent = (event: CustomEvent) => {
-      const { variableId, newName } = event.detail;
-      if (variableId) {
-        handleVariableNameChange(variableId, newName);
-      }
-    };
-
-    document.addEventListener('variable-name-changed', handleVariableNameChangeEvent as EventListener);
-    
-    return () => {
-      document.removeEventListener('variable-name-changed', handleVariableNameChangeEvent as EventListener);
-    };
-  }, []);
 
   // Process the prompt with variables - with placeholder conversion
   const getProcessedPrompt = useCallback((): string => {
@@ -100,46 +83,6 @@ export const usePromptOperations = (
     setRenderKey(prev => prev + 1); // Force re-render
   }, []);
 
-  // Create a new variable from selected text
-  const createVariable = useCallback((selectedText: string) => {
-    if (!selectedText) return null;
-    
-    try {
-      // Create a new variable with a unique ID
-      const variableId = uuidv4();
-      const variableName = `Variable ${variables.filter(v => v.isRelevant).length + 1}`;
-      
-      // Create placeholder for the variable
-      const placeholder = `{{value::${variableId}}}`;
-      
-      // Replace the selected text with the placeholder in the prompt
-      let updatedPrompt = finalPrompt;
-      
-      // Simple replace (works for plain text)
-      updatedPrompt = updatedPrompt.replace(selectedText, placeholder);
-      
-      // Add the new variable to the variables array
-      const newVariable: Variable = {
-        id: variableId,
-        name: variableName,
-        value: selectedText,
-        isRelevant: true,
-        category: "Other"
-      };
-      
-      setVariables(prev => [...prev, newVariable]);
-      setFinalPrompt(updatedPrompt);
-      
-      // Force re-render the prompt with updated variables
-      setRenderKey(prev => prev + 1);
-      
-      return variableId;
-    } catch (error) {
-      console.error("Error creating variable:", error);
-      return null;
-    }
-  }, [finalPrompt, variables, setVariables, setFinalPrompt]);
-
   // Update a variable's value with real-time synchronization
   const handleVariableValueChange = useCallback((id: string, newValue: string) => {
     setVariables(currentVars => {
@@ -157,36 +100,16 @@ export const usePromptOperations = (
     });
   }, [setVariables]);
 
-  // Update a variable's name
-  const handleVariableNameChange = useCallback((id: string, newName: string) => {
-    setVariables(currentVars => {
-      const updatedVars = currentVars.map(v => 
-        v.id === id ? { ...v, name: newName } : v
-      );
-      
-      // Force re-render to ensure changes propagate
-      setRenderKey(prev => prev + 1);
-      
-      return updatedVars;
-    });
-  }, [setVariables]);
-
-  // Improved removeVariable function to use the current variable value when removing
+  // Improved removeVariable function to ensure clean text replacement
   const removeVariable = useCallback((variableId: string) => {
-    console.log(`Removing variable ${variableId}`);
+    console.log(`Marking variable ${variableId} as not relevant`);
     
     // Find the variable we're removing
     const variable = variables.find(v => v.id === variableId);
     if (!variable) return;
     
-    // Use the current variable value instead of the original selection text
+    // Get the current value of the variable (to replace placeholder)
     const currentValue = variable.value || "";
-    console.log(`Current value for variable ${variableId}:`, currentValue);
-    
-    // Replace the placeholder with the current value in the finalPrompt
-    const placeholder = toVariablePlaceholder(variableId);
-    const updatedPrompt = finalPrompt.replace(new RegExp(escapeRegExp(placeholder), 'g'), currentValue);
-    setFinalPrompt(updatedPrompt);
     
     // Mark the variable as not relevant
     setVariables(currentVars => 
@@ -195,30 +118,35 @@ export const usePromptOperations = (
       )
     );
     
-    // Remove from selections map
-    setVariableSelections(prev => {
-      const updated = new Map(prev);
-      updated.delete(variableId);
-      return updated;
-    });
+    // Replace the placeholder with the actual text in the finalPrompt
+    const placeholder = toVariablePlaceholder(variableId);
+    const updatedPrompt = finalPrompt.replace(new RegExp(escapeRegExp(placeholder), 'g'), currentValue);
+    setFinalPrompt(updatedPrompt);
     
     // Force re-render to ensure changes propagate
     setRenderKey(prev => prev + 1);
-  }, [variables, finalPrompt, setFinalPrompt, setVariables, variableSelections]);
+  }, [variables, finalPrompt, setVariables, setFinalPrompt]);
 
   // Delete a variable
   const handleDeleteVariable = useCallback((variableId: string) => {
-    console.log(`Deleting variable ${variableId}`);
+    console.log(`Marking variable ${variableId} as not relevant`);
     
-    // First remove the variable from the prompt (replaces with current value)
-    removeVariable(variableId);
+    // Mark the variable as not relevant
+    setVariables(currentVars => 
+      currentVars.map(v => 
+        v.id === variableId ? { ...v, isRelevant: false } : v
+      )
+    );
+    
+    // Force re-render to ensure changes propagate
+    setRenderKey(prev => prev + 1);
     
     toast({
       title: "Variable removed",
       description: "The variable has been removed from your prompt.",
       variant: "default",
     });
-  }, [removeVariable, toast]);
+  }, [setVariables, toast]);
 
   // Open the edit prompt sheet
   const handleOpenEditPrompt = useCallback(() => {
@@ -329,7 +257,6 @@ export const usePromptOperations = (
     getProcessedPrompt,
     getCleanTextForCopy,
     handleVariableValueChange,
-    handleVariableNameChange,
     handleOpenEditPrompt,
     handleSaveEditedPrompt,
     handleAdaptPrompt,
@@ -340,7 +267,6 @@ export const usePromptOperations = (
     renderKey,
     recordVariableSelection,
     variableSelections,
-    removeVariable,
-    createVariable // Export the createVariable function
+    removeVariable // Export the removeVariable function
   };
 };

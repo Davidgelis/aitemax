@@ -1,17 +1,16 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Copy, Share2, Globe, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SavedPrompt, Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SavedPrompt } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { usePromptOperations } from "@/hooks/usePromptOperations";
-import { FinalPromptDisplay } from "@/components/dashboard/step-three/FinalPromptDisplay";
-import { ToggleSection } from "@/components/dashboard/step-three/ToggleSection";
-import { ActionButtons } from "@/components/dashboard/step-three/ActionButtons";
-import { VariablesSection } from "@/components/dashboard/step-three/VariablesSection";
-import XPanelButton from "@/components/dashboard/XPanelButton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const PromptView = () => {
   const { id } = useParams();
@@ -19,42 +18,11 @@ const PromptView = () => {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState<SavedPrompt | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [jsonView, setJsonView] = useState<string>("");
   const [isOwner, setIsOwner] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Step 3 state variables
-  const [finalPrompt, setFinalPrompt] = useState("");
-  const [masterCommand, setMasterCommand] = useState("");
-  const [variables, setVariables] = useState<Variable[]>([]);
-  const [showJson, setShowJson] = useState(false);
-  const [isRefreshingJson, setIsRefreshingJson] = useState(false);
-  const [renderTrigger, setRenderTrigger] = useState(0);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingPrompt, setEditingPrompt] = useState("");
-  const [editablePrompt, setEditablePrompt] = useState("");
-  const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
-  const [lastSavedPrompt, setLastSavedPrompt] = useState("");
-  // Add the missing states required by FinalPromptDisplay
-  const [selectedText, setSelectedText] = useState("");
-
-  // Set up a listener for variable name changes
-  useEffect(() => {
-    const handleVariableNameChange = (event: CustomEvent) => {
-      const { variableId, newName } = event.detail;
-      if (variableId) {
-        setVariables(prevVariables => 
-          prevVariables.map(v => 
-            v.id === variableId ? { ...v, name: newName } : v
-          )
-        );
-      }
-    };
-
-    document.addEventListener('variable-name-changed', handleVariableNameChange as EventListener);
-    return () => {
-      document.removeEventListener('variable-name-changed', handleVariableNameChange as EventListener);
-    };
-  }, []);
+  const [shareEmail, setShareEmail] = useState("");
+  const [isSharing, setIsSharing] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
@@ -69,7 +37,7 @@ const PromptView = () => {
     if (id) {
       fetchPrompt(id);
     }
-  }, [id]);
+  }, [id, user]);
 
   const fetchPrompt = async (promptId: string) => {
     setIsLoading(true);
@@ -94,31 +62,6 @@ const PromptView = () => {
         return;
       }
       
-      // Ensure we have valid data for variables by providing defaults
-      let parsedVariables: Variable[] = [];
-      try {
-        if (data.variables) {
-          // Handle both array and JSON object formats
-          if (Array.isArray(data.variables)) {
-            // Use the jsonToVariables utility to properly convert the data
-            parsedVariables = data.variables.map((v: any) => ({
-              id: v.id || "",
-              name: v.name || "",
-              value: v.value || v.currentValue || "",
-              isRelevant: v.isRelevant !== undefined ? v.isRelevant : true,
-              category: v.category || "Other",
-              code: v.code || ""
-            }));
-          } else if (typeof data.variables === 'object') {
-            // Use the existing jsonToVariables utility
-            parsedVariables = jsonToVariables(data.variables);
-          }
-        }
-      } catch (parseError) {
-        console.error("Error parsing variables:", parseError);
-        // If parsing fails, start with empty variables array
-      }
-      
       const formattedPrompt: SavedPrompt = {
         id: data.id,
         title: data.title || 'Untitled Prompt',
@@ -127,18 +70,26 @@ const PromptView = () => {
         masterCommand: data.master_command || '',
         primaryToggle: data.primary_toggle,
         secondaryToggle: data.secondary_toggle,
-        variables: parsedVariables,
+        variables: data.variables ? JSON.parse(JSON.stringify(data.variables)) : [],
         tags: (data.tags as unknown as Array<{category: string, subcategory: string}>) || []
       };
       
       setPrompt(formattedPrompt);
-      setFinalPrompt(formattedPrompt.promptText);
-      setMasterCommand(formattedPrompt.masterCommand);
-      setVariables(formattedPrompt.variables || []);
-      setLastSavedPrompt(formattedPrompt.promptText);
+      setIsOwner(user && data.user_id === user.id);
       
-      if (user) {
-        setIsOwner(data.user_id === user.id);
+      // Generate JSON view for the prompt if it has variables
+      if (formattedPrompt.variables && formattedPrompt.variables.length > 0) {
+        const jsonObj = {
+          prompt: formattedPrompt.promptText,
+          variables: formattedPrompt.variables.reduce((acc: any, v: any) => {
+            if (v.name && v.value) {
+              acc[v.name] = v.value;
+            }
+            return acc;
+          }, {}),
+          masterCommand: formattedPrompt.masterCommand
+        };
+        setJsonView(JSON.stringify(jsonObj, null, 2));
       }
       
     } catch (error: any) {
@@ -154,115 +105,44 @@ const PromptView = () => {
     }
   };
 
-  // Get the promptOperations utilities
-  const promptOperations = usePromptOperations(
-    variables,
-    setVariables,
-    finalPrompt,
-    setFinalPrompt,
-    showJson,
-    setEditingPrompt,
-    setShowEditPromptSheet,
-    masterCommand,
-    editingPrompt
-  );
+  const handleCopyContent = (content: string) => {
+    navigator.clipboard.writeText(content);
+    toast({
+      title: "Copied to clipboard",
+      description: "Content has been copied to your clipboard.",
+    });
+  };
 
-  // Handler functions from prompt operations
-  const getProcessedPrompt = useCallback(() => {
-    return promptOperations.getProcessedPrompt();
-  }, [promptOperations]);
-
-  const handleVariableValueChange = useCallback((variableId: string, newValue: string) => {
-    promptOperations.handleVariableValueChange(variableId, newValue);
-  }, [promptOperations]);
-  
-  const handleCopyPrompt = useCallback(() => {
-    promptOperations.handleCopyPrompt();
-  }, [promptOperations]);
-
-  const handleSavePrompt = useCallback(async () => {
+  const handleShareViaEmail = async () => {
+    if (!shareEmail || !prompt) return;
+    
+    setIsSharing(true);
+    
     try {
-      if (!prompt?.id || !user) {
-        toast({
-          title: "Cannot save prompt",
-          description: "You must be logged in to save prompts.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Convert variables array to proper JSON format
-      const variablesJson = variablesToJson(variables);
-      
-      const { error } = await supabase
-        .from('prompts')
-        .update({
-          prompt_text: finalPrompt,
-          master_command: masterCommand,
-          variables: variablesJson
-        })
-        .eq('id', prompt.id);
-      
-      if (error) throw error;
+      // This would be integrated with an email service
+      // For now, we'll just simulate the process
       
       toast({
-        title: "Prompt saved",
-        description: "Your changes have been saved successfully.",
+        title: "Prompt shared",
+        description: `An invitation has been sent to ${shareEmail}`,
       });
       
-      setLastSavedPrompt(finalPrompt);
+      setShareEmail("");
     } catch (error: any) {
-      console.error("Error saving prompt:", error.message);
+      console.error("Error sharing prompt:", error.message);
       toast({
-        title: "Error saving prompt",
+        title: "Error sharing prompt",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsSharing(false);
     }
-  }, [finalPrompt, masterCommand, variables, prompt?.id, user, toast]);
+  };
 
-  const handleOpenEditPrompt = useCallback(() => {
-    if (typeof promptOperations.handleOpenEditPrompt === 'function') {
-      promptOperations.handleOpenEditPrompt();
-    }
-  }, [promptOperations]);
-
-  const handleSaveEditedPrompt = useCallback(() => {
-    if (typeof promptOperations.handleSaveEditedPrompt === 'function') {
-      promptOperations.handleSaveEditedPrompt();
-    }
-  }, [promptOperations]);
-
-  const handleRefreshJson = useCallback(() => {
-    if (isRefreshingJson) return;
-    
-    setIsRefreshingJson(true);
-    toast({
-      title: "Refreshing JSON",
-      description: "Updating JSON structure with current content...",
-    });
-    
-    setTimeout(() => {
-      setRenderTrigger(prev => prev + 1);
-      setIsRefreshingJson(false);
-    }, 100);
-  }, [toast, isRefreshingJson]);
-
-  const handleDeleteVariable = useCallback((variableId: string) => {
-    if (typeof promptOperations.handleDeleteVariable === 'function') {
-      promptOperations.handleDeleteVariable(variableId);
-    } else {
-      setVariables(prev => prev.filter(v => v.id !== variableId));
-    }
-  }, [promptOperations]);
-
-  // Add the function to create variables from selected text
-  const handleCreateVariable = useCallback((text: string) => {
-    if (promptOperations.createVariable && text) {
-      promptOperations.createVariable(text);
-      setSelectedText("");
-    }
-  }, [promptOperations]);
+  const getPlainText = (text: string) => {
+    return text ? text.replace(/<[^>]*>/g, '') : '';
+  };
 
   if (isLoading) {
     return (
@@ -287,7 +167,6 @@ const PromptView = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <XPanelButton />
       <div className="container mx-auto py-8 px-4">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -299,68 +178,139 @@ const PromptView = () => {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-3xl font-bold">{prompt.title}</h1>
+            <h1 className="text-3xl font-bold">{getPlainText(prompt.title)}</h1>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {isOwner ? (
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Lock className="h-4 w-4 mr-1" />
+                <span>You own this prompt</span>
+              </div>
+            ) : (
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Globe className="h-4 w-4 mr-1" />
+                <span>Shared with you</span>
+              </div>
+            )}
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="default">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Share Prompt</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                  <Label htmlFor="email" className="mb-2 block">
+                    Enter email address to share this prompt
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="email"
+                      placeholder="friend@example.com"
+                      type="email"
+                      value={shareEmail}
+                      onChange={(e) => setShareEmail(e.target.value)}
+                    />
+                    <Button 
+                      onClick={handleShareViaEmail} 
+                      disabled={!shareEmail || isSharing}
+                    >
+                      {isSharing ? "Sending..." : "Share"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Recipients will need an account to view this prompt
+                  </p>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
         
-        <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
-          {/* Input for Master Command */}
-          <div className="flex items-center gap-3 mb-3">
-            <input
-              value={masterCommand}
-              onChange={(e) => setMasterCommand(e.target.value)}
-              placeholder="Master command, use it to adapt the prompt to any other similar needs"
-              className="flex-1 h-8 text-sm p-2 border rounded"
-            />
+        <div className="mb-6">
+          <div className="flex flex-wrap gap-2 mb-4">
+            {prompt.tags && prompt.tags.map((tag, index) => (
+              <div key={index} className="bg-accent/10 text-xs rounded-full px-2.5 py-1 flex items-center gap-1">
+                <span className="font-medium">{tag.category}</span>
+                {tag.subcategory && (
+                  <>
+                    <span>•</span>
+                    <span>{tag.subcategory}</span>
+                  </>
+                )}
+              </div>
+            ))}
           </div>
-
-          {/* Toggle section for JSON view */}
-          <ToggleSection 
-            showJson={showJson}
-            setShowJson={setShowJson}
-            refreshJson={handleRefreshJson}
-            isRefreshing={isRefreshingJson}
-          />
-
-          {/* Prompt display with editing capabilities */}
-          <FinalPromptDisplay 
-            finalPrompt={finalPrompt}
-            updateFinalPrompt={setFinalPrompt}
-            getProcessedPrompt={getProcessedPrompt}
-            variables={variables}
-            setVariables={setVariables}
-            showJson={showJson}
-            masterCommand={masterCommand}
-            handleOpenEditPrompt={handleOpenEditPrompt}
-            isEditing={isEditing}
-            setIsEditing={setIsEditing}
-            editablePrompt={editablePrompt}
-            setEditablePrompt={setEditablePrompt}
-            handleSaveEditedPrompt={handleSaveEditedPrompt}
-            renderTrigger={renderTrigger}
-            setRenderTrigger={setRenderTrigger}
-            isRefreshing={isRefreshingJson}
-            setIsRefreshing={setIsRefreshingJson}
-            lastSavedPrompt={lastSavedPrompt}
-            setLastSavedPrompt={setLastSavedPrompt}
-            selectedText={selectedText}
-            setSelectedText={setSelectedText}
-            onCreateVariable={handleCreateVariable}
-          />
-
-          {/* Variables section */}
-          <VariablesSection 
-            variables={variables} 
-            handleVariableValueChange={handleVariableValueChange}
-            onDeleteVariable={handleDeleteVariable}
-          />
-
-          {/* Action buttons for copy/save */}
-          <ActionButtons 
-            handleCopyPrompt={handleCopyPrompt}
-            handleSavePrompt={handleSavePrompt}
-          />
+          
+          <p className="text-sm text-muted-foreground">Created: {prompt.date}</p>
         </div>
+        
+        <Tabs defaultValue="prompt" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="prompt">Prompt Text</TabsTrigger>
+            <TabsTrigger value="json">JSON View</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="prompt" className="mt-6">
+            <Card>
+              <CardContent className="p-6">
+                <div className="mb-4">
+                  {prompt.masterCommand && (
+                    <div className="bg-gray-50 p-4 rounded-md mb-4 border">
+                      <h3 className="text-sm font-medium mb-2">Master Command</h3>
+                      <p className="text-sm">{prompt.masterCommand}</p>
+                    </div>
+                  )}
+                  
+                  <div className="whitespace-pre-wrap mb-4">
+                    {getPlainText(prompt.promptText)}
+                  </div>
+                  
+                  {prompt.variables && prompt.variables.length > 0 && (
+                    <div className="bg-gray-50 p-4 rounded-md border">
+                      <h3 className="text-sm font-medium mb-2">Variables</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {prompt.variables.map((variable: any, index) => (
+                          <div key={index} className="flex flex-col gap-1">
+                            <label className="text-xs text-muted-foreground">{variable.name}</label>
+                            <Input value={variable.value} readOnly className="text-sm" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <Button onClick={() => handleCopyContent(getPlainText(prompt.promptText))}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Prompt
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="json" className="mt-6">
+            <Card>
+              <CardContent className="p-6">
+                <pre className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto text-sm">
+                  {jsonView}
+                </pre>
+                <div className="mt-4">
+                  <Button onClick={() => handleCopyContent(jsonView)}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy JSON
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

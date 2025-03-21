@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -75,10 +76,9 @@ export const usePromptState = (user: any) => {
   };
 
   const handleNewPrompt = () => {
-    // Only save if it's a step 2 draft that hasn't been explicitly deleted
+    // Only save if it's a step 2 or 3 draft that hasn't been explicitly deleted
     // AND is not a saved prompt that's being viewed
-    // Modified to only save drafts when on step 2, not step 3
-    if (promptText && !isViewingSavedPrompt && currentStep === 2) {
+    if (promptText && !isViewingSavedPrompt && currentStep > 1) {
       saveDraft();
       toast({
         title: "Draft Saved",
@@ -417,8 +417,7 @@ export const usePromptState = (user: any) => {
 
   const loadSavedPrompt = (prompt: SavedPrompt) => {
     // Only save draft if it's not a saved prompt that's being viewed
-    // AND we're on step 2 (not step 3)
-    if (promptText && !isViewingSavedPrompt && currentStep === 2) {
+    if (promptText && !isViewingSavedPrompt) {
       saveDraft();
     }
     
@@ -452,14 +451,13 @@ export const usePromptState = (user: any) => {
     });
   };
 
-  // Modify the saveDraftBeforeNavigate logic to only save drafts when on step 2
-  const saveDraftBeforeNavigate = (nextPath: string) => {
-    if (nextPath !== location.pathname && promptText && !isViewingSavedPrompt && currentStep === 2) {
-      saveDraft();
-    }
-  };
-
   useEffect(() => {
+    const saveDraftBeforeNavigate = (nextPath: string) => {
+      if (nextPath !== location.pathname && promptText && !isViewingSavedPrompt) {
+        saveDraft();
+      }
+    };
+
     // For regular navigation
     const handleRouteChange = (e: PopStateEvent) => {
       const nextPath = window.location.pathname;
@@ -483,7 +481,7 @@ export const usePromptState = (user: any) => {
       window.removeEventListener('popstate', handleRouteChange);
       window.history.pushState = originalPushState;
     };
-  }, [location.pathname, promptText, isViewingSavedPrompt, currentStep, saveDraft]);
+  }, [location.pathname, promptText, isViewingSavedPrompt, saveDraft]);
 
   useEffect(() => {
     if (user) {

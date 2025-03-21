@@ -213,9 +213,7 @@ const XPanel = () => {
     }
   };
   const handlePreviewPrompt = (promptId: string) => {
-    // Change from opening in a new tab to navigating in the same window
-    // This helps avoid potential issues with window.open and ensures consistent state
-    navigate(`/prompt/${promptId}`);
+    window.open(`/prompt/${promptId}`, '_blank');
   };
   const clearFilters = () => {
     setSearchTerm("");

@@ -197,7 +197,6 @@ export const StepController = ({
       return;
     }
 
-    // Only save draft when moving from step 1 to step 2, not when moving to step 3
     if (step === 2 && currentStep === 1 && user && !isViewingSavedPrompt) {
       saveDraft();
     }
@@ -219,12 +218,12 @@ export const StepController = ({
         const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
         message += ` to be ${secondaryLabel}`;
       }
-      message += " with Aitema X...";
+      message += " with o3-mini...";
       
       setEnhancingMessage(message);
       
       try {
-        console.log("StepController: Enhancing prompt for step 3 with Aitema X...");
+        console.log("StepController: Enhancing prompt for step 3 with o3-mini...");
         
         // Use the enhancePromptWithGPT function to get an enhanced prompt
         await promptAnalysis.enhancePromptWithGPT(

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions, primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
@@ -380,7 +381,7 @@ export const usePromptAnalysis = (
         const secondaryLabel = secondaryToggles.find(t => t.id === secondaryToggle)?.label || secondaryToggle;
         message += ` to be ${secondaryLabel}`;
       }
-      message += " with Aitema X...";
+      message += "...";
       
       // Set the customized loading message
       setCurrentLoadingMessage(message);
