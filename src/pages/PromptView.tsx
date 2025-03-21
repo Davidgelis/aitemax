@@ -92,8 +92,8 @@ const PromptView = () => {
       if (data.variables) {
         if (Array.isArray(data.variables)) {
           // If it's already an array, map it to ensure it matches the Variable type
-          processedVariables = data.variables.map(v => ({
-            id: typeof v.id === 'string' ? v.id : String(v.id),
+          processedVariables = data.variables.map((v: any) => ({
+            id: typeof v.id === 'string' ? v.id : String(v.id || ''),
             name: v.name || '',
             value: v.value || '',
             isRelevant: v.isRelevant === undefined ? null : v.isRelevant,
@@ -102,14 +102,18 @@ const PromptView = () => {
           }));
         } else if (typeof data.variables === 'object' && data.variables !== null) {
           // If it's an object with variable IDs as keys
-          processedVariables = Object.keys(data.variables).map(id => ({
-            id,
-            name: data.variables[id]?.name || '',
-            value: data.variables[id]?.value || '',
-            isRelevant: data.variables[id]?.isRelevant === undefined ? null : data.variables[id]?.isRelevant,
-            category: data.variables[id]?.category || 'Other',
-            code: data.variables[id]?.code || ''
-          }));
+          processedVariables = Object.keys(data.variables).map(id => {
+            const v = data.variables[id];
+            return {
+              id,
+              name: typeof v === 'object' && v !== null ? (v.name || '') : '',
+              value: typeof v === 'object' && v !== null ? (v.value || '') : '',
+              isRelevant: typeof v === 'object' && v !== null ? 
+                (v.isRelevant === undefined ? null : v.isRelevant) : null,
+              category: typeof v === 'object' && v !== null ? (v.category || 'Other') : 'Other',
+              code: typeof v === 'object' && v !== null ? (v.code || '') : ''
+            };
+          });
         }
       }
       
