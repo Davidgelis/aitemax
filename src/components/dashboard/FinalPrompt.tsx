@@ -246,34 +246,36 @@ export const FinalPrompt = ({
           style={{ backgroundSize: "400% 400%" }}
         />
         
-        <div className="relative h-full p-6 overflow-auto">
+        <div className="relative h-full p-6">
           <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
           
-          {!isEditing ? (
-            <div className="whitespace-pre-wrap text-card-foreground overflow-auto">
-              {showJson ? (
-                <pre className="text-xs font-mono overflow-x-auto">
-                  {JSON.stringify({ 
-                    prompt: finalPrompt, 
-                    masterCommand,
-                    variables: variables.filter(v => v.isRelevant === true)
-                  }, null, 2)}
-                </pre>
-              ) : (
-                <div className="prose prose-sm max-w-none overflow-auto">
-                  <div dangerouslySetInnerHTML={{ __html: getProcessedPrompt().split('\n\n').map(p => `<p>${p}</p>`).join('') }} />
-                </div>
-              )}
-            </div>
-          ) : (
-            <div 
-              ref={promptContainerRef}
-              className="whitespace-pre-wrap text-card-foreground editable-content overflow-auto" 
-              contentEditable="true"
-              suppressContentEditableWarning={true}
-              dangerouslySetInnerHTML={{ __html: currentEditingContent }}
-            />
-          )}
+          <div className="h-[calc(100%-3rem)] overflow-auto prompt-content-container">
+            {!isEditing ? (
+              <div className="whitespace-pre-wrap text-card-foreground">
+                {showJson ? (
+                  <pre className="text-xs font-mono overflow-x-auto">
+                    {JSON.stringify({ 
+                      prompt: finalPrompt, 
+                      masterCommand,
+                      variables: variables.filter(v => v.isRelevant === true)
+                    }, null, 2)}
+                  </pre>
+                ) : (
+                  <div className="prose prose-sm max-w-none">
+                    <div dangerouslySetInnerHTML={{ __html: getProcessedPrompt().split('\n\n').map(p => `<p>${p}</p>`).join('') }} />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div 
+                ref={promptContainerRef}
+                className="whitespace-pre-wrap text-card-foreground editable-content" 
+                contentEditable="true"
+                suppressContentEditableWarning={true}
+                dangerouslySetInnerHTML={{ __html: currentEditingContent }}
+              />
+            )}
+          </div>
         </div>
       </div>
 

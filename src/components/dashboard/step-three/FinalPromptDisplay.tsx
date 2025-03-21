@@ -603,10 +603,12 @@ export const FinalPromptDisplay = ({
       backgroundSize: "400% 400%"
     }} />
       
-      <div className={`relative h-full p-6 overflow-auto ${isEditing ? 'editing-mode' : ''}`}>
+      <div className={`relative h-full p-6 ${isEditing ? 'editing-mode' : ''}`}>
         <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
         
-        {renderProcessedPrompt()}
+        <div className="h-[calc(100%-3rem)] overflow-auto prompt-content-container">
+          {renderProcessedPrompt()}
+        </div>
       </div>
     </div>;
 };
