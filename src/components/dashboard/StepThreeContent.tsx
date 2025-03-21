@@ -135,6 +135,22 @@ export const StepThreeContent = ({
     }
   }, [promptOperations]);
 
+  // Register event listener for variable name changes
+  useEffect(() => {
+    const handleVariableNameChangeEvent = (event: CustomEvent) => {
+      const { variableId, newName } = event.detail;
+      if (variableId && promptOperations.handleVariableNameChange) {
+        promptOperations.handleVariableNameChange(variableId, newName);
+      }
+    };
+
+    document.addEventListener('variable-name-changed', handleVariableNameChangeEvent as EventListener);
+    
+    return () => {
+      document.removeEventListener('variable-name-changed', handleVariableNameChangeEvent as EventListener);
+    };
+  }, [promptOperations]);
+
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
       <ToggleSection 

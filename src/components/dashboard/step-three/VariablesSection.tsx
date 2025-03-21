@@ -30,7 +30,7 @@ export const VariablesSection = ({
     }
   }, [handleVariableValueChange]);
 
-  // Edit variable name
+  // Handle variable name changes
   const handleNameChange = useCallback((variableId: string, newName: string) => {
     try {
       const event = new CustomEvent('variable-name-changed', {
