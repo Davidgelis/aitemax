@@ -295,6 +295,23 @@ const XPanel = () => {
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
+                {/* Added logo image */}
+                <div className="w-10 h-10 relative">
+                  <div 
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95)",
+                      backgroundSize: "400% 400%",
+                      animation: "aurora 300s ease infinite",
+                      zIndex: 0
+                    }}
+                  />
+                  <img
+                    src="/lovable-uploads/fadbfaa4-8431-4d47-bff3-c38a1517cfe1.png"
+                    alt="Aitema X Logo"
+                    className="relative z-10 w-full h-full"
+                  />
+                </div>
                 
                 <h1 className="text-3xl font-bold">
                   <span className="bg-aurora-gradient bg-aurora animate-aurora bg-clip-text text-transparent" style={{
