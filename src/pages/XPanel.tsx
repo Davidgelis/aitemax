@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, ArrowLeft, Twitter, Facebook, Instagram, Link2, Mail, Trash2, Eye, Copy, Share2, User, FileText, MoreVertical, CopyIcon, Pencil, Lock } from "lucide-react";
+import { Search, Filter, Twitter, Facebook, Instagram, Link2, Mail, Trash2, Eye, Copy, Share2, User, FileText, MoreVertical, CopyIcon, Pencil, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getTextLines } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
+
 const XPanel = () => {
   const navigate = useNavigate();
   const {
