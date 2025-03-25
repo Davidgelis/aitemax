@@ -79,6 +79,30 @@ export interface PromptJsonStructure {
   [key: string]: any; // Allow for any additional properties
 }
 
+// Define a Prompt Pillar interface for template structure
+export interface PromptPillar {
+  id: string;
+  name: string;
+  content: string;
+  order: number;
+  isEditable: boolean;
+}
+
+// Define a Prompt Template interface
+export interface PromptTemplate {
+  id?: string;
+  title: string;
+  description?: string;
+  isDefault: boolean;
+  pillars: PromptPillar[];
+  systemPrefix?: string;
+  maxChars?: number;
+  temperature: number;
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string;
+}
+
 // Helper functions for variable serialization/deserialization with updated types
 export const variablesToJson = (variables: Variable[]): Record<string, any> => {
   if (!variables || !Array.isArray(variables)) return {};
@@ -120,3 +144,44 @@ export const jsonToVariables = (json: Json | Record<string, any> | null): Variab
   
   return variables;
 };
+
+// Helper functions for template serialization/deserialization
+export const templatePillarsToJson = (pillars: PromptPillar[]): Record<string, any> => {
+  if (!pillars || !Array.isArray(pillars)) return {};
+  
+  const result: Record<string, any> = {};
+  pillars.forEach(pillar => {
+    if (pillar && pillar.id) {
+      result[pillar.id] = {
+        name: pillar.name,
+        content: pillar.content,
+        order: pillar.order,
+        isEditable: pillar.isEditable
+      };
+    }
+  });
+  
+  return result;
+};
+
+export const jsonToPillars = (json: Json | Record<string, any> | null): PromptPillar[] => {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return [];
+  
+  const pillars: PromptPillar[] = [];
+  Object.keys(json).forEach(id => {
+    const pillarData = json[id];
+    if (pillarData && typeof pillarData === 'object' && !Array.isArray(pillarData)) {
+      pillars.push({
+        id,
+        name: pillarData.name || '',
+        content: pillarData.content || '',
+        order: pillarData.order || 0,
+        isEditable: pillarData.isEditable === undefined ? true : pillarData.isEditable
+      });
+    }
+  });
+  
+  // Sort pillars by order
+  return pillars.sort((a, b) => a.order - b.order);
+};
+

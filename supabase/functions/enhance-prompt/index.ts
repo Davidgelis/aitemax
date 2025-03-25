@@ -23,14 +23,37 @@ serve(async (req) => {
       primaryToggle,
       secondaryToggle,
       userId,
-      promptId
+      promptId,
+      selectedTemplate
     } = await req.json();
     
     console.log(`Enhancing prompt with focus on ${primaryToggle || "no specific toggle"}`);
+    if (selectedTemplate) {
+      console.log(`Using template: ${selectedTemplate.title}`);
+    }
     console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
     
-    // The comprehensive four-pillar framework for prompt engineering
-    const systemMessage = `You are an expert prompt engineer that transforms input prompts into highly effective, well-structured prompts following the four-pillar framework.
+    // Build the system message based on the template if available
+    let systemMessage = '';
+    
+    if (selectedTemplate) {
+      // Use the template's system prefix if available, or build one
+      if (selectedTemplate.systemPrefix) {
+        systemMessage = selectedTemplate.systemPrefix;
+      } else {
+        // Build a system message based on the template structure
+        systemMessage = `You are an expert prompt engineer that transforms input prompts according to the following structure:\n\n`;
+        
+        // Add all pillars to the system message
+        selectedTemplate.pillars.sort((a, b) => a.order - b.order).forEach(pillar => {
+          systemMessage += `${pillar.name.toUpperCase()}: ${pillar.content || 'This section should contain information about ' + pillar.name.toLowerCase() + '.'}\n\n`;
+        });
+        
+        systemMessage += `Ensure the final output follows this structure while maintaining natural flow and incorporating all essential elements.`;
+      }
+    } else {
+      // Use the default four-pillar framework
+      systemMessage = `You are an expert prompt engineer that transforms input prompts into highly effective, well-structured prompts following the four-pillar framework.
 
 TASK: You will be provided with an intent and context information, which may be as brief as two sentences or as extensive as a comprehensive brief. Your job is to enhance this prompt by applying best practices and instructions. Improve clarity, grammar, structure, and logical flow while preserving the original intent.
 
@@ -67,8 +90,16 @@ INSTRUCTIONS:
 7. Maintain a natural, flowing style while incorporating all essential elements
 
 OUTPUT FORMAT:
-Your enhanced prompt must flow naturally while incorporating all necessary elements. Structure it with clear sections for Task, Persona, Conditions, and Instructions.
-${primaryToggle ? `\n\nPRIMARY FOCUS: ${primaryToggle}` : ""}${secondaryToggle ? `\nSECONDARY FOCUS: ${secondaryToggle}` : ""}`;
+Your enhanced prompt must flow naturally while incorporating all necessary elements. Structure it with clear sections for Task, Persona, Conditions, and Instructions.`;
+    }
+    
+    // Add the toggles to the system message
+    if (primaryToggle) {
+      systemMessage += `\n\nPRIMARY FOCUS: ${primaryToggle}`;
+    }
+    if (secondaryToggle) {
+      systemMessage += `\nSECONDARY FOCUS: ${secondaryToggle}`;
+    }
 
     // Initialize OpenAI client
     const openai = new OpenAI({
@@ -83,7 +114,7 @@ ${primaryToggle ? `\n\nPRIMARY FOCUS: ${primaryToggle}` : ""}${secondaryToggle ?
     // Create the prompt for GPT
     const messages = [
       { role: "system", content: systemMessage },
-      { role: "user", content: `Transform this prompt into an enhanced version following our four-pillar framework:
+      { role: "user", content: `Transform this prompt into an enhanced version${selectedTemplate ? ' following the structure provided in the system message' : ' following our four-pillar framework'}:
 
 ORIGINAL PROMPT:
 ${originalPrompt}
@@ -91,22 +122,27 @@ ${originalPrompt}
 CONTEXT FROM USER:
 ${context}
 
-Create an enhanced prompt that clearly defines the Task, Persona, Conditions, and Instructions while maintaining natural flow and clarity. Focus especially on creating a prompt that can be immediately used in another AI platform with excellent results.` }
+Create an enhanced prompt that ${selectedTemplate 
+  ? `clearly follows the structure with sections for ${selectedTemplate.pillars.map(p => p.name).join(', ')}` 
+  : 'clearly defines the Task, Persona, Conditions, and Instructions'} while maintaining natural flow and clarity. Focus especially on creating a prompt that can be immediately used in another AI platform with excellent results.` }
     ];
 
     try {
+      // Set the temperature based on the template or default
+      const temperature = selectedTemplate?.temperature || 0.7;
+      
       // Make the API call
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4o-mini", // Using mini for cost efficiency
         messages: messages,
-        temperature: 0.7
+        temperature: temperature
       });
 
       const enhancedPrompt = completion.choices[0].message.content;
       
       return new Response(JSON.stringify({ 
         enhancedPrompt,
-        loadingMessage: `Enhancing prompt${primaryToggle ? ` for ${primaryToggle}` : ''}...`,
+        loadingMessage: `Enhancing prompt${primaryToggle ? ` for ${primaryToggle}` : ''}${selectedTemplate ? ` using ${selectedTemplate.title} template` : ''}...`,
         usage: completion.usage || { prompt_tokens: 0, completion_tokens: 0 }
       }), {
         status: 200,
@@ -142,3 +178,4 @@ ${originalPrompt}`,
     });
   }
 });
+

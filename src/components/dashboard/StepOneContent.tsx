@@ -1,14 +1,17 @@
+
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
 import { SmartContext } from "@/components/dashboard/SmartContext";
 import { primaryToggles, secondaryToggles } from "./constants";
-import { AIModel, UploadedImage } from "./types";
+import { AIModel, UploadedImage, PromptTemplate } from "./types";
 import { Switch } from "@/components/ui/switch";
 import { HelpCircle, ImageUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "./ImageUploader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TemplateSelector } from "./TemplateSelector";
+import { usePromptTemplates } from "@/hooks/usePromptTemplates";
 
 interface StepOneContentProps {
   promptText: string;
@@ -26,6 +29,8 @@ interface StepOneContentProps {
   onImagesChange?: (images: UploadedImage[]) => void;
   onWebsiteScan?: (url: string, instructions: string) => void;
   onSmartContext?: (context: string, usageInstructions: string) => void;
+  userId?: string;
+  onTemplateSelect?: (template: PromptTemplate) => void;
 }
 
 export const StepOneContent = ({
@@ -43,13 +48,23 @@ export const StepOneContent = ({
   handleCognitiveToggle,
   onImagesChange = () => {},
   onWebsiteScan = () => {},
-  onSmartContext = () => {}
+  onSmartContext = () => {},
+  userId,
+  onTemplateSelect = () => {}
 }: StepOneContentProps) => {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const maxCharacterLimit = 3000; // Set the character limit to 3000
+  
+  // Use the template hook to manage templates
+  const {
+    templates,
+    selectedTemplate,
+    isLoading: isLoadingTemplates,
+    setSelectedTemplate
+  } = usePromptTemplates(userId);
 
   const handleImagesChange = (images: UploadedImage[]) => {
     setUploadedImages(images);
@@ -84,7 +99,8 @@ export const StepOneContent = ({
       websiteContext,
       smartContext: smartContext ? "Provided" : "None",
       selectedPrimary,
-      selectedSecondary
+      selectedSecondary,
+      selectedTemplate: selectedTemplate?.title
     });
     
     onAnalyze();
@@ -93,6 +109,23 @@ export const StepOneContent = ({
   const handleOpenUploadDialog = () => {
     setDialogOpen(true);
   };
+  
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    
+    // Find the selected template and pass it to the parent component
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      onTemplateSelect(template);
+    }
+  };
+  
+  useEffect(() => {
+    // When a template is selected, notify the parent component
+    if (selectedTemplate) {
+      onTemplateSelect(selectedTemplate);
+    }
+  }, [selectedTemplate, onTemplateSelect]);
 
   return (
     <div className="border rounded-xl p-6 bg-card">
@@ -121,6 +154,16 @@ export const StepOneContent = ({
         </div>
         
         {/* Removed the Cognitive Prompt Perfection Model toggle and text */}
+      </div>
+
+      {/* Template Selector */}
+      <div className="mb-6">
+        <TemplateSelector 
+          templates={templates}
+          selectedTemplate={selectedTemplate}
+          isLoading={isLoadingTemplates}
+          onSelectTemplate={handleTemplateSelect}
+        />
       </div>
 
       {uploadedImages.length > 0 && (
@@ -229,7 +272,7 @@ export const StepOneContent = ({
           onOpenUploadDialog={handleOpenUploadDialog}
           dialogOpen={dialogOpen}
           setDialogOpen={setDialogOpen}
-          maxLength={maxCharacterLimit}
+          maxLength={selectedTemplate?.maxChars || maxCharacterLimit}
         />
       </div>
 
@@ -246,3 +289,4 @@ export const StepOneContent = ({
     </div>
   );
 };
+
