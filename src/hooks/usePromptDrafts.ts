@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from "react";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,7 +76,11 @@ export const usePromptDrafts = (
     // 1. No user is logged in
     // 2. No prompt text
     // 3. We're on step 1 (haven't analyzed the prompt yet)
-    if (!user || !promptText.trim() || currentStep === 1) return;
+    // 4. Or we're on step 3 (final prompt)
+    if (!user || !promptText.trim() || currentStep === 1 || currentStep === 3) {
+      console.log(`Not saving draft. Step: ${currentStep}, Has text: ${!!promptText.trim()}, User: ${!!user}`);
+      return;
+    }
 
     try {
       // Ensure we're saving plain text by removing any HTML tags if present
@@ -334,9 +337,10 @@ export const usePromptDrafts = (
   }, []);
 
   // Window visibility event handler to save drafts when the user leaves the page
+  // Only save drafts if we're on step 2
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && currentStep > 1) {
+      if (document.visibilityState === 'hidden' && currentStep === 2) {
         saveDraft();
       }
     };

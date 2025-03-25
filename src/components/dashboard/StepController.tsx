@@ -197,11 +197,14 @@ export const StepController = ({
       return;
     }
 
+    // Save draft only when moving from step 1 to step 2
+    // Not when moving to step 3
     if (step === 2 && currentStep === 1 && user && !isViewingSavedPrompt) {
       saveDraft();
     }
 
     if (step === 3) {
+      // When moving to step 3, don't save draft
       setIsEnhancingPrompt(true);
       
       // Update enhancement message based on toggles

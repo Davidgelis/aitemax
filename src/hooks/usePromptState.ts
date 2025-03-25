@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -76,9 +75,9 @@ export const usePromptState = (user: any) => {
   };
 
   const handleNewPrompt = () => {
-    // Only save if it's a step 2 or 3 draft that hasn't been explicitly deleted
+    // Only save if it's a step 2 draft that hasn't been explicitly deleted
     // AND is not a saved prompt that's being viewed
-    if (promptText && !isViewingSavedPrompt && currentStep > 1) {
+    if (promptText && !isViewingSavedPrompt && currentStep === 2) {
       saveDraft();
       toast({
         title: "Draft Saved",
@@ -417,7 +416,8 @@ export const usePromptState = (user: any) => {
 
   const loadSavedPrompt = (prompt: SavedPrompt) => {
     // Only save draft if it's not a saved prompt that's being viewed
-    if (promptText && !isViewingSavedPrompt) {
+    // and we're on step 2
+    if (promptText && !isViewingSavedPrompt && currentStep === 2) {
       saveDraft();
     }
     
@@ -453,7 +453,11 @@ export const usePromptState = (user: any) => {
 
   useEffect(() => {
     const saveDraftBeforeNavigate = (nextPath: string) => {
-      if (nextPath !== location.pathname && promptText && !isViewingSavedPrompt) {
+      // Only save draft if on step 2 (not step 1 or 3)
+      if (nextPath !== location.pathname && 
+          promptText && 
+          !isViewingSavedPrompt && 
+          currentStep === 2) {
         saveDraft();
       }
     };
@@ -481,7 +485,7 @@ export const usePromptState = (user: any) => {
       window.removeEventListener('popstate', handleRouteChange);
       window.history.pushState = originalPushState;
     };
-  }, [location.pathname, promptText, isViewingSavedPrompt, saveDraft]);
+  }, [location.pathname, promptText, isViewingSavedPrompt, saveDraft, currentStep]);
 
   useEffect(() => {
     if (user) {

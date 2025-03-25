@@ -76,7 +76,15 @@ const Dashboard = () => {
   
   useEffect(() => {
     const saveDraftBeforeNavigate = (nextPath: string) => {
-      if (nextPath !== location.pathname && promptState.promptText && !promptState.isViewingSavedPrompt) {
+      // Only save draft if:
+      // 1. We're navigating away from the current page
+      // 2. There is prompt text
+      // 3. We're not viewing a saved prompt
+      // 4. We're on step 2 (not step 1 or 3)
+      if (nextPath !== location.pathname && 
+          promptState.promptText && 
+          !promptState.isViewingSavedPrompt && 
+          promptState.currentStep === 2) {
         promptState.saveDraft();
       }
     };
@@ -104,7 +112,7 @@ const Dashboard = () => {
       window.removeEventListener('popstate', handleRouteChange);
       window.history.pushState = originalPushState;
     };
-  }, [location.pathname, promptState.promptText, promptState.isViewingSavedPrompt, promptState.saveDraft]);
+  }, [location.pathname, promptState.promptText, promptState.isViewingSavedPrompt, promptState.saveDraft, promptState.currentStep]);
   
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
