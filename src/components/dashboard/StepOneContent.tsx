@@ -1,14 +1,17 @@
-import { useState, useEffect } from "react";
-import PromptInput from "@/components/PromptInput";
-import { WebScanner } from "@/components/dashboard/WebScanner";
-import { SmartContext } from "@/components/dashboard/SmartContext";
-import { primaryToggles, secondaryToggles } from "./constants";
+
+import { useState } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Toggle } from "@/components/ui/toggle";
+import { Textarea } from "@/components/ui/textarea";
 import { AIModel, UploadedImage } from "./types";
-import { Switch } from "@/components/ui/switch";
-import { HelpCircle, ImageUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { WebScanner } from "./WebScanner";
 import { ImageUploader } from "./ImageUploader";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { ModelSelector } from "./model-selector";
+import { SmartContext } from "./SmartContext";
+import { primaryToggles, secondaryToggles } from "./constants";
+import { TemplateSelector } from "./TemplateSelector";
+import { PromptTemplate } from "@/hooks/usePromptTemplates";
 
 interface StepOneContentProps {
   promptText: string;
@@ -23,9 +26,17 @@ interface StepOneContentProps {
   setSelectedModel: (model: AIModel | null) => void;
   selectedCognitive: string | null;
   handleCognitiveToggle: (id: string) => void;
-  onImagesChange?: (images: UploadedImage[]) => void;
-  onWebsiteScan?: (url: string, instructions: string) => void;
-  onSmartContext?: (context: string, usageInstructions: string) => void;
+  onImagesChange: (images: UploadedImage[]) => void;
+  onWebsiteScan: (url: string, instructions: string) => void;
+  onSmartContext: (context: string, usageInstructions: string) => void;
+  templates?: PromptTemplate[];
+  selectedTemplate?: PromptTemplate | null;
+  onTemplateSelect?: (template: PromptTemplate) => void;
+  onCreateTemplate?: (template: Partial<PromptTemplate>) => Promise<PromptTemplate | null>;
+  onUpdateTemplate?: (id: string, template: Partial<PromptTemplate>) => Promise<PromptTemplate | null>;
+  onDeleteTemplate?: (id: string) => Promise<boolean>;
+  isTemplateLoading?: boolean;
+  isLoggedIn?: boolean;
 }
 
 export const StepOneContent = ({
@@ -41,207 +52,161 @@ export const StepOneContent = ({
   setSelectedModel,
   selectedCognitive,
   handleCognitiveToggle,
-  onImagesChange = () => {},
-  onWebsiteScan = () => {},
-  onSmartContext = () => {}
+  onImagesChange,
+  onWebsiteScan,
+  onSmartContext,
+  templates = [],
+  selectedTemplate = null,
+  onTemplateSelect,
+  onCreateTemplate,
+  onUpdateTemplate,
+  onDeleteTemplate,
+  isTemplateLoading = false,
+  isLoggedIn = false
 }: StepOneContentProps) => {
-  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
-  const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
-  const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const maxCharacterLimit = 3000; // Set the character limit to 3000
-
-  const handleImagesChange = (images: UploadedImage[]) => {
-    setUploadedImages(images);
-    console.log("StepOneContent: Images updated:", images);
-    // Pass the images up to the parent component without triggering analysis
-    onImagesChange(images);
-  };
-
-  const handleWebsiteScan = (url: string, instructions: string = "") => {
-    const contextData = { url, instructions };
-    setWebsiteContext(contextData);
-    console.log("StepOneContent: Website context set:", contextData);
-    
-    onWebsiteScan(url, instructions);
-  };
-
-  const handleSmartContext = (context: string, usageInstructions: string = "") => {
-    const contextData = { context, usageInstructions };
-    setSmartContext(contextData);
-    console.log("StepOneContent: Smart context set:", {
-      context: context.substring(0, 100) + (context.length > 100 ? "..." : ""),
-      usageInstructions: usageInstructions.substring(0, 100) + (usageInstructions.length > 100 ? "..." : "")
-    });
-    
-    onSmartContext(context, usageInstructions);
-  };
-
-  const handleAnalyzeWithContext = () => {
-    console.log("StepOneContent: Analyzing with context:", {
-      promptText,
-      uploadedImages: uploadedImages.length,
-      websiteContext,
-      smartContext: smartContext ? "Provided" : "None",
-      selectedPrimary,
-      selectedSecondary
-    });
-    
-    onAnalyze();
-  };
-
-  const handleOpenUploadDialog = () => {
-    setDialogOpen(true);
-  };
+  const [showContextTools, setShowContextTools] = useState(false);
 
   return (
     <div className="border rounded-xl p-6 bg-card">
-      <div className="mb-4 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <WebScanner 
-            onWebsiteScan={handleWebsiteScan}
-            variant="modelReplacement"
-          />
-          <SmartContext
-            onSmartContext={handleSmartContext}
-            variant="modelReplacement"
-          />
-          <div className="w-full">
-            <div className="flex items-center">
-              <button 
-                onClick={handleOpenUploadDialog}
-                className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
-                title="Upload and analyze images with specific context"
-              >
-                <span className="truncate ml-1">Image Smart Scan</span>
-                <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Removed the Cognitive Prompt Perfection Model toggle and text */}
-      </div>
-
-      {uploadedImages.length > 0 && (
-        <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
-          <h3 className="text-sm font-medium text-[#545454] mb-2">Uploaded Images</h3>
-          <ImageUploader
-            images={uploadedImages}
-            onImagesChange={handleImagesChange}
-            open={dialogOpen}
-            onOpenChange={setDialogOpen}
-          />
-        </div>
-      )}
-
-      {smartContext && smartContext.context && (
-        <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
-          <h3 className="text-sm font-medium text-[#545454] mb-2">Smart Context Added</h3>
-          <p className="text-xs text-[#545454] italic truncate">
-            {smartContext.context.substring(0, 100)}
-            {smartContext.context.length > 100 ? "..." : ""}
-          </p>
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {primaryToggles.map(toggle => (
-          <div 
-            key={toggle.id}
-            className="border rounded-lg p-3 flex justify-between items-center"
-            data-variant="primary"
-          >
-            <div className="text-[#545454] text-sm">
-              {toggle.label}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch 
-                checked={selectedPrimary === toggle.id}
-                onCheckedChange={() => handlePrimaryToggle(toggle.id)}
-                variant="primary"  
-              />
-              <TooltipProvider>
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <button 
-                      className="tooltip-trigger text-[#545454] opacity-70 hover:opacity-100"
-                      aria-label={`Learn more about ${toggle.label}`}
-                    >
-                      <HelpCircle className="h-4 w-4 tooltip-icon" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs text-xs">
-                    {toggle.definition}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {secondaryToggles.map(toggle => (
-          <div 
-            key={toggle.id}
-            className="border rounded-lg p-3 flex justify-between items-center"
-            data-variant="secondary"
-          >
-            <div className="text-[#545454] text-sm">
-              {toggle.label}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch 
-                checked={selectedSecondary === toggle.id}
-                onCheckedChange={() => handleSecondaryToggle(toggle.id)}
-                variant="secondary"
-              />
-              <TooltipProvider>
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <button 
-                      className="tooltip-trigger text-[#545454] opacity-70 hover:opacity-100"
-                      aria-label={`Learn more about ${toggle.label}`}
-                    >
-                      <HelpCircle className="h-4 w-4 tooltip-icon" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs text-xs">
-                    {toggle.definition}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
-        ))}
-      </div>
-
       <div className="mb-6">
-        <PromptInput 
-          value={promptText}
-          onChange={setPromptText}
-          onSubmit={handleAnalyzeWithContext}
-          className="w-full"
-          images={uploadedImages}
-          onImagesChange={handleImagesChange}
-          isLoading={isLoading}
-          onOpenUploadDialog={handleOpenUploadDialog}
-          dialogOpen={dialogOpen}
-          setDialogOpen={setDialogOpen}
-          maxLength={maxCharacterLimit}
-        />
-      </div>
+        <div className="flex flex-col">
+          <label htmlFor="prompt" className="block text-primary font-bold mb-1">
+            Enter your prompt
+          </label>
+          <Textarea
+            id="prompt"
+            value={promptText}
+            onChange={(e) => setPromptText(e.target.value)}
+            placeholder="Type your prompt to start enhancing it using AI..."
+            className="h-48 mb-4 border focus:border-[#33fea6] transition-all bg-background"
+            autoFocus
+          />
+        </div>
 
-      <div className="flex justify-end mt-8">
-        <Button
-          onClick={handleAnalyzeWithContext}
-          disabled={isLoading || !promptText.trim()}
-          variant="aurora"
-          className="ml-2"
+        {onTemplateSelect && templates.length > 0 && (
+          <div className="mb-6">
+            <TemplateSelector
+              templates={templates}
+              selectedTemplate={selectedTemplate}
+              onTemplateSelect={onTemplateSelect}
+              onCreateTemplate={onCreateTemplate}
+              onUpdateTemplate={onUpdateTemplate}
+              onDeleteTemplate={onDeleteTemplate}
+              isLoading={isTemplateLoading}
+              isLoggedIn={isLoggedIn}
+            />
+          </div>
+        )}
+
+        <div className="flex flex-col space-y-4">
+          <div>
+            <label className="block text-primary font-bold mb-2">Primary Focus (optional)</label>
+            <ScrollArea className="h-20 w-full rounded-md border p-2 mb-4">
+              <div className="flex flex-wrap gap-2 mr-4">
+                {primaryToggles.map(toggle => (
+                  <TooltipProvider key={toggle.id}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Toggle
+                          variant="outline"
+                          pressed={selectedPrimary === toggle.id}
+                          onPressedChange={() => handlePrimaryToggle(toggle.id)}
+                          className={`rounded-full px-3 py-1 text-xs ${
+                            selectedPrimary === toggle.id ? '!bg-[#33fea6]/20 border-[#33fea6]' : ''
+                          }`}
+                        >
+                          {toggle.label}
+                        </Toggle>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs p-3">
+                        <div className="space-y-1">
+                          <p className="font-medium text-sm">{toggle.label}</p>
+                          <p className="text-muted-foreground text-xs leading-relaxed">
+                            {toggle.definition}
+                          </p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+
+          <div>
+            <label className="block text-primary font-bold mb-2">Secondary Focus (optional)</label>
+            <ScrollArea className="h-20 w-full rounded-md border p-2 mb-6">
+              <div className="flex flex-wrap gap-2 mr-4">
+                {secondaryToggles.map(toggle => (
+                  <TooltipProvider key={toggle.id}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Toggle
+                          variant="outline"
+                          pressed={selectedSecondary === toggle.id}
+                          onPressedChange={() => handleSecondaryToggle(toggle.id)}
+                          className={`rounded-full px-3 py-1 text-xs ${
+                            selectedSecondary === toggle.id ? '!bg-[#33fea6]/20 border-[#33fea6]' : ''
+                          }`}
+                        >
+                          {toggle.label}
+                        </Toggle>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs p-3">
+                        <div className="space-y-1">
+                          <p className="font-medium text-sm">{toggle.label}</p>
+                          <p className="text-muted-foreground text-xs leading-relaxed">
+                            {toggle.definition}
+                          </p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setShowContextTools(!showContextTools)}
+          className="mb-4 text-[#33fea6] hover:text-[#33fea6]/90 font-medium text-sm focus:outline-none"
         >
-          {isLoading ? "Analyzing..." : "Analyze with AI"}
-        </Button>
+          {showContextTools ? "Hide context tools" : "Show context tools"}
+        </button>
+
+        {showContextTools && (
+          <div className="mb-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-sm font-medium mb-2">Image Context</h3>
+                <ImageUploader onImagesChange={onImagesChange} />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium mb-2">Website Content</h3>
+                <WebScanner onScan={onWebsiteScan} />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium mb-2">Smart Context</h3>
+              <SmartContext onSmartContext={onSmartContext} />
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col items-start justify-start space-y-4">
+          <ModelSelector
+            selectedModel={selectedModel}
+            onSelect={setSelectedModel}
+          />
+          <button
+            onClick={onAnalyze}
+            disabled={!promptText.trim() || isLoading}
+            className="aurora-button"
+          >
+            {isLoading ? "Analyzing..." : "Analyze Prompt"}
+          </button>
+        </div>
       </div>
     </div>
   );

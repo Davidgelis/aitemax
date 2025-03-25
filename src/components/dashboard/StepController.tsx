@@ -11,6 +11,7 @@ import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
 import { AIModel, UploadedImage } from "@/components/dashboard/types";
 import { primaryToggles, secondaryToggles } from "./constants";
+import { usePromptTemplates } from "@/hooks/usePromptTemplates";
 
 interface StepControllerProps {
   user: any;
@@ -273,6 +274,17 @@ export const StepController = ({
     prompt.promptText.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const templatesApi = usePromptTemplates(user);
+  const { 
+    templates, 
+    selectedTemplate, 
+    setSelectedTemplate,
+    isLoading: isTemplatesLoading,
+    createTemplate,
+    updateTemplate,
+    deleteTemplate
+  } = templatesApi;
+  
   const renderContent = () => {
     if (isAnalyzing || isEnhancingPrompt || isEnhancing) {
       let message = isEnhancingPrompt 
@@ -303,6 +315,14 @@ export const StepController = ({
             onImagesChange={handleImagesChange}
             onWebsiteScan={handleWebsiteScan}
             onSmartContext={handleSmartContext}
+            templates={templates}
+            selectedTemplate={selectedTemplate}
+            onTemplateSelect={setSelectedTemplate}
+            onCreateTemplate={createTemplate}
+            onUpdateTemplate={updateTemplate}
+            onDeleteTemplate={deleteTemplate}
+            isTemplateLoading={isTemplatesLoading}
+            isLoggedIn={!!user}
           />
         );
 
