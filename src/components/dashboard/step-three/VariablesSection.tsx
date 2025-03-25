@@ -5,16 +5,18 @@ import { useEffect, useCallback, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
-interface VariablesSectionProps {
+export interface VariablesSectionProps {
   variables: Variable[];
   handleVariableValueChange: (variableId: string, newValue: string) => void;
   onDeleteVariable?: (variableId: string) => void;
+  setVariables?: React.Dispatch<React.SetStateAction<Variable[]>>;
 }
 
 export const VariablesSection = ({
   variables,
   handleVariableValueChange,
-  onDeleteVariable
+  onDeleteVariable,
+  setVariables
 }: VariablesSectionProps) => {
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
   const maxCharacterLimit = 100; // Set character limit to 100

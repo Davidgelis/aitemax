@@ -1,5 +1,5 @@
 
-import { ModelSelector as ModelSelectorComponent } from './model-selector';
+import { ModelSelector as ModelSelectorComponent } from './model-selector/ModelSelector';
 import { AIModel } from './types';
 
 interface ModelSelectorProps {

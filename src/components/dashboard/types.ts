@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 
 export interface Question {
@@ -10,9 +11,11 @@ export interface Question {
 export interface Variable {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   value: string;
   isRelevant?: boolean | null;
+  category?: string;
+  code?: string;
 }
 
 export interface SavedPrompt {
@@ -30,8 +33,10 @@ export interface SavedPrompt {
 }
 
 export interface PromptTag {
-  name: string;
-  confidence: number;
+  name?: string;
+  category?: string;
+  subcategory?: string;
+  confidence?: number;
 }
 
 export interface AIModel {
@@ -47,7 +52,8 @@ export interface AIModel {
 export interface UploadedImage {
   id: string;
   url: string;
-  context: string;
+  file?: File;
+  context?: string;
 }
 
 export interface PromptJsonStructure {
@@ -61,9 +67,10 @@ export const variablesToJson = (variables: Variable[]): Json => {
 export const jsonToVariables = (json: Json): Variable[] => {
   try {
     if (typeof json === 'string') {
-      return JSON.parse(json) as Variable[];
+      const parsed = JSON.parse(json);
+      return Array.isArray(parsed) ? parsed : [];
     } else if (Array.isArray(json)) {
-      return json as Variable[];
+      return json as any as Variable[];
     }
     return [];
   } catch (e) {
@@ -73,10 +80,12 @@ export const jsonToVariables = (json: Json): Variable[] => {
 };
 
 export interface PillarConfig {
-  type: string;
+  type?: string;
   name: string;
   description: string;
   examples?: string[];
+  order?: number;
+  required?: boolean;
 }
 
 export interface PromptTemplate {
@@ -91,3 +100,10 @@ export interface PromptTemplate {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Toggle {
+  id: string;
+  label: string;
+  description?: string;
+}
+

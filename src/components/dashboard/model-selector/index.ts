@@ -1,2 +1,2 @@
 
-export { ModelSelector } from './index.tsx';
+export { ModelSelector } from './ModelSelector';
