@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AIModel } from "@/components/dashboard/types";
 import { ModelService } from "@/services/model";
@@ -37,22 +38,31 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
   
-  // Initialize toast with try-catch to prevent errors during initial render
-  const toastData = React.useMemo(() => {
-    try {
-      return useToast();
-    } catch (e) {
-      console.error("Error initializing toast:", e);
-      return { 
-        toast: (props: any) => {
-          console.log("Toast would show:", props);
-          return { id: "dummy-id", dismiss: () => {}, update: () => {} };
-        } 
+  // Create a safe toast function that doesn't use hooks
+  const toastRef = React.useRef<any>(null);
+  
+  try {
+    // Use useToast safely inside a component body, not inside another hook
+    const { toast } = useToast();
+    toastRef.current = toast;
+  } catch (e) {
+    console.error("Error initializing toast:", e);
+    if (!toastRef.current) {
+      toastRef.current = (props: any) => {
+        console.log("Toast would show:", props);
+        return { id: "dummy-id", dismiss: () => {}, update: () => {} };
       };
     }
-  }, []);
+  }
   
-  const { toast } = toastData;
+  // Use the toast ref to avoid hook issues
+  const toast = (props: any) => {
+    if (toastRef.current) {
+      return toastRef.current(props);
+    }
+    console.log("Toast fallback:", props);
+    return { id: "dummy-id", dismiss: () => {}, update: () => {} };
+  };
 
   const fetchModels = async () => {
     setIsLoading(true);
@@ -235,8 +245,10 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  // Initial fetch of models when component mounts
   useEffect(() => {
     fetchModels();
+    // Empty dependency array for initialization only, no dependencies needed
   }, []);
 
   return (
