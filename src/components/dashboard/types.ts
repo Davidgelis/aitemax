@@ -1,79 +1,22 @@
-
 import { Json } from "@/integrations/supabase/types";
-
-export interface AIModel {
-  id?: string;
-  name: string;
-  provider: string;
-  description: string;
-  strengths: string[];
-  limitations: string[];
-  updated_at?: string;
-}
-
-// Update the UploadedImage interface to include context
-export interface UploadedImage {
-  id: string;
-  url: string;
-  file: File;
-  context?: string;
-}
 
 export interface Question {
   id: string;
   text: string;
-  answer: string;
-  isRelevant: boolean | null;
-  category?: string; // Task, Persona, Conditions, Instructions categories
-  prefillSource?: string;
+  answer?: string;
+  isRelevant?: boolean | null;
 }
 
 export interface Variable {
   id: string;
   name: string;
-  value: string;
-  isRelevant: boolean | null;
-  category?: string; // Task, Persona, Conditions, Instructions categories
-  code?: string;
-}
-
-export interface Toggle {
-  id: string;
-  label: string;
-  definition: string;
-  prompt: string;
-}
-
-// Define a proper type for the tag structure
-export interface PromptTag {
-  category: string;
-  subcategory: string;
-}
-
-// Define the structure for a prompt template
-export interface PromptTemplate {
-  id: string;
-  title: string;
-  description?: string;
-  systemPrefix: string;
-  pillars: PillarConfig[];
-  isDefault: boolean;
-  maxChars?: number;
-  temperature?: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-// Define the structure for a pillar configuration
-export interface PillarConfig {
-  name: string;
   description: string;
-  order: number;
-  required: boolean;
+  value: string;
+  isRelevant?: boolean | null;
 }
 
 export interface SavedPrompt {
-  id?: string;
+  id: string;
   title: string;
   date: string;
   promptText: string;
@@ -82,64 +25,69 @@ export interface SavedPrompt {
   secondaryToggle: string | null;
   variables: Variable[];
   jsonStructure?: PromptJsonStructure;
-  tags?: PromptTag[]; // Update this to use the proper type
-  templateId?: string; // Reference to the template used
+  templateId: string | null;
+  tags: PromptTag[];
+}
+
+export interface PromptTag {
+  name: string;
+  confidence: number;
+}
+
+export interface AIModel {
+  id: string;
+  name: string;
+  provider: string | null;
+  description: string | null;
+  strengths: string[];
+  limitations: string[];
+  updated_at?: string | null;
+}
+
+export interface UploadedImage {
+  id: string;
+  url: string;
+  context: string;
 }
 
 export interface PromptJsonStructure {
-  title?: string;
-  summary?: string;
-  sections?: Array<{ title: string; content: string }>;
-  error?: string;
-  generationError?: string;
-  masterCommand?: string;
-  timestamp?: string; // Make timestamp optional and ensure it's removed in UI
-  variablePlaceholders?: string[];
-  task?: string;
-  persona?: string;
-  conditions?: string;
-  instructions?: string;
-  [key: string]: any; // Allow for any additional properties
+  [key: string]: any;
 }
 
-// Helper functions for variable serialization/deserialization with updated types
-export const variablesToJson = (variables: Variable[]): Record<string, any> => {
-  if (!variables || !Array.isArray(variables)) return {};
-  
-  const result: Record<string, any> = {};
-  variables.forEach(variable => {
-    if (variable && variable.id) {
-      result[variable.id] = {
-        name: variable.name,
-        value: variable.value,
-        isRelevant: variable.isRelevant,
-        category: variable.category,
-        code: variable.code
-      };
-    }
-  });
-  
-  return result;
+export const variablesToJson = (variables: Variable[]): Json => {
+  return JSON.stringify(variables);
 };
 
-// Update jsonToVariables to handle Json type from Supabase
-export const jsonToVariables = (json: Json | Record<string, any> | null): Variable[] => {
-  if (!json || typeof json !== 'object' || Array.isArray(json)) return [];
-  
-  const variables: Variable[] = [];
-  Object.keys(json).forEach(id => {
-    const varData = json[id];
-    if (varData && typeof varData === 'object' && !Array.isArray(varData)) {
-      variables.push({
-        id,
-        name: varData.name || '',
-        value: varData.value || '',
-        isRelevant: varData.isRelevant === undefined ? null : varData.isRelevant,
-        category: varData.category || 'Other',
-        code: varData.code || ''
-      });
+export const jsonToVariables = (json: Json): Variable[] => {
+  try {
+    if (typeof json === 'string') {
+      return JSON.parse(json) as Variable[];
+    } else if (Array.isArray(json)) {
+      return json as Variable[];
     }
-  });
-  
-  return variables;
+    return [];
+  } catch (e) {
+    console.error("Failed to parse JSON to variables", e);
+    return [];
+  }
 };
+
+export interface PillarConfig {
+  type: string;
+  name: string;
+  description: string;
+  examples?: string[];
+}
+
+export interface PromptTemplate {
+  id: string;
+  title: string;
+  description: string;
+  systemPrefix: string;
+  pillars: PillarConfig[];
+  isDefault: boolean;
+  maxChars: number;
+  temperature: number;
+  createdAt: string;
+  updatedAt: string;
+}
