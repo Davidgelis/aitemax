@@ -79,30 +79,6 @@ export interface PromptJsonStructure {
   [key: string]: any; // Allow for any additional properties
 }
 
-// Define a Prompt Pillar interface for template structure
-export interface PromptPillar {
-  id: string;
-  name: string;
-  content: string;
-  order: number;
-  isEditable: boolean;
-}
-
-// Define a Prompt Template interface
-export interface PromptTemplate {
-  id?: string;
-  title: string;
-  description?: string;
-  isDefault: boolean;
-  pillars: PromptPillar[];
-  systemPrefix?: string;
-  maxChars?: number;
-  temperature: number;
-  created_at?: string;
-  updated_at?: string;
-  user_id?: string;
-}
-
 // Helper functions for variable serialization/deserialization with updated types
 export const variablesToJson = (variables: Variable[]): Record<string, any> => {
   if (!variables || !Array.isArray(variables)) return {};
@@ -143,42 +119,4 @@ export const jsonToVariables = (json: Json | Record<string, any> | null): Variab
   });
   
   return variables;
-};
-
-// Helper functions for template serialization/deserialization
-export const templatePillarsToJson = (pillars: PromptPillar[]): Json => {
-  if (!pillars || !Array.isArray(pillars)) return [];
-  
-  // Convert the pillars array to a simple object structure that matches Json type
-  return pillars.map(pillar => ({
-    id: pillar.id,
-    name: pillar.name,
-    content: pillar.content,
-    order: pillar.order,
-    isEditable: pillar.isEditable
-  })) as Json;
-};
-
-export const jsonToPillars = (json: Json | null): PromptPillar[] => {
-  if (!json || !Array.isArray(json)) return [];
-  
-  const pillars: PromptPillar[] = [];
-  
-  // Convert from JSON array to PromptPillar array
-  json.forEach(item => {
-    if (typeof item === 'object' && item !== null) {
-      // Type assertion to ensure TypeScript knows these properties exist
-      const jsonItem = item as Record<string, any>;
-      pillars.push({
-        id: jsonItem.id as string || crypto.randomUUID(),
-        name: jsonItem.name as string || '',
-        content: jsonItem.content as string || '',
-        order: jsonItem.order as number || 0,
-        isEditable: jsonItem.isEditable as boolean ?? true
-      });
-    }
-  });
-  
-  // Sort pillars by order
-  return pillars.sort((a, b) => a.order - b.order);
 };

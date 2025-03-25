@@ -1,16 +1,15 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
 import { LoadingState } from "@/components/dashboard/LoadingState";
-import StepOneContent from "@/components/dashboard/StepOneContent";
+import { StepOneContent } from "@/components/dashboard/StepOneContent";
 import { StepTwoContent } from "@/components/dashboard/StepTwoContent";
 import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
 import { PrivacyNoticePopup } from "@/components/dashboard/PrivacyNoticePopup";
 import { usePromptAnalysis } from "@/hooks/usePromptAnalysis";
 import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
-import { AIModel, PromptTemplate, UploadedImage } from "@/components/dashboard/types";
+import { AIModel, UploadedImage } from "@/components/dashboard/types";
 import { primaryToggles, secondaryToggles } from "./constants";
 
 interface StepControllerProps {
@@ -59,7 +58,6 @@ export const StepController = ({
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
   
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
@@ -156,11 +154,6 @@ export const StepController = ({
     });
     setSmartContext({ context, usageInstructions });
   };
-  
-  const handleTemplateSelect = (template: PromptTemplate) => {
-    console.log("StepController: Template selected:", template.title);
-    setSelectedTemplate(template);
-  };
 
   const handleAnalyzeWithContext = () => {
     console.log("StepController: Analyzing with context", {
@@ -170,11 +163,10 @@ export const StepController = ({
       hasWebsiteContext: !!websiteContext,
       hasSmartContext: !!smartContext,
       websiteUrl: websiteContext?.url || "none",
-      websiteInstructions: websiteContext?.instructions || "none",
-      selectedTemplate: selectedTemplate?.title || "none"
+      websiteInstructions: websiteContext?.instructions || "none"
     });
     
-    handleAnalyze(uploadedImages, websiteContext, smartContext, selectedTemplate);
+    handleAnalyze(uploadedImages, websiteContext, smartContext);
   };
 
   const handleStepChange = async (step: number, bypass: boolean = false) => {
@@ -229,11 +221,6 @@ export const StepController = ({
         const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
         message += ` to be ${secondaryLabel}`;
       }
-      
-      if (selectedTemplate) {
-        message += ` using ${selectedTemplate.title} template`;
-      }
-      
       message += " with o3-mini...";
       
       setEnhancingMessage(message);
@@ -246,8 +233,7 @@ export const StepController = ({
           promptText,
           selectedPrimary,
           selectedSecondary,
-          setFinalPrompt,
-          selectedTemplate
+          setFinalPrompt
         );
         
         console.log("StepController: Successfully enhanced prompt, moving to step 3");
@@ -317,8 +303,6 @@ export const StepController = ({
             onImagesChange={handleImagesChange}
             onWebsiteScan={handleWebsiteScan}
             onSmartContext={handleSmartContext}
-            userId={user?.id}
-            onTemplateSelect={handleTemplateSelect}
           />
         );
 
@@ -392,4 +376,3 @@ export const StepController = ({
     </div>
   );
 };
-
