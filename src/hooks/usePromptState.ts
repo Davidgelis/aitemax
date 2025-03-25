@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag, PromptTemplate } from "@/components/dashboard/types";
+import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { defaultVariables, mockQuestions, sampleFinalPrompt } from "@/components/dashboard/constants";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,7 @@ export const usePromptState = (user: any) => {
   const [editingPrompt, setEditingPrompt] = useState("");
   const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
   const [masterCommand, setMasterCommand] = useState("");
+  // Changed these to null so all toggles are off by default
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
   const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
@@ -26,8 +27,8 @@ export const usePromptState = (user: any) => {
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState(false);
   const [promptJsonStructure, setPromptJsonStructure] = useState<PromptJsonStructure | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
-  
+  // Removed draftLoaded state since we don't want to auto-load drafts
+
   const { toast } = useToast();
 
   const {
@@ -50,9 +51,12 @@ export const usePromptState = (user: any) => {
     user
   );
 
+  // Removed the useEffect that auto-loads the draft on component mount
+
   const loadSelectedDraftState = (draft: any) => {
     const draftData = loadSelectedDraft(draft);
     
+    // Only load if not for step 1
     if (draftData.currentStep && draftData.currentStep > 1) {
       if (draftData.promptText) setPromptText(draftData.promptText);
       if (draftData.masterCommand) setMasterCommand(draftData.masterCommand);
@@ -71,6 +75,8 @@ export const usePromptState = (user: any) => {
   };
 
   const handleNewPrompt = () => {
+    // Only save if it's a step 2 draft that hasn't been explicitly deleted
+    // AND is not a saved prompt that's being viewed
     if (promptText && !isViewingSavedPrompt && currentStep === 2) {
       saveDraft();
       toast({
@@ -99,6 +105,7 @@ export const usePromptState = (user: any) => {
     if (deleteDraft) {
       await deleteDraft(draftId);
       
+      // If the deleted draft was the current one, reset the state only if we're not on step 1
       if (draftId === currentDraftId && currentStep > 1) {
         setPromptText("");
         setMasterCommand("");
@@ -164,6 +171,7 @@ export const usePromptState = (user: any) => {
     }
 
     try {
+      // Ensure we're saving plain text by removing any HTML tags if present
       const plainTextPrompt = finalPrompt.replace(/<[^>]*>/g, '');
       let jsonStructure = promptJsonStructure;
       
@@ -186,11 +194,13 @@ export const usePromptState = (user: any) => {
           }
         } catch (jsonError) {
           console.error("Error generating JSON for saving:", jsonError);
+          // Continue saving without JSON structure
         } finally {
           setIsLoadingPrompts(false);
         }
       }
       
+      // Generate tags for the prompt
       let generatedTags: PromptTag[] = [];
       try {
         setIsLoadingPrompts(true);
@@ -208,6 +218,7 @@ export const usePromptState = (user: any) => {
         if (tagsError) {
           console.error("Error generating tags:", tagsError);
         } else if (tagsData && tagsData.tags) {
+          // Ensure tags match the expected format
           if (Array.isArray(tagsData.tags)) {
             generatedTags = tagsData.tags as PromptTag[];
             console.log("Generated tags:", generatedTags);
@@ -232,7 +243,7 @@ export const usePromptState = (user: any) => {
         variables: variablesToJson(relevantVariables),
         current_step: currentStep,
         updated_at: new Date().toISOString(),
-        tags: generatedTags as unknown as Json
+        tags: generatedTags as unknown as Json // Cast to Json for Supabase compatibility
       };
 
       const { data, error } = await supabase
@@ -254,7 +265,7 @@ export const usePromptState = (user: any) => {
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
           variables: jsonToVariables(data[0].variables as Json),
-          tags: (data[0].tags as unknown as PromptTag[]) || []
+          tags: (data[0].tags as unknown as PromptTag[]) || [] // Safely cast to PromptTag[]
         };
         
         if (jsonStructure) {
@@ -391,7 +402,7 @@ export const usePromptState = (user: any) => {
       
       toast({
         title: "Success",
-        description: "Prompt renamed successfully"
+        description: "Prompt renamed successfully",
       });
     } catch (error: any) {
       console.error("Error renaming prompt:", error.message);
@@ -404,11 +415,14 @@ export const usePromptState = (user: any) => {
   };
 
   const loadSavedPrompt = (prompt: SavedPrompt) => {
+    // Only save draft if it's not a saved prompt that's being viewed
+    // and we're on step 2
     if (promptText && !isViewingSavedPrompt && currentStep === 2) {
       saveDraft();
     }
     
     console.log("Loading saved prompt:", prompt);
+    // Ensure we're loading plain text
     const plainTextPrompt = prompt.promptText ? prompt.promptText.replace(/<[^>]*>/g, '') : "";
     setPromptText(plainTextPrompt);
     setFinalPrompt(plainTextPrompt);
@@ -439,6 +453,7 @@ export const usePromptState = (user: any) => {
 
   useEffect(() => {
     const saveDraftBeforeNavigate = (nextPath: string) => {
+      // Only save draft if on step 2 (not step 1 or 3)
       if (nextPath !== location.pathname && 
           promptText && 
           !isViewingSavedPrompt && 
@@ -447,6 +462,7 @@ export const usePromptState = (user: any) => {
       }
     };
 
+    // For regular navigation
     const handleRouteChange = (e: PopStateEvent) => {
       const nextPath = window.location.pathname;
       if (nextPath !== location.pathname) {
@@ -454,8 +470,10 @@ export const usePromptState = (user: any) => {
       }
     };
 
+    // Add event listeners
     window.addEventListener('popstate', handleRouteChange);
 
+    // Intercept Link navigation
     const originalPushState = window.history.pushState;
     window.history.pushState = function() {
       const nextPath = arguments[2] as string;
@@ -526,8 +544,6 @@ export const usePromptState = (user: any) => {
     deleteDraft,
     currentDraftId,
     handleDeleteDraft,
-    saveDraft,
-    selectedTemplate,
-    setSelectedTemplate,
+    saveDraft
   };
 };

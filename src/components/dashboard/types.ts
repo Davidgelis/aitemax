@@ -1,10 +1,31 @@
 
+import { Json } from "@/integrations/supabase/types";
+
+export interface AIModel {
+  id?: string;
+  name: string;
+  provider: string;
+  description: string;
+  strengths: string[];
+  limitations: string[];
+  updated_at?: string;
+}
+
+// Update the UploadedImage interface to include context
+export interface UploadedImage {
+  id: string;
+  url: string;
+  file: File;
+  context?: string;
+}
+
 export interface Question {
   id: string;
   text: string;
-  answer?: string;
-  isRelevant?: boolean | null;
-  category?: string;
+  answer: string;
+  isRelevant: boolean | null;
+  category?: string; // Task, Persona, Conditions, Instructions categories
+  prefillSource?: string;
 }
 
 export interface Variable {
@@ -12,12 +33,25 @@ export interface Variable {
   name: string;
   value: string;
   isRelevant: boolean | null;
-  category?: string;
+  category?: string; // Task, Persona, Conditions, Instructions categories
   code?: string;
 }
 
-export interface SavedPrompt {
+export interface Toggle {
   id: string;
+  label: string;
+  definition: string;
+  prompt: string;
+}
+
+// Define a proper type for the tag structure
+export interface PromptTag {
+  category: string;
+  subcategory: string;
+}
+
+export interface SavedPrompt {
+  id?: string;
   title: string;
   date: string;
   promptText: string;
@@ -25,144 +59,64 @@ export interface SavedPrompt {
   primaryToggle: string | null;
   secondaryToggle: string | null;
   variables: Variable[];
-  tags: PromptTag[];
   jsonStructure?: PromptJsonStructure;
-}
-
-export interface PromptTag {
-  category: string;
-  subcategory?: string;
-}
-
-export interface PromptPillar {
-  id: string;
-  name: string;
-  content: string;
-  order: number;
-  isEditable: boolean;
-}
-
-export interface PromptTemplate {
-  id: string;
-  title: string;
-  description?: string;
-  pillars: PromptPillar[];
-  isDefault: boolean;
-  maxChars?: number;
-  temperature?: number;
-  systemPrefix?: string;
-  userId?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  tags?: PromptTag[]; // Update this to use the proper type
 }
 
 export interface PromptJsonStructure {
-  context?: string;
-  objective?: string;
-  audience?: string;
-  tone?: string;
-  format?: string;
-  additional?: string;
+  title?: string;
+  summary?: string;
+  sections?: Array<{ title: string; content: string }>;
+  error?: string;
+  generationError?: string;
+  masterCommand?: string;
+  timestamp?: string; // Make timestamp optional and ensure it's removed in UI
+  variablePlaceholders?: string[];
+  task?: string;
+  persona?: string;
+  conditions?: string;
+  instructions?: string;
+  [key: string]: any; // Allow for any additional properties
 }
 
-export interface Toggle {
-  id: string;
-  label: string;
-  description?: string;
-  definition?: string;
-}
-
-export interface AIModel {
-  id: string;
-  name: string;
-  provider: string;
-  capabilities: string[];
-  maxTokens: number;
-  temperature: number;
-  contextWindow: number;
-  cost: number;
-  trainingData: string;
-  isAvailable: boolean;
-  description?: string;
-  logoUrl?: string;
-  updatedAt?: string;
-  strengths?: string[];
-  limitations?: string[];
-  updated_at?: string;
-}
-
-export interface UploadedImage {
-  id: string;
-  url: string;
-  file: File;
-  name: string;
-  context?: string;
-}
-
-// Convert Variable array to JSON for storage
-export const variablesToJson = (variables: Variable[]) => {
-  if (!Array.isArray(variables)) {
-    console.error("Variables is not an array:", variables);
-    return {};
-  }
+// Helper functions for variable serialization/deserialization with updated types
+export const variablesToJson = (variables: Variable[]): Record<string, any> => {
+  if (!variables || !Array.isArray(variables)) return {};
   
-  // Create an object with variable IDs as keys
-  const jsonObject: Record<string, any> = {};
-  
+  const result: Record<string, any> = {};
   variables.forEach(variable => {
     if (variable && variable.id) {
-      jsonObject[variable.id] = {
-        name: variable.name || '',
-        value: variable.value || '',
+      result[variable.id] = {
+        name: variable.name,
+        value: variable.value,
         isRelevant: variable.isRelevant,
-        category: variable.category || 'Other',
-        code: variable.code || ''
+        category: variable.category,
+        code: variable.code
       };
     }
   });
   
-  return jsonObject;
+  return result;
 };
 
-// Convert JSON back to Variable array
-export const jsonToVariables = (json: any): Variable[] => {
-  if (!json) return [];
+// Update jsonToVariables to handle Json type from Supabase
+export const jsonToVariables = (json: Json | Record<string, any> | null): Variable[] => {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return [];
   
-  if (Array.isArray(json)) {
-    // If it's already an array, map it to ensure proper Variable structure
-    return json.map((v: any) => ({
-      id: typeof v.id === 'string' ? v.id : String(v.id || ''),
-      name: v.name || '',
-      value: v.value || '',
-      isRelevant: v.isRelevant === undefined ? null : v.isRelevant,
-      category: v.category || 'Other',
-      code: v.code || ''
-    }));
-  }
-  
-  // If it's an object with variable IDs as keys
-  try {
-    const variables: Variable[] = [];
-    
-    if (typeof json === 'object' && json !== null) {
-      Object.keys(json).forEach(id => {
-        const v = json[id];
-        
-        variables.push({
-          id,
-          name: typeof v === 'object' && v !== null ? (v.name || '') : '',
-          value: typeof v === 'object' && v !== null ? (v.value || '') : '',
-          isRelevant: typeof v === 'object' && v !== null ? 
-            (v.isRelevant === undefined ? null : v.isRelevant) : null,
-          category: typeof v === 'object' && v !== null ? (v.category || 'Other') : 'Other',
-          code: typeof v === 'object' && v !== null ? (v.code || '') : ''
-        });
+  const variables: Variable[] = [];
+  Object.keys(json).forEach(id => {
+    const varData = json[id];
+    if (varData && typeof varData === 'object' && !Array.isArray(varData)) {
+      variables.push({
+        id,
+        name: varData.name || '',
+        value: varData.value || '',
+        isRelevant: varData.isRelevant === undefined ? null : varData.isRelevant,
+        category: varData.category || 'Other',
+        code: varData.code || ''
       });
     }
-    
-    return variables;
-  } catch (error) {
-    console.error("Error converting JSON to variables:", error);
-    return [];
-  }
+  });
+  
+  return variables;
 };
