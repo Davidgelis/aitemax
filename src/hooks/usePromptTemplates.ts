@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { Json } from "@/integrations/supabase/types";
 
 export interface PromptTemplatePillar {
@@ -26,10 +26,20 @@ export interface PromptTemplate {
 // This helper function converts Json to PromptTemplatePillar[]
 const jsonToPillars = (pillars: Json): PromptTemplatePillar[] => {
   if (!pillars || !Array.isArray(pillars)) return [];
-  return pillars.map(pillar => ({
-    name: typeof pillar === 'object' && pillar !== null ? (pillar.name as string || '') : '',
-    description: typeof pillar === 'object' && pillar !== null ? (pillar.description as string || '') : ''
-  }));
+  
+  return pillars.map(pillar => {
+    // Check if pillar is an object and has the required properties
+    if (typeof pillar === 'object' && pillar !== null) {
+      // Use type assertion to help TypeScript understand the structure
+      const pillarObj = pillar as Record<string, unknown>;
+      return {
+        name: typeof pillarObj.name === 'string' ? pillarObj.name : '',
+        description: typeof pillarObj.description === 'string' ? pillarObj.description : ''
+      };
+    }
+    // Default values if invalid format
+    return { name: '', description: '' };
+  });
 };
 
 // This helper function converts PromptTemplatePillar[] to Json
