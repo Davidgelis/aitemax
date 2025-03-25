@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, Twitter, Facebook, Instagram, Link2, Mail, Trash2, Eye, Copy, Share2, User, FileText, MoreVertical, CopyIcon, Pencil, Lock } from "lucide-react";
+import { Search, Filter, Twitter, Facebook, Instagram, Link2, Mail, Trash2, Eye, Copy, Share2, User, FileText, MoreVertical, CopyIcon, Pencil, Lock, LayoutTemplate, ListStart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +14,8 @@ import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getTextLines } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TemplatesPanel } from "@/components/dashboard/TemplatesPanel";
 
 const XPanel = () => {
   const navigate = useNavigate();
@@ -32,6 +34,9 @@ const XPanel = () => {
   const [subcategories, setSubcategories] = useState<string[]>([]);
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<string>("prompts");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  
   useEffect(() => {
     const getUser = async () => {
       const {
@@ -43,12 +48,14 @@ const XPanel = () => {
     };
     getUser();
   }, []);
+  
   useEffect(() => {
     if (user) {
       fetchPrompts();
       fetchUserProfile();
     }
   }, [user]);
+  
   const fetchUserProfile = async () => {
     try {
       const {
@@ -64,6 +71,7 @@ const XPanel = () => {
       console.error("Error fetching user profile:", error);
     }
   };
+  
   const fetchPrompts = async () => {
     setIsLoading(true);
     try {
@@ -86,7 +94,8 @@ const XPanel = () => {
           primaryToggle: item.primary_toggle,
           secondaryToggle: item.secondary_toggle,
           variables: item.variables ? JSON.parse(JSON.stringify(item.variables)) : [],
-          tags: item.tags as unknown as PromptTag[] || []
+          tags: item.tags as unknown as PromptTag[] || [],
+          templateId: item.template_id || null
         };
         return prompt;
       }) || [];
@@ -119,6 +128,7 @@ const XPanel = () => {
       setIsLoading(false);
     }
   };
+  
   useEffect(() => {
     if (prompts.length > 0) {
       let filtered = [...prompts];
@@ -140,6 +150,7 @@ const XPanel = () => {
       setFilteredPrompts(filtered);
     }
   }, [searchTerm, selectedCategory, selectedSubcategory, prompts]);
+  
   const handleCopyPrompt = (promptText: string) => {
     navigator.clipboard.writeText(promptText);
     toast({
@@ -147,6 +158,7 @@ const XPanel = () => {
       description: "Prompt has been copied to your clipboard."
     });
   };
+  
   const handleCopyLink = (promptId: string) => {
     const link = `${window.location.origin}/prompt/${promptId}`;
     navigator.clipboard.writeText(link);
@@ -155,6 +167,7 @@ const XPanel = () => {
       description: "Direct link has been copied to your clipboard."
     });
   };
+  
   const handleDeletePrompt = async (id: string) => {
     try {
       const {
@@ -177,10 +190,6 @@ const XPanel = () => {
         variant: "destructive"
       });
     }
-  };
-  const handleShareViaEmail = (promptId: string) => {
-    // This function will be replaced with the popover implementation
-    // so we can remove its content
   };
 
   // New state for email sharing
@@ -213,17 +222,21 @@ const XPanel = () => {
       setIsSharing(false);
     }
   };
+  
   const handlePreviewPrompt = (promptId: string) => {
     window.open(`/prompt/${promptId}`, '_blank');
   };
+  
   const clearFilters = () => {
     setSearchTerm("");
     setSelectedCategory(null);
     setSelectedSubcategory(null);
   };
+  
   const getPlainText = (text: string) => {
     return text ? text.replace(/<[^>]*>/g, '') : '';
   };
+  
   const handleRenamePrompt = async (id: string, newTitle: string) => {
     try {
       const {
@@ -257,22 +270,52 @@ const XPanel = () => {
       });
     }
   };
+  
   const startEditing = (prompt: SavedPrompt) => {
     setEditingPromptId(prompt.id);
     setEditingTitle(prompt.title);
   };
+  
   const saveEdit = () => {
     if (editingPromptId && editingTitle.trim()) {
       handleRenamePrompt(editingPromptId, editingTitle);
       setEditingPromptId(null);
     }
   };
+  
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       saveEdit();
     } else if (e.key === 'Escape') {
       setEditingPromptId(null);
     }
+  };
+
+  // Function to handle selecting a template
+  const handleSelectTemplate = (templateId: string | null) => {
+    setSelectedTemplateId(templateId);
+    
+    // Store the template ID in local storage to use when creating new prompts
+    if (templateId) {
+      localStorage.setItem('selectedTemplateId', templateId);
+      toast({
+        title: "Template selected",
+        description: "This template will be used for new prompts"
+      });
+    } else {
+      localStorage.removeItem('selectedTemplateId');
+    }
+  };
+  
+  // Function to start creating a new prompt with the selected template
+  const handleNewPromptWithTemplate = () => {
+    // If a template is selected, store it in localStorage for the dashboard
+    if (selectedTemplateId) {
+      localStorage.setItem('selectedTemplateId', selectedTemplateId);
+    }
+    
+    // Navigate to the dashboard
+    navigate("/dashboard");
   };
 
   // Function to get avatar image source based on avatar_url
@@ -289,6 +332,7 @@ const XPanel = () => {
     };
     return avatarMap[userProfile.avatar_url] || '';
   };
+  
   return <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <main className="flex-1 p-6">
@@ -313,177 +357,199 @@ const XPanel = () => {
                 </h1>
               </div>
               
-              <Button variant="aurora" onClick={() => navigate("/dashboard")}>
+              <Button variant="aurora" onClick={handleNewPromptWithTemplate}>
                 Create New Prompt
               </Button>
             </div>
             
-            {/* Search and Filters */}
-            <div className="mb-8 flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input className="pl-9" placeholder="Search prompts..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-              </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+              <TabsList>
+                <TabsTrigger value="prompts" className="flex items-center gap-2">
+                  <ListStart className="h-4 w-4" />
+                  <span>Prompts</span>
+                </TabsTrigger>
+                <TabsTrigger value="templates" className="flex items-center gap-2">
+                  <LayoutTemplate className="h-4 w-4" />
+                  <span>Templates</span>
+                </TabsTrigger>
+              </TabsList>
               
-              <div className="flex gap-2">
-                <DropdownMenu>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="icon" className={selectedCategory ? "bg-accent text-white" : ""}>
-                            <Filter className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Filter by category</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+              <TabsContent value="prompts" className="mt-4">
+                {/* Search and Filters for Prompts */}
+                <div className="mb-8 flex flex-col sm:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input className="pl-9" placeholder="Search prompts..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                  </div>
                   
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem onClick={clearFilters}>
-                      Show all
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {categories.map(category => <DropdownMenuItem key={category} onClick={() => setSelectedCategory(category)} className={selectedCategory === category ? "bg-accent/20" : ""}>
-                        {category}
-                      </DropdownMenuItem>)}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
-                <DropdownMenu>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="icon" className={selectedSubcategory ? "bg-accent text-white" : ""}>
-                            <Filter className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Filter by subcategory</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem onClick={clearFilters}>
-                      Show all
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {subcategories.map(subcategory => <DropdownMenuItem key={subcategory} onClick={() => setSelectedSubcategory(subcategory)} className={selectedSubcategory === subcategory ? "bg-accent/20" : ""}>
-                        {subcategory}
-                      </DropdownMenuItem>)}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                
-                {(selectedCategory || selectedSubcategory || searchTerm) && <Button variant="ghost" onClick={clearFilters}>
-                    Clear filters
-                  </Button>}
-              </div>
-            </div>
-            
-            {/* Prompts Grid */}
-            {isLoading ? <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
-              </div> : filteredPrompts.length > 0 ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredPrompts.map(prompt => <Card key={prompt.id} className="group hover:scale-[1.01] transition-all overflow-hidden bg-white border-[1.5px] border-[#64bf95] shadow-md relative">
-                    {/* Share Button in Top Right Corner */}
-                    <div className="absolute top-3 right-3 z-10">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/0">
-                            <Share2 className="h-4 w-4" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80 p-4 bg-white border border-gray-200 shadow-md">
-                          <div className="space-y-4">
-                            <h4 className="font-medium text-sm">Share "{getPlainText(prompt.title)}"</h4>
-                            <div className="space-y-2">
-                              <Label htmlFor={`share-email-${prompt.id}`}>
-                                Email address
-                              </Label>
-                              <Input id={`share-email-${prompt.id}`} placeholder="colleague@example.com" type="email" value={sharingPromptId === prompt.id ? shareEmail : ""} onChange={e => {
-                          setSharingPromptId(prompt.id);
-                          setShareEmail(e.target.value);
-                        }} />
-                            </div>
-                            <Button className="w-full bg-[#64bf95] hover:bg-[#64bf95]/90 text-white" onClick={handleSharePrompt} disabled={!shareEmail || isSharing || sharingPromptId !== prompt.id}>
-                              {isSharing && sharingPromptId === prompt.id ? "Sharing..." : "Share"}
-                            </Button>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+                  <div className="flex gap-2">
+                    <DropdownMenu>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="icon" className={selectedCategory ? "bg-accent text-white" : ""}>
+                                <Filter className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Filter by category</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={clearFilters}>
+                          Show all
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {categories.map(category => <DropdownMenuItem key={category} onClick={() => setSelectedCategory(category)} className={selectedCategory === category ? "bg-accent/20" : ""}>
+                            {category}
+                          </DropdownMenuItem>)}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     
-                    <CardContent className="p-6">
-                      <div className="flex flex-col h-full">
-                        <div className="mb-3">
-                          <h3 className="font-semibold text-lg mb-1 line-clamp-1">{getPlainText(prompt.title)}</h3>
-                          <p className="text-sm text-muted-foreground">{prompt.date}</p>
+                    <DropdownMenu>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="icon" className={selectedSubcategory ? "bg-accent text-white" : ""}>
+                                <Filter className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Filter by subcategory</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={clearFilters}>
+                          Show all
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {subcategories.map(subcategory => <DropdownMenuItem key={subcategory} onClick={() => setSelectedSubcategory(subcategory)} className={selectedSubcategory === subcategory ? "bg-accent/20" : ""}>
+                            {subcategory}
+                          </DropdownMenuItem>)}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    
+                    {(selectedCategory || selectedSubcategory || searchTerm) && <Button variant="ghost" onClick={clearFilters}>
+                        Clear filters
+                      </Button>}
+                  </div>
+                </div>
+                
+                {/* Prompts Grid */}
+                {isLoading ? <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
+                  </div> : filteredPrompts.length > 0 ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredPrompts.map(prompt => <Card key={prompt.id} className="group hover:scale-[1.01] transition-all overflow-hidden bg-white border-[1.5px] border-[#64bf95] shadow-md relative">
+                        {/* Share Button in Top Right Corner */}
+                        <div className="absolute top-3 right-3 z-10">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/0">
+                                <Share2 className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 p-4 bg-white border border-gray-200 shadow-md">
+                              <div className="space-y-4">
+                                <h4 className="font-medium text-sm">Share "{getPlainText(prompt.title)}"</h4>
+                                <div className="space-y-2">
+                                  <Label htmlFor={`share-email-${prompt.id}`}>
+                                    Email address
+                                  </Label>
+                                  <Input id={`share-email-${prompt.id}`} placeholder="colleague@example.com" type="email" value={sharingPromptId === prompt.id ? shareEmail : ""} onChange={e => {
+                              setSharingPromptId(prompt.id);
+                              setShareEmail(e.target.value);
+                            }} />
+                                </div>
+                                <Button className="w-full bg-[#64bf95] hover:bg-[#64bf95]/90 text-white" onClick={handleSharePrompt} disabled={!shareEmail || isSharing || sharingPromptId !== prompt.id}>
+                                  {isSharing && sharingPromptId === prompt.id ? "Sharing..." : "Share"}
+                                </Button>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
                         </div>
                         
-                        <div className="flex-1 mb-4">
-                          <p className="text-sm line-clamp-3">{getPlainText(prompt.promptText)}</p>
-                        </div>
-                        
-                        {/* Tags */}
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {prompt.tags && prompt.tags.map((tag, index) => <div key={index} className="bg-[#64bf95]/10 text-xs rounded-full px-2.5 py-1 flex items-center gap-1">
-                              <span className="font-medium">{tag.category}</span>
-                              {tag.subcategory && <>
-                                  <span>•</span>
-                                  <span>{tag.subcategory}</span>
-                                </>}
-                            </div>)}
-                        </div>
-                        
-                        {/* Action Buttons - Simplified with only Delete Button */}
-                        <div className="flex justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="flex gap-1">
-                            {/* Empty div to keep the flex layout balanced */}
+                        <CardContent className="p-6">
+                          <div className="flex flex-col h-full">
+                            <div className="mb-3">
+                              <h3 className="font-semibold text-lg mb-1 line-clamp-1">{getPlainText(prompt.title)}</h3>
+                              <p className="text-sm text-muted-foreground">{prompt.date}</p>
+                            </div>
+                            
+                            <div className="flex-1 mb-4">
+                              <p className="text-sm line-clamp-3">{getPlainText(prompt.promptText)}</p>
+                            </div>
+                            
+                            {/* Tags */}
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              {prompt.tags && prompt.tags.map((tag, index) => <div key={index} className="bg-[#64bf95]/10 text-xs rounded-full px-2.5 py-1 flex items-center gap-1">
+                                  <span className="font-medium">{tag.category}</span>
+                                  {tag.subcategory && <>
+                                      <span>•</span>
+                                      <span>{tag.subcategory}</span>
+                                    </>}
+                                </div>)}
+                            </div>
+                            
+                            {/* Action Buttons - Simplified with only Delete Button */}
+                            <div className="flex justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex gap-1">
+                                {/* Empty div to keep the flex layout balanced */}
+                              </div>
+                              
+                              <div className="flex gap-1">
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="prompt-action-button" onClick={() => handleDeletePrompt(prompt.id)}>
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </div>
+                            
+                            {/* Main Actions */}
+                            <div className="mt-4 flex justify-between">
+                              <Button variant="outline" size="sm" onClick={() => handleCopyPrompt(prompt.promptText)}>
+                                <Copy className="h-4 w-4 mr-2" />
+                                Copy
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => handlePreviewPrompt(prompt.id)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Open
+                              </Button>
+                            </div>
                           </div>
-                          
-                          <div className="flex gap-1">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="prompt-action-button" onClick={() => handleDeletePrompt(prompt.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                        </div>
-                        
-                        {/* Main Actions */}
-                        <div className="mt-4 flex justify-between">
-                          <Button variant="outline" size="sm" onClick={() => handleCopyPrompt(prompt.promptText)}>
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copy
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => handlePreviewPrompt(prompt.id)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Open
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>)}
-              </div> : <div className="text-center py-12">
-                <h3 className="text-xl font-medium mb-2">No prompts found</h3>
-                <p className="text-muted-foreground mb-6">
-                  {searchTerm || selectedCategory || selectedSubcategory ? "Try adjusting your search or filters" : "You haven't created any prompts yet"}
-                </p>
-                {!searchTerm && !selectedCategory && !selectedSubcategory && <Button variant="aurora" onClick={() => navigate("/dashboard")}>
-                    Create Your First Prompt
-                  </Button>}
-              </div>}
+                        </CardContent>
+                      </Card>)}
+                  </div> : <div className="text-center py-12">
+                    <h3 className="text-xl font-medium mb-2">No prompts found</h3>
+                    <p className="text-muted-foreground mb-6">
+                      {searchTerm || selectedCategory || selectedSubcategory ? "Try adjusting your search or filters" : "You haven't created any prompts yet"}
+                    </p>
+                    {!searchTerm && !selectedCategory && !selectedSubcategory && <Button variant="aurora" onClick={handleNewPromptWithTemplate}>
+                        Create Your First Prompt
+                      </Button>}
+                  </div>}
+              </TabsContent>
+              
+              <TabsContent value="templates" className="mt-4">
+                <TemplatesPanel 
+                  userId={user?.id} 
+                  onSelectTemplate={handleSelectTemplate} 
+                />
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
 
@@ -611,16 +677,4 @@ const XPanel = () => {
                     </div>
                   </div>) : <div className="p-4 text-center text-muted-foreground">
                   {user ? searchTerm ? "No matching prompts found" : "No saved prompts yet" : <div className="space-y-3">
-                      <p>Please sign in to save and view your prompts</p>
-                      <Button onClick={() => navigate("/auth")} className="aurora-button">
-                        Sign in
-                      </Button>
-                    </div>}
-                </div>}
-            </div>
-          </SidebarContent>
-        </Sidebar>
-      </div>
-    </SidebarProvider>;
-};
-export default XPanel;
+                      <p

@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -50,7 +51,8 @@ export const StepController = ({
     fetchSavedPrompts, handleNewPrompt, handleSavePrompt,
     handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt,
     loadSavedPrompt, isViewingSavedPrompt, setIsViewingSavedPrompt,
-    saveDraft
+    saveDraft,
+    selectedTemplateId, setSelectedTemplateId
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
@@ -58,6 +60,15 @@ export const StepController = ({
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
+  
+  // Check for template ID in localStorage on component mount
+  useEffect(() => {
+    const templateId = localStorage.getItem('selectedTemplateId');
+    if (templateId && !selectedTemplateId) {
+      setSelectedTemplateId(templateId);
+      console.log("Template ID loaded from localStorage:", templateId);
+    }
+  }, []);
   
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
@@ -73,7 +84,8 @@ export const StepController = ({
     selectedPrimary,
     selectedSecondary,
     user,
-    currentPromptId
+    currentPromptId,
+    selectedTemplateId
   );
   
   const { isLoading: isAnalyzing, currentLoadingMessage, handleAnalyze } = promptAnalysis;
@@ -163,7 +175,8 @@ export const StepController = ({
       hasWebsiteContext: !!websiteContext,
       hasSmartContext: !!smartContext,
       websiteUrl: websiteContext?.url || "none",
-      websiteInstructions: websiteContext?.instructions || "none"
+      websiteInstructions: websiteContext?.instructions || "none",
+      selectedTemplateId: selectedTemplateId || "none"
     });
     
     handleAnalyze(uploadedImages, websiteContext, smartContext);
@@ -233,7 +246,8 @@ export const StepController = ({
           promptText,
           selectedPrimary,
           selectedSecondary,
-          setFinalPrompt
+          setFinalPrompt,
+          selectedTemplateId
         );
         
         console.log("StepController: Successfully enhanced prompt, moving to step 3");
@@ -303,6 +317,7 @@ export const StepController = ({
             onImagesChange={handleImagesChange}
             onWebsiteScan={handleWebsiteScan}
             onSmartContext={handleSmartContext}
+            selectedTemplateId={selectedTemplateId}
           />
         );
 
@@ -354,6 +369,7 @@ export const StepController = ({
             handleSaveEditedPrompt={handleSaveEditedPrompt}
             handleAdaptPrompt={handleAdaptPrompt}
             getProcessedPrompt={getProcessedPrompt}
+            selectedTemplateId={selectedTemplateId}
           />
         );
 

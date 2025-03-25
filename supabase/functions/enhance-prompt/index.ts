@@ -23,14 +23,77 @@ serve(async (req) => {
       primaryToggle,
       secondaryToggle,
       userId,
-      promptId
+      promptId,
+      templateId
     } = await req.json();
     
     console.log(`Enhancing prompt with focus on ${primaryToggle || "no specific toggle"}`);
     console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
+    console.log(`Template ID: ${templateId || "none (using default)"}`);
     
-    // The comprehensive four-pillar framework for prompt engineering
-    const systemMessage = `You are an expert prompt engineer that transforms input prompts into highly effective, well-structured prompts following the four-pillar framework.
+    // Initialize OpenAI client
+    const openai = new OpenAI({
+      apiKey: openAIApiKey
+    });
+
+    // Prepare context from answered questions
+    const context = answeredQuestions
+      .filter(q => q.answer && q.answer.trim() !== "")
+      .map(q => `${q.text}\nAnswer: ${q.answer}`).join("\n\n");
+
+    // Fetch template if templateId is provided
+    let template = null;
+    if (templateId) {
+      try {
+        // Create supabase client
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY');
+        
+        if (!supabaseUrl || !supabaseKey) {
+          throw new Error("Supabase configuration missing");
+        }
+        
+        const response = await fetch(`${supabaseUrl}/rest/v1/prompt_templates?id=eq.${templateId}&select=*`, {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch template: ${response.statusText}`);
+        }
+        
+        const templates = await response.json();
+        if (templates && templates.length > 0) {
+          template = templates[0];
+          console.log(`Using template: ${template.title}`);
+        }
+      } catch (error) {
+        console.error("Error fetching template:", error);
+        // Continue with default framework if template fetch fails
+      }
+    }
+    
+    // Prepare system message
+    let systemMessage = '';
+    
+    if (template) {
+      // Use the template's system prefix
+      systemMessage = template.system_prefix || '';
+      
+      // Add pillars from the template
+      if (template.pillars && Array.isArray(template.pillars)) {
+        const sortedPillars = [...template.pillars].sort((a, b) => a.order - b.order);
+        
+        for (const pillar of sortedPillars) {
+          systemMessage += `\n\n${pillar.name.toUpperCase()}: ${pillar.description}`;
+        }
+      }
+    } else {
+      // Fall back to the four-pillar framework
+      systemMessage = `You are an expert prompt engineer that transforms input prompts into highly effective, well-structured prompts following the four-pillar framework.
 
 TASK: You will be provided with an intent and context information, which may be as brief as two sentences or as extensive as a comprehensive brief. Your job is to enhance this prompt by applying best practices and instructions. Improve clarity, grammar, structure, and logical flow while preserving the original intent.
 
@@ -67,23 +130,23 @@ INSTRUCTIONS:
 7. Maintain a natural, flowing style while incorporating all essential elements
 
 OUTPUT FORMAT:
-Your enhanced prompt must flow naturally while incorporating all necessary elements. Structure it with clear sections for Task, Persona, Conditions, and Instructions.
-${primaryToggle ? `\n\nPRIMARY FOCUS: ${primaryToggle}` : ""}${secondaryToggle ? `\nSECONDARY FOCUS: ${secondaryToggle}` : ""}`;
-
-    // Initialize OpenAI client
-    const openai = new OpenAI({
-      apiKey: openAIApiKey
-    });
-
-    // Prepare context from answered questions
-    const context = answeredQuestions
-      .filter(q => q.answer && q.answer.trim() !== "")
-      .map(q => `${q.text}\nAnswer: ${q.answer}`).join("\n\n");
+Your enhanced prompt must flow naturally while incorporating all necessary elements. Structure it with clear sections for Task, Persona, Conditions, and Instructions.`;
+    }
+    
+    // Add toggles to system message (regardless of template)
+    if (primaryToggle) {
+      systemMessage += `\n\nPRIMARY FOCUS: ${primaryToggle}`;
+      if (secondaryToggle) {
+        systemMessage += `\nSECONDARY FOCUS: ${secondaryToggle}`;
+      }
+    } else if (secondaryToggle) {
+      systemMessage += `\n\nSECONDARY FOCUS: ${secondaryToggle}`;
+    }
 
     // Create the prompt for GPT
     const messages = [
       { role: "system", content: systemMessage },
-      { role: "user", content: `Transform this prompt into an enhanced version following our four-pillar framework:
+      { role: "user", content: `Transform this prompt into an enhanced version${template ? ' using the provided framework' : ' following our four-pillar framework'}:
 
 ORIGINAL PROMPT:
 ${originalPrompt}
@@ -91,15 +154,20 @@ ${originalPrompt}
 CONTEXT FROM USER:
 ${context}
 
-Create an enhanced prompt that clearly defines the Task, Persona, Conditions, and Instructions while maintaining natural flow and clarity. Focus especially on creating a prompt that can be immediately used in another AI platform with excellent results.` }
+Create an enhanced prompt that clearly defines the ${template && template.pillars && Array.isArray(template.pillars) 
+  ? template.pillars.map(p => p.name).join(', ') 
+  : 'Task, Persona, Conditions, and Instructions'} while maintaining natural flow and clarity. Focus especially on creating a prompt that can be immediately used in another AI platform with excellent results.` }
     ];
 
     try {
+      // Get temperature setting from template or use default
+      const temperature = template?.temperature || 0.7;
+      
       // Make the API call
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages: messages,
-        temperature: 0.7
+        temperature: temperature
       });
 
       const enhancedPrompt = completion.choices[0].message.content;

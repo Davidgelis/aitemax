@@ -50,6 +50,28 @@ export interface PromptTag {
   subcategory: string;
 }
 
+// Define the structure for a prompt template
+export interface PromptTemplate {
+  id: string;
+  title: string;
+  description?: string;
+  systemPrefix: string;
+  pillars: PillarConfig[];
+  isDefault: boolean;
+  maxChars?: number;
+  temperature?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Define the structure for a pillar configuration
+export interface PillarConfig {
+  name: string;
+  description: string;
+  order: number;
+  required: boolean;
+}
+
 export interface SavedPrompt {
   id?: string;
   title: string;
@@ -61,6 +83,7 @@ export interface SavedPrompt {
   variables: Variable[];
   jsonStructure?: PromptJsonStructure;
   tags?: PromptTag[]; // Update this to use the proper type
+  templateId?: string; // Reference to the template used
 }
 
 export interface PromptJsonStructure {
