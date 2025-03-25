@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface AIModel {
@@ -184,4 +183,3 @@ export const jsonToPillars = (json: Json | Record<string, any> | null): PromptPi
   // Sort pillars by order
   return pillars.sort((a, b) => a.order - b.order);
 };
-

@@ -1,83 +1,66 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { PromptTemplate, PromptPillar, jsonToPillars } from '@/components/dashboard/types';
-import { useToast } from '@/hooks/use-toast';
-import { v4 as uuidv4 } from 'uuid';
+import { useState, useEffect } from "react";
+import { PromptTemplate, PromptPillar, jsonToPillars, templatePillarsToJson } from "@/components/dashboard/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Json } from "@/integrations/supabase/types";
 
-export const usePromptTemplates = (userId?: string) => {
+export const usePromptTemplates = (userId: string | undefined) => {
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const DEFAULT_TEMPLATE: PromptTemplate = {
-    id: 'default',
-    title: 'Aitema X Framework',
-    description: 'The default four-pillar framework for prompt engineering',
-    isDefault: true,
-    pillars: [
-      { id: uuidv4(), name: 'Task', content: '', order: 0, isEditable: true },
-      { id: uuidv4(), name: 'Persona', content: '', order: 1, isEditable: true },
-      { id: uuidv4(), name: 'Conditions', content: '', order: 2, isEditable: true },
-      { id: uuidv4(), name: 'Instructions', content: '', order: 3, isEditable: true }
-    ],
-    systemPrefix: 'You are an expert prompt engineer that transforms input prompts into highly effective, well-structured prompts following the four-pillar framework.',
-    maxChars: 4000,
-    temperature: 0.7,
-  };
-
-  // Fetch all templates including default ones and user created ones
+  // Fetch all templates (default templates and user's templates)
   const fetchTemplates = async () => {
     setIsLoading(true);
     try {
-      // First, add the default template
-      const allTemplates: PromptTemplate[] = [DEFAULT_TEMPLATE];
-      
-      // Only fetch user templates if we have a user ID
-      if (userId) {
-        const { data, error } = await supabase
-          .from('prompt_templates')
-          .select('*')
-          .or(`user_id.eq.${userId},is_default.eq.true`);
-        
-        if (error) {
-          throw error;
-        }
-        
-        if (data && data.length > 0) {
-          const userTemplates = data.map(item => ({
-            id: item.id,
-            title: item.title,
-            description: item.description || undefined,
-            isDefault: item.is_default,
-            pillars: jsonToPillars(item.pillars),
-            systemPrefix: item.system_prefix || undefined,
-            maxChars: item.max_chars || 4000,
-            temperature: item.temperature || 0.7,
-            created_at: item.created_at,
-            updated_at: item.updated_at,
-            user_id: item.user_id
-          }));
-          
-          // Combine with default template, avoiding duplicates
-          const uniqueTemplates = [...userTemplates];
-          allTemplates.push(...uniqueTemplates);
-        }
+      const { data, error } = await supabase
+        .from('prompt_templates')
+        .select('*')
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
       }
-      
-      setTemplates(allTemplates);
-      
-      // If no template is selected yet, select the default one
-      if (!selectedTemplate) {
-        setSelectedTemplate(allTemplates[0]);
+
+      // Convert the data to our frontend types
+      const formattedTemplates: PromptTemplate[] = data.map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description || undefined,
+        isDefault: item.is_default,
+        pillars: Array.isArray(item.pillars) 
+          ? item.pillars.map((p: any) => ({
+              id: p.id,
+              name: p.name,
+              content: p.content,
+              order: p.order || 0,
+              isEditable: p.isEditable === undefined ? true : p.isEditable
+            }))
+          : jsonToPillars(item.pillars as Json),
+        systemPrefix: item.system_prefix || undefined,
+        maxChars: item.max_chars || undefined,
+        temperature: item.temperature || 0.7,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        user_id: item.user_id
+      }));
+
+      setTemplates(formattedTemplates);
+
+      // If no template is selected, select the first default template
+      if (!selectedTemplate && formattedTemplates.length > 0) {
+        const defaultTemplate = formattedTemplates.find(t => t.isDefault);
+        setSelectedTemplate(defaultTemplate || formattedTemplates[0]);
       }
     } catch (error: any) {
-      console.error('Error fetching templates:', error.message);
+      console.error("Error fetching templates:", error.message);
       toast({
         title: "Error fetching templates",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -85,136 +68,155 @@ export const usePromptTemplates = (userId?: string) => {
   };
 
   // Create a new template
-  const createTemplate = async (template: Omit<PromptTemplate, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+  const createTemplate = async (templateData: {
+    title: string;
+    description: string;
+    pillars: PromptPillar[];
+    systemPrefix: string;
+    maxChars: number;
+    temperature: number;
+  }) => {
     if (!userId) {
       toast({
-        title: "Cannot create template",
-        description: "You must be logged in to create templates",
-        variant: "destructive"
+        title: "Authentication required",
+        description: "Please sign in to create templates",
+        variant: "destructive",
       });
       return null;
     }
-    
+
     try {
-      const newTemplate = {
-        title: template.title,
-        description: template.description || null,
-        is_default: false, // User-created templates are never default
-        pillars: template.pillars,
-        system_prefix: template.systemPrefix || null,
-        max_chars: template.maxChars || 4000,
-        temperature: template.temperature || 0.7,
-        user_id: userId
-      };
-      
+      // Convert pillars to JSON format for storage
+      const pillarsJson = templateData.pillars;
+
       const { data, error } = await supabase
         .from('prompt_templates')
-        .insert(newTemplate)
-        .select()
-        .single();
-      
+        .insert({
+          title: templateData.title,
+          description: templateData.description,
+          system_prefix: templateData.systemPrefix,
+          pillars: pillarsJson,
+          is_default: false, // User created templates are never default
+          max_chars: templateData.maxChars,
+          temperature: templateData.temperature,
+          user_id: userId
+        })
+        .select();
+
       if (error) {
         throw error;
       }
-      
-      if (data) {
-        const createdTemplate: PromptTemplate = {
-          id: data.id,
-          title: data.title,
-          description: data.description || undefined,
-          isDefault: data.is_default,
-          pillars: jsonToPillars(data.pillars),
-          systemPrefix: data.system_prefix || undefined,
-          maxChars: data.max_chars || 4000,
-          temperature: data.temperature || 0.7,
-          created_at: data.created_at,
-          updated_at: data.updated_at,
-          user_id: data.user_id
+
+      // Get the newly created template
+      if (data && data.length > 0) {
+        const newTemplate: PromptTemplate = {
+          id: data[0].id,
+          title: data[0].title,
+          description: data[0].description,
+          isDefault: data[0].is_default,
+          pillars: Array.isArray(data[0].pillars) 
+            ? data[0].pillars 
+            : jsonToPillars(data[0].pillars as Json),
+          systemPrefix: data[0].system_prefix,
+          maxChars: data[0].max_chars,
+          temperature: data[0].temperature,
+          created_at: data[0].created_at,
+          updated_at: data[0].updated_at,
+          user_id: data[0].user_id
         };
+
+        setTemplates(prev => [newTemplate, ...prev]);
         
-        setTemplates(prev => [...prev, createdTemplate]);
         toast({
           title: "Template created",
-          description: `Template "${createdTemplate.title}" has been created successfully`,
+          description: "Your new template has been created successfully",
         });
         
-        return createdTemplate;
+        return newTemplate;
       }
+      return null;
     } catch (error: any) {
-      console.error('Error creating template:', error.message);
+      console.error("Error creating template:", error.message);
       toast({
         title: "Error creating template",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
+      return null;
     }
-    
-    return null;
   };
 
   // Update an existing template
-  const updateTemplate = async (template: PromptTemplate) => {
-    if (!userId || !template.id) {
+  const updateTemplate = async (
+    templateId: string,
+    templateData: {
+      title: string;
+      description: string;
+      pillars: PromptPillar[];
+      systemPrefix: string;
+      maxChars: number;
+      temperature: number;
+    }
+  ) => {
+    if (!userId) {
       toast({
-        title: "Cannot update template",
-        description: "Invalid template or user information",
-        variant: "destructive"
+        title: "Authentication required",
+        description: "Please sign in to update templates",
+        variant: "destructive",
       });
       return false;
     }
-    
-    // Cannot update default template
-    if (template.isDefault) {
-      toast({
-        title: "Cannot update template",
-        description: "Default templates cannot be modified",
-        variant: "destructive"
-      });
-      return false;
-    }
-    
+
     try {
-      const updateData = {
-        title: template.title,
-        description: template.description || null,
-        pillars: template.pillars,
-        system_prefix: template.systemPrefix || null,
-        max_chars: template.maxChars || 4000,
-        temperature: template.temperature || 0.7,
-      };
-      
+      // Convert pillars to JSON format for storage
+      const pillarsJson = templateData.pillars;
+
       const { error } = await supabase
         .from('prompt_templates')
-        .update(updateData)
-        .eq('id', template.id)
-        .eq('user_id', userId); // Ensure user can only update their own templates
-      
+        .update({
+          title: templateData.title,
+          description: templateData.description,
+          system_prefix: templateData.systemPrefix,
+          pillars: pillarsJson,
+          max_chars: templateData.maxChars,
+          temperature: templateData.temperature
+        })
+        .eq('id', templateId)
+        .eq('user_id', userId); // Ensure they own the template
+
       if (error) {
         throw error;
       }
-      
-      // Update the template in state
-      setTemplates(prev => 
-        prev.map(t => t.id === template.id ? template : t)
+
+      // Update the local state
+      setTemplates(prev =>
+        prev.map(template =>
+          template.id === templateId
+            ? {
+                ...template,
+                title: templateData.title,
+                description: templateData.description,
+                pillars: templateData.pillars,
+                systemPrefix: templateData.systemPrefix,
+                maxChars: templateData.maxChars,
+                temperature: templateData.temperature
+              }
+            : template
+        )
       );
-      
-      // Update selected template if it's the one we just updated
-      if (selectedTemplate?.id === template.id) {
-        setSelectedTemplate(template);
-      }
-      
+
       toast({
         title: "Template updated",
-        description: `Template "${template.title}" has been updated successfully`,
+        description: "Your template has been updated successfully",
       });
-      
+
       return true;
     } catch (error: any) {
-      console.error('Error updating template:', error.message);
+      console.error("Error updating template:", error.message);
       toast({
         title: "Error updating template",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
       return false;
     }
@@ -222,119 +224,65 @@ export const usePromptTemplates = (userId?: string) => {
 
   // Delete a template
   const deleteTemplate = async (templateId: string) => {
-    if (!userId || !templateId) {
+    if (!userId) {
       toast({
-        title: "Cannot delete template",
-        description: "Invalid template or user information",
-        variant: "destructive"
+        title: "Authentication required",
+        description: "Please sign in to delete templates",
+        variant: "destructive",
       });
       return false;
     }
-    
-    // Find the template to check if it's default
-    const templateToDelete = templates.find(t => t.id === templateId);
-    if (!templateToDelete) {
-      toast({
-        title: "Cannot delete template",
-        description: "Template not found",
-        variant: "destructive"
-      });
-      return false;
-    }
-    
-    // Cannot delete default template
-    if (templateToDelete.isDefault) {
-      toast({
-        title: "Cannot delete template",
-        description: "Default templates cannot be deleted",
-        variant: "destructive"
-      });
-      return false;
-    }
-    
+
     try {
       const { error } = await supabase
         .from('prompt_templates')
         .delete()
         .eq('id', templateId)
-        .eq('user_id', userId); // Ensure user can only delete their own templates
-      
+        .eq('user_id', userId); // Ensure they own the template
+
       if (error) {
         throw error;
       }
+
+      // Update the local state
+      setTemplates(prev => prev.filter(template => template.id !== templateId));
       
-      // Remove the template from state
-      setTemplates(prev => prev.filter(t => t.id !== templateId));
-      
-      // If the deleted template was selected, select the default template
-      if (selectedTemplate?.id === templateId) {
-        const defaultTemplate = templates.find(t => t.isDefault) || templates[0];
-        setSelectedTemplate(defaultTemplate);
+      // If the deleted template was selected, select another one
+      if (selectedTemplate && selectedTemplate.id === templateId) {
+        const firstTemplate = templates.find(t => t.id !== templateId);
+        setSelectedTemplate(firstTemplate || null);
       }
-      
+
       toast({
         title: "Template deleted",
-        description: `Template "${templateToDelete.title}" has been deleted successfully`,
+        description: "Your template has been deleted successfully",
       });
-      
+
       return true;
     } catch (error: any) {
-      console.error('Error deleting template:', error.message);
+      console.error("Error deleting template:", error.message);
       toast({
         title: "Error deleting template",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
       return false;
     }
   };
 
-  // Set a template as default (for user's preference)
-  const setDefaultTemplate = async (templateId: string) => {
-    const newSelectedTemplate = templates.find(t => t.id === templateId);
-    if (newSelectedTemplate) {
-      setSelectedTemplate(newSelectedTemplate);
-      
-      // Store the user's preference in localStorage
-      try {
-        localStorage.setItem('defaultTemplateId', templateId);
-      } catch (e) {
-        console.error('Error saving default template to localStorage:', e);
-      }
-      
-      return true;
-    }
-    return false;
-  };
-
-  // Initialize by loading templates and checking for stored preference
+  // Fetch templates on component mount or when userId changes
   useEffect(() => {
     fetchTemplates();
-    
-    // Try to load user's preferred template from localStorage
-    try {
-      const savedTemplateId = localStorage.getItem('defaultTemplateId');
-      if (savedTemplateId) {
-        // We'll set this after templates are loaded
-        const preferredTemplate = templates.find(t => t.id === savedTemplateId);
-        if (preferredTemplate) {
-          setSelectedTemplate(preferredTemplate);
-        }
-      }
-    } catch (e) {
-      console.error('Error loading default template from localStorage:', e);
-    }
   }, [userId]);
 
   return {
     templates,
-    selectedTemplate,
     isLoading,
+    selectedTemplate,
+    setSelectedTemplate,
     fetchTemplates,
     createTemplate,
     updateTemplate,
-    deleteTemplate,
-    setSelectedTemplate: setDefaultTemplate
+    deleteTemplate
   };
 };
-

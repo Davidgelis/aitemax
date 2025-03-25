@@ -47,7 +47,8 @@ export const usePromptAnalysis = (
         promptId,
         images: uploadedImages,
         websiteContext,
-        smartContext
+        smartContext,
+        selectedTemplate
       };
 
       // Call the edge function
@@ -173,4 +174,3 @@ export const usePromptAnalysis = (
     enhancePromptWithGPT
   };
 };
-
