@@ -23,14 +23,16 @@ serve(async (req) => {
       primaryToggle,
       secondaryToggle,
       userId,
-      promptId
+      promptId,
+      template // New parameter for template information
     } = await req.json();
     
     console.log(`Enhancing prompt with focus on ${primaryToggle || "no specific toggle"}`);
     console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
+    console.log(`Using template: ${template?.title || "default framework"}`);
     
-    // The comprehensive four-pillar framework for prompt engineering
-    const systemMessage = `You are an expert prompt engineer that transforms input prompts into highly effective, well-structured prompts following the four-pillar framework.
+    // The comprehensive framework for prompt engineering
+    let systemMessage = `You are an expert prompt engineer that transforms input prompts into highly effective, well-structured prompts following the four-pillar framework.
 
 TASK: You will be provided with an intent and context information, which may be as brief as two sentences or as extensive as a comprehensive brief. Your job is to enhance this prompt by applying best practices and instructions. Improve clarity, grammar, structure, and logical flow while preserving the original intent.
 
@@ -67,8 +69,31 @@ INSTRUCTIONS:
 7. Maintain a natural, flowing style while incorporating all essential elements
 
 OUTPUT FORMAT:
-Your enhanced prompt must flow naturally while incorporating all necessary elements. Structure it with clear sections for Task, Persona, Conditions, and Instructions.
-${primaryToggle ? `\n\nPRIMARY FOCUS: ${primaryToggle}` : ""}${secondaryToggle ? `\nSECONDARY FOCUS: ${secondaryToggle}` : ""}`;
+Your enhanced prompt must flow naturally while incorporating all necessary elements. Structure it with clear sections for Task, Persona, Conditions, and Instructions.`;
+
+    // If a template is provided, use its system prefix and pillar structure
+    if (template) {
+      if (template.systemPrefix) {
+        systemMessage = template.systemPrefix;
+      }
+      
+      if (template.pillars && template.pillars.length > 0) {
+        // Add the pillar structure to the system message
+        systemMessage += '\n\nSTRUCTURE YOUR RESPONSE WITH THESE SECTIONS:';
+        template.pillars.forEach(pillar => {
+          systemMessage += `\n- ${pillar.name}: ${pillar.content}`;
+        });
+      }
+    }
+    
+    // Add toggles if specified
+    if (primaryToggle) {
+      systemMessage += `\n\nPRIMARY FOCUS: ${primaryToggle}`;
+    }
+    
+    if (secondaryToggle) {
+      systemMessage += `\nSECONDARY FOCUS: ${secondaryToggle}`;
+    }
 
     // Initialize OpenAI client
     const openai = new OpenAI({
@@ -83,7 +108,7 @@ ${primaryToggle ? `\n\nPRIMARY FOCUS: ${primaryToggle}` : ""}${secondaryToggle ?
     // Create the prompt for GPT
     const messages = [
       { role: "system", content: systemMessage },
-      { role: "user", content: `Transform this prompt into an enhanced version following our four-pillar framework:
+      { role: "user", content: `Transform this prompt into an enhanced version following our ${template?.title || 'four-pillar'} framework:
 
 ORIGINAL PROMPT:
 ${originalPrompt}
@@ -91,7 +116,7 @@ ${originalPrompt}
 CONTEXT FROM USER:
 ${context}
 
-Create an enhanced prompt that clearly defines the Task, Persona, Conditions, and Instructions while maintaining natural flow and clarity. Focus especially on creating a prompt that can be immediately used in another AI platform with excellent results.` }
+Create an enhanced prompt that clearly defines the ${template?.pillars.map(p => p.name).join(', ') || 'Task, Persona, Conditions, and Instructions'} while maintaining natural flow and clarity. Focus especially on creating a prompt that can be immediately used in another AI platform with excellent results.` }
     ];
 
     try {
@@ -99,7 +124,8 @@ Create an enhanced prompt that clearly defines the Task, Persona, Conditions, an
       const completion = await openai.chat.completions.create({
         model: "o3-mini",
         messages: messages,
-        temperature: 0.7
+        temperature: template?.temperature || 0.7,
+        max_tokens: template?.maxChars || undefined
       });
 
       const enhancedPrompt = completion.choices[0].message.content;
