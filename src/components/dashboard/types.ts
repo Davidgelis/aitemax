@@ -69,6 +69,7 @@ export interface Toggle {
   id: string;
   label: string;
   description?: string;
+  definition?: string;
 }
 
 export interface AIModel {
@@ -85,6 +86,9 @@ export interface AIModel {
   description?: string;
   logoUrl?: string;
   updatedAt?: string;
+  strengths?: string[];
+  limitations?: string[];
+  updated_at?: string;
 }
 
 export interface UploadedImage {
@@ -92,6 +96,7 @@ export interface UploadedImage {
   url: string;
   file: File;
   name: string;
+  context?: string;
 }
 
 // Convert Variable array to JSON for storage
