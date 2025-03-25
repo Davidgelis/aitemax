@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Plus, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TemplateCard } from "@/components/dashboard/TemplateCard";
-import { PromptTemplate } from "@/components/dashboard/types";
+import { PromptTemplate, PillarConfig } from "@/components/dashboard/types";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Json } from "@/integrations/supabase/types";
 
 interface TemplatesPanelProps {
   userId: string | undefined;
@@ -65,7 +65,7 @@ export const TemplatesPanel = ({ userId, onSelectTemplate }: TemplatesPanelProps
         title: item.title,
         description: item.description || "",
         systemPrefix: item.system_prefix || "",
-        pillars: item.pillars || [],
+        pillars: Array.isArray(item.pillars) ? item.pillars as unknown as PillarConfig[] : [],
         isDefault: item.is_default,
         maxChars: item.max_chars || 4000,
         temperature: item.temperature || 0.7,
@@ -158,7 +158,15 @@ export const TemplatesPanel = ({ userId, onSelectTemplate }: TemplatesPanelProps
         // Create new template
         const { data, error } = await supabase
           .from('prompt_templates')
-          .insert(templateData)
+          .insert({
+            title,
+            description,
+            system_prefix: systemPrefix,
+            pillars: JSON.stringify(currentTemplate?.pillars || []),
+            temperature,
+            max_chars: maxChars,
+            user_id: userId
+          })
           .select()
           .single();
           
@@ -169,7 +177,7 @@ export const TemplatesPanel = ({ userId, onSelectTemplate }: TemplatesPanelProps
           title: data.title,
           description: data.description || "",
           systemPrefix: data.system_prefix || "",
-          pillars: data.pillars || [],
+          pillars: Array.isArray(data.pillars) ? data.pillars as unknown as PillarConfig[] : [],
           isDefault: false,
           maxChars: data.max_chars || 4000,
           temperature: data.temperature || 0.7,
@@ -189,7 +197,15 @@ export const TemplatesPanel = ({ userId, onSelectTemplate }: TemplatesPanelProps
         
         const { error } = await supabase
           .from('prompt_templates')
-          .update(templateData)
+          .update({
+            title,
+            description,
+            system_prefix: systemPrefix,
+            pillars: JSON.stringify(currentTemplate.pillars || []),
+            temperature,
+            max_chars: maxChars,
+            user_id: userId
+          })
           .eq('id', currentTemplate.id);
           
         if (error) throw error;
@@ -255,7 +271,7 @@ export const TemplatesPanel = ({ userId, onSelectTemplate }: TemplatesPanelProps
         title: data.title,
         description: data.description || "",
         systemPrefix: data.system_prefix || "",
-        pillars: data.pillars || [],
+        pillars: Array.isArray(data.pillars) ? data.pillars as unknown as PillarConfig[] : [],
         isDefault: false,
         maxChars: data.max_chars || 4000,
         temperature: data.temperature || 0.7,

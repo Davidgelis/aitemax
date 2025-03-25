@@ -105,5 +105,7 @@ export interface Toggle {
   id: string;
   label: string;
   description?: string;
+  definition?: string;
+  icon?: any;
+  prompt?: string;
 }
-

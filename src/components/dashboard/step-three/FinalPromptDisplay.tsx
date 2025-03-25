@@ -92,7 +92,7 @@ export const FinalPromptDisplay = ({
       />
       
       <Sheet open={showEditPromptSheet} onOpenChange={setShowEditPromptSheet}>
-        <SheetContent position="right" size="lg">
+        <SheetContent className="sm:max-w-lg" side="right">
           <SheetHeader>
             <SheetTitle>Edit Prompt</SheetTitle>
           </SheetHeader>

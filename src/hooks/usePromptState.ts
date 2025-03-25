@@ -374,6 +374,7 @@ export const usePromptState = (user: any) => {
           secondaryToggle: data[0].secondary_toggle,
           variables: jsonToVariables(data[0].variables as Json),
           templateId: data[0].template_id || null,
+          tags: []
         };
         
         if (prompt.jsonStructure) {
