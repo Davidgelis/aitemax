@@ -65,6 +65,13 @@ export const StepOneContent = ({
   isLoggedIn = false
 }: StepOneContentProps) => {
   const [showContextTools, setShowContextTools] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+
+  // Handler for image changes that updates local state and calls parent handler
+  const handleImagesChange = (images: UploadedImage[]) => {
+    setUploadedImages(images);
+    onImagesChange(images);
+  };
 
   return (
     <div className="border rounded-xl p-6 bg-card">
@@ -180,7 +187,10 @@ export const StepOneContent = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <h3 className="text-sm font-medium mb-2">Image Context</h3>
-                <ImageUploader images={[]} onImagesChange={onImagesChange} />
+                <ImageUploader
+                  images={uploadedImages}
+                  onImagesChange={handleImagesChange}
+                />
               </div>
               <div>
                 <h3 className="text-sm font-medium mb-2">Website Content</h3>

@@ -1,6 +1,7 @@
+
 import { useState, useCallback } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { usePromptTemplates } from "@/hooks/usePromptTemplates";
 
@@ -28,7 +29,7 @@ export const usePromptAnalysis = (
         description: "Please sign in to upload images",
         variant: "destructive",
       });
-      return;
+      return [];
     }
 
     try {
@@ -49,7 +50,7 @@ export const usePromptAnalysis = (
             throw error;
           }
 
-          // Construct the URL correctly using storage.publicUrl() method
+          // Get the public URL correctly without accessing protected properties
           const { data: publicUrlData } = supabase.storage
             .from("images")
             .getPublicUrl(data.path);

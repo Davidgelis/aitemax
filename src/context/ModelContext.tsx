@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AIModel } from "@/components/dashboard/types";
 import { ModelService } from "@/services/model";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ModelContextType {
   models: AIModel[];
@@ -36,7 +36,23 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
-  const { toast } = useToast();
+  
+  // Initialize toast with try-catch to prevent errors during initial render
+  const toastData = React.useMemo(() => {
+    try {
+      return useToast();
+    } catch (e) {
+      console.error("Error initializing toast:", e);
+      return { 
+        toast: (props: any) => {
+          console.log("Toast would show:", props);
+          return { id: "dummy-id", dismiss: () => {}, update: () => {} };
+        } 
+      };
+    }
+  }, []);
+  
+  const { toast } = toastData;
 
   const fetchModels = async () => {
     setIsLoading(true);
