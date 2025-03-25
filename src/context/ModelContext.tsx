@@ -1,8 +1,7 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AIModel } from "@/components/dashboard/types";
 import { ModelService } from "@/services/model";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface ModelContextType {
   models: AIModel[];
@@ -37,32 +36,7 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
-  
-  // Create a safe toast function that doesn't use hooks
-  const toastRef = React.useRef<any>(null);
-  
-  try {
-    // Use useToast safely inside a component body, not inside another hook
-    const { toast } = useToast();
-    toastRef.current = toast;
-  } catch (e) {
-    console.error("Error initializing toast:", e);
-    if (!toastRef.current) {
-      toastRef.current = (props: any) => {
-        console.log("Toast would show:", props);
-        return { id: "dummy-id", dismiss: () => {}, update: () => {} };
-      };
-    }
-  }
-  
-  // Use the toast ref to avoid hook issues
-  const toast = (props: any) => {
-    if (toastRef.current) {
-      return toastRef.current(props);
-    }
-    console.log("Toast fallback:", props);
-    return { id: "dummy-id", dismiss: () => {}, update: () => {} };
-  };
+  const { toast } = useToast();
 
   const fetchModels = async () => {
     setIsLoading(true);
@@ -245,10 +219,8 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Initial fetch of models when component mounts
   useEffect(() => {
     fetchModels();
-    // Empty dependency array for initialization only, no dependencies needed
   }, []);
 
   return (

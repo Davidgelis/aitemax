@@ -162,7 +162,7 @@ export const ModelSelectorDialog = ({
   };
 
   const getDisplayModels = (): DisplayModel[] => {
-    if (!displayModelsArray || displayModelsArray.length === 0) return [];
+    if (displayModelsArray.length === 0) return [];
     
     const displayCount = 5;
     const halfCount = Math.floor(displayCount / 2);
@@ -172,18 +172,14 @@ export const ModelSelectorDialog = ({
     for (let i = -halfCount; i <= halfCount; i++) {
       let index = activeIndex + i;
       
-      // Handle boundary conditions
       if (index < 0) index = displayModelsArray.length + index;
       if (index >= displayModelsArray.length) index = index - displayModelsArray.length;
       
-      // Ensure the model exists at this index
-      if (displayModelsArray[index]) {
-        displayModels.push({
-          model: displayModelsArray[index],
-          position: i,
-          index
-        });
-      }
+      displayModels.push({
+        model: displayModelsArray[index],
+        position: i,
+        index
+      });
     }
     
     return displayModels;
@@ -257,59 +253,54 @@ export const ModelSelectorDialog = ({
           role="listbox"
           aria-label="AI Models"
         >
-          {getDisplayModels().map(({ model, position, index }) => {
-            // Guard against undefined model or model.name
-            if (!model) return null;
-            
-            return (
+          {getDisplayModels().map(({ model, position, index }) => (
+            <div
+              key={`${model.id}-${position}`}
+              className={`absolute select-none ${getTransitionClass(position)}`}
+              style={{
+                transform: `translateY(${position * 60}px) scale(${1 - Math.abs(position) * 0.15})`,
+                opacity: 1 - Math.abs(position) * 0.25,
+                zIndex: 10 - Math.abs(position),
+                transition: 'all 700ms cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+              onClick={() => handleSelectModel(index)}
+              role="option"
+              aria-selected={position === 0}
+            >
               <div
-                key={`${model.id || 'unknown'}-${position}`}
-                className={`absolute select-none ${getTransitionClass(position)}`}
+                className={`text-center px-6 py-2 whitespace-nowrap font-bold transition-all duration-700 ease-in-out`}
                 style={{
-                  transform: `translateY(${position * 60}px) scale(${1 - Math.abs(position) * 0.15})`,
-                  opacity: 1 - Math.abs(position) * 0.25,
-                  zIndex: 10 - Math.abs(position),
+                  // Always use non-selected color (#b2b2b2) for the dash, regardless of position
+                  color: model.name === '-' ? '#b2b2b2' : position === 0 ? '#33fea6' : '#b2b2b2',
+                  fontSize: position === 0 ? '1.875rem' : '1.25rem',
+                  fontWeight: 700,
+                  letterSpacing: position === 0 ? '0.5px' : 'normal',
+                  transform: `scale(${position === 0 ? 1.05 : 1})`,
                   transition: 'all 700ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  ...(model.name === '-' ? {
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    padding: '0.5rem',
+                  } : {})
                 }}
-                onClick={() => handleSelectModel(index)}
-                role="option"
-                aria-selected={position === 0}
               >
-                <div
-                  className={`text-center px-6 py-2 whitespace-nowrap font-bold transition-all duration-700 ease-in-out`}
-                  style={{
-                    // Always use non-selected color (#b2b2b2) for the dash, regardless of position
-                    color: model.name === '-' ? '#b2b2b2' : position === 0 ? '#33fea6' : '#b2b2b2',
-                    fontSize: position === 0 ? '1.875rem' : '1.25rem',
-                    fontWeight: 700,
-                    letterSpacing: position === 0 ? '0.5px' : 'normal',
-                    transform: `scale(${position === 0 ? 1.05 : 1})`,
-                    transition: 'all 700ms cubic-bezier(0.4, 0, 0.2, 1)',
-                    ...(model.name === '-' ? {
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      padding: '0.5rem',
-                    } : {})
-                  }}
-                >
-                  {model.name === '-' ? (
-                    <div className="flex justify-center items-center">
-                      <div 
-                        className="w-16 h-3 rounded-md"
-                        style={{ 
-                          // Always use non-selected color (#b2b2b2) for the dash, regardless of position
-                          backgroundColor: '#b2b2b2',
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    model.name || 'Unnamed Model'
-                  )}
-                </div>
+                {model.name === '-' ? (
+                  <div className="flex justify-center items-center">
+                    <div 
+                      className="w-16 h-3 rounded-md"
+                      style={{ 
+                        // Always use non-selected color (#b2b2b2) for the dash, regardless of position
+                        backgroundColor: '#b2b2b2',
+                      }}
+                    />
+                  </div>
+                ) : (
+                  model.name
+                )}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </DialogContent>
     </Dialog>
