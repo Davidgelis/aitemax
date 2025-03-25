@@ -7,6 +7,8 @@ import { usePromptTemplates } from '@/hooks/usePromptTemplates';
 import { TemplateSelector } from './TemplateSelector';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { PromptTemplate, UploadedImage } from './types';
+import { AIModel } from './types';
 
 interface StepOneContentProps {
   user: any;
@@ -14,6 +16,21 @@ interface StepOneContentProps {
   setPromptText: (text: string) => void;
   handleAnalyze: () => void;
   isLoading: boolean;
+  // In StepController this component is called with these props
+  selectedPrimary?: string | null;
+  selectedSecondary?: string | null;
+  handlePrimaryToggle?: (id: string) => void;
+  handleSecondaryToggle?: (id: string) => void;
+  onAnalyze?: () => void;
+  selectedModel?: AIModel | null;
+  setSelectedModel?: (model: AIModel | null) => void;
+  selectedCognitive?: string | null;
+  handleCognitiveToggle?: () => void;
+  onImagesChange?: (images: UploadedImage[]) => void;
+  onWebsiteScan?: (url: string, instructions: string) => void;
+  onSmartContext?: (context: string, usageInstructions: string) => void;
+  userId?: string;
+  onTemplateSelect?: (template: PromptTemplate) => void;
 }
 
 const StepOneContent = ({
@@ -22,6 +39,7 @@ const StepOneContent = ({
   setPromptText,
   handleAnalyze,
   isLoading,
+  onTemplateSelect
 }: StepOneContentProps) => {
   const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
   const { toast } = useToast();
@@ -39,6 +57,9 @@ const StepOneContent = ({
     const template = templates.find(t => t.id === templateId);
     if (template) {
       setSelectedTemplate(template);
+      if (onTemplateSelect) {
+        onTemplateSelect(template);
+      }
     }
   };
 
@@ -83,10 +104,14 @@ const StepOneContent = ({
         </div>
         
         <PromptEditor 
-          content={promptText} 
-          setContent={setPromptText} 
+          promptText={promptText} 
+          setPromptText={setPromptText} 
           placeholder="Enter your prompt here..."
           maxHeight="300px"
+          onAnalyze={handleAnalyze}
+          isLoading={isLoading}
+          selectedPrimary={null}
+          selectedSecondary={null}
         />
         
         <div className="flex justify-center">

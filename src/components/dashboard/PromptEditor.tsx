@@ -18,6 +18,8 @@ interface PromptEditorProps {
   images?: UploadedImage[];
   onImagesChange?: (images: UploadedImage[]) => void;
   websiteContext?: { url: string; instructions: string } | null;
+  maxHeight?: string;
+  placeholder?: string;
   maxLength?: number;
 }
 
@@ -31,6 +33,8 @@ export const PromptEditor = ({
   images = [],
   onImagesChange,
   websiteContext,
+  maxHeight = "300px",
+  placeholder = "Enter your prompt here...",
   maxLength = 3000
 }: PromptEditorProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -321,8 +325,9 @@ export const PromptEditor = ({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           className="w-full h-[280px] bg-transparent resize-none outline-none text-card-foreground placeholder:text-muted-foreground"
-          placeholder="Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
+          placeholder={placeholder}
           maxLength={maxLength}
+          style={{ maxHeight }}
         />
       </div>
       
@@ -342,7 +347,7 @@ export const PromptEditor = ({
       
       <div className="absolute bottom-[-56px] right-6">
         <button 
-          onClick={analyzeWithAI}
+          onClick={onAnalyze}
           className="aurora-button"
           disabled={isLoading}
         >

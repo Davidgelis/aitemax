@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 
 export interface AIModel {
@@ -155,7 +156,7 @@ export const templatePillarsToJson = (pillars: PromptPillar[]): Json => {
     content: pillar.content,
     order: pillar.order,
     isEditable: pillar.isEditable
-  }));
+  })) as Json;
 };
 
 export const jsonToPillars = (json: Json | null): PromptPillar[] => {
@@ -166,12 +167,14 @@ export const jsonToPillars = (json: Json | null): PromptPillar[] => {
   // Convert from JSON array to PromptPillar array
   json.forEach(item => {
     if (typeof item === 'object' && item !== null) {
+      // Type assertion to ensure TypeScript knows these properties exist
+      const jsonItem = item as Record<string, any>;
       pillars.push({
-        id: item.id as string || crypto.randomUUID(),
-        name: item.name as string || '',
-        content: item.content as string || '',
-        order: item.order as number || 0,
-        isEditable: item.isEditable as boolean ?? true
+        id: jsonItem.id as string || crypto.randomUUID(),
+        name: jsonItem.name as string || '',
+        content: jsonItem.content as string || '',
+        order: jsonItem.order as number || 0,
+        isEditable: jsonItem.isEditable as boolean ?? true
       });
     }
   });
