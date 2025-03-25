@@ -333,7 +333,8 @@ const XPanel = () => {
     return avatarMap[userProfile.avatar_url] || '';
   };
   
-  return <SidebarProvider>
+  return (
+    <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <main className="flex-1 p-6">
           <div className="max-w-6xl mx-auto">
@@ -404,9 +405,11 @@ const XPanel = () => {
                           Show all
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {categories.map(category => <DropdownMenuItem key={category} onClick={() => setSelectedCategory(category)} className={selectedCategory === category ? "bg-accent/20" : ""}>
+                        {categories.map(category => (
+                          <DropdownMenuItem key={category} onClick={() => setSelectedCategory(category)} className={selectedCategory === category ? "bg-accent/20" : ""}>
                             {category}
-                          </DropdownMenuItem>)}
+                          </DropdownMenuItem>
+                        ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
                     
@@ -431,23 +434,31 @@ const XPanel = () => {
                           Show all
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {subcategories.map(subcategory => <DropdownMenuItem key={subcategory} onClick={() => setSelectedSubcategory(subcategory)} className={selectedSubcategory === subcategory ? "bg-accent/20" : ""}>
+                        {subcategories.map(subcategory => (
+                          <DropdownMenuItem key={subcategory} onClick={() => setSelectedSubcategory(subcategory)} className={selectedSubcategory === subcategory ? "bg-accent/20" : ""}>
                             {subcategory}
-                          </DropdownMenuItem>)}
+                          </DropdownMenuItem>
+                        ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
                     
-                    {(selectedCategory || selectedSubcategory || searchTerm) && <Button variant="ghost" onClick={clearFilters}>
+                    {(selectedCategory || selectedSubcategory || searchTerm) && (
+                      <Button variant="ghost" onClick={clearFilters}>
                         Clear filters
-                      </Button>}
+                      </Button>
+                    )}
                   </div>
                 </div>
                 
                 {/* Prompts Grid */}
-                {isLoading ? <div className="flex justify-center items-center h-64">
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-64">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
-                  </div> : filteredPrompts.length > 0 ? <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredPrompts.map(prompt => <Card key={prompt.id} className="group hover:scale-[1.01] transition-all overflow-hidden bg-white border-[1.5px] border-[#64bf95] shadow-md relative">
+                  </div>
+                ) : filteredPrompts.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredPrompts.map(prompt => (
+                      <Card key={prompt.id} className="group hover:scale-[1.01] transition-all overflow-hidden bg-white border-[1.5px] border-[#64bf95] shadow-md relative">
                         {/* Share Button in Top Right Corner */}
                         <div className="absolute top-3 right-3 z-10">
                           <Popover>
@@ -463,12 +474,22 @@ const XPanel = () => {
                                   <Label htmlFor={`share-email-${prompt.id}`}>
                                     Email address
                                   </Label>
-                                  <Input id={`share-email-${prompt.id}`} placeholder="colleague@example.com" type="email" value={sharingPromptId === prompt.id ? shareEmail : ""} onChange={e => {
-                              setSharingPromptId(prompt.id);
-                              setShareEmail(e.target.value);
-                            }} />
+                                  <Input 
+                                    id={`share-email-${prompt.id}`} 
+                                    placeholder="colleague@example.com" 
+                                    type="email" 
+                                    value={sharingPromptId === prompt.id ? shareEmail : ""} 
+                                    onChange={e => {
+                                      setSharingPromptId(prompt.id);
+                                      setShareEmail(e.target.value);
+                                    }} 
+                                  />
                                 </div>
-                                <Button className="w-full bg-[#64bf95] hover:bg-[#64bf95]/90 text-white" onClick={handleSharePrompt} disabled={!shareEmail || isSharing || sharingPromptId !== prompt.id}>
+                                <Button 
+                                  className="w-full bg-[#64bf95] hover:bg-[#64bf95]/90 text-white" 
+                                  onClick={handleSharePrompt} 
+                                  disabled={!shareEmail || isSharing || sharingPromptId !== prompt.id}
+                                >
                                   {isSharing && sharingPromptId === prompt.id ? "Sharing..." : "Share"}
                                 </Button>
                               </div>
@@ -489,13 +510,17 @@ const XPanel = () => {
                             
                             {/* Tags */}
                             <div className="flex flex-wrap gap-2 mb-4">
-                              {prompt.tags && prompt.tags.map((tag, index) => <div key={index} className="bg-[#64bf95]/10 text-xs rounded-full px-2.5 py-1 flex items-center gap-1">
+                              {prompt.tags && prompt.tags.map((tag, index) => (
+                                <div key={index} className="bg-[#64bf95]/10 text-xs rounded-full px-2.5 py-1 flex items-center gap-1">
                                   <span className="font-medium">{tag.category}</span>
-                                  {tag.subcategory && <>
+                                  {tag.subcategory && (
+                                    <>
                                       <span>•</span>
                                       <span>{tag.subcategory}</span>
-                                    </>}
-                                </div>)}
+                                    </>
+                                  )}
+                                </div>
+                              ))}
                             </div>
                             
                             {/* Action Buttons - Simplified with only Delete Button */}
@@ -512,7 +537,9 @@ const XPanel = () => {
                                         <Trash2 className="h-4 w-4" />
                                       </Button>
                                     </TooltipTrigger>
-                                    
+                                    <TooltipContent>
+                                      <p>Delete prompt</p>
+                                    </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
                               </div>
@@ -531,16 +558,22 @@ const XPanel = () => {
                             </div>
                           </div>
                         </CardContent>
-                      </Card>)}
-                  </div> : <div className="text-center py-12">
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
                     <h3 className="text-xl font-medium mb-2">No prompts found</h3>
                     <p className="text-muted-foreground mb-6">
                       {searchTerm || selectedCategory || selectedSubcategory ? "Try adjusting your search or filters" : "You haven't created any prompts yet"}
                     </p>
-                    {!searchTerm && !selectedCategory && !selectedSubcategory && <Button variant="aurora" onClick={handleNewPromptWithTemplate}>
+                    {!searchTerm && !selectedCategory && !selectedSubcategory && (
+                      <Button variant="aurora" onClick={handleNewPromptWithTemplate}>
                         Create Your First Prompt
-                      </Button>}
-                  </div>}
+                      </Button>
+                    )}
+                  </div>
+                )}
               </TabsContent>
               
               <TabsContent value="templates" className="mt-4">
@@ -560,11 +593,15 @@ const XPanel = () => {
           <SidebarContent>
             <div className="p-4 flex items-center justify-between border-b mt-8">
               <div className="flex items-center gap-3">
-                {userProfile?.avatar_url ? <Avatar className="w-10 h-10 border-2 border-[#33fea6]">
+                {userProfile?.avatar_url ? (
+                  <Avatar className="w-10 h-10 border-2 border-[#33fea6]">
                     <AvatarImage src={getAvatarSrc()} alt="User avatar" />
-                  </Avatar> : <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                  </Avatar>
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                     <User className="w-6 h-6 text-muted-foreground" />
-                  </div>}
+                  </div>
+                )}
                 <span className="font-medium">
                   {userProfile?.username || (user ? (user.email || 'User').split('@')[0] : 'Guest')}
                 </span>
@@ -583,31 +620,31 @@ const XPanel = () => {
                     <span>Profile</span>
                   </DropdownMenuItem>
                   
-                  {user ? <DropdownMenuItem onClick={async () => {
-                  const {
-                    supabase
-                  } = await import('@/integrations/supabase/client');
-                  await supabase.auth.signOut();
-                }} className="menu-item-glow">
+                  {user ? (
+                    <DropdownMenuItem onClick={async () => {
+                      const { supabase } = await import('@/integrations/supabase/client');
+                      await supabase.auth.signOut();
+                    }} className="menu-item-glow">
                       <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                         <polyline points="16 17 21 12 16 7"></polyline>
                         <line x1="21" y1="12" x2="9" y2="12"></line>
                       </svg>
                       <span>Sign out</span>
-                    </DropdownMenuItem> : <DropdownMenuItem onClick={() => navigate("/auth")} className="menu-item-glow">
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={() => navigate("/auth")} className="menu-item-glow">
                       <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
                         <polyline points="10 17 15 12 10 7"></polyline>
                         <line x1="15" y1="12" x2="3" y2="12"></line>
                       </svg>
                       <span>Sign in</span>
-                    </DropdownMenuItem>}
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-
-            
 
             <div className="p-4 border-b">
               <div className="relative">
@@ -624,31 +661,58 @@ const XPanel = () => {
             </div>
 
             <div className="overflow-auto">
-              {isLoading ? <div className="p-4 text-center">
+              {isLoading ? (
+                <div className="p-4 text-center">
                   <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                   <span className="text-sm text-muted-foreground">Loading...</span>
-                </div> : filteredPrompts.length > 0 ? filteredPrompts.map(item => <div key={item.id} className="p-4 border-b group/item cursor-pointer hover:bg-gray-50 transition-colors" style={{
-              minHeight: `${Math.max(72, getTextLines(getPlainText(item.title), 25) * 20 + 32)}px`
-            }} onClick={() => handlePreviewPrompt(item.id)}>
+                </div>
+              ) : filteredPrompts.length > 0 ? (
+                filteredPrompts.map(item => (
+                  <div 
+                    key={item.id} 
+                    className="p-4 border-b group/item cursor-pointer hover:bg-gray-50 transition-colors" 
+                    style={{
+                      minHeight: `${Math.max(72, getTextLines(getPlainText(item.title), 25) * 20 + 32)}px`
+                    }} 
+                    onClick={() => handlePreviewPrompt(item.id)}
+                  >
                     <div className="flex items-start w-full h-full">
                       <div className="flex items-start gap-2 w-[70%]">
                         <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground mt-1.5 flex-shrink-0" />
                         <div className="flex flex-col flex-1 min-w-0">
-                          {editingPromptId === item.id ? <input type="text" value={editingTitle} onChange={e => setEditingTitle(e.target.value)} onBlur={saveEdit} onKeyDown={handleKeyDown} className="text-sm font-medium border border-transparent focus:border-[#33fea6] focus:outline-none rounded px-1 w-full" autoFocus onClick={e => e.stopPropagation()} /> : <div className="flex items-center">
+                          {editingPromptId === item.id ? (
+                            <input 
+                              type="text" 
+                              value={editingTitle} 
+                              onChange={e => setEditingTitle(e.target.value)} 
+                              onBlur={saveEdit} 
+                              onKeyDown={handleKeyDown} 
+                              className="text-sm font-medium border border-transparent focus:border-[#33fea6] focus:outline-none rounded px-1 w-full" 
+                              autoFocus 
+                              onClick={e => e.stopPropagation()} 
+                            />
+                          ) : (
+                            <div className="flex items-center">
                               <span className="text-sm font-medium break-words">
                                 {getPlainText(item.title)}
                               </span>
-                            </div>}
+                            </div>
+                          )}
                           <span className="text-xs text-muted-foreground">{item.date}</span>
                         </div>
                       </div>
                       <div className="flex items-center ml-auto w-[30%] justify-center h-full flex-shrink-0">
-                        {editingPromptId !== item.id && <button onClick={e => {
-                    e.stopPropagation();
-                    startEditing(item);
-                  }} className="p-1 transition-colors">
+                        {editingPromptId !== item.id && (
+                          <button 
+                            onClick={e => {
+                              e.stopPropagation();
+                              startEditing(item);
+                            }} 
+                            className="p-1 transition-colors"
+                          >
                             <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-[#33fea6]" />
-                          </button>}
+                          </button>
+                        )}
                         <DropdownMenu>
                           <DropdownMenuTrigger>
                             <div className="p-1 hover:text-[#33fea6] transition-colors" onClick={e => e.stopPropagation()}>
@@ -657,17 +721,20 @@ const XPanel = () => {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuItem onClick={e => {
-                        e.stopPropagation();
-                        handleCopyPrompt(item.promptText);
-                      }}>
+                              e.stopPropagation();
+                              handleCopyPrompt(item.promptText);
+                            }}>
                               <CopyIcon className="mr-2 h-4 w-4" />
                               <span>Copy</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={e => {
-                        e.stopPropagation();
-                        handleDeletePrompt(item.id);
-                      }}>
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive" 
+                              onClick={e => {
+                                e.stopPropagation();
+                                handleDeletePrompt(item.id);
+                              }}
+                            >
                               <Trash2 className="mr-2 h-4 w-4" />
                               <span>Delete</span>
                             </DropdownMenuItem>
@@ -675,6 +742,28 @@ const XPanel = () => {
                         </DropdownMenu>
                       </div>
                     </div>
-                  </div>) : <div className="p-4 text-center text-muted-foreground">
-                  {user ? searchTerm ? "No matching prompts found" : "No saved prompts yet" : <div className="space-y-3">
-                      <p
+                  </div>
+                ))
+              ) : (
+                <div className="p-4 text-center text-muted-foreground">
+                  {user ? (
+                    searchTerm ? "No matching prompts found" : "No saved prompts yet"
+                  ) : (
+                    <div className="space-y-3">
+                      <p>Sign in to view your saved prompts</p>
+                      <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
+                        Sign in
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </SidebarContent>
+        </Sidebar>
+      </div>
+    </SidebarProvider>
+  );
+};
+
+export default XPanel;

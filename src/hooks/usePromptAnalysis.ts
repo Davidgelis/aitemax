@@ -40,6 +40,7 @@ export const usePromptAnalysis = (
           promptId: currentPromptId,
           websiteContext,
           smartContext,
+          templateId: selectedTemplateId, // Pass template ID to the analyze function
           images: uploadedImages.map(img => ({
             id: img.id,
             url: img.url,
@@ -69,7 +70,7 @@ export const usePromptAnalysis = (
     } finally {
       setIsLoading(false);
     }
-  }, [promptText, user, currentPromptId, setQuestions, setVariables, setMasterCommand, setCurrentStep]);
+  }, [promptText, user, currentPromptId, setQuestions, setVariables, setMasterCommand, setCurrentStep, selectedTemplateId]);
 
   const enhancePromptWithGPT = useCallback(async (
     prompt: string,
