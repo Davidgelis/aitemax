@@ -97,7 +97,7 @@ Create an enhanced prompt that clearly defines the Task, Persona, Conditions, an
     try {
       // Make the API call
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "o3-mini",
         messages: messages,
         temperature: 0.7
       });
