@@ -180,11 +180,11 @@ export const StepOneContent = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <h3 className="text-sm font-medium mb-2">Image Context</h3>
-                <ImageUploader onImagesChange={onImagesChange} />
+                <ImageUploader images={[]} onImagesChange={onImagesChange} />
               </div>
               <div>
                 <h3 className="text-sm font-medium mb-2">Website Content</h3>
-                <WebScanner onScan={onWebsiteScan} />
+                <WebScanner onWebsiteScan={onWebsiteScan} />
               </div>
             </div>
             <div>

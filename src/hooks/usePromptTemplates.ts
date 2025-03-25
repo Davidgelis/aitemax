@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Json } from "@/integrations/supabase/types";
 
 export interface PromptTemplatePillar {
   name: string;
@@ -21,6 +22,20 @@ export interface PromptTemplate {
   created_at: string;
   updated_at: string;
 }
+
+// This helper function converts Json to PromptTemplatePillar[]
+const jsonToPillars = (pillars: Json): PromptTemplatePillar[] => {
+  if (!pillars || !Array.isArray(pillars)) return [];
+  return pillars.map(pillar => ({
+    name: typeof pillar === 'object' && pillar !== null ? (pillar.name as string || '') : '',
+    description: typeof pillar === 'object' && pillar !== null ? (pillar.description as string || '') : ''
+  }));
+};
+
+// This helper function converts PromptTemplatePillar[] to Json
+const pillarsToJson = (pillars: PromptTemplatePillar[]): Json => {
+  return pillars as unknown as Json;
+};
 
 export function usePromptTemplates(user: any) {
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
@@ -46,11 +61,17 @@ export function usePromptTemplates(user: any) {
       }
 
       if (data && data.templates) {
-        setTemplates(data.templates);
+        // Convert the Json pillars to PromptTemplatePillar[]
+        const formattedTemplates = data.templates.map((template: any) => ({
+          ...template,
+          pillars: jsonToPillars(template.pillars)
+        }));
+        
+        setTemplates(formattedTemplates);
         
         // Select the default template (first one from the list)
-        if (data.templates.length > 0 && !selectedTemplate) {
-          setSelectedTemplate(data.templates[0]);
+        if (formattedTemplates.length > 0 && !selectedTemplate) {
+          setSelectedTemplate(formattedTemplates[0]);
         }
       }
     } catch (error: any) {
@@ -78,18 +99,29 @@ export function usePromptTemplates(user: any) {
     try {
       setIsLoading(true);
       
+      // Convert PromptTemplatePillar[] to Json for Supabase
+      const templateForDb = {
+        ...template,
+        pillars: pillarsToJson(template.pillars || []),
+        user_id: user.id,
+        title: template.title || 'Untitled Template' // Ensure title is not undefined
+      };
+      
       const { data, error } = await supabase
         .from('prompt_templates')
-        .insert({
-          ...template,
-          user_id: user.id
-        })
+        .insert(templateForDb)
         .select()
         .single();
 
       if (error) {
         throw error;
       }
+
+      // Convert the returned Json pillars to PromptTemplatePillar[]
+      const formattedTemplate: PromptTemplate = {
+        ...data,
+        pillars: jsonToPillars(data.pillars)
+      };
 
       toast({
         title: "Template created",
@@ -99,7 +131,7 @@ export function usePromptTemplates(user: any) {
       // Refresh the templates list
       await fetchTemplates();
       
-      return data;
+      return formattedTemplate;
     } catch (error: any) {
       console.error("Error creating template:", error);
       toast({
@@ -126,12 +158,16 @@ export function usePromptTemplates(user: any) {
     try {
       setIsLoading(true);
       
+      // Convert PromptTemplatePillar[] to Json for Supabase
+      const updatesForDb = {
+        ...updates,
+        pillars: updates.pillars ? pillarsToJson(updates.pillars) : undefined,
+        updated_at: new Date().toISOString()
+      };
+      
       const { data, error } = await supabase
         .from('prompt_templates')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update(updatesForDb)
         .eq('id', id)
         .eq('user_id', user.id) // Ensure user can only update their own templates
         .select()
@@ -141,6 +177,12 @@ export function usePromptTemplates(user: any) {
         throw error;
       }
 
+      // Convert the returned Json pillars to PromptTemplatePillar[]
+      const formattedTemplate: PromptTemplate = {
+        ...data,
+        pillars: jsonToPillars(data.pillars)
+      };
+
       toast({
         title: "Template updated",
         description: "Your template has been updated successfully"
@@ -149,7 +191,7 @@ export function usePromptTemplates(user: any) {
       // Refresh the templates list
       await fetchTemplates();
       
-      return data;
+      return formattedTemplate;
     } catch (error: any) {
       console.error("Error updating template:", error);
       toast({

@@ -49,7 +49,12 @@ export const usePromptAnalysis = (
             throw error;
           }
 
-          return `${supabase.supabaseUrl}/storage/v1/object/public/${data.path}`;
+          // Construct the URL correctly using storage.publicUrl() method
+          const { data: publicUrlData } = supabase.storage
+            .from("images")
+            .getPublicUrl(data.path);
+
+          return publicUrlData.publicUrl;
         })
       );
 
