@@ -15,12 +15,12 @@ export const PrivacyNoticePopup = ({ user, currentStep }: PrivacyNoticePopupProp
     if (!user || currentStep !== 1) return;
 
     // Check if the user has already seen the notice
-    const hasSeenNotice = localStorage.getItem(`privacy-notice-seen-${user.id}`);
+    const hasSeenNotice = localStorage.getItem(`privacy_notice_shown_${user.id}`);
     
     if (!hasSeenNotice) {
       setOpen(true);
-      // Mark as seen
-      localStorage.setItem(`privacy-notice-seen-${user.id}`, 'true');
+      // Mark as seen when dialog opens
+      localStorage.setItem(`privacy_notice_shown_${user.id}`, 'true');
     }
   }, [user, currentStep]);
 

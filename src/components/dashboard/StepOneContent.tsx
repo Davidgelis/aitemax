@@ -42,52 +42,25 @@ const StepOneContent = ({
     }
   };
 
-  // Show privacy notice on first visit
+  // Show privacy notice on first visit - using localStorage instead
   useEffect(() => {
-    const checkPrivacyNoticeShown = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('privacy_notice_shown')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) throw error;
-        
-        if (!data?.privacy_notice_shown) {
-          setShowPrivacyNotice(true);
-        }
-      } catch (error) {
-        console.error('Error checking privacy notice status:', error);
-      }
-    };
-    
-    checkPrivacyNoticeShown();
-  }, [user]);
-
-  // Mark privacy notice as shown
-  const handleAcceptPrivacyNotice = async () => {
     if (!user) return;
     
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ privacy_notice_shown: true })
-        .eq('id', user.id);
-      
-      if (error) throw error;
-      
-      setShowPrivacyNotice(false);
-    } catch (error) {
-      console.error('Error updating privacy notice status:', error);
-      toast({
-        title: 'Error',
-        description: 'Could not update privacy settings. Please try again.',
-        variant: 'destructive',
-      });
+    // Check if privacy notice has been shown before using localStorage
+    const privacyNoticeShown = localStorage.getItem(`privacy_notice_shown_${user.id}`);
+    
+    if (!privacyNoticeShown) {
+      setShowPrivacyNotice(true);
     }
+  }, [user]);
+
+  // Mark privacy notice as shown using localStorage
+  const handleAcceptPrivacyNotice = () => {
+    if (!user) return;
+    
+    // Store in localStorage that privacy notice has been shown
+    localStorage.setItem(`privacy_notice_shown_${user.id}`, 'true');
+    setShowPrivacyNotice(false);
   };
 
   return (
@@ -110,8 +83,8 @@ const StepOneContent = ({
         </div>
         
         <PromptEditor 
-          value={promptText} 
-          onChange={setPromptText} 
+          content={promptText} 
+          setContent={setPromptText} 
           placeholder="Enter your prompt here..."
           maxHeight="300px"
         />
@@ -128,7 +101,10 @@ const StepOneContent = ({
       </div>
       
       {showPrivacyNotice && (
-        <PrivacyNoticePopup onAccept={handleAcceptPrivacyNotice} />
+        <PrivacyNoticePopup 
+          user={user} 
+          currentStep={1} 
+        />
       )}
     </div>
   );

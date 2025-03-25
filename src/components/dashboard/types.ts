@@ -145,37 +145,33 @@ export const jsonToVariables = (json: Json | Record<string, any> | null): Variab
 };
 
 // Helper functions for template serialization/deserialization
-export const templatePillarsToJson = (pillars: PromptPillar[]): Record<string, any> => {
-  if (!pillars || !Array.isArray(pillars)) return {};
+export const templatePillarsToJson = (pillars: PromptPillar[]): Json => {
+  if (!pillars || !Array.isArray(pillars)) return [];
   
-  const result: Record<string, any> = {};
-  pillars.forEach(pillar => {
-    if (pillar && pillar.id) {
-      result[pillar.id] = {
-        name: pillar.name,
-        content: pillar.content,
-        order: pillar.order,
-        isEditable: pillar.isEditable
-      };
-    }
-  });
-  
-  return result;
+  // Convert the pillars array to a simple object structure that matches Json type
+  return pillars.map(pillar => ({
+    id: pillar.id,
+    name: pillar.name,
+    content: pillar.content,
+    order: pillar.order,
+    isEditable: pillar.isEditable
+  }));
 };
 
-export const jsonToPillars = (json: Json | Record<string, any> | null): PromptPillar[] => {
-  if (!json || typeof json !== 'object' || Array.isArray(json)) return [];
+export const jsonToPillars = (json: Json | null): PromptPillar[] => {
+  if (!json || !Array.isArray(json)) return [];
   
   const pillars: PromptPillar[] = [];
-  Object.keys(json).forEach(id => {
-    const pillarData = json[id];
-    if (pillarData && typeof pillarData === 'object' && !Array.isArray(pillarData)) {
+  
+  // Convert from JSON array to PromptPillar array
+  json.forEach(item => {
+    if (typeof item === 'object' && item !== null) {
       pillars.push({
-        id,
-        name: pillarData.name || '',
-        content: pillarData.content || '',
-        order: pillarData.order || 0,
-        isEditable: pillarData.isEditable === undefined ? true : pillarData.isEditable
+        id: item.id as string || crypto.randomUUID(),
+        name: item.name as string || '',
+        content: item.content as string || '',
+        order: item.order as number || 0,
+        isEditable: item.isEditable as boolean ?? true
       });
     }
   });

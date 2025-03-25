@@ -31,15 +31,7 @@ export const usePromptTemplates = (userId: string | undefined) => {
         title: item.title,
         description: item.description || undefined,
         isDefault: item.is_default,
-        pillars: Array.isArray(item.pillars) 
-          ? item.pillars.map((p: any) => ({
-              id: p.id,
-              name: p.name,
-              content: p.content,
-              order: p.order || 0,
-              isEditable: p.isEditable === undefined ? true : p.isEditable
-            }))
-          : jsonToPillars(item.pillars as Json),
+        pillars: jsonToPillars(item.pillars as Json),
         systemPrefix: item.system_prefix || undefined,
         maxChars: item.max_chars || undefined,
         temperature: item.temperature || 0.7,
@@ -87,7 +79,7 @@ export const usePromptTemplates = (userId: string | undefined) => {
 
     try {
       // Convert pillars to JSON format for storage
-      const pillarsJson = templateData.pillars;
+      const pillarsJson = templatePillarsToJson(templateData.pillars);
 
       const { data, error } = await supabase
         .from('prompt_templates')
@@ -114,9 +106,7 @@ export const usePromptTemplates = (userId: string | undefined) => {
           title: data[0].title,
           description: data[0].description,
           isDefault: data[0].is_default,
-          pillars: Array.isArray(data[0].pillars) 
-            ? data[0].pillars 
-            : jsonToPillars(data[0].pillars as Json),
+          pillars: jsonToPillars(data[0].pillars as Json),
           systemPrefix: data[0].system_prefix,
           maxChars: data[0].max_chars,
           temperature: data[0].temperature,
@@ -169,7 +159,7 @@ export const usePromptTemplates = (userId: string | undefined) => {
 
     try {
       // Convert pillars to JSON format for storage
-      const pillarsJson = templateData.pillars;
+      const pillarsJson = templatePillarsToJson(templateData.pillars);
 
       const { error } = await supabase
         .from('prompt_templates')
