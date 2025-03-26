@@ -23,14 +23,26 @@ serve(async (req) => {
       primaryToggle,
       secondaryToggle,
       userId,
-      promptId
+      promptId,
+      template  // New parameter to receive template data
     } = await req.json();
     
+    // Default values in case no template is provided
+    const defaultMaxCharacterLimit = 3000;
+    const defaultTemperature = 0.7;
+    
+    // Extract template information if available
+    const maxCharacterLimit = template?.characterLimit || defaultMaxCharacterLimit;
+    const temperature = template?.temperature || defaultTemperature;
+    
     console.log(`Enhancing prompt with focus on ${primaryToggle || "no specific toggle"}`);
+    console.log(`Using template: ${template ? template.name : "default"}`);
+    console.log(`Character limit: ${maxCharacterLimit}`);
+    console.log(`Temperature: ${temperature}`);
     console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
     
-    // The comprehensive four-pillar framework for prompt engineering
-    const systemMessage = `You are an expert prompt engineer that transforms input prompts into highly effective, well-structured prompts following the four-pillar framework.
+    // Create default system message if no template is provided
+    const defaultSystemMessage = `You are an expert prompt engineer that transforms input prompts into highly effective, well-structured prompts following the four-pillar framework.
 
 TASK: You will be provided with an intent and context information, which may be as brief as two sentences or as extensive as a comprehensive brief. Your job is to enhance this prompt by applying best practices and instructions. Improve clarity, grammar, structure, and logical flow while preserving the original intent.
 
@@ -70,6 +82,30 @@ OUTPUT FORMAT:
 Your enhanced prompt must flow naturally while incorporating all necessary elements. Structure it with clear sections for Task, Persona, Conditions, and Instructions.
 ${primaryToggle ? `\n\nPRIMARY FOCUS: ${primaryToggle}` : ""}${secondaryToggle ? `\nSECONDARY FOCUS: ${secondaryToggle}` : ""}`;
 
+    // Use template's system message if available, otherwise use the default
+    let systemMessage = defaultSystemMessage;
+    
+    if (template && template.role) {
+      // Construct system message from template role and pillars
+      systemMessage = template.role;
+      
+      // Add pillars from template if available
+      if (template.pillars && template.pillars.length > 0) {
+        systemMessage += "\n\n";
+        template.pillars.forEach((pillar, index) => {
+          systemMessage += `${pillar.title}: ${pillar.description}\n\n`;
+        });
+      }
+      
+      // Add toggle information if available
+      if (primaryToggle) {
+        systemMessage += `\n\nPRIMARY FOCUS: ${primaryToggle}`;
+      }
+      if (secondaryToggle) {
+        systemMessage += `\nSECONDARY FOCUS: ${secondaryToggle}`;
+      }
+    }
+
     // Initialize OpenAI client
     const openai = new OpenAI({
       apiKey: openAIApiKey
@@ -83,7 +119,7 @@ ${primaryToggle ? `\n\nPRIMARY FOCUS: ${primaryToggle}` : ""}${secondaryToggle ?
     // Create the prompt for GPT
     const messages = [
       { role: "system", content: systemMessage },
-      { role: "user", content: `Transform this prompt into an enhanced version following our four-pillar framework:
+      { role: "user", content: `Transform this prompt into an enhanced version following our framework:
 
 ORIGINAL PROMPT:
 ${originalPrompt}
@@ -91,7 +127,9 @@ ${originalPrompt}
 CONTEXT FROM USER:
 ${context}
 
-Create an enhanced prompt that clearly defines the Task, Persona, Conditions, and Instructions while maintaining natural flow and clarity. Focus especially on creating a prompt that can be immediately used in another AI platform with excellent results.` }
+CHARACTER LIMIT: Please limit your response to a maximum of ${maxCharacterLimit} characters.
+
+Create an enhanced prompt that clearly defines the structure while maintaining natural flow and clarity. Focus especially on creating a prompt that can be immediately used in another AI platform with excellent results.` }
     ];
 
     try {
@@ -99,7 +137,7 @@ Create an enhanced prompt that clearly defines the Task, Persona, Conditions, an
       const completion = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: messages,
-        temperature: 0.7
+        temperature: temperature  // Use the template's temperature or default
       });
 
       const enhancedPrompt = completion.choices[0].message.content;
