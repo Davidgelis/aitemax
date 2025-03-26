@@ -161,12 +161,7 @@ const Dashboard = () => {
         <XPanelButton />
         <main className="flex-1 p-6">
           <div className="max-w-6xl mx-auto min-h-screen flex flex-col items-center justify-center gap-8">
-            <StepController 
-              user={user} 
-              selectedModel={selectedModel} 
-              setSelectedModel={setSelectedModel}
-              promptState={promptState}
-            />
+            <StepController />
           </div>
         </main>
 

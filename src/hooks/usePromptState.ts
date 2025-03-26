@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -16,10 +17,20 @@ export const usePromptState = (user?: any) => {
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
   const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
-
+  const [canProceedToStep3, setCanProceedToStep3] = useState(false);
+  
   // Add template-related state
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
   const [templates, setTemplates] = useState<any[]>([]);
+  
+  // Add properties for Dashboard.tsx
+  const [savedPrompts, setSavedPrompts] = useState<any[]>([]);
+  const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
+  const [drafts, setDrafts] = useState<any[]>([]);
+  const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState(false);
 
   const toast = useToast().toast;
 
@@ -80,11 +91,49 @@ export const usePromptState = (user?: any) => {
     setVariableToDelete(null);
   };
 
-  const canProceedToStep3 = questions.every(q => q.answer !== "" && q.isRelevant === true) && variables.every(v => v.value !== "" && v.isRelevant === true);
-
   // Function to handle template selection
   const handleSelectTemplate = (id: string) => {
     setSelectedTemplateId(id);
+  };
+  
+  // Functions needed for Dashboard.tsx
+  const fetchSavedPrompts = async () => {
+    setIsLoadingPrompts(true);
+    // Mock implementation
+    setSavedPrompts([]);
+    setIsLoadingPrompts(false);
+  };
+  
+  const handleNewPrompt = () => {
+    // Implementation
+  };
+  
+  const handleDeletePrompt = async (id: string) => {
+    // Implementation
+  };
+  
+  const handleDuplicatePrompt = async (id: string) => {
+    // Implementation
+  };
+  
+  const handleRenamePrompt = async (id: string, newName: string) => {
+    // Implementation
+  };
+  
+  const loadSavedPrompt = async (id: string) => {
+    // Implementation
+  };
+  
+  const loadSelectedDraft = async (id: string) => {
+    // Implementation
+  };
+  
+  const handleDeleteDraft = async (id: string) => {
+    // Implementation
+  };
+  
+  const saveDraft = async () => {
+    // Implementation
   };
 
   // Initialize templates from XTemplatesList
@@ -145,6 +194,7 @@ export const usePromptState = (user?: any) => {
     confirmDeleteVariable,
     cancelDeleteVariable,
     canProceedToStep3,
+    setCanProceedToStep3,
     selectedPrimary,
     setSelectedPrimary,
     selectedSecondary,
@@ -155,5 +205,30 @@ export const usePromptState = (user?: any) => {
     setSelectedTemplateId,
     templates,
     handleSelectTemplate,
+    
+    // Add properties needed in Dashboard.tsx
+    savedPrompts,
+    setSavedPrompts,
+    isLoadingPrompts,
+    setIsLoadingPrompts,
+    fetchSavedPrompts,
+    handleNewPrompt,
+    handleDeletePrompt,
+    handleDuplicatePrompt,
+    handleRenamePrompt,
+    loadSavedPrompt,
+    drafts,
+    setDrafts,
+    isLoadingDrafts,
+    setIsLoadingDrafts,
+    searchTerm,
+    setSearchTerm,
+    currentDraftId,
+    setCurrentDraftId,
+    isViewingSavedPrompt,
+    setIsViewingSavedPrompt,
+    loadSelectedDraft: loadSelectedDraft,
+    handleDeleteDraft,
+    saveDraft,
   };
 };

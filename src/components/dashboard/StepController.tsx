@@ -1,7 +1,8 @@
+
 import { useState, useEffect, useRef } from "react";
 import { StepOne } from "./StepOne";
 import { StepTwo } from "./StepTwo";
-import { StepThree } from "./StepThree";
+import { StepThree } from "@/components/dashboard/step-three/StepThree";
 import { usePromptState } from "@/hooks/usePromptState";
 import { usePromptAnalysis } from "@/hooks/usePromptAnalysis";
 import { useToast } from "@/hooks/use-toast";

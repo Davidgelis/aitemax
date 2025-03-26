@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { InfoCircle } from "lucide-react";
+import { Info } from "lucide-react";
 
 interface TemplateSelectorProps {
   templates: TemplateType[];
@@ -29,7 +29,7 @@ export const TemplateSelector = ({
     <div className="mb-6">
       <div className="flex items-center gap-2 mb-2">
         <h3 className="text-lg font-medium">Template Selection</h3>
-        <InfoCircle className="w-4 h-4 text-muted-foreground" />
+        <Info className="w-4 h-4 text-muted-foreground" />
       </div>
       
       <p className="text-sm text-muted-foreground mb-4">
