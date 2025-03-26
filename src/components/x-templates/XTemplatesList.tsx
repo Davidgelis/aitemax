@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { XTemplateCard, TemplateType } from "./XTemplateCard";
 import { useToast } from "@/hooks/use-toast";
+import { AlertCircle } from "lucide-react";
 
 // Default templates (this would come from an API in a real implementation)
 const defaultTemplates: TemplateType[] = [
@@ -86,24 +87,36 @@ export const XTemplatesList = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {templates.map((template) => (
-        <XTemplateCard
-          key={template.id}
-          template={template}
-          isSelected={template.id === selectedTemplateId}
-          onSelect={handleSelectTemplate}
-        />
-      ))}
-      
-      {templates.length === 0 && (
-        <div className="col-span-3 text-center py-12">
-          <h3 className="text-xl font-medium mb-2">No templates found</h3>
-          <p className="text-muted-foreground mb-6">
-            Create your first template to get started.
+    <div>
+      {/* Disclaimer for users about the default template */}
+      <div className="mb-6 p-4 bg-[#33fea6]/10 border border-[#33fea6]/30 rounded-md flex items-start gap-3">
+        <AlertCircle className="w-5 h-5 text-[#33fea6] mt-0.5 flex-shrink-0" />
+        <div>
+          <p className="text-sm">
+            <span className="font-medium">Recommendation:</span> We highly recommend using the default Four-Pillar Framework template if you are not highly proficient in prompt engineering. It provides a structured approach that helps create effective prompts.
           </p>
         </div>
-      )}
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {templates.map((template) => (
+          <XTemplateCard
+            key={template.id}
+            template={template}
+            isSelected={template.id === selectedTemplateId}
+            onSelect={handleSelectTemplate}
+          />
+        ))}
+        
+        {templates.length === 0 && (
+          <div className="col-span-3 text-center py-12">
+            <h3 className="text-xl font-medium mb-2">No templates found</h3>
+            <p className="text-muted-foreground mb-6">
+              Create your first template to get started.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
