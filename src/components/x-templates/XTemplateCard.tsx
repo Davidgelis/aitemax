@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { TemplateEditor } from "./TemplateEditor";
 import { useToast } from "@/hooks/use-toast";
+import { deleteTemplate } from "./XTemplatesList";
 
 export interface PillarType {
   id: string;
@@ -22,7 +23,7 @@ export interface TemplateType {
   role: string;
   pillars: PillarType[];
   temperature: number;
-  characterLimit?: number; // New property for character limit
+  characterLimit?: number;
   isDefault?: boolean;
   createdAt: string;
 }
@@ -39,7 +40,9 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
   const isSystemDefault = template.id === "default";
 
   const handleDelete = () => {
-    // This would delete the template in a real implementation
+    // Delete the template using the global event
+    deleteTemplate(template.id);
+    
     toast({
       title: "Template deleted",
       description: "The template has been successfully deleted."
@@ -50,10 +53,6 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
     if (onSelect) {
       onSelect(template.id);
     }
-    toast({
-      title: "Template selected",
-      description: `"${template.name}" is now your default template.`
-    });
   };
 
   return (

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { XTemplateCard, TemplateType } from "./XTemplateCard";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "lucide-react";
@@ -33,12 +33,12 @@ const defaultTemplates: TemplateType[] = [
       }
     ],
     temperature: 0.7,
-    characterLimit: 3000, // Added character limit
+    characterLimit: 3000,
     isDefault: true,
     createdAt: "System Default"
   },
   {
-    id: "creative",
+    id: "simple-framework",
     name: "Simple Four-Pillar Framework",
     role: "You are a prompt engineer that helps structure prompts with a four-pillar framework.",
     pillars: [
@@ -64,7 +64,7 @@ const defaultTemplates: TemplateType[] = [
       }
     ],
     temperature: 0.7,
-    characterLimit: 5000, // Added character limit
+    characterLimit: 5000,
     createdAt: "Example Template"
   }
 ];
@@ -75,23 +75,48 @@ export const addTemplate = (template: TemplateType) => {
   window.dispatchEvent(event);
 };
 
+// Create a global event for template deletion
+export const deleteTemplate = (templateId: string) => {
+  const event = new CustomEvent('template-deleted', { detail: { id: templateId } });
+  window.dispatchEvent(event);
+};
+
 export const XTemplatesList = () => {
   const { toast } = useToast();
   const [templates, setTemplates] = useState<TemplateType[]>(defaultTemplates);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
 
-  // Listen for template-added events
-  useState(() => {
+  // Listen for template events
+  useEffect(() => {
     const handleTemplateAdded = (event: CustomEvent<TemplateType>) => {
-      setTemplates(prevTemplates => [...prevTemplates, event.detail]);
+      setTemplates(prevTemplates => {
+        // Check if template with this ID already exists
+        const exists = prevTemplates.some(t => t.id === event.detail.id);
+        if (exists) {
+          // Update existing template
+          return prevTemplates.map(t => 
+            t.id === event.detail.id ? event.detail : t
+          );
+        }
+        // Add new template
+        return [...prevTemplates, event.detail];
+      });
+    };
+    
+    const handleTemplateDeleted = (event: CustomEvent<{id: string}>) => {
+      setTemplates(prevTemplates => 
+        prevTemplates.filter(t => t.id !== event.detail.id)
+      );
     };
 
     window.addEventListener('template-added', handleTemplateAdded as EventListener);
+    window.addEventListener('template-deleted', handleTemplateDeleted as EventListener);
     
     return () => {
       window.removeEventListener('template-added', handleTemplateAdded as EventListener);
+      window.removeEventListener('template-deleted', handleTemplateDeleted as EventListener);
     };
-  });
+  }, []);
 
   const handleSelectTemplate = (id: string) => {
     setSelectedTemplateId(id);
