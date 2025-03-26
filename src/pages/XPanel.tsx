@@ -23,7 +23,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { XTemplateCard } from "@/components/x-templates/XTemplateCard";
 import { TemplateEditor } from "@/components/x-templates/TemplateEditor";
 import { XTemplatesList } from "@/components/x-templates/XTemplatesList";
-
 const XPanel = () => {
   const navigate = useNavigate();
   const {
@@ -391,7 +390,7 @@ const XPanel = () => {
                   <h2 className="text-xl font-medium">Your System Message Templates</h2>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="aurora">
+                      <Button variant="aurora" className="bg-primary-dark">
                         <Plus className="w-4 h-4 mr-2" />
                         Create Template
                       </Button>
@@ -425,9 +424,9 @@ const XPanel = () => {
                                     Email address
                                   </Label>
                                   <Input id={`share-email-${prompt.id}`} placeholder="colleague@example.com" type="email" value={sharingPromptId === prompt.id ? shareEmail : ""} onChange={e => {
-                                      setSharingPromptId(prompt.id);
-                                      setShareEmail(e.target.value);
-                                    }} />
+                            setSharingPromptId(prompt.id);
+                            setShareEmail(e.target.value);
+                          }} />
                                 </div>
                                 <Button className="w-full bg-[#64bf95] hover:bg-[#64bf95]/90 text-white" onClick={handleSharePrompt} disabled={!shareEmail || isSharing || sharingPromptId !== prompt.id}>
                                   {isSharing && sharingPromptId === prompt.id ? "Sharing..." : "Share"}
@@ -528,11 +527,11 @@ const XPanel = () => {
                     <span>Profile</span>
                   </DropdownMenuItem>
                   {user ? <DropdownMenuItem onClick={async () => {
-                      const {
-                        supabase
-                      } = await import('@/integrations/supabase/client');
-                      await supabase.auth.signOut();
-                    }} className="menu-item-glow">
+                  const {
+                    supabase
+                  } = await import('@/integrations/supabase/client');
+                  await supabase.auth.signOut();
+                }} className="menu-item-glow">
                       <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                         <polyline points="16 17 21 12 16 7"></polyline>
@@ -626,7 +625,6 @@ const XPanel = () => {
           </SidebarContent>
         </Sidebar>
       </div>
-    </SidebarProvider>
+    </SidebarProvider>;
 };
-
 export default XPanel;
