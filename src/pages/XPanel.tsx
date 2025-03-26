@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { XTemplateCard } from "@/components/x-templates/XTemplateCard";
 import { TemplateEditor } from "@/components/x-templates/TemplateEditor";
 import { XTemplatesList } from "@/components/x-templates/XTemplatesList";
+
 const XPanel = () => {
   const navigate = useNavigate();
   const {
@@ -190,9 +191,7 @@ const XPanel = () => {
       });
     }
   };
-  const handleShareViaEmail = (promptId: string) => {// This function will be replaced with the popover implementation
-    // so we can remove its content
-  };
+  const handleShareViaEmail = (promptId: string) => {};
   const handleSharePrompt = async () => {
     if (!shareEmail || !sharingPromptId) return;
     setIsSharing(true);
@@ -390,7 +389,7 @@ const XPanel = () => {
                   <h2 className="text-xl font-medium">Your System Message Templates</h2>
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="aurora" className="bg-primary-dark">
+                      <Button variant="template">
                         <Plus className="w-4 h-4 mr-2" />
                         Create Template
                       </Button>

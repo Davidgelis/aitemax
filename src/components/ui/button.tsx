@@ -22,6 +22,7 @@ const buttonVariants = cva(
         aurora: "aurora-button text-white",
         analyze: "bg-[#084b49] hover:bg-[#063b39] text-white",
         slim: "bg-transparent text-[#545454] hover:bg-[#33fea6]/5 transition-colors hover:text-[#33fea6] [&_svg]:size-3",
+        template: "bg-white border border-[#64bf95] hover:border-[#33fea6] hover:text-[#33fea6] transition-colors",
       },
       size: {
         default: "h-10 px-4 py-2",
