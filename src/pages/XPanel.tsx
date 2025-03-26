@@ -624,3 +624,9 @@ const XPanel = () => {
                 </div>}
             </div>
           </SidebarContent>
+        </Sidebar>
+      </div>
+    </SidebarProvider>
+};
+
+export default XPanel;
