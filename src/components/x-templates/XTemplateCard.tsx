@@ -35,6 +35,7 @@ interface XTemplateCardProps {
 export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTemplateCardProps) => {
   const { toast } = useToast();
   const [showActions, setShowActions] = useState(false);
+  const isSystemDefault = template.id === "default";
 
   const handleDelete = () => {
     // This would delete the template in a real implementation
@@ -111,40 +112,42 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
               )}
             </div>
             
-            <div className="flex gap-1">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                  <TemplateEditor template={template} />
-                </DialogContent>
-              </Dialog>
-              
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete the template. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
+            {!isSystemDefault && (
+              <div className="flex gap-1">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <TemplateEditor template={template} />
+                  </DialogContent>
+                </Dialog>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete the template. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
