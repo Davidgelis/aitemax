@@ -33,7 +33,7 @@ const defaultTemplates: TemplateType[] = [
       }
     ],
     temperature: 0.7,
-    characterLimit: 2000, // Default character limit
+    characterLimit: 5000, // Updated the default character limit to 5000
     isDefault: true,
     createdAt: "System Default"
   },
@@ -88,6 +88,7 @@ export const XTemplatesList = () => {
     }
   };
 
+  // Export templates for use in other components
   return (
     <div>
       {/* Disclaimer for users about the default template */}
@@ -122,3 +123,6 @@ export const XTemplatesList = () => {
     </div>
   );
 };
+
+// Export templates for use in other components
+export { defaultTemplates };

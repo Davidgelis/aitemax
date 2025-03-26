@@ -33,7 +33,7 @@ serve(async (req) => {
     // Check if a custom template was selected, and use its system message if available
     let systemMessage = "";
     let temperature = 0.7;
-    let characterLimit = 2000;
+    let characterLimit = 5000; // Default character limit set to 5000
     
     if (selectedTemplate && selectedTemplate.id !== "default") {
       // Construct system message from the selected template
@@ -53,6 +53,7 @@ serve(async (req) => {
       }
       
       console.log(`Using custom template: ${selectedTemplate.name}`);
+      console.log(`Character limit set to: ${characterLimit}`);
     } else {
       // Use the default system message structure
       systemMessage = `You are an expert prompt engineer that transforms input prompts into highly effective, well-structured prompts following the four-pillar framework.
@@ -95,11 +96,13 @@ INSTRUCTIONS:
       if (selectedTemplate?.characterLimit) {
         characterLimit = selectedTemplate.characterLimit;
       }
+      
+      console.log(`Using default template with character limit: ${characterLimit}`);
     }
     
     // Add character limit instruction to system message
     systemMessage += `\n\nOUTPUT FORMAT:
-Your enhanced prompt must flow naturally while incorporating all necessary elements. Structure it with clear sections for Task, Persona, Conditions, and Instructions. The final output should be approximately ${characterLimit} characters in length.
+Your enhanced prompt must flow naturally while incorporating all necessary elements. Structure it with clear sections for Task, Persona, Conditions, and Instructions. The final output should be approximately ${characterLimit} characters in length. You are allowed to adjust this length if necessary for a better prompt.
 ${primaryToggle ? `\n\nPRIMARY FOCUS: ${primaryToggle}` : ""}${secondaryToggle ? `\nSECONDARY FOCUS: ${secondaryToggle}` : ""}`;
 
     // Initialize OpenAI client
