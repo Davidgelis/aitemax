@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
+import { Json } from "@/integrations/supabase/types";
 
 // Default templates (this would come from an API in a real implementation)
 const defaultTemplates: TemplateType[] = [
@@ -71,6 +72,17 @@ const defaultTemplates: TemplateType[] = [
   }
 ];
 
+// Helper function to convert PillarType[] to Json for Supabase
+const pillarsToJson = (pillars: PillarType[]): Json => {
+  return pillars as unknown as Json;
+};
+
+// Helper function to convert Json from Supabase to PillarType[]
+const jsonToPillars = (json: Json): PillarType[] => {
+  if (!json || !Array.isArray(json)) return [];
+  return json as unknown as PillarType[];
+};
+
 // Create a global event for template updates
 export const addTemplate = async (template: TemplateType) => {
   try {
@@ -85,7 +97,7 @@ export const addTemplate = async (template: TemplateType) => {
         user_id: (await supabase.auth.getUser()).data.user?.id,
         name: template.name,
         role: template.role,
-        pillars: template.pillars,
+        pillars: pillarsToJson(template.pillars),
         temperature: template.temperature,
         character_limit: template.characterLimit,
         is_default: template.isDefault || false,
@@ -159,7 +171,7 @@ export const XTemplatesList = () => {
             id: item.id,
             name: item.name,
             role: item.role,
-            pillars: item.pillars,
+            pillars: jsonToPillars(item.pillars),
             temperature: item.temperature,
             characterLimit: item.character_limit,
             isDefault: item.is_default,

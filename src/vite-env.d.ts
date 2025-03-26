@@ -13,3 +13,10 @@ interface ImportMeta {
 interface Window {
   __selectedTemplate?: any;
 }
+
+// Add PillarType definition for global access
+interface PillarType {
+  id: string;
+  title: string;
+  description: string;
+}
