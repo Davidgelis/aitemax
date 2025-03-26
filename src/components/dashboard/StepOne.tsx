@@ -3,6 +3,44 @@ import { ToggleSection } from "./ToggleSection";
 import { PromptEditor } from "./PromptEditor";
 import { Separator } from "@/components/ui/separator";
 import { primaryToggles, secondaryToggles } from "./constants";
+import { useState, useEffect } from "react";
+import { TemplateType } from "../x-templates/XTemplateCard";
+
+// Get the default template
+const getDefaultTemplate = (): TemplateType => {
+  // This would normally come from a context, localStorage, or a more sophisticated state management
+  return {
+    id: "default",
+    name: "Four-Pillar Framework",
+    role: "You are an expert prompt engineer that transforms input prompts into highly effective, well-structured prompts following the four-pillar framework.",
+    pillars: [
+      {
+        id: "1",
+        title: "Task",
+        description: "You will be provided with an intent and context information, which may be as brief as two sentences or as extensive as a comprehensive brief. Your job is to enhance this prompt by applying best practices and instructions."
+      },
+      {
+        id: "2",
+        title: "Persona",
+        description: "Assume the role of an advanced scenario generator with expertise in language, prompt engineering, and multi-perspective analysis."
+      },
+      {
+        id: "3",
+        title: "Conditions",
+        description: "Structure-Oriented, Syntax-Focused, Categorical Approach, Cross-Checking with Multiple Data Points, Context Awareness & Contradictions, Recognize Pattern-Based Biases, Highlight Incomplete Information, Define ambiguous terms."
+      },
+      {
+        id: "4",
+        title: "Instructions",
+        description: "Outline your approach, analyze the input, synthesize and organize into a coherent structure, ensure the final output follows the four pillars, make the prompt complete and standalone."
+      }
+    ],
+    temperature: 0.7,
+    characterLimit: 3000,
+    isDefault: true,
+    createdAt: "System Default"
+  };
+};
 
 interface StepOneProps {
   promptText: string;
@@ -25,7 +63,21 @@ export const StepOne = ({
   onAnalyze,
   isLoading
 }: StepOneProps) => {
-  const maxCharacterLimit = 3000; // Set the character limit to 3000
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType | null>(null);
+  
+  // Initialize with the default template
+  useEffect(() => {
+    setSelectedTemplate(getDefaultTemplate());
+  }, []);
+
+  // Expose the selected template to the parent component via window object
+  // This is a workaround to avoid changing the component props structure
+  useEffect(() => {
+    if (selectedTemplate) {
+      // @ts-ignore
+      window.__selectedTemplate = selectedTemplate;
+    }
+  }, [selectedTemplate]);
 
   return (
     <>
@@ -54,7 +106,7 @@ export const StepOne = ({
         selectedPrimary={selectedPrimary}
         selectedSecondary={selectedSecondary}
         isLoading={isLoading}
-        maxLength={maxCharacterLimit}
+        maxLength={selectedTemplate?.characterLimit || 3000}
       />
     </>
   );

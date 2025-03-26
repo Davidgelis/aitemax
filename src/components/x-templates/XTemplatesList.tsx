@@ -33,6 +33,7 @@ const defaultTemplates: TemplateType[] = [
       }
     ],
     temperature: 0.7,
+    characterLimit: 3000, // Added character limit
     isDefault: true,
     createdAt: "System Default"
   },
@@ -63,6 +64,7 @@ const defaultTemplates: TemplateType[] = [
       }
     ],
     temperature: 0.7,
+    characterLimit: 5000, // Added character limit
     createdAt: "Example Template"
   }
 ];
