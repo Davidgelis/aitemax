@@ -27,13 +27,22 @@ export const usePromptAnalysis = (
     setCurrentLoadingMessage("Analyzing your prompt...");
 
     try {
+      // Add more robust input validation
       const inputTypes = {
         hasText: !!promptText,
         hasToggles: !!(selectedPrimary || selectedSecondary),
         hasWebscan: !!(websiteContext && websiteContext.url),
-        hasImageScan: !!(uploadedImages && uploadedImages.length > 0),
+        hasImageScan: !!(uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0),
         hasSmartContext: !!(smartContext && smartContext.context)
       };
+
+      console.log("Analyze inputs:", { 
+        promptText: promptText ? `${promptText.substring(0, 50)}...` : "empty", 
+        hasImages: !!uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0,
+        hasWebsiteContext: !!websiteContext && !!websiteContext.url,
+        hasSmartContext: !!smartContext && !!smartContext.context,
+        inputTypes
+      });
 
       const { data, error } = await supabase.functions.invoke("analyze-prompt", {
         body: {
@@ -42,9 +51,9 @@ export const usePromptAnalysis = (
           secondaryToggle: selectedSecondary,
           userId: user?.id || null,
           promptId: currentPromptId,
-          websiteData: websiteContext,
-          imageData: uploadedImages,
-          smartContextData: smartContext,
+          websiteData: websiteContext || null,
+          imageData: uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0 ? uploadedImages : null,
+          smartContextData: smartContext || null,
           inputTypes
         },
       });
@@ -63,10 +72,10 @@ export const usePromptAnalysis = (
 
       if (data) {
         console.log("Analysis result:", data);
-        setQuestions(data.questions);
-        setVariables(data.variables);
-        setMasterCommand(data.masterCommand);
-        setFinalPrompt(data.enhancedPrompt);
+        setQuestions(data.questions || []);
+        setVariables(data.variables || []);
+        setMasterCommand(data.masterCommand || "");
+        setFinalPrompt(data.enhancedPrompt || "");
         setCurrentStep(2);
       } else {
         console.warn("No data returned from analysis");

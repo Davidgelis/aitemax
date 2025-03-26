@@ -157,16 +157,19 @@ export const StepController = ({
 
   const handleAnalyzeWithContext = () => {
     console.log("StepController: Analyzing with context", {
-      images: uploadedImages,
-      websiteContext,
-      smartContext,
-      hasWebsiteContext: !!websiteContext,
-      hasSmartContext: !!smartContext,
+      imagesCount: uploadedImages?.length || 0,
+      hasWebsiteContext: !!websiteContext && !!websiteContext.url,
+      hasSmartContext: !!smartContext && !!smartContext.context,
       websiteUrl: websiteContext?.url || "none",
       websiteInstructions: websiteContext?.instructions || "none"
     });
     
-    handleAnalyze(uploadedImages, websiteContext, smartContext);
+    // Ensure we're passing valid values to handleAnalyze
+    const validImages = Array.isArray(uploadedImages) && uploadedImages.length > 0 ? uploadedImages : null;
+    const validWebsiteContext = websiteContext && websiteContext.url ? websiteContext : null;
+    const validSmartContext = smartContext && smartContext.context ? smartContext : null;
+    
+    handleAnalyze(validImages, validWebsiteContext, validSmartContext);
   };
 
   const handleStepChange = async (step: number, bypass: boolean = false) => {
