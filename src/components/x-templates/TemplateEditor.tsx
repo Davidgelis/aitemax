@@ -78,63 +78,63 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
   };
 
   return (
-    <>
-      <DialogHeader>
-        <DialogTitle>{template ? "Edit Template" : "Create New Template"}</DialogTitle>
-        <DialogDescription>
+    <div className="bg-white p-6 rounded-lg">
+      <DialogHeader className="mb-6">
+        <DialogTitle className="text-xl">{template ? "Edit Template" : "Create New Template"}</DialogTitle>
+        <DialogDescription className="mt-2">
           Customize your system message structure with a role definition and up to 8 pillars.
           Drag and drop pillars to reorder them.
         </DialogDescription>
       </DialogHeader>
       
-      <div className="grid gap-6 py-4 max-h-[60vh] overflow-y-auto pr-2">
-        <div>
-          <Label htmlFor="name">Template Name</Label>
+      <div className="grid gap-8 py-4 max-h-[60vh] overflow-y-auto pr-3 px-2">
+        <div className="space-y-2">
+          <Label htmlFor="name" className="text-sm font-medium">Template Name</Label>
           <Input 
             id="name" 
             value={name} 
             onChange={(e) => setName(e.target.value)} 
             placeholder="e.g., Professional Business Writer"
-            className="mt-1.5"
+            className="mt-2"
           />
         </div>
         
-        <div>
-          <Label htmlFor="role">Role Definition</Label>
+        <div className="space-y-2">
+          <Label htmlFor="role" className="text-sm font-medium">Role Definition</Label>
           <Textarea 
             id="role" 
             value={role} 
             onChange={(e) => setRole(e.target.value)} 
             placeholder="Define the role the AI should assume..."
-            className="mt-1.5 min-h-[100px]"
+            className="mt-2 min-h-[100px]"
           />
         </div>
         
-        <div>
-          <div className="flex justify-between items-center mb-3">
-            <Label>Pillars ({pillars.length}/8)</Label>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center mb-4">
+            <Label className="text-sm font-medium">Pillars ({pillars.length}/8)</Label>
             <Button type="button" variant="outline" size="sm" onClick={handleAddPillar} disabled={pillars.length >= 8}>
               <Plus className="h-4 w-4 mr-1" />
               Add Pillar
             </Button>
           </div>
           
-          <div className="space-y-3">
+          <div className="space-y-4">
             {pillars.map((pillar, index) => (
               <Card 
                 key={pillar.id}
-                className="p-4 border-dashed hover:border-solid hover:border-[#64bf95]"
+                className="p-5 border-dashed hover:border-solid hover:border-[#64bf95]"
                 draggable
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
               >
-                <div className="flex items-start gap-2">
+                <div className="flex items-start gap-3">
                   <div className="mt-2 cursor-grab">
                     <GripVertical className="h-5 w-5 text-muted-foreground" />
                   </div>
                   
-                  <div className="flex-1 grid gap-3">
-                    <div>
+                  <div className="flex-1 grid gap-4">
+                    <div className="space-y-2">
                       <Label htmlFor={`pillar-title-${pillar.id}`} className="text-xs">Title</Label>
                       <Input 
                         id={`pillar-title-${pillar.id}`}
@@ -144,7 +144,7 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
                       />
                     </div>
                     
-                    <div>
+                    <div className="space-y-2">
                       <Label htmlFor={`pillar-desc-${pillar.id}`} className="text-xs">Description</Label>
                       <Textarea 
                         id={`pillar-desc-${pillar.id}`}
@@ -170,8 +170,8 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
           </div>
         </div>
         
-        <div>
-          <Label htmlFor="temperature">Temperature: {temperature[0].toFixed(1)}</Label>
+        <div className="space-y-4 mt-2">
+          <Label htmlFor="temperature" className="text-sm font-medium">Temperature: {temperature[0].toFixed(1)}</Label>
           <Slider
             id="temperature"
             value={temperature}
@@ -179,23 +179,23 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
             min={0}
             max={1}
             step={0.1}
-            className="mt-3"
+            className="mt-4"
           />
-          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+          <div className="flex justify-between text-xs text-muted-foreground mt-2">
             <span>More Deterministic (0.0)</span>
             <span>More Creative (1.0)</span>
           </div>
         </div>
       </div>
       
-      <DialogFooter>
+      <DialogFooter className="mt-8 pt-4 border-t">
         <DialogClose asChild>
           <Button variant="outline">Cancel</Button>
         </DialogClose>
-        <Button onClick={handleSave}>
+        <Button onClick={handleSave} className="ml-2">
           {template ? "Save Changes" : "Create Template"}
         </Button>
       </DialogFooter>
-    </>
+    </div>
   );
 };

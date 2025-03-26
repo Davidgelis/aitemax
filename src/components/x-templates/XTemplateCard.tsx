@@ -121,7 +121,7 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
                       Edit
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
                     <TemplateEditor template={template} />
                   </DialogContent>
                 </Dialog>
