@@ -23,40 +23,14 @@ serve(async (req) => {
       primaryToggle,
       secondaryToggle,
       userId,
-      promptId,
-      selectedTemplate
+      promptId
     } = await req.json();
     
     console.log(`Enhancing prompt with focus on ${primaryToggle || "no specific toggle"}`);
     console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
     
-    // Check if a custom template was selected, and use its system message if available
-    let systemMessage = "";
-    let temperature = 0.7;
-    let characterLimit = 5000; // Default character limit set to 5000
-    
-    if (selectedTemplate && selectedTemplate.id !== "default") {
-      // Construct system message from the selected template
-      systemMessage = `You are ${selectedTemplate.role}\n\n`;
-      
-      // Add pillars to the system message
-      selectedTemplate.pillars.forEach(pillar => {
-        systemMessage += `${pillar.title.toUpperCase()}: ${pillar.description}\n\n`;
-      });
-      
-      // Set the temperature from the template
-      temperature = selectedTemplate.temperature;
-      
-      // Set the character limit if available
-      if (selectedTemplate.characterLimit) {
-        characterLimit = selectedTemplate.characterLimit;
-      }
-      
-      console.log(`Using custom template: ${selectedTemplate.name}`);
-      console.log(`Character limit set to: ${characterLimit}`);
-    } else {
-      // Use the default system message structure
-      systemMessage = `You are an expert prompt engineer that transforms input prompts into highly effective, well-structured prompts following the four-pillar framework.
+    // The comprehensive four-pillar framework for prompt engineering
+    const systemMessage = `You are an expert prompt engineer that transforms input prompts into highly effective, well-structured prompts following the four-pillar framework.
 
 TASK: You will be provided with an intent and context information, which may be as brief as two sentences or as extensive as a comprehensive brief. Your job is to enhance this prompt by applying best practices and instructions. Improve clarity, grammar, structure, and logical flow while preserving the original intent.
 
@@ -90,19 +64,10 @@ INSTRUCTIONS:
 4. Ensure the final output follows the four pillars: Task, Persona, Conditions, and Instructions
 5. Make the prompt complete and standalone, capable of generating high-quality responses
 6. Include placeholders for missing context if needed
-7. Maintain a natural, flowing style while incorporating all essential elements`;
-      
-      // If a default template was explicitly selected with characterLimit
-      if (selectedTemplate?.characterLimit) {
-        characterLimit = selectedTemplate.characterLimit;
-      }
-      
-      console.log(`Using default template with character limit: ${characterLimit}`);
-    }
-    
-    // Add character limit instruction to system message
-    systemMessage += `\n\nOUTPUT FORMAT:
-Your enhanced prompt must flow naturally while incorporating all necessary elements. Structure it with clear sections for Task, Persona, Conditions, and Instructions. The final output should be approximately ${characterLimit} characters in length. You are allowed to adjust this length if necessary for a better prompt.
+7. Maintain a natural, flowing style while incorporating all essential elements
+
+OUTPUT FORMAT:
+Your enhanced prompt must flow naturally while incorporating all necessary elements. Structure it with clear sections for Task, Persona, Conditions, and Instructions.
 ${primaryToggle ? `\n\nPRIMARY FOCUS: ${primaryToggle}` : ""}${secondaryToggle ? `\nSECONDARY FOCUS: ${secondaryToggle}` : ""}`;
 
     // Initialize OpenAI client
@@ -134,7 +99,7 @@ Create an enhanced prompt that clearly defines the Task, Persona, Conditions, an
       const completion = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: messages,
-        temperature: temperature
+        temperature: 0.7
       });
 
       const enhancedPrompt = completion.choices[0].message.content;

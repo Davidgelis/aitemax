@@ -22,7 +22,6 @@ export interface TemplateType {
   role: string;
   pillars: PillarType[];
   temperature: number;
-  characterLimit?: number; // New property for character limit
   isDefault?: boolean;
   createdAt: string;
 }

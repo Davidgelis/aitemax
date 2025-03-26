@@ -4,8 +4,6 @@ import { RefObject } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
 import { Info } from "lucide-react";
-import { TemplateType } from "../x-templates/XTemplateCard";
-import { TemplateSelector } from "./TemplateSelector";
 
 interface StepTwoContentProps {
   questions: Question[];
@@ -23,10 +21,6 @@ interface StepTwoContentProps {
   questionsContainerRef: RefObject<HTMLDivElement>;
   variablesContainerRef: RefObject<HTMLDivElement>;
   originalPrompt: string;
-  // New props for template selection
-  templates: TemplateType[];
-  selectedTemplateId: string;
-  onSelectTemplate: (id: string) => void;
 }
 
 export const StepTwoContent = ({
@@ -44,11 +38,7 @@ export const StepTwoContent = ({
   onContinue,
   questionsContainerRef,
   variablesContainerRef,
-  originalPrompt,
-  // New props
-  templates,
-  selectedTemplateId,
-  onSelectTemplate
+  originalPrompt
 }: StepTwoContentProps) => {
   return (
     <div className="border rounded-xl p-6 bg-card">
@@ -75,15 +65,6 @@ export const StepTwoContent = ({
           setVariableToDelete={setVariableToDelete} 
           containerRef={variablesContainerRef} 
           originalPrompt={originalPrompt}
-        />
-      </div>
-      
-      {/* New Template Selector */}
-      <div className="mb-6">
-        <TemplateSelector
-          templates={templates}
-          selectedTemplateId={selectedTemplateId}
-          onSelectTemplate={onSelectTemplate}
         />
       </div>
 

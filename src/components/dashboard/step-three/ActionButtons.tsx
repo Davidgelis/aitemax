@@ -5,28 +5,30 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 interface ActionButtonsProps {
-  finalPrompt: string;
-  onBack: () => void;
+  handleCopyPrompt: () => void;
+  handleSavePrompt: () => void;
 }
 
 export const ActionButtons = ({
-  finalPrompt,
-  onBack
+  handleCopyPrompt,
+  handleSavePrompt
 }: ActionButtonsProps) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  const handleCopyPrompt = async () => {
+  const safeHandleCopyPrompt = async (e: React.MouseEvent) => {
     if (isProcessing) return;
     
     try {
+      e.preventDefault();
       setIsProcessing(true);
-      await navigator.clipboard.writeText(finalPrompt);
-      toast({
-        title: "Copied to clipboard",
-        description: "The prompt has been copied to your clipboard"
-      });
+      
+      if (typeof handleCopyPrompt === 'function') {
+        await handleCopyPrompt();
+      } else {
+        throw new Error("Copy function is not defined");
+      }
     } catch (error) {
       console.error("Error copying prompt:", error);
       toast({
@@ -39,10 +41,11 @@ export const ActionButtons = ({
     }
   };
   
-  const handleSavePrompt = async () => {
+  const safeHandleSavePrompt = async (e: React.MouseEvent) => {
     if (isProcessing || isSaving) return;
     
     try {
+      e.preventDefault();
       setIsProcessing(true);
       setIsSaving(true);
       
@@ -51,13 +54,11 @@ export const ActionButtons = ({
         description: "Your prompt is being saved and analyzed for tags...",
       });
       
-      // Mock implementation for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Prompt saved",
-        description: "Your prompt has been saved successfully"
-      });
+      if (typeof handleSavePrompt === 'function') {
+        await handleSavePrompt();
+      } else {
+        throw new Error("Save function is not defined");
+      }
     } catch (error) {
       console.error("Error saving prompt:", error);
       toast({
@@ -74,35 +75,25 @@ export const ActionButtons = ({
   return (
     <div className="flex justify-between items-center">
       <Button
-        onClick={onBack}
-        variant="outline"
+        onClick={safeHandleCopyPrompt}
+        variant="aurora"
+        disabled={isProcessing}
+        aria-label="Copy prompt"
         className="gap-2"
       >
-        Back
+        <Copy className="w-4 h-4" />
+        Copy
       </Button>
-      
-      <div className="flex items-center gap-2">
-        <Button
-          onClick={handleCopyPrompt}
-          variant="aurora"
-          disabled={isProcessing}
-          aria-label="Copy prompt"
-          className="gap-2"
-        >
-          <Copy className="w-4 h-4" />
-          Copy
-        </Button>
-        <Button
-          onClick={handleSavePrompt}
-          variant="aurora"
-          disabled={isProcessing || isSaving}
-          aria-label="Save prompt"
-          className="gap-2"
-        >
-          <Save className="w-4 h-4" />
-          {isSaving ? "Saving..." : "Save"}
-        </Button>
-      </div>
+      <Button
+        onClick={safeHandleSavePrompt}
+        variant="aurora"
+        disabled={isProcessing || isSaving}
+        aria-label="Save prompt"
+        className="gap-2"
+      >
+        <Save className="w-4 h-4" />
+        {isSaving ? "Saving & Generating Tags..." : "Save"}
+      </Button>
     </div>
   );
 };

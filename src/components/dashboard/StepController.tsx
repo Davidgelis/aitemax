@@ -1,51 +1,68 @@
-
-import { useState, useEffect, useRef } from "react";
-import { StepOne } from "./StepOne";
-import { StepTwo } from "./StepTwo";
-import { StepThree } from "@/components/dashboard/step-three/StepThree";
-import { usePromptState } from "@/hooks/usePromptState";
-import { usePromptAnalysis } from "@/hooks/usePromptAnalysis";
+import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { StepIndicator } from "@/components/dashboard/StepIndicator";
+import { LoadingState } from "@/components/dashboard/LoadingState";
+import { StepOneContent } from "@/components/dashboard/StepOneContent";
+import { StepTwoContent } from "@/components/dashboard/StepTwoContent";
+import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
+import { PrivacyNoticePopup } from "@/components/dashboard/PrivacyNoticePopup";
+import { usePromptAnalysis } from "@/hooks/usePromptAnalysis";
+import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
+import { usePromptOperations } from "@/hooks/usePromptOperations";
+import { AIModel, UploadedImage } from "@/components/dashboard/types";
 import { primaryToggles, secondaryToggles } from "./constants";
 
-export const StepController = () => {
-  const { toast } = useToast();
+interface StepControllerProps {
+  user: any;
+  selectedModel: AIModel | null;
+  setSelectedModel: (model: AIModel | null) => void;
+  isInitializingModels?: boolean;
+  promptState: any;
+}
+
+export const StepController = ({ 
+  user,
+  selectedModel,
+  setSelectedModel,
+  isInitializingModels = false,
+  promptState
+}: StepControllerProps) => {
+  
   const questionsContainerRef = useRef<HTMLDivElement>(null);
   const variablesContainerRef = useRef<HTMLDivElement>(null);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const user = null; // Replace with actual user object when available
-
+  
+  const { toast } = useToast();
+  
   const {
-    promptText,
-    setPromptText,
-    questions,
-    setQuestions,
-    variables,
-    setVariables,
-    masterCommand,
-    setMasterCommand,
-    finalPrompt,
-    setFinalPrompt,
-    selectedPrimary,
-    setSelectedPrimary,
-    selectedSecondary,
-    setSelectedSecondary,
-    canProceedToStep3,
-    setCanProceedToStep3,
-    variableToDelete,
-    setVariableToDelete,
-    handleAddVariable,
-    handleDeleteVariable,
-    handleQuestionRelevance,
-    handleQuestionAnswer,
-    handleVariableChange,
-    handleVariableRelevance,
-    selectedTemplateId,
-    templates,
-    handleSelectTemplate
-  } = usePromptState(user);
-
+    promptText, setPromptText,
+    questions, setQuestions,
+    variables, setVariables,
+    showJson, setShowJson,
+    finalPrompt, setFinalPrompt,
+    editingPrompt, setEditingPrompt,
+    showEditPromptSheet, setShowEditPromptSheet,
+    masterCommand, setMasterCommand,
+    selectedPrimary, setSelectedPrimary,
+    selectedSecondary, setSelectedSecondary,
+    currentStep, setCurrentStep,
+    savedPrompts, isLoadingPrompts, searchTerm, setSearchTerm,
+    variableToDelete, setVariableToDelete,
+    fetchSavedPrompts, handleNewPrompt, handleSavePrompt,
+    handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt,
+    loadSavedPrompt, isViewingSavedPrompt, setIsViewingSavedPrompt,
+    saveDraft
+  } = promptState;
+  
+  const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
+  const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with o3-mini...");
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
+  const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
+  
+  const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
+    ? savedPrompts.find(p => p.promptText === promptText)?.id || null
+    : null;
+  
   const promptAnalysis = usePromptAnalysis(
     promptText,
     setQuestions,
@@ -56,141 +73,306 @@ export const StepController = () => {
     selectedPrimary,
     selectedSecondary,
     user,
-    null // Prompt ID
+    currentPromptId
   );
-
+  
+  const { isLoading: isAnalyzing, currentLoadingMessage, handleAnalyze } = promptAnalysis;
+  
+  const questionVarOps = useQuestionsAndVariables(
+    questions,
+    setQuestions,
+    variables,
+    setVariables,
+    variableToDelete,
+    setVariableToDelete,
+    user,
+    currentPromptId
+  );
+  
+  const {
+    handleQuestionAnswer,
+    handleQuestionRelevance,
+    handleVariableChange,
+    handleVariableRelevance,
+    addVariable,
+    removeVariable,
+    canProceedToStep3,
+    enhancePromptWithGPT,
+    isEnhancing
+  } = questionVarOps;
+  
+  const promptOperations = usePromptOperations(
+    variables,
+    setVariables,
+    finalPrompt,
+    setFinalPrompt, 
+    showJson,
+    setEditingPrompt,
+    setShowEditPromptSheet,
+    masterCommand,
+    editingPrompt
+  );
+  
+  const {
+    getProcessedPrompt,
+    handleVariableValueChange,
+    handleOpenEditPrompt,
+    handleSaveEditedPrompt,
+    handleAdaptPrompt,
+    handleCopyPrompt,
+    handleRegenerate
+  } = promptOperations;
+  
   useEffect(() => {
-    // Check if all relevant questions have answers
-    const allRelevantAnswered = questions.every(q => {
-      return q.isRelevant === false || (q.isRelevant === true && q.answer && q.answer.trim() !== "");
+    if (user) {
+      fetchSavedPrompts();
+    }
+  }, [user]);
+
+  const handlePrimaryToggle = (id: string) => {
+    setSelectedPrimary(currentSelected => currentSelected === id ? null : id);
+  };
+
+  const handleSecondaryToggle = (id: string) => {
+    setSelectedSecondary(currentSelected => currentSelected === id ? null : id);
+  };
+
+  const handleWebsiteScan = (url: string, instructions: string) => {
+    console.log("StepController: Website context set:", { url, instructions });
+    setWebsiteContext({ url, instructions });
+  };
+
+  const handleImagesChange = (images: UploadedImage[]) => {
+    console.log("StepController: Images updated:", images);
+    setUploadedImages(images);
+  };
+
+  const handleSmartContext = (context: string, usageInstructions: string) => {
+    console.log("StepController: Smart context set:", { 
+      context: context.substring(0, 100) + (context.length > 100 ? "..." : ""),
+      usageInstructions: usageInstructions.substring(0, 100) + (usageInstructions.length > 100 ? "..." : "")
     });
+    setSmartContext({ context, usageInstructions });
+  };
 
-    // Check if all relevant variables have values
-    const allRelevantVariablesFilled = variables.every(v => {
-      return v.isRelevant === false || (v.isRelevant === true && v.value && v.value.trim() !== "");
+  const handleAnalyzeWithContext = () => {
+    console.log("StepController: Analyzing with context", {
+      images: uploadedImages,
+      websiteContext,
+      smartContext,
+      hasWebsiteContext: !!websiteContext,
+      hasSmartContext: !!smartContext,
+      websiteUrl: websiteContext?.url || "none",
+      websiteInstructions: websiteContext?.instructions || "none"
     });
+    
+    handleAnalyze(uploadedImages, websiteContext, smartContext);
+  };
 
-    setCanProceedToStep3(allRelevantAnswered && allRelevantVariablesFilled);
-  }, [questions, variables, setCanProceedToStep3]);
-
-  const handleStepChange = async (step: number) => {
-    // Prevent going back to step 1
-    if (currentStep > step) {
+  const handleStepChange = async (step: number, bypass: boolean = false) => {
+    if (isViewingSavedPrompt && step !== 3) {
+      return;
+    }
+    
+    if (bypass) {
       setCurrentStep(step);
       return;
     }
 
-    // Validate prompt text before proceeding to step 2
-    if (currentStep === 1 && step === 2) {
-      if (!promptText.trim()) {
-        toast({
-          title: "Error",
-          description: "Please enter a prompt before proceeding.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        await promptAnalysis.handleAnalyze();
-        setCurrentStep(step);
-      } catch (error) {
-        console.error("Error analyzing prompt:", error);
-        toast({
-          title: "Error",
-          description: "There was an error analyzing your prompt. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
+    if (step === 2 && !promptText.trim()) {
+      toast({
+        title: "Cannot proceed",
+        description: "Please enter a prompt before moving to step 2",
+        variant: "destructive",
+      });
       return;
     }
 
-    // Moving from step 2 to step 3 - enhance prompt
-    if (currentStep === 2 && step === 3) {
+    if (step === 2 && questions.length === 0) {
+      toast({
+        title: "Cannot proceed",
+        description: "Please analyze your prompt first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Save draft only when moving from step 1 to step 2
+    // Not when moving to step 3
+    if (step === 2 && currentStep === 1 && user && !isViewingSavedPrompt) {
+      saveDraft();
+    }
+
+    if (step === 3) {
+      // When moving to step 3, don't save draft
+      setIsEnhancingPrompt(true);
+      
+      // Update enhancement message based on toggles
+      let message = "Enhancing your prompt";
+      if (selectedPrimary) {
+        const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label || selectedPrimary;
+        message += ` for ${primaryLabel}`;
+        
+        if (selectedSecondary) {
+          const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
+          message += ` and to be ${secondaryLabel}`;
+        }
+      } else if (selectedSecondary) {
+        const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
+        message += ` to be ${secondaryLabel}`;
+      }
+      message += " with o3-mini...";
+      
+      setEnhancingMessage(message);
+      
       try {
-        setIsLoading(true);
+        console.log("StepController: Enhancing prompt for step 3 with o3-mini...");
         
-        // Get the selected template object
-        const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
-        
-        // Call enhancePromptWithGPT and pass the selected template
+        // Use the enhancePromptWithGPT function to get an enhanced prompt
         await promptAnalysis.enhancePromptWithGPT(
           promptText,
           selectedPrimary,
           selectedSecondary,
-          setFinalPrompt,
-          selectedTemplate // Pass the selected template
+          setFinalPrompt
         );
         
+        console.log("StepController: Successfully enhanced prompt, moving to step 3");
         setCurrentStep(step);
       } catch (error) {
-        console.error("Error enhancing prompt:", error);
+        console.error("StepController: Error enhancing prompt:", error);
+        
+        // Still allow user to proceed to step 3 with a fallback message
         toast({
-          title: "Error",
-          description: "There was an error enhancing your prompt. Please try again.",
-          variant: "destructive",
+          title: "Warning",
+          description: "There was an issue enhancing your prompt, but you can still proceed with the original text.",
+          variant: "default", // Changed from "warning" to "default"
         });
+        
+        setCurrentStep(step);
       } finally {
-        setIsLoading(false);
+        setIsEnhancingPrompt(false);
       }
+      
       return;
     }
 
-    // Proceed to the next step if no specific conditions are met
     setCurrentStep(step);
   };
 
+  const handleDirectJump = (step: number) => {
+    if (isViewingSavedPrompt && step !== 3) {
+      return;
+    }
+    
+    handleStepChange(step, true);
+  };
+
+  const filteredPrompts = savedPrompts.filter(prompt => 
+    searchTerm === "" || 
+    prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    prompt.promptText.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const renderContent = () => {
+    if (isAnalyzing || isEnhancingPrompt || isEnhancing) {
+      let message = isEnhancingPrompt 
+        ? enhancingMessage
+        : isEnhancing
+          ? currentLoadingMessage
+          : currentLoadingMessage;
+          
+      return <LoadingState currentLoadingMessage={message} />;
+    }
+
+    switch (currentStep) {
+      case 1:
+        return (
+          <StepOneContent
+            promptText={promptText}
+            setPromptText={setPromptText}
+            selectedPrimary={selectedPrimary}
+            selectedSecondary={selectedSecondary}
+            handlePrimaryToggle={handlePrimaryToggle}
+            handleSecondaryToggle={handleSecondaryToggle}
+            onAnalyze={handleAnalyzeWithContext}
+            isLoading={isAnalyzing}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
+            selectedCognitive={null}
+            handleCognitiveToggle={() => {}}
+            onImagesChange={handleImagesChange}
+            onWebsiteScan={handleWebsiteScan}
+            onSmartContext={handleSmartContext}
+          />
+        );
+
+      case 2:
+        return (
+          <StepTwoContent
+            questions={questions}
+            variables={variables}
+            onQuestionRelevance={handleQuestionRelevance}
+            onQuestionAnswer={handleQuestionAnswer}
+            onVariableChange={handleVariableChange}
+            onVariableRelevance={handleVariableRelevance}
+            onAddVariable={addVariable}
+            onDeleteVariable={removeVariable}
+            variableToDelete={variableToDelete}
+            setVariableToDelete={setVariableToDelete}
+            canProceedToStep3={canProceedToStep3()}
+            onContinue={() => handleStepChange(3)}
+            questionsContainerRef={questionsContainerRef}
+            variablesContainerRef={variablesContainerRef}
+            originalPrompt={promptText}
+          />
+        );
+
+      case 3:
+        return (
+          <StepThreeContent 
+            masterCommand={masterCommand}
+            setMasterCommand={setMasterCommand}
+            selectedPrimary={selectedPrimary}
+            selectedSecondary={selectedSecondary}
+            handlePrimaryToggle={handlePrimaryToggle}
+            handleSecondaryToggle={handleSecondaryToggle}
+            showJson={showJson}
+            setShowJson={setShowJson}
+            finalPrompt={finalPrompt}
+            setFinalPrompt={setFinalPrompt} // Pass the setFinalPrompt function explicitly
+            variables={variables}
+            setVariables={setVariables}
+            handleVariableValueChange={handleVariableValueChange}
+            handleCopyPrompt={handleCopyPrompt}
+            handleSavePrompt={handleSavePrompt}
+            handleRegenerate={handleRegenerate}
+            editingPrompt={editingPrompt}
+            setEditingPrompt={setEditingPrompt}
+            showEditPromptSheet={showEditPromptSheet}
+            setShowEditPromptSheet={setShowEditPromptSheet}
+            handleOpenEditPrompt={handleOpenEditPrompt}
+            handleSaveEditedPrompt={handleSaveEditedPrompt}
+            handleAdaptPrompt={handleAdaptPrompt}
+            getProcessedPrompt={getProcessedPrompt}
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
-    <>
-      {currentStep === 1 && (
-        <StepOne
-          promptText={promptText}
-          setPromptText={setPromptText}
-          selectedPrimary={selectedPrimary || null}
-          setSelectedPrimary={setSelectedPrimary}
-          selectedSecondary={selectedSecondary || null}
-          setSelectedSecondary={setSelectedSecondary}
-          primaryToggles={primaryToggles}
-          secondaryToggles={secondaryToggles}
-          onAnalyze={() => handleStepChange(2)}
-          isLoading={isLoading}
-        />
-      )}
+    <div className="w-full">
+      {renderContent()}
       
-      {currentStep === 2 && !isLoading && (
-        <StepTwo
-          questions={questions}
-          variables={variables}
-          onQuestionRelevance={handleQuestionRelevance}
-          onQuestionAnswer={handleQuestionAnswer}
-          onVariableChange={handleVariableChange}
-          onVariableRelevance={handleVariableRelevance}
-          onAddVariable={handleAddVariable}
-          onDeleteVariable={handleDeleteVariable}
-          variableToDelete={variableToDelete}
-          setVariableToDelete={setVariableToDelete}
-          canProceedToStep3={canProceedToStep3}
-          onContinue={() => handleStepChange(3)}
-          questionsContainerRef={questionsContainerRef}
-          variablesContainerRef={variablesContainerRef}
-          originalPrompt={promptText}
-          // Pass template-related props
-          templates={templates}
-          selectedTemplateId={selectedTemplateId}
-          onSelectTemplate={handleSelectTemplate}
-        />
-      )}
+      <StepIndicator 
+        currentStep={currentStep} 
+        onStepChange={handleDirectJump} 
+        isViewingSavedPrompt={isViewingSavedPrompt}
+      />
       
-      {currentStep === 3 && (
-        <StepThree
-          masterCommand={masterCommand}
-          finalPrompt={finalPrompt}
-          onBack={() => handleStepChange(2)}
-        />
-      )}
-    </>
+      <PrivacyNoticePopup user={user} currentStep={currentStep} />
+    </div>
   );
 };
