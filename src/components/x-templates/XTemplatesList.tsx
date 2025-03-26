@@ -38,7 +38,7 @@ const defaultTemplates: TemplateType[] = [
   {
     id: "creative",
     name: "Simple Four-Pillar Framework",
-    role: "You are a prompt engineer that helps structure prompts using a simplified version of the four-pillar framework.",
+    role: "You are a prompt engineer that helps structure prompts with a four-pillar framework.",
     pillars: [
       {
         id: "1",
