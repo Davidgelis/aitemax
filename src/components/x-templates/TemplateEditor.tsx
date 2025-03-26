@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Card } from "@/components/ui/card";
-import { GripVertical, Plus, X } from "lucide-react";
+import { GripVertical, Plus, X, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PillarType, TemplateType } from "./XTemplateCard";
 
@@ -26,6 +26,7 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
     ]
   );
   const [temperature, setTemperature] = useState<number[]>([template?.temperature || 0.7]);
+  const [characterLimit, setCharacterLimit] = useState<number[]>([template?.characterLimit || 2000]);
   const [draggedPillar, setDraggedPillar] = useState<number | null>(null);
 
   const handleAddPillar = () => {
@@ -185,6 +186,30 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
             <span>More Deterministic (0.0)</span>
             <span>More Creative (1.0)</span>
           </div>
+        </div>
+        
+        {/* Character Limit Section */}
+        <div className="space-y-4 mt-2">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            <Label htmlFor="characterLimit" className="text-sm font-medium">Character Limit: {characterLimit[0]}</Label>
+          </div>
+          <Slider
+            id="characterLimit"
+            value={characterLimit}
+            onValueChange={setCharacterLimit}
+            min={100}
+            max={5000}
+            step={100}
+            className="mt-4"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground mt-2">
+            <span>Concise (100)</span>
+            <span>Detailed (5000)</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Sets the approximate maximum length of the generated content in characters.
+          </p>
         </div>
       </div>
       
