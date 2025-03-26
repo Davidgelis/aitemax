@@ -257,6 +257,45 @@ export type Database = {
           },
         ]
       }
+      x_templates: {
+        Row: {
+          character_limit: number
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          pillars: Json
+          role: string
+          temperature: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          character_limit?: number
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          pillars?: Json
+          role: string
+          temperature?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          character_limit?: number
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          pillars?: Json
+          role?: string
+          temperature?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       user_token_summary: {

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PillarType, TemplateType } from "./XTemplateCard";
 import { addTemplate } from "./XTemplatesList";
 import { v4 as uuidv4 } from "uuid";
+import { useAuth } from "@/context/AuthContext";
 
 interface TemplateEditorProps {
   template?: TemplateType;
@@ -19,6 +19,7 @@ interface TemplateEditorProps {
 
 export const TemplateEditor = ({ template }: TemplateEditorProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [name, setName] = useState(template?.name || "");
   const [role, setRole] = useState(template?.role || "");
   const [pillars, setPillars] = useState<PillarType[]>(
@@ -30,6 +31,7 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
   const [temperature, setTemperature] = useState<number[]>([template?.temperature || 0.7]);
   const [characterLimit, setCharacterLimit] = useState<number[]>([template?.characterLimit || 3000]);
   const [draggedPillar, setDraggedPillar] = useState<number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleAddPillar = () => {
     if (pillars.length >= 8) {
@@ -72,7 +74,16 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save templates.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!name.trim()) {
       toast({
         title: "Template name required",
@@ -100,24 +111,38 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
       return;
     }
 
-    // Create the new template object
-    const newTemplate: TemplateType = {
-      id: template?.id || uuidv4(),
-      name: name.trim(),
-      role: role.trim(),
-      pillars: pillars,
-      temperature: temperature[0],
-      characterLimit: characterLimit[0],
-      createdAt: template?.createdAt || new Date().toLocaleDateString()
-    };
+    setIsSaving(true);
 
-    // Add the template and show success message
-    addTemplate(newTemplate);
-    
-    toast({
-      title: template ? "Template updated" : "Template created",
-      description: template ? "Your changes have been saved." : "Your new template has been created."
-    });
+    try {
+      // Create the new template object
+      const newTemplate: TemplateType = {
+        id: template?.id || uuidv4(),
+        name: name.trim(),
+        role: role.trim(),
+        pillars: pillars,
+        temperature: temperature[0],
+        characterLimit: characterLimit[0],
+        isDefault: template?.isDefault || false,
+        createdAt: template?.createdAt || new Date().toLocaleDateString()
+      };
+
+      // Add the template and show success message
+      await addTemplate(newTemplate);
+      
+      toast({
+        title: template ? "Template updated" : "Template created",
+        description: template ? "Your changes have been saved." : "Your new template has been created."
+      });
+    } catch (error) {
+      console.error("Error saving template:", error);
+      toast({
+        title: "Error saving template",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -252,8 +277,8 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
         <DialogClose asChild>
           <Button variant="outline">Cancel</Button>
         </DialogClose>
-        <Button onClick={handleSave} className="ml-2">
-          {template ? "Save Changes" : "Create Template"}
+        <Button onClick={handleSave} disabled={isSaving} className="ml-2">
+          {isSaving ? "Saving..." : (template ? "Save Changes" : "Create Template")}
         </Button>
       </DialogFooter>
     </div>

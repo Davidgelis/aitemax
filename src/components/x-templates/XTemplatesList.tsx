@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { XTemplateCard, TemplateType } from "./XTemplateCard";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
 
 // Default templates (this would come from an API in a real implementation)
 const defaultTemplates: TemplateType[] = [
@@ -70,21 +72,121 @@ const defaultTemplates: TemplateType[] = [
 ];
 
 // Create a global event for template updates
-export const addTemplate = (template: TemplateType) => {
-  const event = new CustomEvent('template-added', { detail: template });
-  window.dispatchEvent(event);
+export const addTemplate = async (template: TemplateType) => {
+  try {
+    // First, dispatch event for UI update
+    const event = new CustomEvent('template-added', { detail: template });
+    window.dispatchEvent(event);
+    
+    // Then, save to database if it's not a default template
+    if (template.id !== "default" && template.id !== "simple-framework") {
+      const { error } = await supabase.from('x_templates').upsert({
+        id: template.id,
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        name: template.name,
+        role: template.role,
+        pillars: template.pillars,
+        temperature: template.temperature,
+        character_limit: template.characterLimit,
+        is_default: template.isDefault || false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      
+      if (error) {
+        console.error("Error saving template:", error);
+        // Could add error toast here
+      }
+    }
+  } catch (error) {
+    console.error("Error in addTemplate:", error);
+  }
 };
 
 // Create a global event for template deletion
-export const deleteTemplate = (templateId: string) => {
-  const event = new CustomEvent('template-deleted', { detail: { id: templateId } });
-  window.dispatchEvent(event);
+export const deleteTemplate = async (templateId: string) => {
+  try {
+    // First, dispatch event for UI update
+    const event = new CustomEvent('template-deleted', { detail: { id: templateId } });
+    window.dispatchEvent(event);
+    
+    // Then, delete from database if it's not a default template
+    if (templateId !== "default" && templateId !== "simple-framework") {
+      const { error } = await supabase.from('x_templates').delete().eq('id', templateId);
+      
+      if (error) {
+        console.error("Error deleting template:", error);
+        // Could add error toast here
+      }
+    }
+  } catch (error) {
+    console.error("Error in deleteTemplate:", error);
+  }
 };
 
 export const XTemplatesList = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [templates, setTemplates] = useState<TemplateType[]>(defaultTemplates);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch user templates from database
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('x_templates')
+          .select('*')
+          .eq('user_id', user.id);
+        
+        if (error) {
+          console.error("Error fetching templates:", error);
+          toast({
+            title: "Error fetching templates",
+            description: error.message,
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        if (data) {
+          // Convert database templates to TemplateType format
+          const userTemplates: TemplateType[] = data.map(item => ({
+            id: item.id,
+            name: item.name,
+            role: item.role,
+            pillars: item.pillars,
+            temperature: item.temperature,
+            characterLimit: item.character_limit,
+            isDefault: item.is_default,
+            createdAt: new Date(item.created_at).toLocaleDateString()
+          }));
+          
+          // Combine default templates with user templates
+          setTemplates([...defaultTemplates, ...userTemplates]);
+          
+          // Check if selectedTemplate is stored in localStorage
+          const storedTemplateId = window.localStorage.getItem('selectedTemplateId');
+          if (storedTemplateId) {
+            setSelectedTemplateId(storedTemplateId);
+          }
+        }
+      } catch (error) {
+        console.error("Error in fetchTemplates:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTemplates();
+    
+    // Save the selectedTemplateId to window for StepOne.tsx to access
+    window.__selectedTemplate = templates.find(t => t.id === selectedTemplateId) || defaultTemplates[0];
+  }, [user]);
 
   // Listen for template events
   useEffect(() => {
@@ -121,8 +223,13 @@ export const XTemplatesList = () => {
   const handleSelectTemplate = (id: string) => {
     setSelectedTemplateId(id);
     
-    // This would update the selected template in a real implementation
-    // For now, just show a toast notification
+    // Save selectedTemplateId to localStorage for persistence
+    window.localStorage.setItem('selectedTemplateId', id);
+    
+    // Update the selected template in the window object for StepOne.tsx
+    window.__selectedTemplate = templates.find(t => t.id === id) || defaultTemplates[0];
+    
+    // Show a toast notification
     const template = templates.find(t => t.id === id);
     if (template) {
       toast({
@@ -144,25 +251,31 @@ export const XTemplatesList = () => {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {templates.map((template) => (
-          <XTemplateCard
-            key={template.id}
-            template={template}
-            isSelected={template.id === selectedTemplateId}
-            onSelect={handleSelectTemplate}
-          />
-        ))}
-        
-        {templates.length === 0 && (
-          <div className="col-span-3 text-center py-12">
-            <h3 className="text-xl font-medium mb-2">No templates found</h3>
-            <p className="text-muted-foreground mb-6">
-              Create your first template to get started.
-            </p>
-          </div>
-        )}
-      </div>
+      {isLoading ? (
+        <div className="flex justify-center items-center h-40">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {templates.map((template) => (
+            <XTemplateCard
+              key={template.id}
+              template={template}
+              isSelected={template.id === selectedTemplateId}
+              onSelect={handleSelectTemplate}
+            />
+          ))}
+          
+          {templates.length === 0 && (
+            <div className="col-span-3 text-center py-12">
+              <h3 className="text-xl font-medium mb-2">No templates found</h3>
+              <p className="text-muted-foreground mb-6">
+                Create your first template to get started.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
