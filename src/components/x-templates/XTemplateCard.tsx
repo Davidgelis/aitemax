@@ -133,16 +133,16 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
                       Delete
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent className="bg-white border p-6">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                       <AlertDialogDescription>
                         This will permanently delete the template. This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                    <AlertDialogFooter className="mt-4">
+                      <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
+                      <AlertDialogAction className="bg-[#ea384c] hover:bg-[#ea384c]/90" onClick={handleDelete}>Delete</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>

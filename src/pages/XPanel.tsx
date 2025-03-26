@@ -45,6 +45,10 @@ const XPanel = () => {
   const [shareEmail, setShareEmail] = useState("");
   const [sharingPromptId, setSharingPromptId] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+  
+  // Add state for prompt to delete
+  const [promptToDelete, setPromptToDelete] = useState<string | null>(null);
+
   useEffect(() => {
     const getUser = async () => {
       const {
@@ -178,6 +182,7 @@ const XPanel = () => {
       }
       setPrompts(prevPrompts => prevPrompts.filter(prompt => prompt.id !== id));
       setFilteredPrompts(prevPrompts => prevPrompts.filter(prompt => prompt.id !== id));
+      
       toast({
         title: "Success",
         description: "Prompt deleted successfully"
@@ -189,6 +194,8 @@ const XPanel = () => {
         description: error.message,
         variant: "destructive"
       });
+    } finally {
+      setPromptToDelete(null);
     }
   };
   const handleShareViaEmail = (promptId: string) => {};
@@ -453,7 +460,7 @@ const XPanel = () => {
                                     </>}
                                 </div>)}
                             </div>
-                            {/* Action Buttons - Simplified with only Delete Button */}
+                            {/* Action Buttons - Updated with AlertDialog for delete */}
                             <div className="flex justify-between opacity-0 group-hover:opacity-100 transition-opacity">
                               <div className="flex gap-1">
                                 {/* Empty div to keep the flex layout balanced */}
@@ -462,9 +469,30 @@ const XPanel = () => {
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Button variant="ghost" size="icon" className="prompt-action-button" onClick={() => handleDeletePrompt(prompt.id)}>
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
+                                      <AlertDialog open={promptToDelete === prompt.id} onOpenChange={(open) => !open && setPromptToDelete(null)}>
+                                        <AlertDialogTrigger asChild>
+                                          <Button variant="ghost" size="icon" className="prompt-action-button" onClick={() => setPromptToDelete(prompt.id)}>
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent className="bg-white border p-6">
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Delete prompt?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Are you sure you want to delete this prompt? This action cannot be undone.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter className="mt-4">
+                                            <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
+                                            <AlertDialogAction 
+                                              className="bg-[#ea384c] hover:bg-[#ea384c]/90" 
+                                              onClick={() => handleDeletePrompt(prompt.id)}
+                                            >
+                                              Delete
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
                                     </TooltipTrigger>
                                   </Tooltip>
                                 </TooltipProvider>
@@ -497,7 +525,7 @@ const XPanel = () => {
           </div>
         </main>
 
-        {/* X Panel Sidebar */}
+        {/* Sidebar with delete confirmation */}
         <Sidebar side="right">
           <SidebarTrigger className="fixed right-4 top-2 z-50 bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
           <SidebarContent>
@@ -601,13 +629,39 @@ const XPanel = () => {
                               <span>Copy</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={e => {
-                        e.stopPropagation();
-                        handleDeletePrompt(item.id);
-                      }}>
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              <span>Delete</span>
-                            </DropdownMenuItem>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem 
+                                  className="text-destructive focus:text-destructive" 
+                                  onClick={e => {
+                                    e.stopPropagation();
+                                  }}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  <span>Delete</span>
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="bg-white border p-6">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete prompt?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this prompt? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter className="mt-4">
+                                  <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    className="bg-[#ea384c] hover:bg-[#ea384c]/90"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeletePrompt(item.id);
+                                    }}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
