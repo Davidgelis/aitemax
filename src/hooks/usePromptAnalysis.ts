@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
 import { loadingMessages, mockQuestions, primaryToggles, secondaryToggles } from "@/components/dashboard/constants";
@@ -364,7 +363,8 @@ export const usePromptAnalysis = (
     promptToEnhance: string,
     primaryToggle: string | null,
     secondaryToggle: string | null,
-    setFinalPromptFn: React.Dispatch<React.SetStateAction<string>>
+    setFinalPromptFn: React.Dispatch<React.SetStateAction<string>>,
+    selectedTemplate?: any // Add parameter for selected template
   ): Promise<string> => {
     try {
       // Create a context-aware loading message based on toggles
@@ -404,7 +404,8 @@ export const usePromptAnalysis = (
           primaryToggle,
           secondaryToggle,
           userId: user?.id,
-          promptId
+          promptId,
+          selectedTemplate // Pass the selected template to the edge function
         }
       });
       

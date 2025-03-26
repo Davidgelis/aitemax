@@ -1,15 +1,15 @@
 
 import { Question, Variable } from "./types";
 import { RefObject } from "react";
-import { QuestionList } from "./QuestionList";
-import { VariableList } from "./VariableList";
+import { StepTwoContent } from "./StepTwoContent";
+import { TemplateType } from "../x-templates/XTemplateCard";
 
 interface StepTwoProps {
   questions: Question[];
   variables: Variable[];
   onQuestionRelevance: (questionId: string, isRelevant: boolean) => void;
   onQuestionAnswer: (questionId: string, answer: string) => void;
-  onVariableChange: (variableId: string, field: 'name' | 'value', content: string) => void;
+  onVariableChange: (variableId: string, field: keyof Variable, content: string) => void;
   onVariableRelevance: (variableId: string, isRelevant: boolean) => void;
   onAddVariable: () => void;
   onDeleteVariable: () => void;
@@ -20,6 +20,10 @@ interface StepTwoProps {
   questionsContainerRef: RefObject<HTMLDivElement>;
   variablesContainerRef: RefObject<HTMLDivElement>;
   originalPrompt: string;
+  // New props for template selection
+  templates: TemplateType[];
+  selectedTemplateId: string;
+  onSelectTemplate: (id: string) => void;
 }
 
 export const StepTwo = ({
@@ -37,47 +41,40 @@ export const StepTwo = ({
   onContinue,
   questionsContainerRef,
   variablesContainerRef,
-  originalPrompt
+  originalPrompt,
+  // New props
+  templates,
+  selectedTemplateId,
+  onSelectTemplate
 }: StepTwoProps) => {
   return (
-    <div className="border rounded-xl p-6 bg-card">
+    <div className="p-6">
       <div className="mb-6">
-        <p className="text-card-foreground mb-4">
-          Answer the following questions to enhance your prompt, mark them as relevant or not relevant
-        </p>
-        
-        <QuestionList 
-          questions={questions}
-          onQuestionRelevance={onQuestionRelevance}
-          onQuestionAnswer={onQuestionAnswer}
-          containerRef={questionsContainerRef}
-          originalPrompt={originalPrompt}
-        />
+        <h2 className="text-2xl font-bold">Customize your prompt</h2>
+        <p className="text-[#545454]">Enhance your prompt by answering these targeted questions and adjusting the variables.</p>
       </div>
 
-      <div className="mb-6">
-        <VariableList 
-          variables={variables}
-          onVariableChange={onVariableChange}
-          onVariableRelevance={onVariableRelevance}
-          onAddVariable={onAddVariable}
-          onDeleteVariable={onDeleteVariable}
-          variableToDelete={variableToDelete}
-          setVariableToDelete={setVariableToDelete}
-          containerRef={variablesContainerRef}
-          originalPrompt={originalPrompt}
-        />
-      </div>
-
-      <div className="flex justify-end">
-        <button 
-          onClick={onContinue}
-          className={`aurora-button ${!canProceedToStep3 ? 'opacity-70 cursor-not-allowed' : ''}`}
-          disabled={!canProceedToStep3}
-        >
-          Continue
-        </button>
-      </div>
+      <StepTwoContent
+        questions={questions}
+        variables={variables}
+        onQuestionRelevance={onQuestionRelevance}
+        onQuestionAnswer={onQuestionAnswer}
+        onVariableChange={onVariableChange}
+        onVariableRelevance={onVariableRelevance}
+        onAddVariable={onAddVariable}
+        onDeleteVariable={onDeleteVariable}
+        variableToDelete={variableToDelete}
+        setVariableToDelete={setVariableToDelete}
+        canProceedToStep3={canProceedToStep3}
+        onContinue={onContinue}
+        questionsContainerRef={questionsContainerRef}
+        variablesContainerRef={variablesContainerRef}
+        originalPrompt={originalPrompt}
+        // Pass template props
+        templates={templates}
+        selectedTemplateId={selectedTemplateId}
+        onSelectTemplate={onSelectTemplate}
+      />
     </div>
   );
-};
+}
