@@ -1,10 +1,10 @@
 
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
-export interface MasterCommandSectionProps {
+interface MasterCommandSectionProps {
   masterCommand: string;
-  setMasterCommand: React.Dispatch<React.SetStateAction<string>>;
-  handleRegenerate?: () => void;
+  setMasterCommand: (command: string) => void;
+  handleRegenerate: () => void;
 }
 
 export const MasterCommandSection = ({
@@ -12,17 +12,6 @@ export const MasterCommandSection = ({
   setMasterCommand,
   handleRegenerate
 }: MasterCommandSectionProps) => {
-  return (
-    <div className="mb-4">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-md font-medium">Master Command</h3>
-      </div>
-      <Input
-        value={masterCommand}
-        onChange={(e) => setMasterCommand(e.target.value)}
-        placeholder="Add a master command or objective"
-        className="border-[#E5E7EB] focus-visible:ring-[#33fea6]"
-      />
-    </div>
-  );
+  // This component will be empty as we're removing both the input and button
+  return null;
 };

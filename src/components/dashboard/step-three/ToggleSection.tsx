@@ -4,26 +4,18 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 
-export interface ToggleSectionProps {
+interface ToggleSectionProps {
   showJson: boolean;
   setShowJson: (show: boolean) => void;
   refreshJson?: () => void;
   isRefreshing?: boolean;
-  selectedPrimary?: string | null;
-  selectedSecondary?: string | null;
-  handlePrimaryToggle?: (id: string) => void;
-  handleSecondaryToggle?: (id: string) => void;
 }
 
 export const ToggleSection = ({
   showJson,
   setShowJson,
   refreshJson,
-  isRefreshing = false,
-  selectedPrimary,
-  selectedSecondary,
-  handlePrimaryToggle,
-  handleSecondaryToggle
+  isRefreshing = false
 }: ToggleSectionProps) => {
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   

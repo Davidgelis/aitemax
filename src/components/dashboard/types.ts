@@ -1,25 +1,57 @@
 
 import { Json } from "@/integrations/supabase/types";
 
+export interface AIModel {
+  id?: string;
+  name: string;
+  provider: string;
+  description: string;
+  strengths: string[];
+  limitations: string[];
+  updated_at?: string;
+}
+
+// Update the UploadedImage interface to include context
+export interface UploadedImage {
+  id: string;
+  url: string;
+  file: File;
+  context?: string;
+}
+
 export interface Question {
   id: string;
   text: string;
-  answer?: string;
-  isRelevant?: boolean | null;
+  answer: string;
+  isRelevant: boolean | null;
+  category?: string; // Task, Persona, Conditions, Instructions categories
+  prefillSource?: string;
 }
 
 export interface Variable {
   id: string;
   name: string;
-  description?: string;
   value: string;
-  isRelevant?: boolean | null;
-  category?: string;
+  isRelevant: boolean | null;
+  category?: string; // Task, Persona, Conditions, Instructions categories
   code?: string;
 }
 
-export interface SavedPrompt {
+export interface Toggle {
   id: string;
+  label: string;
+  definition: string;
+  prompt: string;
+}
+
+// Define a proper type for the tag structure
+export interface PromptTag {
+  category: string;
+  subcategory: string;
+}
+
+export interface SavedPrompt {
+  id?: string;
   title: string;
   date: string;
   promptText: string;
@@ -28,84 +60,63 @@ export interface SavedPrompt {
   secondaryToggle: string | null;
   variables: Variable[];
   jsonStructure?: PromptJsonStructure;
-  templateId: string | null;
-  tags: PromptTag[];
-}
-
-export interface PromptTag {
-  name?: string;
-  category?: string;
-  subcategory?: string;
-  confidence?: number;
-}
-
-export interface AIModel {
-  id: string;
-  name: string;
-  provider: string | null;
-  description: string | null;
-  strengths: string[];
-  limitations: string[];
-  updated_at?: string | null;
-}
-
-export interface UploadedImage {
-  id: string;
-  url: string;
-  file?: File;
-  context?: string;
+  tags?: PromptTag[]; // Update this to use the proper type
 }
 
 export interface PromptJsonStructure {
-  [key: string]: any;
+  title?: string;
+  summary?: string;
+  sections?: Array<{ title: string; content: string }>;
+  error?: string;
+  generationError?: string;
+  masterCommand?: string;
+  timestamp?: string; // Make timestamp optional and ensure it's removed in UI
+  variablePlaceholders?: string[];
+  task?: string;
+  persona?: string;
+  conditions?: string;
+  instructions?: string;
+  [key: string]: any; // Allow for any additional properties
 }
 
-export const variablesToJson = (variables: Variable[]): Json => {
-  return JSON.stringify(variables);
-};
-
-export const jsonToVariables = (json: Json): Variable[] => {
-  try {
-    if (typeof json === 'string') {
-      const parsed = JSON.parse(json);
-      return Array.isArray(parsed) ? parsed : [];
-    } else if (Array.isArray(json)) {
-      return json as any as Variable[];
+// Helper functions for variable serialization/deserialization with updated types
+export const variablesToJson = (variables: Variable[]): Record<string, any> => {
+  if (!variables || !Array.isArray(variables)) return {};
+  
+  const result: Record<string, any> = {};
+  variables.forEach(variable => {
+    if (variable && variable.id) {
+      result[variable.id] = {
+        name: variable.name,
+        value: variable.value,
+        isRelevant: variable.isRelevant,
+        category: variable.category,
+        code: variable.code
+      };
     }
-    return [];
-  } catch (e) {
-    console.error("Failed to parse JSON to variables", e);
-    return [];
-  }
+  });
+  
+  return result;
 };
 
-export interface PillarConfig {
-  type?: string;
-  name: string;
-  description: string;
-  examples?: string[];
-  order?: number;
-  required?: boolean;
-}
-
-export interface PromptTemplate {
-  id: string;
-  title: string;
-  description: string;
-  systemPrefix: string;
-  pillars: PillarConfig[];
-  isDefault: boolean;
-  maxChars: number;
-  temperature: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Toggle {
-  id: string;
-  label: string;
-  description?: string;
-  definition?: string;
-  icon?: any;
-  prompt?: string;
-}
+// Update jsonToVariables to handle Json type from Supabase
+export const jsonToVariables = (json: Json | Record<string, any> | null): Variable[] => {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return [];
+  
+  const variables: Variable[] = [];
+  Object.keys(json).forEach(id => {
+    const varData = json[id];
+    if (varData && typeof varData === 'object' && !Array.isArray(varData)) {
+      variables.push({
+        id,
+        name: varData.name || '',
+        value: varData.value || '',
+        isRelevant: varData.isRelevant === undefined ? null : varData.isRelevant,
+        category: varData.category || 'Other',
+        code: varData.code || ''
+      });
+    }
+  });
+  
+  return variables;
+};

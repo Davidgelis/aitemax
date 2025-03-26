@@ -125,8 +125,7 @@ const PromptView = () => {
         primaryToggle: data.primary_toggle,
         secondaryToggle: data.secondary_toggle,
         variables: processedVariables,
-        tags: (data.tags as unknown as Array<{category: string, subcategory: string}>) || [],
-        templateId: data.template_id || null
+        tags: (data.tags as unknown as Array<{category: string, subcategory: string}>) || []
       };
       
       setPrompt(formattedPrompt);
@@ -427,24 +426,23 @@ const PromptView = () => {
                 setShowJson={setShowJson}
                 finalPrompt={finalPrompt}
                 setFinalPrompt={setFinalPrompt}
+                variables={variables}
+                setVariables={setVariables}
+                handleCopyPrompt={handleCopyPrompt}
+                handleSavePrompt={handleSavePrompt}
+                handleRegenerate={handleRegenerate}
                 editingPrompt={editingPrompt}
                 setEditingPrompt={setEditingPrompt}
                 showEditPromptSheet={showEditPromptSheet}
                 setShowEditPromptSheet={setShowEditPromptSheet}
-                handleSavePrompt={handleSavePrompt}
-                handleCopyPrompt={handleCopyPrompt}
                 handleOpenEditPrompt={handleOpenEditPrompt}
                 handleSaveEditedPrompt={handleSaveEditedPrompt}
-                variables={variables}
-                setVariables={setVariables}
-                handleVariableValueChange={handleVariableValueChange}
-                handleRegenerate={handleRegenerate}
                 handleAdaptPrompt={handleAdaptPrompt}
                 getProcessedPrompt={getProcessedPrompt}
-                onCreateVariable={(text) => {
-                  /* handle creating variable from selected text */
-                  setSelectedText(text);
-                }}
+                handleVariableValueChange={handleVariableValueChange}
+                selectedText={selectedText}
+                setSelectedText={setSelectedText}
+                onCreateVariable={handleCreateVariable}
               />
             ) : (
               <div className="p-4 bg-yellow-50 rounded-md border border-yellow-200">

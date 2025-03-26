@@ -114,48 +114,6 @@ export type Database = {
         }
         Relationships: []
       }
-      prompt_templates: {
-        Row: {
-          created_at: string
-          description: string | null
-          id: string
-          is_default: boolean
-          max_chars: number | null
-          pillars: Json
-          system_prefix: string | null
-          temperature: number | null
-          title: string
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_default?: boolean
-          max_chars?: number | null
-          pillars?: Json
-          system_prefix?: string | null
-          temperature?: number | null
-          title: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          is_default?: boolean
-          max_chars?: number | null
-          pillars?: Json
-          system_prefix?: string | null
-          temperature?: number | null
-          title?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       prompts: {
         Row: {
           created_at: string | null

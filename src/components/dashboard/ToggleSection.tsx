@@ -12,14 +12,6 @@ interface ToggleSectionProps {
   variant?: "primary" | "secondary" | "aurora";
   tooltipText?: string;
   className?: string;
-  showJson?: boolean;
-  setShowJson?: (show: boolean) => void;
-  refreshJson?: () => void;
-  isRefreshing?: boolean;
-  selectedPrimary?: string | null;
-  selectedSecondary?: string | null;
-  handlePrimaryToggle?: (id: string) => void;
-  handleSecondaryToggle?: (id: string) => void;
 }
 
 export const ToggleSection = ({ 
@@ -28,38 +20,8 @@ export const ToggleSection = ({
   onToggleChange, 
   variant = "primary",
   tooltipText,
-  className = "",
-  showJson,
-  setShowJson,
-  refreshJson,
-  isRefreshing,
-  selectedPrimary,
-  selectedSecondary,
-  handlePrimaryToggle,
-  handleSecondaryToggle
+  className = ""
 }: ToggleSectionProps) => {
-  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
-  
-  // Simple direct toggle handler for JSON view
-  const handleJsonToggle = (checked: boolean) => {
-    if (setShowJson) {
-      setShowJson(checked);
-    }
-  };
-  
-  // Handle refresh with debounce to prevent multiple clicks
-  const handleRefresh = () => {
-    if (!isRefreshing && !isButtonDisabled && refreshJson) {
-      setIsButtonDisabled(true);
-      refreshJson();
-      
-      // Re-enable the button after a short delay
-      setTimeout(() => {
-        setIsButtonDisabled(false);
-      }, 2000);
-    }
-  };
-
   // Function to determine the border class based on selected state and variant
   const getBorderClass = (isSelected: boolean, itemVariant: string) => {
     if (!isSelected) return "border";
@@ -77,49 +39,6 @@ export const ToggleSection = ({
     if (variant === "secondary") return "#084b49";
     return "#64bf95"; // Default to primary color for aurora
   };
-
-  // If this is being used for the JSON toggle view
-  if (showJson !== undefined && setShowJson) {
-    return (
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-xs">JSON Toggle view</span>
-        <Switch
-          checked={showJson}
-          onCheckedChange={handleJsonToggle}
-          className="scale-75"
-          variant="primary"
-        />
-        
-        {showJson && refreshJson && (
-          <button 
-            onClick={handleRefresh}
-            className="ml-1 p-1 h-6 w-6 text-accent hover:text-accent-foreground"
-            title="Refresh JSON with current prompt content"
-            disabled={isRefreshing || isButtonDisabled}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={`${isRefreshing ? 'animate-spin' : ''}`}
-            >
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-              <path d="M21 3v5h-5" />
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-              <path d="M3 21v-5h5" />
-            </svg>
-            <span className="sr-only">Refresh JSON</span>
-          </button>
-        )}
-      </div>
-    );
-  }
 
   const containerClass = "flex flex-wrap gap-2 " + className;
   const isAurora = variant === "aurora";

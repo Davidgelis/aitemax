@@ -27,7 +27,6 @@ export const usePromptState = (user: any) => {
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState(false);
   const [promptJsonStructure, setPromptJsonStructure] = useState<PromptJsonStructure | null>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   // Removed draftLoaded state since we don't want to auto-load drafts
 
   const { toast } = useToast();
@@ -52,13 +51,7 @@ export const usePromptState = (user: any) => {
     user
   );
 
-  // Check for template ID in localStorage on init
-  useEffect(() => {
-    const storedTemplateId = localStorage.getItem('selectedTemplateId');
-    if (storedTemplateId) {
-      setSelectedTemplateId(storedTemplateId);
-    }
-  }, []);
+  // Removed the useEffect that auto-loads the draft on component mount
 
   const loadSelectedDraftState = (draft: any) => {
     const draftData = loadSelectedDraft(draft);
@@ -149,8 +142,6 @@ export const usePromptState = (user: any) => {
           primaryToggle: item.primary_toggle,
           secondaryToggle: item.secondary_toggle,
           variables: jsonToVariables(item.variables as Json),
-          templateId: item.template_id || null,
-          tags: item.tags as unknown as PromptTag[] || []
         };
         
         return prompt;
@@ -252,8 +243,7 @@ export const usePromptState = (user: any) => {
         variables: variablesToJson(relevantVariables),
         current_step: currentStep,
         updated_at: new Date().toISOString(),
-        tags: generatedTags as unknown as Json, // Cast to Json for Supabase compatibility
-        template_id: selectedTemplateId
+        tags: generatedTags as unknown as Json // Cast to Json for Supabase compatibility
       };
 
       const { data, error } = await supabase
@@ -275,7 +265,6 @@ export const usePromptState = (user: any) => {
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
           variables: jsonToVariables(data[0].variables as Json),
-          templateId: data[0].template_id || null,
           tags: (data[0].tags as unknown as PromptTag[]) || [] // Safely cast to PromptTag[]
         };
         
@@ -350,7 +339,6 @@ export const usePromptState = (user: any) => {
         primary_toggle: prompt.primaryToggle,
         secondary_toggle: prompt.secondaryToggle,
         variables: variablesToJson(prompt.variables),
-        template_id: prompt.templateId,
         updated_at: new Date().toISOString()
       };
 
@@ -373,8 +361,6 @@ export const usePromptState = (user: any) => {
           primaryToggle: data[0].primary_toggle,
           secondaryToggle: data[0].secondary_toggle,
           variables: jsonToVariables(data[0].variables as Json),
-          templateId: data[0].template_id || null,
-          tags: []
         };
         
         if (prompt.jsonStructure) {
@@ -443,7 +429,6 @@ export const usePromptState = (user: any) => {
     setMasterCommand(prompt.masterCommand || "");
     setSelectedPrimary(prompt.primaryToggle);
     setSelectedSecondary(prompt.secondaryToggle);
-    setSelectedTemplateId(prompt.templateId);
     
     if (prompt.jsonStructure) {
       setPromptJsonStructure(prompt.jsonStructure);
@@ -546,8 +531,6 @@ export const usePromptState = (user: any) => {
     setIsViewingSavedPrompt,
     promptJsonStructure,
     setPromptJsonStructure,
-    selectedTemplateId,
-    setSelectedTemplateId,
     fetchSavedPrompts,
     handleNewPrompt,
     handleSavePrompt,
