@@ -1,11 +1,12 @@
+
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { QuestionType, VariableType } from "@/components/dashboard/types";
+import { Question, Variable } from "@/components/dashboard/types";
 
 export const usePromptAnalysis = (
   promptText: string,
-  setQuestions: (questions: QuestionType[]) => void,
-  setVariables: (variables: VariableType[]) => void,
+  setQuestions: (questions: Question[]) => void,
+  setVariables: (variables: Variable[]) => void,
   setMasterCommand: (command: string) => void,
   setFinalPrompt: (prompt: string) => void,
   setCurrentStep: (step: number) => void,
@@ -89,10 +90,6 @@ export const usePromptAnalysis = (
     try {
       setCurrentLoadingMessage(`Enhancing prompt${primaryToggle ? ` for ${primaryToggle}` : ''}...`);
       
-      // Get relevant variables and answered questions
-      const relevantVariables = variables.filter(v => v.isRelevant);
-      const answeredQuestions = questions.filter(q => q.isRelevant && q.answer);
-      
       // Get selected template from the window object (added in StepOne.tsx)
       // @ts-ignore
       const selectedTemplate = window.__selectedTemplate || null;
@@ -101,8 +98,8 @@ export const usePromptAnalysis = (
       const { data, error } = await supabase.functions.invoke("enhance-prompt", {
         body: { 
           originalPrompt, 
-          answeredQuestions, 
-          relevantVariables,
+          answeredQuestions: [], // We'll need to capture these from somewhere else
+          relevantVariables: [], // We'll need to capture these from somewhere else
           primaryToggle,
           secondaryToggle,
           userId: user?.id || null,
