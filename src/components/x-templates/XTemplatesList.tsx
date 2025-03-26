@@ -69,10 +69,29 @@ const defaultTemplates: TemplateType[] = [
   }
 ];
 
+// Create a global event for template updates
+export const addTemplate = (template: TemplateType) => {
+  const event = new CustomEvent('template-added', { detail: template });
+  window.dispatchEvent(event);
+};
+
 export const XTemplatesList = () => {
   const { toast } = useToast();
   const [templates, setTemplates] = useState<TemplateType[]>(defaultTemplates);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
+
+  // Listen for template-added events
+  useState(() => {
+    const handleTemplateAdded = (event: CustomEvent<TemplateType>) => {
+      setTemplates(prevTemplates => [...prevTemplates, event.detail]);
+    };
+
+    window.addEventListener('template-added', handleTemplateAdded as EventListener);
+    
+    return () => {
+      window.removeEventListener('template-added', handleTemplateAdded as EventListener);
+    };
+  });
 
   const handleSelectTemplate = (id: string) => {
     setSelectedTemplateId(id);

@@ -10,6 +10,8 @@ import { Card } from "@/components/ui/card";
 import { GripVertical, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PillarType, TemplateType } from "./XTemplateCard";
+import { addTemplate } from "./XTemplatesList";
+import { v4 as uuidv4 } from "uuid";
 
 interface TemplateEditorProps {
   template?: TemplateType;
@@ -26,6 +28,7 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
     ]
   );
   const [temperature, setTemperature] = useState<number[]>([template?.temperature || 0.7]);
+  const [characterLimit, setCharacterLimit] = useState<number[]>([template?.characterLimit || 3000]);
   const [draggedPillar, setDraggedPillar] = useState<number | null>(null);
 
   const handleAddPillar = () => {
@@ -70,7 +73,47 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
   };
 
   const handleSave = () => {
-    // This would save the template in a real implementation
+    if (!name.trim()) {
+      toast({
+        title: "Template name required",
+        description: "Please provide a name for your template.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!role.trim()) {
+      toast({
+        title: "Role definition required",
+        description: "Please provide a role definition for your template.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (pillars.length === 0) {
+      toast({
+        title: "Pillars required",
+        description: "Please add at least one pillar to your template.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Create the new template object
+    const newTemplate: TemplateType = {
+      id: template?.id || uuidv4(),
+      name: name.trim(),
+      role: role.trim(),
+      pillars: pillars,
+      temperature: temperature[0],
+      characterLimit: characterLimit[0],
+      createdAt: template?.createdAt || new Date().toLocaleDateString()
+    };
+
+    // Add the template and show success message
+    addTemplate(newTemplate);
+    
     toast({
       title: template ? "Template updated" : "Template created",
       description: template ? "Your changes have been saved." : "Your new template has been created."
@@ -184,6 +227,23 @@ export const TemplateEditor = ({ template }: TemplateEditorProps) => {
           <div className="flex justify-between text-xs text-muted-foreground mt-2">
             <span>More Deterministic (0.0)</span>
             <span>More Creative (1.0)</span>
+          </div>
+        </div>
+
+        <div className="space-y-4 mt-2">
+          <Label htmlFor="characterLimit" className="text-sm font-medium">Character Limit: {characterLimit[0]}</Label>
+          <Slider
+            id="characterLimit"
+            value={characterLimit}
+            onValueChange={setCharacterLimit}
+            min={1000}
+            max={10000}
+            step={500}
+            className="mt-4"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground mt-2">
+            <span>Shorter (1000)</span>
+            <span>Longer (10000)</span>
           </div>
         </div>
       </div>
