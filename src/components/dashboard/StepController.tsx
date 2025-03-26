@@ -149,13 +149,14 @@ export const StepController = () => {
         <StepOne
           promptText={promptText}
           setPromptText={setPromptText}
-          onContinue={() => handleStepChange(2)}
-          selectedPrimary={selectedPrimary}
+          selectedPrimary={selectedPrimary || null}
           setSelectedPrimary={setSelectedPrimary}
-          selectedSecondary={selectedSecondary}
+          selectedSecondary={selectedSecondary || null}
           setSelectedSecondary={setSelectedSecondary}
           primaryToggles={primaryToggles}
           secondaryToggles={secondaryToggles}
+          onAnalyze={() => handleStepChange(2)}
+          isLoading={isLoading}
         />
       )}
       

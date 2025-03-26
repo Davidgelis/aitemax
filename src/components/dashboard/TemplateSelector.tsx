@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Info } from "lucide-react";
+import { Info } from "lucide-react"; // Changed from InfoCircle to Info
 
 interface TemplateSelectorProps {
   templates: TemplateType[];

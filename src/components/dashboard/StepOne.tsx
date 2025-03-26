@@ -2,15 +2,17 @@
 import { ToggleSection } from "./ToggleSection";
 import { PromptEditor } from "./PromptEditor";
 import { Separator } from "@/components/ui/separator";
-import { primaryToggles, secondaryToggles } from "./constants";
+import { Toggle } from "./types";
 
 interface StepOneProps {
   promptText: string;
   setPromptText: (text: string) => void;
   selectedPrimary: string | null;
+  setSelectedPrimary: (id: string | null) => void;
   selectedSecondary: string | null;
-  handlePrimaryToggle: (id: string) => void;
-  handleSecondaryToggle: (id: string) => void;
+  setSelectedSecondary: (id: string | null) => void;
+  primaryToggles: Toggle[];
+  secondaryToggles: Toggle[];
   onAnalyze: () => void;
   isLoading: boolean;
 }
@@ -19,13 +21,23 @@ export const StepOne = ({
   promptText,
   setPromptText,
   selectedPrimary,
+  setSelectedPrimary,
   selectedSecondary,
-  handlePrimaryToggle,
-  handleSecondaryToggle,
+  setSelectedSecondary,
+  primaryToggles,
+  secondaryToggles,
   onAnalyze,
   isLoading
 }: StepOneProps) => {
-  const maxCharacterLimit = 3000; // Set the character limit to 3000
+  const maxCharacterLimit = 3000;
+  
+  const handlePrimaryToggle = (id: string) => {
+    setSelectedPrimary(id === selectedPrimary ? null : id);
+  };
+  
+  const handleSecondaryToggle = (id: string) => {
+    setSelectedSecondary(id === selectedSecondary ? null : id);
+  };
 
   return (
     <>

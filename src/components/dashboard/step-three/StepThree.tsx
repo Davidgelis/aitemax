@@ -1,8 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ActionButtons } from './ActionButtons';
-import { FinalPromptDisplay } from './FinalPromptDisplay';
-import { MasterCommandSection } from '../MasterCommandSection';
 
 interface StepThreeProps {
   masterCommand: string;
@@ -19,7 +17,9 @@ export const StepThree = ({ masterCommand, finalPrompt, onBack }: StepThreeProps
       </div>
 
       <div className="border rounded-xl p-6 bg-card">
-        <FinalPromptDisplay finalPrompt={finalPrompt} />
+        <div className="prose prose-sm max-w-none mb-6 whitespace-pre-wrap">
+          {finalPrompt}
+        </div>
         
         <div className="mt-6">
           <ActionButtons 

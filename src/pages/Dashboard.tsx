@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AIModel } from "@/components/dashboard/types";
+import { AIModel, SavedPrompt } from "@/components/dashboard/types";
 import { UserSidebar } from "@/components/dashboard/UserSidebar";
 import { StepController } from "@/components/dashboard/StepController";
 import { usePromptState } from "@/hooks/usePromptState";
@@ -57,18 +58,31 @@ const Dashboard = () => {
   
   const promptState = usePromptState(user);
   
-  const filteredPrompts = promptState.savedPrompts.filter(
-    (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm.toLowerCase())
-  );
+  // Adapter for incompatible types
+  const adaptedLoadSavedPrompt = (prompt: SavedPrompt) => {
+    if (promptState.loadSavedPrompt) {
+      promptState.loadSavedPrompt(prompt.id);
+    }
+  };
+  
+  const adaptedHandleDeletePrompt = (prompt: SavedPrompt) => {
+    if (promptState.handleDeletePrompt) {
+      promptState.handleDeletePrompt(prompt.id);
+    }
+  };
+  
+  const filteredPrompts = promptState.savedPrompts?.filter(
+    (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm?.toLowerCase() || "")
+  ) || [];
   
   // Enhanced logging for better prompt tracking
   useEffect(() => {
-    if (promptState.savedPrompts.length > 0) {
+    if (promptState.savedPrompts?.length > 0) {
       console.log(`User has ${promptState.savedPrompts.length} saved prompts`, 
         promptState.savedPrompts.map(p => ({id: p.id, title: p.title})));
     }
     
-    if (promptState.drafts.length > 0) {
+    if (promptState.drafts?.length > 0) {
       console.log(`User has ${promptState.drafts.length} draft prompts`,
         promptState.drafts.map(d => ({id: d.id, title: d.title})));
     }
@@ -83,9 +97,9 @@ const Dashboard = () => {
       // 4. We're on step 2 (not step 1 or 3)
       if (nextPath !== location.pathname && 
           promptState.promptText && 
-          !promptState.isViewingSavedPrompt && 
+          promptState.isViewingSavedPrompt === false && 
           promptState.currentStep === 2) {
-        promptState.saveDraft();
+        promptState.saveDraft?.();
       }
     };
 
@@ -112,7 +126,7 @@ const Dashboard = () => {
       window.removeEventListener('popstate', handleRouteChange);
       window.history.pushState = originalPushState;
     };
-  }, [location.pathname, promptState.promptText, promptState.isViewingSavedPrompt, promptState.saveDraft, promptState.currentStep]);
+  }, [location.pathname, promptState]);
   
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -151,7 +165,7 @@ const Dashboard = () => {
       };
       
       fetchUserProfile();
-      promptState.fetchSavedPrompts();
+      promptState.fetchSavedPrompts?.();
     }
   }, [user]);
 
@@ -168,21 +182,21 @@ const Dashboard = () => {
         <UserSidebar 
           user={user}
           userProfile={userProfile}
-          savedPrompts={promptState.savedPrompts}
+          savedPrompts={promptState.savedPrompts || []}
           filteredPrompts={filteredPrompts}
-          searchTerm={promptState.searchTerm}
-          setSearchTerm={promptState.setSearchTerm}
-          isLoadingPrompts={promptState.isLoadingPrompts}
-          handleNewPrompt={promptState.handleNewPrompt}
-          handleDeletePrompt={promptState.handleDeletePrompt}
-          handleDuplicatePrompt={promptState.handleDuplicatePrompt}
-          handleRenamePrompt={promptState.handleRenamePrompt}
-          loadSavedPrompt={promptState.loadSavedPrompt}
-          drafts={promptState.drafts}
-          isLoadingDrafts={promptState.isLoadingDrafts}
-          loadDraft={promptState.loadSelectedDraft}
-          handleDeleteDraft={promptState.handleDeleteDraft}
-          currentDraftId={promptState.currentDraftId}
+          searchTerm={promptState.searchTerm || ""}
+          setSearchTerm={promptState.setSearchTerm || (() => {})}
+          isLoadingPrompts={promptState.isLoadingPrompts || false}
+          handleNewPrompt={promptState.handleNewPrompt || (() => {})}
+          handleDeletePrompt={adaptedHandleDeletePrompt}
+          handleDuplicatePrompt={(prompt) => promptState.handleDuplicatePrompt?.(prompt.id)}
+          handleRenamePrompt={(prompt, newName) => promptState.handleRenamePrompt?.(prompt.id, newName)}
+          loadSavedPrompt={adaptedLoadSavedPrompt}
+          drafts={promptState.drafts || []}
+          isLoadingDrafts={promptState.isLoadingDrafts || false}
+          loadDraft={promptState.loadSelectedDraft || (() => {})}
+          handleDeleteDraft={promptState.handleDeleteDraft || (() => {})}
+          currentDraftId={promptState.currentDraftId || null}
         />
       </div>
     </SidebarProvider>
