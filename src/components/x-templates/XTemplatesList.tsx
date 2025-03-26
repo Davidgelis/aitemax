@@ -93,7 +93,7 @@ export const XTemplatesList = () => {
         <AlertCircle className="w-5 h-5 text-[#33fea6] mt-0.5 flex-shrink-0" />
         <div>
           <p className="text-sm">
-            <span className="font-medium">Recommendation:</span> We highly recommend using the default Four-Pillar Framework template if you are not highly proficient in prompt engineering. It provides a structured approach that helps create effective prompts.
+            <span className="font-medium">Recommendation:</span> We strongly recommend utilizing the default Aitema X Framework template, especially if you do not have advanced expertise in prompt engineering. This proven framework provides a clear, structured methodology designed specifically to enhance your prompt-writing capabilities, enabling you to generate more precise, impactful, and effective results.
           </p>
         </div>
       </div>
