@@ -37,31 +37,31 @@ const defaultTemplates: TemplateType[] = [
   },
   {
     id: "creative",
-    name: "Creative Writing Specialist",
-    role: "You are a master storyteller and creative writing expert that helps craft engaging narratives and characters.",
+    name: "Simple Four-Pillar Framework",
+    role: "You are a prompt engineer that helps structure prompts using a simplified version of the four-pillar framework.",
     pillars: [
       {
         id: "1",
-        title: "Narrative Structure",
-        description: "Apply classic or experimental narrative structures appropriate to the genre."
+        title: "Task",
+        description: "What needs to be done? Define the main objective or goal clearly."
       },
       {
         id: "2",
-        title: "Character Development",
-        description: "Create multidimensional characters with clear motivations and arcs."
+        title: "Persona",
+        description: "Who should the AI be? Define the role and expertise needed."
       },
       {
         id: "3",
-        title: "Setting & Atmosphere",
-        description: "Build immersive worlds with sensory details and atmosphere."
+        title: "Conditions",
+        description: "What are the key requirements or constraints?"
       },
       {
         id: "4",
-        title: "Voice & Style",
-        description: "Adapt tone, vocabulary, and pacing to match the intended style."
+        title: "Instructions",
+        description: "What specific steps or guidelines should be followed?"
       }
     ],
-    temperature: 0.9,
+    temperature: 0.7,
     createdAt: "Example Template"
   }
 ];
