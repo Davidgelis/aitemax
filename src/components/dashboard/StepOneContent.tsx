@@ -119,8 +119,6 @@ export const StepOneContent = ({
             </div>
           </div>
         </div>
-        
-        {/* Removed the Cognitive Prompt Perfection Model toggle and text */}
       </div>
 
       {uploadedImages.length > 0 && (
