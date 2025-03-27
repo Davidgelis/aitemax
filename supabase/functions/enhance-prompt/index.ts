@@ -51,9 +51,21 @@ serve(async (req) => {
       .filter(q => q.answer && q.answer.trim() !== "")
       .map(q => `${q.text}\nAnswer: ${q.answer}`).join("\n\n");
     
-    // Use the template's role directly as the system message
-    // This is the key change - we're no longer telling the AI to act as a prompt engineer
-    let systemMessage = template?.role || "You are a helpful assistant.";
+    // Create a prefix for the system message that instructs the AI to create a finalized prompt
+    // This is crucial to ensure we get a usable prompt, not instructions
+    const systemPrefix = `You are creating a FINALIZED PROMPT that will be directly used in another AI system. DO NOT give instructions on how to create a prompt - instead, generate the actual prompt itself that is ready to be used.
+
+IMPORTANT: Your output must be the final prompt text itself, not instructions or explanations about the prompt.`;
+    
+    // Use the template's role with our prefix
+    let systemMessage = systemPrefix;
+    
+    // Add the template's role if available
+    if (template?.role) {
+      systemMessage += `\n\n${template.role}`;
+    } else {
+      systemMessage += `\n\nYou are a helpful assistant.`;
+    }
     
     // Add toggle information to the system message if available
     if (primaryToggle) {
@@ -64,7 +76,6 @@ serve(async (req) => {
     }
     
     // Construct a user message that directly requests content creation
-    // Instead of asking to enhance a prompt, we're asking to create content
     let userMessage = originalPrompt;
     
     // Add context from answered questions if available
@@ -80,6 +91,9 @@ serve(async (req) => {
         userMessage += `\n- ${pillar.title}: ${pillar.description}`;
       });
     }
+    
+    // Add an explicit instruction to create a finalized prompt
+    userMessage += `\n\nIMPORTANT: Generate a FINALIZED PROMPT text that I can directly use with another AI system. DO NOT provide instructions on how to write a prompt or explanations - just give me the prompt itself.`;
     
     userMessage += `\n\nPlease limit your response to ${maxCharacterLimit} characters.`;
     
