@@ -51,37 +51,30 @@ serve(async (req) => {
       .filter(q => q.answer && q.answer.trim() !== "")
       .map(q => `${q.text}\nAnswer: ${q.answer}`).join("\n\n");
     
-    // Create a dynamic system message based on the template
-    let systemMessage = "";
+    // Use the template's role directly as the system message
+    // This is the key change - we're no longer telling the AI to act as a prompt engineer
+    let systemMessage = template?.role || "You are a helpful assistant.";
     
-    if (template) {
-      // Use the template's role directly as the system message
-      systemMessage = template.role;
-      
-      // Add toggle information to the system message if available
-      if (primaryToggle) {
-        systemMessage += `\n\nPrimary Focus: ${primaryToggle}`;
-      }
-      if (secondaryToggle) {
-        systemMessage += `\nSecondary Focus: ${secondaryToggle}`;
-      }
-    } else {
-      // Default system message if no template is provided
-      systemMessage = "You are a helpful assistant that creates content based on user prompts.";
+    // Add toggle information to the system message if available
+    if (primaryToggle) {
+      systemMessage += `\n\nFocus area: ${primaryToggle}`;
+    }
+    if (secondaryToggle) {
+      systemMessage += `\nSecondary focus: ${secondaryToggle}`;
     }
     
-    // Construct a user message that includes the original prompt, additional context,
-    // and explicit instructions to create content in the format of the template
-    let userMessage = `Please create content based on the following prompt:\n\n${originalPrompt}`;
+    // Construct a user message that directly requests content creation
+    // Instead of asking to enhance a prompt, we're asking to create content
+    let userMessage = originalPrompt;
     
     // Add context from answered questions if available
     if (context) {
       userMessage += `\n\nAdditional context:\n${context}`;
     }
     
-    // Include information about the pillars if available in the template
+    // If template has pillars, add structured guidance for the content
     if (template && template.pillars && template.pillars.length > 0) {
-      userMessage += "\n\nPlease structure your response according to these pillars:";
+      userMessage += "\n\nPlease structure your response to include:";
       
       template.pillars.forEach(pillar => {
         userMessage += `\n- ${pillar.title}: ${pillar.description}`;
