@@ -22,21 +22,21 @@ const getDefaultTemplate = (): TemplateType => {
       {
         id: "2",
         title: "Persona",
-        description: "Assume the role of an advanced scenario generator with expertise in language, prompt engineering, and multi-perspective analysis."
+        description: "Assume the role of an advanced scenario generator with deep expertise in language, prompt engineering, and multi-perspective analysis. You will simulate multiple well-established personas in a professional corporate setting, each with a unique focus and viewpoint."
       },
       {
         id: "3",
         title: "Conditions",
-        description: "Structure-Oriented, Syntax-Focused, Categorical Approach, Cross-Checking with Multiple Data Points, Context Awareness & Contradictions, Recognize Pattern-Based Biases, Highlight Incomplete Information, Define ambiguous terms."
+        description: "When correcting and enhancing the prompt, adhere to these comprehensive guidelines to ensure accuracy, clarity, and a consistent structure."
       },
       {
         id: "4",
         title: "Instructions",
-        description: "Outline your approach, analyze the input, synthesize and organize into a coherent structure, ensure the final output follows the four pillars, make the prompt complete and standalone."
+        description: "Follow these step-by-step guidelines to correct and enhance the given input. Always ensure the final output is a complete, standalone prompt with the four-pillar structure."
       }
     ],
     temperature: 0.7,
-    characterLimit: 3000,
+    characterLimit: 5000,
     isDefault: true,
     createdAt: "System Default"
   };
