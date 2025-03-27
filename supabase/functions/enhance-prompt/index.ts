@@ -57,7 +57,9 @@ serve(async (req) => {
 
 IMPORTANT: Your output must be the final prompt text itself, not instructions or explanations about the prompt.
 
-START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This title should be concise and capture the essence of the prompt.`;
+START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This title should be concise and capture the essence of the prompt.
+
+IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING (## Subtitle) in the generated prompt. Each pillar should be its own separate section of the prompt.`;
     
     // Use the template's role with our prefix
     let systemMessage = systemPrefix;
@@ -87,17 +89,23 @@ START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This
     
     // If template has pillars, add structured guidance for the content
     if (template && template.pillars && template.pillars.length > 0) {
-      userMessage += "\n\nPlease structure your response to include:";
+      userMessage += "\n\nPlease structure your response to include the following sections using the pillars as H2 headings (## Heading):";
       
       template.pillars.forEach(pillar => {
-        userMessage += `\n- ${pillar.title}: ${pillar.description}`;
+        userMessage += `\n- ## ${pillar.title}: ${pillar.description}`;
       });
+      
+      userMessage += "\n\nExample format:\n# Main Prompt Title\n\n## First Pillar Title\nContent related to first pillar...\n\n## Second Pillar Title\nContent related to second pillar...";
     }
     
     // Add an explicit instruction to create a finalized prompt
     userMessage += `\n\nIMPORTANT: Generate a FINALIZED PROMPT text that I can directly use with another AI system. DO NOT provide instructions on how to write a prompt or explanations - just give me the prompt itself.`;
     
     userMessage += `\n\nRemember to start with a 4-6 word title formatted as a Markdown H1 heading (# Title) that captures the essence of the prompt.`;
+    
+    if (template && template.pillars && template.pillars.length > 0) {
+      userMessage += `\n\nAlso remember to format each pillar title as a Markdown H2 heading (## Subtitle) to create distinct sections in your response.`;
+    }
     
     userMessage += `\n\nPlease limit your response to ${maxCharacterLimit} characters.`;
     
