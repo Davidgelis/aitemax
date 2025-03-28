@@ -3,10 +3,9 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, Edit, Trash2, Eye, MoreVertical } from "lucide-react";
+import { Check, Edit, Trash2, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { TemplateEditor } from "./TemplateEditor";
 import { useToast } from "@/hooks/use-toast";
 import { deleteTemplate } from "./XTemplatesList";
@@ -113,7 +112,7 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
             </div>
             
             {!isSystemDefault && (
-              <div className="flex gap-1">
+              <div className="flex gap-2">
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button variant="ghost" size="sm">
