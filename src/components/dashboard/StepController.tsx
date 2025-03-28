@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -231,9 +232,22 @@ export const StepController = ({
       
       try {
         console.log("StepController: Enhancing prompt for step 3 with o3-mini...");
+        console.log("StepController: Number of questions:", questions.length);
+        console.log("StepController: Number of variables:", variables.length);
         
         // First, prepare the data by marking unanswered questions and empty variables as not relevant
-        prepareDataForEnhancement();
+        const preparedData = prepareDataForEnhancement();
+        console.log("StepController: Prepared data", {
+          questionCount: preparedData.updatedQuestions.length,
+          variableCount: preparedData.updatedVariables.length
+        });
+        
+        // Log some debug information about the questions and variables
+        const relevantQuestions = preparedData.updatedQuestions.filter(q => q.isRelevant === true);
+        const relevantVariables = preparedData.updatedVariables.filter(v => v.isRelevant === true);
+        
+        console.log("StepController: Relevant questions count:", relevantQuestions.length);
+        console.log("StepController: Relevant variables count:", relevantVariables.length);
         
         // Then use the enhancePromptWithGPT function to get an enhanced prompt
         await enhancePromptWithGPT(

@@ -155,7 +155,7 @@ export const useQuestionsAndVariables = (
       
       // Filter out only answered and relevant questions
       const answeredQuestions = updatedQuestions.filter(
-        q => q.answer && q.answer.trim() !== "" && q.isRelevant !== false
+        q => q.answer && q.answer.trim() !== "" && q.isRelevant === true
       );
       
       // Filter out only relevant variables with values
@@ -172,6 +172,10 @@ export const useQuestionsAndVariables = (
         userId: user?.id ? "Present" : "None",
         promptId: promptId ? "Present" : "None"
       });
+      
+      // Log more detailed input data for debugging
+      console.log("First few answered questions:", answeredQuestions.slice(0, 2));
+      console.log("First few relevant variables:", relevantVariables.slice(0, 2));
       
       const { data, error } = await supabase.functions.invoke('enhance-prompt', {
         body: {

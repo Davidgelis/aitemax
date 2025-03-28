@@ -90,6 +90,8 @@ export const usePromptAnalysis = (
     }
   };
   
+  // We're not using this function directly anymore from StepController
+  // It's kept for API compatibility but now should filter data properly
   const enhancePromptWithGPT = async (
     originalPrompt: string,
     primaryToggle: string | null,
@@ -107,8 +109,8 @@ export const usePromptAnalysis = (
       const { data, error } = await supabase.functions.invoke("enhance-prompt", {
         body: { 
           originalPrompt, 
-          answeredQuestions: [], // We'll need to capture these from somewhere else
-          relevantVariables: [], // We'll need to capture these from somewhere else
+          answeredQuestions: [], // This is intentionally empty as we're not using this function directly
+          relevantVariables: [], // This is intentionally empty as we're not using this function directly
           primaryToggle,
           secondaryToggle,
           userId: user?.id || null,

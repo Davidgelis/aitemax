@@ -39,9 +39,18 @@ serve(async (req) => {
     console.log(`Using template: ${template ? template.name : "default"}`);
     console.log(`Character limit: ${maxCharacterLimit}`);
     console.log(`Temperature: ${temperature}`);
-    console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
+    console.log(`Original prompt: "${originalPrompt?.substring(0, 100)}..."`);
+    
+    // Add more detailed logging to debug the input data
     console.log(`Answered questions count: ${answeredQuestions?.length || 0}`);
+    if (answeredQuestions && answeredQuestions.length > 0) {
+      console.log(`First few questions: ${JSON.stringify(answeredQuestions.slice(0, 2))}`);
+    }
+    
     console.log(`Relevant variables count: ${relevantVariables?.length || 0}`);
+    if (relevantVariables && relevantVariables.length > 0) {
+      console.log(`First few variables: ${JSON.stringify(relevantVariables.slice(0, 2))}`);
+    }
 
     // Check if we have a valid prompt to enhance
     if (!originalPrompt || originalPrompt.trim() === "") {
@@ -53,10 +62,10 @@ serve(async (req) => {
       apiKey: openAIApiKey
     });
 
-    // Prepare context from answered questions
+    // Prepare context from answered questions - only use questions that are marked as relevant and have answers
     const context = Array.isArray(answeredQuestions) 
       ? answeredQuestions
-          .filter(q => q.answer && q.answer.trim() !== "")
+          .filter(q => q.isRelevant === true && q.answer && q.answer.trim() !== "")
           .map(q => `${q.text}\nAnswer: ${q.answer}`).join("\n\n")
       : "";
     
@@ -138,6 +147,12 @@ IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING, 
     ];
 
     try {
+      console.log("Sending request to OpenAI with following setup:");
+      console.log(`- System message: ${systemMessage.substring(0, 100)}...`);
+      console.log(`- User message: ${userMessage.substring(0, 100)}...`);
+      console.log(`- Temperature: ${temperature}`);
+      console.log(`- Model: gpt-4o`);
+      
       // Make the API call
       const completion = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -146,6 +161,7 @@ IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING, 
       });
 
       const enhancedPrompt = completion.choices[0].message.content;
+      console.log(`Enhanced prompt generated successfully. Length: ${enhancedPrompt?.length || 0}`);
       
       return new Response(JSON.stringify({ 
         enhancedPrompt,
