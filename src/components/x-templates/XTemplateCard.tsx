@@ -127,8 +127,12 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
                 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="text-destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-destructive hover:text-[#fd5151] group"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2 group-hover:text-[#fd5151]" />
                       Delete
                     </Button>
                   </AlertDialogTrigger>
@@ -141,7 +145,7 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-4">
                       <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
-                      <AlertDialogAction className="bg-[#ea384c] hover:bg-[#ea384c]/90" onClick={handleDelete}>Delete</AlertDialogAction>
+                      <AlertDialogAction className="bg-[#fd5151] hover:bg-[#fd5151]/90" onClick={handleDelete}>Delete</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>

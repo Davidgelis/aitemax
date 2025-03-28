@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -34,6 +35,10 @@ export default {
         },
         accent: {
           DEFAULT: "#041524",
+        },
+        danger: {
+          DEFAULT: "#fd5151",
+          hover: "#fd5151",
         },
         green: {
           300: "#4ade80", // Light green color
