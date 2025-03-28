@@ -121,6 +121,7 @@ export const UserSidebar = ({
       <SidebarTrigger className="fixed right-4 top-2 z-50 bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
       
       <SidebarContent>
+        {/* User profile section */}
         <div className="p-4 flex items-center justify-between border-b mt-8">
           <div className="flex items-center gap-3">
             {userProfile?.avatar_url ? (
@@ -186,6 +187,7 @@ export const UserSidebar = ({
           </DropdownMenu>
         </div>
 
+        {/* New prompt button */}
         <div className="flex justify-center my-3">
           <button
             onClick={handleNewPrompt}
@@ -196,6 +198,7 @@ export const UserSidebar = ({
           </button>
         </div>
 
+        {/* Search input */}
         <div className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -216,6 +219,7 @@ export const UserSidebar = ({
             </div>
           ) : filteredContent.length > 0 ? (
             <>
+              {/* Drafts section */}
               {!searchTerm && drafts.length > 0 && (
                 <div className="px-4 py-2 border-b bg-muted/20">
                   <div className="flex items-center gap-2">
@@ -252,7 +256,7 @@ export const UserSidebar = ({
                             e.stopPropagation();
                             setDraftToDelete(draft.id);
                           }}
-                          className="p-2 hover:text-destructive transition-colors"
+                          className="p-2 hover:text-[#fd5151] transition-colors trash-button"
                           title="Delete draft"
                           aria-label="Delete draft"
                         >
@@ -269,7 +273,7 @@ export const UserSidebar = ({
                         <AlertDialogFooter className="mt-4">
                           <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
                           <AlertDialogAction 
-                            className="bg-[#ea384c] hover:bg-[#ea384c]/90" 
+                            className="bg-[#fd5151] hover:bg-[#fd5151]/90" 
                             onClick={(e) => {
                               e.stopPropagation();
                               if (handleDeleteDraft && draft.id) {
@@ -286,6 +290,7 @@ export const UserSidebar = ({
                 </div>
               ))}
 
+              {/* Saved prompts section */}
               {!searchTerm && savedPrompts.length > 0 && (
                 <div className="px-4 py-2 border-b bg-muted/20">
                   <div className="flex items-center gap-2">
@@ -295,6 +300,7 @@ export const UserSidebar = ({
                 </div>
               )}
               
+              {/* Filtered or saved prompts */}
               {searchTerm ? filteredPrompts.map((item) => (
                 <div
                   key={item.id}
@@ -339,11 +345,14 @@ export const UserSidebar = ({
                           <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-[#33fea6]" />
                         </button>
                       )}
-                      <AlertDialog>
+                      <AlertDialog open={promptToDelete === item.id} onOpenChange={(open) => !open && setPromptToDelete(null)}>
                         <AlertDialogTrigger asChild>
                           <button
-                            onClick={(e) => e.stopPropagation()}
-                            className="p-1 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPromptToDelete(item.id);
+                            }}
+                            className="p-1 text-muted-foreground hover:text-[#fd5151] trash-button"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -358,7 +367,7 @@ export const UserSidebar = ({
                           <AlertDialogFooter className="mt-4">
                             <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
                             <AlertDialogAction 
-                              className="bg-[#ea384c] hover:bg-[#ea384c]/90" 
+                              className="bg-[#fd5151] hover:bg-[#fd5151]/90" 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeletePrompt(item.id);
@@ -421,7 +430,7 @@ export const UserSidebar = ({
                           <AlertDialogTrigger asChild>
                             <button
                               onClick={(e) => e.stopPropagation()}
-                              className="p-1 text-muted-foreground hover:text-destructive"
+                              className="p-1 text-muted-foreground hover:text-[#fd5151] trash-button"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -436,7 +445,7 @@ export const UserSidebar = ({
                             <AlertDialogFooter className="mt-4">
                               <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
                               <AlertDialogAction 
-                                className="bg-[#ea384c] hover:bg-[#ea384c]/90" 
+                                className="bg-[#fd5151] hover:bg-[#fd5151]/90" 
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleDeletePrompt(item.id);
