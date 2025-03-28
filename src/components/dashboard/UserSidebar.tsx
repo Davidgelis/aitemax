@@ -1,4 +1,5 @@
-import { User, Pencil, Trash2, Search, FileText, Clock, BarChart } from "lucide-react";
+
+import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText, Clock, BarChart } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -121,7 +122,6 @@ export const UserSidebar = ({
       <SidebarTrigger className="fixed right-4 top-2 z-50 bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
       
       <SidebarContent>
-        {/* User profile section */}
         <div className="p-4 flex items-center justify-between border-b mt-8">
           <div className="flex items-center gap-3">
             {userProfile?.avatar_url ? (
@@ -187,7 +187,6 @@ export const UserSidebar = ({
           </DropdownMenu>
         </div>
 
-        {/* New prompt button */}
         <div className="flex justify-center my-3">
           <button
             onClick={handleNewPrompt}
@@ -198,7 +197,6 @@ export const UserSidebar = ({
           </button>
         </div>
 
-        {/* Search input */}
         <div className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -219,7 +217,6 @@ export const UserSidebar = ({
             </div>
           ) : filteredContent.length > 0 ? (
             <>
-              {/* Drafts section */}
               {!searchTerm && drafts.length > 0 && (
                 <div className="px-4 py-2 border-b bg-muted/20">
                   <div className="flex items-center gap-2">
@@ -256,11 +253,11 @@ export const UserSidebar = ({
                             e.stopPropagation();
                             setDraftToDelete(draft.id);
                           }}
-                          className="p-2 hover:text-[#fd5151] transition-colors trash-button"
+                          className="p-2 hover:text-destructive transition-colors opacity-0 group-hover/draft:opacity-100"
                           title="Delete draft"
                           aria-label="Delete draft"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash className="h-4 w-4" />
                         </button>
                       </AlertDialogTrigger>
                       <AlertDialogContent className="bg-white border p-6">
@@ -273,7 +270,7 @@ export const UserSidebar = ({
                         <AlertDialogFooter className="mt-4">
                           <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
                           <AlertDialogAction 
-                            className="bg-[#fd5151] hover:bg-[#fd5151]/90" 
+                            className="bg-[#ea384c] hover:bg-[#ea384c]/90" 
                             onClick={(e) => {
                               e.stopPropagation();
                               if (handleDeleteDraft && draft.id) {
@@ -290,7 +287,6 @@ export const UserSidebar = ({
                 </div>
               ))}
 
-              {/* Saved prompts section */}
               {!searchTerm && savedPrompts.length > 0 && (
                 <div className="px-4 py-2 border-b bg-muted/20">
                   <div className="flex items-center gap-2">
@@ -300,7 +296,6 @@ export const UserSidebar = ({
                 </div>
               )}
               
-              {/* Filtered or saved prompts */}
               {searchTerm ? filteredPrompts.map((item) => (
                 <div
                   key={item.id}
@@ -333,7 +328,7 @@ export const UserSidebar = ({
                         <span className="text-xs text-muted-foreground">{item.date}</span>
                       </div>
                     </div>
-                    <div className="flex items-center ml-auto gap-2">
+                    <div className="flex items-center ml-auto w-[30%] justify-center h-full flex-shrink-0">
                       {editingPromptId !== item.id && (
                         <button 
                           onClick={(e) => {
@@ -345,39 +340,59 @@ export const UserSidebar = ({
                           <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-[#33fea6]" />
                         </button>
                       )}
-                      <AlertDialog open={promptToDelete === item.id} onOpenChange={(open) => !open && setPromptToDelete(null)}>
-                        <AlertDialogTrigger asChild>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPromptToDelete(item.id);
-                            }}
-                            className="p-1 text-muted-foreground hover:text-[#fd5151] trash-button"
+                      <DropdownMenu>
+                        <DropdownMenuTrigger>
+                          <div 
+                            className="p-1 hover:text-[#33fea6] transition-colors"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-white border p-6">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete prompt?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete this prompt? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter className="mt-4">
-                            <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
-                              className="bg-[#fd5151] hover:bg-[#fd5151]/90" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeletePrompt(item.id);
-                              }}
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                            <MoreVertical className="h-4 w-4" />
+                          </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleDuplicatePrompt(item);
+                          }}>
+                            <CopyIcon className="mr-2 h-4 w-4" />
+                            <span>Duplicate</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                }}
+                              >
+                                <Trash className="mr-2 h-4 w-4" />
+                                <span>Delete</span>
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="bg-white border p-6">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete prompt?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this prompt? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter className="mt-4">
+                                <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  className="bg-[#ea384c] hover:bg-[#ea384c]/90" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeletePrompt(item.id);
+                                  }}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 </div>
@@ -414,7 +429,7 @@ export const UserSidebar = ({
                           <span className="text-xs text-muted-foreground">{item.date}</span>
                         </div>
                       </div>
-                      <div className="flex items-center ml-auto gap-2">
+                      <div className="flex items-center ml-auto w-[30%] justify-center h-full flex-shrink-0">
                         {editingPromptId !== item.id && (
                           <button 
                             onClick={(e) => {
@@ -426,36 +441,59 @@ export const UserSidebar = ({
                             <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-[#33fea6]" />
                           </button>
                         )}
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <button
+                        <DropdownMenu>
+                          <DropdownMenuTrigger>
+                            <div 
+                              className="p-1 hover:text-[#33fea6] transition-colors"
                               onClick={(e) => e.stopPropagation()}
-                              className="p-1 text-muted-foreground hover:text-[#fd5151] trash-button"
                             >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent className="bg-white border p-6">
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete prompt?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete this prompt? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter className="mt-4">
-                              <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                className="bg-[#fd5151] hover:bg-[#fd5151]/90" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeletePrompt(item.id);
-                                }}
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                              <MoreVertical className="h-4 w-4" />
+                            </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation();
+                              handleDuplicatePrompt(item);
+                            }}>
+                              <CopyIcon className="mr-2 h-4 w-4" />
+                              <span>Duplicate</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                  }}
+                                >
+                                  <Trash className="mr-2 h-4 w-4" />
+                                  <span>Delete</span>
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="bg-white border p-6">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete prompt?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this prompt? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter className="mt-4">
+                                  <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    className="bg-[#ea384c] hover:bg-[#ea384c]/90" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeletePrompt(item.id);
+                                    }}
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </div>

@@ -27,17 +27,6 @@ serve(async (req) => {
       template  // Template data
     } = await req.json();
     
-    // Input validation with detailed logging
-    console.log("Input validation check:");
-    console.log(`- originalPrompt: ${originalPrompt ? "Present" : "Missing"}`);
-    console.log(`- answeredQuestions: ${Array.isArray(answeredQuestions) ? `Array with ${answeredQuestions.length} items` : "Not a valid array"}`);
-    console.log(`- relevantVariables: ${Array.isArray(relevantVariables) ? `Array with ${relevantVariables.length} items` : "Not a valid array"}`);
-    
-    if (!originalPrompt || originalPrompt.trim() === "") {
-      console.error("No original prompt provided");
-      throw new Error("No original prompt provided");
-    }
-    
     // Default values in case no template is provided
     const defaultMaxCharacterLimit = 3000;
     const defaultTemperature = 0.7;
@@ -50,67 +39,17 @@ serve(async (req) => {
     console.log(`Using template: ${template ? template.name : "default"}`);
     console.log(`Character limit: ${maxCharacterLimit}`);
     console.log(`Temperature: ${temperature}`);
-    console.log(`Original prompt: "${originalPrompt?.substring(0, 100)}..."`);
-    
-    // Log questions and variables with more detail
-    if (Array.isArray(answeredQuestions)) {
-      console.log(`Answered questions count: ${answeredQuestions.length}`);
-      
-      // Debug the actual questions being processed
-      if (answeredQuestions.length > 0) {
-        const relevantAnsweredQuestions = answeredQuestions.filter(q => 
-          q && q.isRelevant === true && q.answer && q.answer.trim() !== ""
-        );
-        
-        console.log(`Questions marked as relevant with answers: ${relevantAnsweredQuestions.length}`);
-        
-        if (relevantAnsweredQuestions.length > 0) {
-          console.log("Sample question data:", JSON.stringify(relevantAnsweredQuestions[0]));
-        }
-      }
-    } else {
-      console.log("No valid answeredQuestions array provided");
-    }
-    
-    if (Array.isArray(relevantVariables)) {
-      console.log(`Relevant variables count: ${relevantVariables.length}`);
-      
-      // Debug the actual variables being processed
-      if (relevantVariables.length > 0) {
-        const trulyRelevantVariables = relevantVariables.filter(v => 
-          v && v.isRelevant === true && v.name && v.name.trim() !== "" && v.value && v.value.trim() !== ""
-        );
-        
-        console.log(`Variables marked as relevant with values: ${trulyRelevantVariables.length}`);
-        
-        if (trulyRelevantVariables.length > 0) {
-          console.log("Sample variable data:", JSON.stringify(trulyRelevantVariables[0]));
-        }
-      }
-    } else {
-      console.log("No valid relevantVariables array provided");
-    }
-    
+    console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
+
     // Initialize OpenAI client
     const openai = new OpenAI({
       apiKey: openAIApiKey
     });
 
-    // Prepare context from answered questions - only use questions that are marked as relevant and have answers
-    let context = "";
-    if (Array.isArray(answeredQuestions)) {
-      const filteredQuestions = answeredQuestions.filter(q => 
-        q && // Ensure question object exists
-        q.isRelevant === true && // Is marked as relevant 
-        q.answer && q.answer.trim() !== "" // Has a non-empty answer
-      );
-      
-      context = filteredQuestions
-        .map(q => `${q.text}\nAnswer: ${q.answer}`)
-        .join("\n\n");
-        
-      console.log(`Filtered ${answeredQuestions.length} questions down to ${filteredQuestions.length} relevant answered questions`);
-    }
+    // Prepare context from answered questions
+    const context = answeredQuestions
+      .filter(q => q.answer && q.answer.trim() !== "")
+      .map(q => `${q.text}\nAnswer: ${q.answer}`).join("\n\n");
     
     // Create a prefix for the system message that instructs the AI to create a finalized prompt
     // This is crucial to ensure we get a usable prompt, not instructions
@@ -118,9 +57,9 @@ serve(async (req) => {
 
 IMPORTANT: Your output must be the final prompt text itself, not instructions or explanations about the prompt.
 
-START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING, BUT WITHOUT THE # CHARACTER. For example, instead of "# Dog Image Generator", use "Dog Image Generator". This title should be concise and capture the essence of the prompt.
+START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This title should be concise and capture the essence of the prompt.
 
-IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING, BUT WITHOUT THE ## CHARACTER. For example, use "Task" instead of "## Task". Each pillar should be its own separate section of the prompt.`;
+IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING (## Subtitle) in the generated prompt. Each pillar should be its own separate section of the prompt.`;
     
     // Use the template's role with our prefix
     let systemMessage = systemPrefix;
@@ -141,56 +80,31 @@ IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING, 
     }
     
     // Construct a user message that directly requests content creation
-    // Start with the original prompt as the core intent
-    let userMessage = `Original intent: ${originalPrompt}`;
+    let userMessage = originalPrompt;
     
     // Add context from answered questions if available
     if (context) {
       userMessage += `\n\nAdditional context:\n${context}`;
     }
     
-    // If we have relevant variables, add them as parameters
-    let variablesSection = "";
-    if (Array.isArray(relevantVariables) && relevantVariables.length > 0) {
-      const filteredVariables = relevantVariables.filter(variable => 
-        variable && // Ensure variable object exists
-        variable.isRelevant === true && // Is marked as relevant
-        variable.name && variable.name.trim() !== "" && // Has a name
-        variable.value && variable.value.trim() !== "" // Has a value
-      );
-      
-      console.log(`Filtered ${relevantVariables.length} variables down to ${filteredVariables.length} truly relevant variables`);
-      
-      if (filteredVariables.length > 0) {
-        variablesSection = "\n\nParameters:";
-        filteredVariables.forEach(variable => {
-          variablesSection += `\n- ${variable.name}: ${variable.value}`;
-        });
-        
-        userMessage += variablesSection;
-      }
-    }
-    
     // If template has pillars, add structured guidance for the content
     if (template && template.pillars && template.pillars.length > 0) {
-      userMessage += "\n\nPlease structure your response to include the following sections using the pillars as headings (without ## markdown):";
+      userMessage += "\n\nPlease structure your response to include the following sections using the pillars as H2 headings (## Heading):";
       
       template.pillars.forEach(pillar => {
-        userMessage += `\n- ${pillar.title}: ${pillar.description}`;
+        userMessage += `\n- ## ${pillar.title}: ${pillar.description}`;
       });
       
-      userMessage += "\n\nExample format:\nMain Prompt Title\n\nFirst Pillar Title\nContent related to first pillar...\n\nSecond Pillar Title\nContent related to second pillar...";
+      userMessage += "\n\nExample format:\n# Main Prompt Title\n\n## First Pillar Title\nContent related to first pillar...\n\n## Second Pillar Title\nContent related to second pillar...";
     }
     
     // Add an explicit instruction to create a finalized prompt
     userMessage += `\n\nIMPORTANT: Generate a FINALIZED PROMPT text that I can directly use with another AI system. DO NOT provide instructions on how to write a prompt or explanations - just give me the prompt itself.`;
     
-    userMessage += `\n\nRemember to start with a 4-6 word title that captures the essence of the prompt, without using markdown characters like #.`;
-    
-    userMessage += `\n\nMake sure the final prompt fully captures and retains the ORIGINAL INTENT from the initial prompt: "${originalPrompt}"`;
+    userMessage += `\n\nRemember to start with a 4-6 word title formatted as a Markdown H1 heading (# Title) that captures the essence of the prompt.`;
     
     if (template && template.pillars && template.pillars.length > 0) {
-      userMessage += `\n\nAlso remember to format each pillar title as a simple heading without markdown characters, to create distinct sections in your response.`;
+      userMessage += `\n\nAlso remember to format each pillar title as a Markdown H2 heading (## Subtitle) to create distinct sections in your response.`;
     }
     
     userMessage += `\n\nPlease limit your response to ${maxCharacterLimit} characters.`;
@@ -202,12 +116,6 @@ IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING, 
     ];
 
     try {
-      console.log("Sending request to OpenAI with following setup:");
-      console.log(`- System message: ${systemMessage.substring(0, 100)}...`);
-      console.log(`- User message: ${userMessage.substring(0, 100)}...`);
-      console.log(`- Temperature: ${temperature}`);
-      console.log(`- Model: gpt-4o`);
-      
       // Make the API call
       const completion = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -216,7 +124,6 @@ IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING, 
       });
 
       const enhancedPrompt = completion.choices[0].message.content;
-      console.log(`Enhanced prompt generated successfully. Length: ${enhancedPrompt?.length || 0}`);
       
       return new Response(JSON.stringify({ 
         enhancedPrompt,
@@ -232,7 +139,7 @@ IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING, 
       // Return a structured error response
       return new Response(JSON.stringify({
         error: openaiError.message,
-        enhancedPrompt: `Error Enhancing Prompt
+        enhancedPrompt: `# Error Enhancing Prompt
 
 We encountered an error while trying to enhance your prompt. Please try again.
 

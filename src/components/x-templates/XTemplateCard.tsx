@@ -3,9 +3,10 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, Edit, Trash2, Eye } from "lucide-react";
+import { Check, Edit, Trash2, Eye, MoreVertical } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { TemplateEditor } from "./TemplateEditor";
 import { useToast } from "@/hooks/use-toast";
 import { deleteTemplate } from "./XTemplatesList";
@@ -112,7 +113,7 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
             </div>
             
             {!isSystemDefault && (
-              <div className="flex gap-2">
+              <div className="flex gap-1">
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button variant="ghost" size="sm">
@@ -127,12 +128,8 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
                 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-destructive hover:text-[#fd5151] group"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2 group-hover:text-[#fd5151]" />
+                    <Button variant="ghost" size="sm" className="text-destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
                       Delete
                     </Button>
                   </AlertDialogTrigger>
@@ -145,7 +142,7 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-4">
                       <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
-                      <AlertDialogAction className="bg-[#fd5151] hover:bg-[#fd5151]/90" onClick={handleDelete}>Delete</AlertDialogAction>
+                      <AlertDialogAction className="bg-[#ea384c] hover:bg-[#ea384c]/90" onClick={handleDelete}>Delete</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>

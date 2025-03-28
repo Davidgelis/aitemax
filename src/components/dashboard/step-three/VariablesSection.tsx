@@ -118,7 +118,7 @@ export const VariablesSection = ({
                     <AlertDialogTrigger asChild>
                       <button 
                         onClick={() => setVariableToDelete(variable.id)}
-                        className="p-2 rounded-full hover:bg-[#33fea6]/20 ml-2 hover:text-destructive"
+                        className="p-2 rounded-full hover:bg-[#33fea6]/20 ml-2"
                         aria-label="Delete variable"
                       >
                         <Trash2 className="w-4 h-4 text-[#545454]" />

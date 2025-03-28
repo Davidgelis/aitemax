@@ -98,8 +98,7 @@ export const StepController = ({
     removeVariable,
     canProceedToStep3,
     enhancePromptWithGPT,
-    isEnhancing,
-    prepareDataForEnhancement
+    isEnhancing
   } = questionVarOps;
   
   const promptOperations = usePromptOperations(
@@ -225,18 +224,15 @@ export const StepController = ({
         const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
         message += ` to be ${secondaryLabel}`;
       }
-      message += " with GPT-4o...";
+      message += " with o3-mini...";
       
       setEnhancingMessage(message);
       
       try {
-        console.log("StepController: Enhancing prompt for step 3");
-        console.log("StepController: Current questions count:", questions.length);
-        console.log("StepController: Current variables count:", variables.length);
+        console.log("StepController: Enhancing prompt for step 3 with o3-mini...");
         
-        // Use the enhancePromptWithGPT function from questionVarOps (useQuestionsAndVariables)
-        // This is the correct function that handles questions and variables properly
-        await enhancePromptWithGPT(
+        // Use the enhancePromptWithGPT function to get an enhanced prompt
+        await promptAnalysis.enhancePromptWithGPT(
           promptText,
           selectedPrimary,
           selectedSecondary,
@@ -252,7 +248,7 @@ export const StepController = ({
         toast({
           title: "Warning",
           description: "There was an issue enhancing your prompt, but you can still proceed with the original text.",
-          variant: "default",
+          variant: "default", // Changed from "warning" to "default"
         });
         
         setCurrentStep(step);
