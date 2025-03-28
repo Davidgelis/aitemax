@@ -9,3 +9,7 @@ verify_jwt = false
 
 [functions.get-prompt-counts-per-user]
 verify_jwt = false
+
+[auth]
+# Set session duration to 30 minutes
+session_lifetime_seconds = 1800

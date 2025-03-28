@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +29,28 @@ export const usePromptDrafts = (
   const [drafts, setDrafts] = useState<PromptDraft[]>([]);
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const previousStateRef = useRef({ promptText, masterCommand, variables, currentStep });
+  
+  // Track if content has changed by comparing to previous state
+  useEffect(() => {
+    if (currentStep === 2) {
+      const hasPromptTextChanged = promptText !== previousStateRef.current.promptText;
+      const hasMasterCommandChanged = masterCommand !== previousStateRef.current.masterCommand;
+      const hasVariablesChanged = JSON.stringify(variables) !== JSON.stringify(previousStateRef.current.variables);
+      
+      // Only set dirty state if something has actually changed
+      if (hasPromptTextChanged || hasMasterCommandChanged || hasVariablesChanged) {
+        setIsDirty(true);
+        
+        // Update the reference for next comparison
+        previousStateRef.current = { promptText, masterCommand, variables, currentStep };
+      }
+    } else {
+      // Reset dirty state if we're not on step 2
+      setIsDirty(false);
+    }
+  }, [promptText, masterCommand, variables, currentStep]);
   
   useEffect(() => {
     if (user) {
@@ -71,14 +93,15 @@ export const usePromptDrafts = (
     }
   }, [user]);
 
-  const saveDraft = useCallback(async () => {
+  const saveDraft = useCallback(async (forceSave = false) => {
     // Don't save drafts if:
     // 1. No user is logged in
     // 2. No prompt text
     // 3. We're on step 1 (haven't analyzed the prompt yet)
     // 4. Or we're on step 3 (final prompt)
-    if (!user || !promptText.trim() || currentStep === 1 || currentStep === 3) {
-      console.log(`Not saving draft. Step: ${currentStep}, Has text: ${!!promptText.trim()}, User: ${!!user}`);
+    // 5. Content hasn't changed (not dirty) unless forceSave is true
+    if (!user || !promptText.trim() || currentStep === 1 || currentStep === 3 || (!isDirty && !forceSave)) {
+      console.log(`Not saving draft. Step: ${currentStep}, Has text: ${!!promptText.trim()}, User: ${!!user}, Dirty: ${isDirty}, Force: ${forceSave}`);
       return;
     }
 
@@ -164,6 +187,8 @@ export const usePromptDrafts = (
         timestamp: new Date().toISOString()
       }));
 
+      // Reset dirty state after successful save
+      setIsDirty(false);
       fetchDrafts();
     } catch (error) {
       console.error('Error saving draft:', error);
@@ -178,7 +203,7 @@ export const usePromptDrafts = (
         timestamp: new Date().toISOString()
       }));
     }
-  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, user, currentDraftId, fetchDrafts]);
+  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, user, currentDraftId, fetchDrafts, isDirty]);
 
   const loadDraft = useCallback(async () => {
     if (!user) return null;
@@ -337,22 +362,33 @@ export const usePromptDrafts = (
   }, []);
 
   // Window visibility event handler to save drafts when the user leaves the page
-  // Only save drafts if we're on step 2
+  // Only save drafts if we're on step 2 and content has changed
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && currentStep === 2) {
-        saveDraft();
+      if (document.visibilityState === 'hidden' && currentStep === 2 && isDirty) {
+        console.log("Saving draft on tab visibility change");
+        saveDraft(true);
       }
     };
 
-    // Add event listener for visibility change
+    // Save draft on page unload/tab close if dirty
+    const handleBeforeUnload = () => {
+      if (currentStep === 2 && isDirty) {
+        console.log("Saving draft on page unload");
+        saveDraft(true);
+      }
+    };
+
+    // Add event listeners
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     // Cleanup
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [saveDraft, currentStep]);
+  }, [saveDraft, currentStep, isDirty]);
 
   return {
     drafts,
@@ -363,6 +399,7 @@ export const usePromptDrafts = (
     fetchDrafts,
     deleteDraft,
     loadSelectedDraft,
-    currentDraftId
+    currentDraftId,
+    isDirty
   };
 };

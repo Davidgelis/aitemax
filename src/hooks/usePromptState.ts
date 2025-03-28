@@ -27,6 +27,7 @@ export const usePromptState = (user: any) => {
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState(false);
   const [promptJsonStructure, setPromptJsonStructure] = useState<PromptJsonStructure | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
   // Removed draftLoaded state since we don't want to auto-load drafts
 
   const { toast } = useToast();
@@ -40,7 +41,8 @@ export const usePromptState = (user: any) => {
     fetchDrafts,
     deleteDraft,
     loadSelectedDraft,
-    currentDraftId
+    currentDraftId,
+    isDirty: draftIsDirty
   } = usePromptDrafts(
     promptText,
     masterCommand,
@@ -50,6 +52,11 @@ export const usePromptState = (user: any) => {
     currentStep,
     user
   );
+
+  // Sync isDirty state from usePromptDrafts
+  useEffect(() => {
+    setIsDirty(draftIsDirty);
+  }, [draftIsDirty]);
 
   // Removed the useEffect that auto-loads the draft on component mount
 
@@ -544,6 +551,7 @@ export const usePromptState = (user: any) => {
     deleteDraft,
     currentDraftId,
     handleDeleteDraft,
-    saveDraft
+    saveDraft,
+    isDirty,
   };
 };
