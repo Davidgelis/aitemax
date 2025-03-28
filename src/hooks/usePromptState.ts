@@ -7,6 +7,7 @@ import { usePromptDrafts } from "@/hooks/usePromptDrafts";
 import { Json } from "@/integrations/supabase/types";
 
 export const usePromptState = (user: any) => {
+  // ... keep existing code for state variables 
   const [promptText, setPromptText] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionPage, setCurrentQuestionPage] = useState(0);
@@ -151,6 +152,16 @@ export const usePromptState = (user: any) => {
           variables: jsonToVariables(item.variables as Json),
         };
         
+        // Add JSON structure if it exists
+        if (item.json_structure) {
+          prompt.jsonStructure = item.json_structure as unknown as PromptJsonStructure;
+        }
+        
+        // Add tags if they exist
+        if (item.tags) {
+          prompt.tags = item.tags as unknown as PromptTag[];
+        }
+        
         return prompt;
       }) || [];
       
@@ -250,7 +261,8 @@ export const usePromptState = (user: any) => {
         variables: variablesToJson(relevantVariables),
         current_step: currentStep,
         updated_at: new Date().toISOString(),
-        tags: generatedTags as unknown as Json // Cast to Json for Supabase compatibility
+        tags: generatedTags as unknown as Json, // Cast to Json for Supabase compatibility
+        json_structure: jsonStructure ? jsonStructure as unknown as Json : null
       };
 
       const { data, error } = await supabase
