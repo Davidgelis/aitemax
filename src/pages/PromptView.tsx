@@ -35,6 +35,8 @@ const PromptView = () => {
   const [editingPrompt, setEditingPrompt] = useState("");
   const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
   const [selectedText, setSelectedText] = useState("");
+  const [jsonStructure, setJsonStructure] = useState<any>(null);
+  const [jsonGenerationInProgress, setJsonGenerationInProgress] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
@@ -59,6 +61,11 @@ const PromptView = () => {
       setVariables(prompt.variables);
       setSelectedPrimary(prompt.primaryToggle || null);
       setSelectedSecondary(prompt.secondaryToggle || null);
+      
+      // Set the JSON structure if it exists in the prompt
+      if (prompt.jsonStructure) {
+        setJsonStructure(prompt.jsonStructure);
+      }
     }
   }, [prompt]);
 
@@ -124,7 +131,8 @@ const PromptView = () => {
         primaryToggle: data.primary_toggle,
         secondaryToggle: data.secondary_toggle,
         variables: processedVariables,
-        tags: (data.tags as unknown as Array<{category: string, subcategory: string}>) || []
+        tags: (data.tags as unknown as Array<{category: string, subcategory: string}>) || [],
+        jsonStructure: data.json_structure || null
       };
       
       setPrompt(formattedPrompt);
@@ -199,7 +207,7 @@ const PromptView = () => {
   };
 
   const handleSavePrompt = async () => {
-    if (!prompt) return;
+    if (!prompt || !user) return;
     
     try {
       // Ensure variables is properly formatted before saving
@@ -207,15 +215,22 @@ const PromptView = () => {
       // Convert variables array to JSON format expected by Supabase
       const variablesJson = variablesToJson(safeVariables);
       
+      const updateData: any = {
+        prompt_text: finalPrompt,
+        master_command: masterCommand,
+        variables: variablesJson,
+        primary_toggle: selectedPrimary,
+        secondary_toggle: selectedSecondary,
+      };
+      
+      // If we have a JSON structure, save it too
+      if (jsonStructure) {
+        updateData.json_structure = jsonStructure;
+      }
+      
       const { error } = await supabase
         .from('prompts')
-        .update({
-          prompt_text: finalPrompt,
-          master_command: masterCommand,
-          variables: variablesJson,
-          primary_toggle: selectedPrimary,
-          secondary_toggle: selectedSecondary,
-        })
+        .update(updateData)
         .eq('id', prompt.id);
       
       if (error) throw error;
@@ -234,11 +249,60 @@ const PromptView = () => {
     }
   };
 
+  const handleRefreshJson = async () => {
+    if (!user || !prompt || jsonGenerationInProgress) return;
+    
+    try {
+      setJsonGenerationInProgress(true);
+      toast({
+        title: "Generating JSON",
+        description: "Please wait while we generate the JSON structure.",
+      });
+      
+      const { data, error } = await supabase.functions.invoke('prompt-to-json', {
+        body: {
+          prompt: finalPrompt,
+          masterCommand,
+          userId: user.id,
+          promptId: prompt.id,
+          forceRefresh: true
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data && data.jsonStructure) {
+        setJsonStructure(data.jsonStructure);
+        
+        // Save the generated JSON structure to the database
+        const { error: updateError } = await supabase
+          .from('prompts')
+          .update({
+            json_structure: data.jsonStructure
+          })
+          .eq('id', prompt.id);
+        
+        if (updateError) throw updateError;
+        
+        toast({
+          title: "JSON refreshed",
+          description: "The JSON structure has been updated.",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error refreshing JSON:", error.message);
+      toast({
+        title: "Error refreshing JSON",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setJsonGenerationInProgress(false);
+    }
+  };
+
   const handleRegenerate = () => {
-    toast({
-      title: "Regenerate feature",
-      description: "This feature is not yet implemented in the Prompt View.",
-    });
+    handleRefreshJson();
   };
 
   const handleOpenEditPrompt = () => {
@@ -408,7 +472,7 @@ const PromptView = () => {
               setVariables={setVariables}
               handleCopyPrompt={handleCopyPrompt}
               handleSavePrompt={handleSavePrompt}
-              handleRegenerate={handleRegenerate}
+              handleRegenerate={handleRefreshJson}
               editingPrompt={editingPrompt}
               setEditingPrompt={setEditingPrompt}
               showEditPromptSheet={showEditPromptSheet}
@@ -421,6 +485,8 @@ const PromptView = () => {
               selectedText={selectedText}
               setSelectedText={setSelectedText}
               onCreateVariable={handleCreateVariable}
+              jsonStructure={jsonStructure}
+              isRefreshingJson={jsonGenerationInProgress}
             />
           ) : (
             <div className="p-4 bg-yellow-50 rounded-md border border-yellow-200">

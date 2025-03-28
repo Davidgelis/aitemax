@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -41,6 +40,8 @@ interface StepThreeContentProps {
   selectedText?: string;
   setSelectedText?: React.Dispatch<React.SetStateAction<string>>;
   onCreateVariable?: (selectedText: string) => void;
+  jsonStructure?: any;
+  isRefreshingJson?: boolean;
 }
 
 export const StepThreeContent = ({
@@ -67,14 +68,17 @@ export const StepThreeContent = ({
   handleSaveEditedPrompt: externalHandleSaveEditedPrompt,
   handleAdaptPrompt: externalHandleAdaptPrompt,
   getProcessedPrompt: externalGetProcessedPrompt,
-  handleVariableValueChange: externalHandleVariableValueChange
+  handleVariableValueChange: externalHandleVariableValueChange,
+  jsonStructure,
+  isRefreshingJson = false
 }: StepThreeContentProps) => {
+  
   const { toast } = useToast();
   const [safeVariables, setSafeVariables] = useState<Variable[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editablePrompt, setEditablePrompt] = useState("");
   const [renderTrigger, setRenderTrigger] = useState(0);
-  const [isRefreshingJson, setIsRefreshingJson] = useState(false);
+  const [isRefreshingJsonLocal, setIsRefreshingJsonLocal] = useState(false);
   const [lastSavedPrompt, setLastSavedPrompt] = useState(finalPrompt);
   
   // Get the promptOperations
@@ -87,7 +91,8 @@ export const StepThreeContent = ({
     setEditingPrompt,
     setShowEditPromptSheet,
     masterCommand,
-    editingPrompt
+    editingPrompt,
+    jsonStructure
   );
   
   useEffect(() => {
@@ -109,6 +114,11 @@ export const StepThreeContent = ({
     const validVariables = variables.filter(v => v && typeof v === 'object');
     setSafeVariables(validVariables);
   }, [variables]);
+  
+  // Update local refreshing state based on external prop
+  useEffect(() => {
+    setIsRefreshingJsonLocal(isRefreshingJson);
+  }, [isRefreshingJson]);
   
   const enhancedHandleVariableValueChange = useCallback((variableId: string, newValue: string) => {
     try {
@@ -174,19 +184,25 @@ export const StepThreeContent = ({
 
   // Improved handleRefreshJson function to use the latest finalPrompt
   const handleRefreshJson = useCallback(() => {
-    if (isRefreshingJson) return;
+    if (isRefreshingJsonLocal) return;
     
-    setIsRefreshingJson(true);
-    toast({
-      title: "Refreshing JSON",
-      description: "Updating JSON structure with current content...",
-    });
-    
-    // Force re-render of the JSON view with latest content
-    setTimeout(() => {
-      setRenderTrigger(prev => prev + 1);
-    }, 100);
-  }, [toast, isRefreshingJson]);
+    if (externalHandleRegenerate) {
+      // If there's an external handler, use it
+      externalHandleRegenerate();
+    } else {
+      setIsRefreshingJsonLocal(true);
+      toast({
+        title: "Refreshing JSON",
+        description: "Updating JSON structure with current content...",
+      });
+      
+      // Force re-render of the JSON view with latest content
+      setTimeout(() => {
+        setRenderTrigger(prev => prev + 1);
+        setIsRefreshingJsonLocal(false);
+      }, 1000);
+    }
+  }, [toast, isRefreshingJsonLocal, externalHandleRegenerate]);
 
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
@@ -194,7 +210,7 @@ export const StepThreeContent = ({
         showJson={showJson}
         setShowJson={setShowJson}
         refreshJson={handleRefreshJson}
-        isRefreshing={isRefreshingJson}
+        isRefreshing={isRefreshingJsonLocal || isRefreshingJson}
       />
 
       <FinalPromptDisplay 
@@ -214,10 +230,11 @@ export const StepThreeContent = ({
         handleSaveEditedPrompt={handleSaveInlineEdit}
         renderTrigger={renderTrigger}
         setRenderTrigger={setRenderTrigger}
-        isRefreshing={isRefreshingJson}
-        setIsRefreshing={setIsRefreshingJson}
+        isRefreshing={isRefreshingJsonLocal || isRefreshingJson}
+        setIsRefreshing={setIsRefreshingJsonLocal}
         lastSavedPrompt={lastSavedPrompt}
         setLastSavedPrompt={setLastSavedPrompt}
+        jsonStructure={jsonStructure}
       />
 
       <VariablesSection 

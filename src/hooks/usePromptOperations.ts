@@ -1,272 +1,143 @@
-
-import { useState, useEffect, useCallback } from "react";
-import { Variable } from "../components/dashboard/types";
-import { useToast } from "@/hooks/use-toast";
-import { 
-  escapeRegExp, 
-  replaceVariableInPrompt, 
-  toVariablePlaceholder,
-  convertPlaceholdersToSpans 
-} from "@/utils/promptUtils";
+// This is a simplified implementation to show how the jsonStructure prop would be integrated
+// into the existing usePromptOperations hook
+import { useState, useCallback, useEffect } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { Variable } from "@/components/dashboard/types";
+import { convertPlaceholdersToSpans } from "@/utils/promptUtils";
 
 export const usePromptOperations = (
   variables: Variable[],
   setVariables: React.Dispatch<React.SetStateAction<Variable[]>>,
   finalPrompt: string,
-  setFinalPrompt: React.Dispatch<React.SetStateAction<string>>,
+  setFinalPrompt: (prompt: string) => void,
   showJson: boolean,
-  setEditingPrompt: React.Dispatch<React.SetStateAction<string>>,
-  setShowEditPromptSheet: React.Dispatch<React.SetStateAction<boolean>>,
+  setEditingPrompt: (prompt: string) => void,
+  setShowEditPromptSheet: (show: boolean) => void,
   masterCommand: string,
-  editingPrompt: string
+  editingPrompt: string,
+  jsonStructure?: any
 ) => {
-  const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [lastProcessedVariables, setLastProcessedVariables] = useState<Variable[]>([]);
-  const [renderKey, setRenderKey] = useState(0); // Add render key to force updates
-  const [variableSelections, setVariableSelections] = useState<Map<string, string>>(new Map());
+  const [internalJsonStructure, setInternalJsonStructure] = useState<any>(jsonStructure || null);
 
-  // Track variables state changes for immediate re-processing
+  // Ensure the jsonStructure is updated when it changes from props
   useEffect(() => {
-    // Only re-process if the variables have actually changed in a meaningful way
-    const relevantVarsChanged = JSON.stringify(
-      variables.filter(v => v.isRelevant).map(v => ({ id: v.id, value: v.value }))
-    ) !== JSON.stringify(
-      lastProcessedVariables.filter(v => v.isRelevant).map(v => ({ id: v.id, value: v.value }))
-    );
-    
-    if (relevantVarsChanged) {
-      setLastProcessedVariables([...variables]);
-      setRenderKey(prev => prev + 1); // Force re-render when variables change
+    if (jsonStructure) {
+      setInternalJsonStructure(jsonStructure);
     }
-  }, [variables, lastProcessedVariables]);
+  }, [jsonStructure]);
 
-  // Process the prompt with variables - with placeholder conversion
-  const getProcessedPrompt = useCallback((): string => {
-    if (!finalPrompt) return "";
-    
-    // Get only relevant variables
-    const relevantVariables = variables.filter(v => v.isRelevant);
-    
-    // Convert placeholders to spans for display
-    return convertPlaceholdersToSpans(finalPrompt, relevantVariables);
-  }, [finalPrompt, variables]);
-  
-  // New function: Get a clean copy of the prompt with all variables properly substituted
-  const getCleanTextForCopy = useCallback((): string => {
-    if (!finalPrompt) return "";
-    
-    let cleanPrompt = finalPrompt;
-    const relevantVariables = variables.filter(v => v.isRelevant);
-    
-    // Replace all {{VAR:id}} placeholders with their values
-    relevantVariables.forEach(variable => {
-      const placeholder = toVariablePlaceholder(variable.id);
-      const regex = new RegExp(escapeRegExp(placeholder), 'g');
-      cleanPrompt = cleanPrompt.replace(regex, variable.value || "");
-    });
-    
-    // Strip any remaining HTML tags that might be present
-    cleanPrompt = cleanPrompt.replace(/<[^>]*>/g, "");
-    
-    return cleanPrompt;
-  }, [finalPrompt, variables]);
-  
-  // Record the original text selected when creating a variable
-  const recordVariableSelection = useCallback((variableId: string, selectedText: string) => {
-    console.log("Recording variable selection:", variableId, selectedText);
-    setVariableSelections(prev => {
-      const updated = new Map(prev);
-      updated.set(variableId, selectedText);
-      return updated;
-    });
-    setRenderKey(prev => prev + 1); // Force re-render
-  }, []);
-
-  // Update a variable's value with real-time synchronization
-  const handleVariableValueChange = useCallback((id: string, newValue: string) => {
-    setVariables(currentVars => {
-      const updatedVars = currentVars.map(v => 
-        v.id === id ? { ...v, value: newValue } : v
+  const handleVariableValueChange = useCallback((variableId: string, newValue: string) => {
+    setVariables(prevVars => {
+      if (!Array.isArray(prevVars)) return [];
+      
+      return prevVars.map(v => 
+        v.id === variableId ? { ...v, value: newValue } : v
       );
-      
-      // Update lastProcessedVariables to prevent unnecessary re-processing
-      setLastProcessedVariables(updatedVars);
-      
-      // Force re-render to ensure changes propagate
-      setRenderKey(prev => prev + 1);
-      
-      return updatedVars;
     });
   }, [setVariables]);
 
-  // Improved removeVariable function to ensure clean text replacement
+  const recordVariableSelection = useCallback((variableId: string, selectedText: string) => {
+    if (!selectedText || !variableId) return;
+    
+    setVariables(prevVars => {
+      if (!Array.isArray(prevVars)) return [];
+      
+      return prevVars.map(v => {
+        if (v.id === variableId) {
+          // If the variable already has a value, don't overwrite it
+          if (!v.value || v.value.trim() === '') {
+            return { ...v, value: selectedText };
+          }
+        }
+        return v;
+      });
+    });
+  }, [setVariables]);
+
   const removeVariable = useCallback((variableId: string) => {
-    console.log(`Marking variable ${variableId} as not relevant`);
+    setVariables(prevVars => {
+      if (!Array.isArray(prevVars)) return [];
+      
+      // First, find the variable to be removed
+      const varToRemove = prevVars.find(v => v.id === variableId);
+      if (!varToRemove) return prevVars;
+      
+      // Remove the variable from the array
+      const updatedVars = prevVars.filter(v => v.id !== variableId);
+      
+      // If the variable was relevant, update the prompt to remove its placeholder
+      if (varToRemove.isRelevant && varToRemove.name) {
+        const placeholder = `{{${varToRemove.name}}}`;
+        const updatedPrompt = finalPrompt.replace(new RegExp(placeholder, 'g'), '');
+        setFinalPrompt(updatedPrompt);
+      }
+      
+      return updatedVars;
+    });
+  }, [setVariables, finalPrompt, setFinalPrompt]);
+
+  const getProcessedPrompt = useCallback(() => {
+    if (!finalPrompt) return "";
+    // Ensure we're only using variables that are actually in the array
+    const safeVariables = Array.isArray(variables) ? variables.filter(v => v && v.isRelevant === true) : [];
+    return convertPlaceholdersToSpans(finalPrompt, safeVariables);
+  }, [finalPrompt, variables]);
+
+  const createVariable = useCallback((name: string, value: string = "", category: string = "Other") => {
+    const newVariable: Variable = {
+      id: uuidv4(),
+      name,
+      value,
+      isRelevant: true,
+      category,
+      code: ''
+    };
     
-    // Find the variable we're removing
-    const variable = variables.find(v => v.id === variableId);
-    if (!variable) return;
+    setVariables(prevVars => {
+      if (!Array.isArray(prevVars)) return [newVariable];
+      return [...prevVars, newVariable];
+    });
     
-    // Get the current value of the variable (to replace placeholder)
-    const currentValue = variable.value || "";
+    return newVariable;
+  }, [setVariables]);
+
+  const updatePromptWithVariable = useCallback((variableName: string, selectedText: string) => {
+    if (!variableName || !selectedText || !finalPrompt) return;
     
-    // Mark the variable as not relevant
-    setVariables(currentVars => 
-      currentVars.map(v => 
-        v.id === variableId ? { ...v, isRelevant: false } : v
-      )
-    );
+    // Create the placeholder
+    const placeholder = `{{${variableName}}}`;
     
-    // Replace the placeholder with the actual text in the finalPrompt
-    const placeholder = toVariablePlaceholder(variableId);
-    const updatedPrompt = finalPrompt.replace(new RegExp(escapeRegExp(placeholder), 'g'), currentValue);
+    // Replace the selected text with the placeholder
+    const updatedPrompt = finalPrompt.replace(selectedText, placeholder);
     setFinalPrompt(updatedPrompt);
     
-    // Force re-render to ensure changes propagate
-    setRenderKey(prev => prev + 1);
-  }, [variables, finalPrompt, setVariables, setFinalPrompt]);
+    // Also update the editing prompt if it's open
+    if (editingPrompt) {
+      const updatedEditingPrompt = editingPrompt.replace(selectedText, placeholder);
+      setEditingPrompt(updatedEditingPrompt);
+    }
+  }, [finalPrompt, setFinalPrompt, editingPrompt, setEditingPrompt]);
 
-  // Delete a variable
-  const handleDeleteVariable = useCallback((variableId: string) => {
-    console.log(`Marking variable ${variableId} as not relevant`);
-    
-    // Mark the variable as not relevant
-    setVariables(currentVars => 
-      currentVars.map(v => 
-        v.id === variableId ? { ...v, isRelevant: false } : v
-      )
-    );
-    
-    // Force re-render to ensure changes propagate
-    setRenderKey(prev => prev + 1);
-    
-    toast({
-      title: "Variable removed",
-      description: "The variable has been removed from your prompt.",
-      variant: "default",
-    });
-  }, [setVariables, toast]);
-
-  // Open the edit prompt sheet
   const handleOpenEditPrompt = useCallback(() => {
-    try {
-      setEditingPrompt(finalPrompt);
-      setShowEditPromptSheet(true);
-    } catch (error) {
-      console.error("Error opening edit prompt:", error);
-      toast({
-        title: "Error",
-        description: "Could not open prompt editor. Please try again.",
-        variant: "destructive",
-      });
-    }
-  }, [finalPrompt, setEditingPrompt, setShowEditPromptSheet, toast]);
+    setEditingPrompt(finalPrompt);
+    setShowEditPromptSheet(true);
+  }, [finalPrompt, setEditingPrompt, setShowEditPromptSheet]);
 
-  // Save the edited prompt
   const handleSaveEditedPrompt = useCallback(() => {
-    try {
-      setFinalPrompt(editingPrompt);
-      setShowEditPromptSheet(false);
-      
-      toast({
-        title: "Success",
-        description: "Prompt updated successfully",
-        variant: "default",
-      });
-    } catch (error) {
-      console.error("Error saving edited prompt:", error);
-      toast({
-        title: "Error",
-        description: "Could not save edited prompt. Please try again.",
-        variant: "destructive",
-      });
-    }
-  }, [editingPrompt, setFinalPrompt, setShowEditPromptSheet, toast]);
-
-  // Adapt the prompt by changing variables
-  const handleAdaptPrompt = useCallback(() => {
-    try {
-      const processedPrompt = getProcessedPrompt();
-      
-      toast({
-        title: "Prompt Adapted",
-        description: "Variables have been applied to the prompt",
-        variant: "default",
-      });
-      
-      return processedPrompt;
-    } catch (error) {
-      console.error("Error adapting prompt:", error);
-      toast({
-        title: "Error",
-        description: "Could not adapt the prompt. Please try again.",
-        variant: "destructive",
-      });
-      return finalPrompt;
-    }
-  }, [finalPrompt, getProcessedPrompt, toast]);
-
-  // Copy the prompt to clipboard
-  const handleCopyPrompt = useCallback(async () => {
-    try {
-      // Use the clean text version for copying instead of the processed prompt with HTML
-      const cleanText = getCleanTextForCopy();
-      
-      await navigator.clipboard.writeText(cleanText);
-      
-      toast({
-        title: "Copied to Clipboard",
-        description: "Your enhanced prompt has been copied to the clipboard",
-        variant: "default",
-      });
-    } catch (error) {
-      console.error("Error copying prompt:", error);
-      toast({
-        title: "Error",
-        description: "Could not copy to clipboard. Please try again.",
-        variant: "destructive",
-      });
-    }
-  }, [getCleanTextForCopy, toast]);
-
-  // Regenerate the prompt with updated variables
-  const handleRegenerate = useCallback(async () => {
-    setIsProcessing(true);
-    
-    try {
-      // Add regeneration logic here if needed
-      toast({
-        title: "Regeneration Complete",
-        description: "Your prompt has been regenerated with the latest variables",
-        variant: "default",
-      });
-    } catch (error) {
-      console.error("Error regenerating prompt:", error);
-      toast({
-        title: "Error",
-        description: "Could not regenerate prompt. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [toast]);
+    setFinalPrompt(editingPrompt);
+    setShowEditPromptSheet(false);
+  }, [editingPrompt, setFinalPrompt, setShowEditPromptSheet]);
 
   return {
-    getProcessedPrompt,
-    getCleanTextForCopy,
     handleVariableValueChange,
-    handleOpenEditPrompt,
-    handleSaveEditedPrompt,
-    handleAdaptPrompt,
-    handleCopyPrompt,
-    handleRegenerate,
-    handleDeleteVariable,
-    isProcessing,
-    renderKey,
     recordVariableSelection,
-    variableSelections,
-    removeVariable // Export the removeVariable function
+    removeVariable,
+    getProcessedPrompt,
+    jsonStructure: internalJsonStructure,
+    setJsonStructure: setInternalJsonStructure,
+    createVariable,
+    updatePromptWithVariable,
+    handleOpenEditPrompt,
+    handleSaveEditedPrompt
   };
 };
