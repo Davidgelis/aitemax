@@ -98,7 +98,8 @@ export const StepController = ({
     removeVariable,
     canProceedToStep3,
     enhancePromptWithGPT,
-    isEnhancing
+    isEnhancing,
+    prepareDataForEnhancement
   } = questionVarOps;
   
   const promptOperations = usePromptOperations(
@@ -231,8 +232,11 @@ export const StepController = ({
       try {
         console.log("StepController: Enhancing prompt for step 3 with o3-mini...");
         
-        // Use the enhancePromptWithGPT function to get an enhanced prompt
-        await promptAnalysis.enhancePromptWithGPT(
+        // First, prepare the data by marking unanswered questions and empty variables as not relevant
+        prepareDataForEnhancement();
+        
+        // Then use the enhancePromptWithGPT function to get an enhanced prompt
+        await enhancePromptWithGPT(
           promptText,
           selectedPrimary,
           selectedSecondary,

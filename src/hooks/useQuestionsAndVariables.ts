@@ -150,14 +150,17 @@ export const useQuestionsAndVariables = (
     try {
       setIsEnhancing(true);
       
+      // First, clean up data by marking unanswered questions and empty variables as not relevant
+      const { updatedQuestions, updatedVariables } = prepareDataForEnhancement();
+      
       // Filter out only answered and relevant questions
-      const answeredQuestions = questions.filter(
+      const answeredQuestions = updatedQuestions.filter(
         q => q.answer && q.answer.trim() !== "" && q.isRelevant !== false
       );
       
-      // Filter out only relevant variables
-      const relevantVariables = variables.filter(
-        v => v.isRelevant === true
+      // Filter out only relevant variables with values
+      const relevantVariables = updatedVariables.filter(
+        v => v.isRelevant === true && v.name.trim() !== "" && v.value.trim() !== ""
       );
       
       console.log("Calling enhance-prompt with:", {
