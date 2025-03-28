@@ -40,6 +40,13 @@ serve(async (req) => {
     console.log(`Character limit: ${maxCharacterLimit}`);
     console.log(`Temperature: ${temperature}`);
     console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
+    console.log(`Answered questions count: ${answeredQuestions?.length || 0}`);
+    console.log(`Relevant variables count: ${relevantVariables?.length || 0}`);
+
+    // Check if we have a valid prompt to enhance
+    if (!originalPrompt || originalPrompt.trim() === "") {
+      throw new Error("No original prompt provided");
+    }
 
     // Initialize OpenAI client
     const openai = new OpenAI({
@@ -47,9 +54,11 @@ serve(async (req) => {
     });
 
     // Prepare context from answered questions
-    const context = answeredQuestions
-      .filter(q => q.answer && q.answer.trim() !== "")
-      .map(q => `${q.text}\nAnswer: ${q.answer}`).join("\n\n");
+    const context = Array.isArray(answeredQuestions) 
+      ? answeredQuestions
+          .filter(q => q.answer && q.answer.trim() !== "")
+          .map(q => `${q.text}\nAnswer: ${q.answer}`).join("\n\n")
+      : "";
     
     // Create a prefix for the system message that instructs the AI to create a finalized prompt
     // This is crucial to ensure we get a usable prompt, not instructions
