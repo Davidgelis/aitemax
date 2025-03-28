@@ -63,6 +63,7 @@ export interface SavedPrompt {
   tags?: PromptTag[]; // Update this to use the proper type
 }
 
+// Update PromptJsonStructure to be more specific with its properties
 export interface PromptJsonStructure {
   title?: string;
   summary?: string;
