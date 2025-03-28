@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, Share2, Globe, Lock } from "lucide-react";
@@ -13,6 +12,21 @@ import { Label } from "@/components/ui/label";
 import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
 import XPanelButton from "@/components/dashboard/XPanelButton";
 import { convertPlaceholdersToSpans, createPlainTextPrompt } from "@/utils/promptUtils";
+
+// Update the type definitions to include json_structure
+interface PromptDataFromDB {
+  id: string;
+  title: string;
+  created_at: string;
+  prompt_text: string;
+  master_command: string;
+  primary_toggle: string | null;
+  secondary_toggle: string | null;
+  variables: any;
+  tags: any;
+  user_id: string;
+  json_structure?: any;
+}
 
 const PromptView = () => {
   const { id } = useParams();
@@ -215,18 +229,14 @@ const PromptView = () => {
       // Convert variables array to JSON format expected by Supabase
       const variablesJson = variablesToJson(safeVariables);
       
-      const updateData: any = {
+      const updateData = {
         prompt_text: finalPrompt,
         master_command: masterCommand,
         variables: variablesJson,
         primary_toggle: selectedPrimary,
         secondary_toggle: selectedSecondary,
+        json_structure: jsonStructure
       };
-      
-      // If we have a JSON structure, save it too
-      if (jsonStructure) {
-        updateData.json_structure = jsonStructure;
-      }
       
       const { error } = await supabase
         .from('prompts')

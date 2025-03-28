@@ -1,9 +1,11 @@
+
 // This is a simplified implementation to show how the jsonStructure prop would be integrated
 // into the existing usePromptOperations hook
 import { useState, useCallback, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { Variable } from "@/components/dashboard/types";
-import { convertPlaceholdersToSpans } from "@/utils/promptUtils";
+import { convertPlaceholdersToSpans, createPlainTextPrompt } from "@/utils/promptUtils";
+import { useToast } from "@/hooks/use-toast";
 
 export const usePromptOperations = (
   variables: Variable[],
@@ -18,6 +20,7 @@ export const usePromptOperations = (
   jsonStructure?: any
 ) => {
   const [internalJsonStructure, setInternalJsonStructure] = useState<any>(jsonStructure || null);
+  const { toast } = useToast();
 
   // Ensure the jsonStructure is updated when it changes from props
   useEffect(() => {
@@ -128,6 +131,54 @@ export const usePromptOperations = (
     setShowEditPromptSheet(false);
   }, [editingPrompt, setFinalPrompt, setShowEditPromptSheet]);
 
+  // Add the missing functions
+  const handleCopyPrompt = useCallback(() => {
+    // Use our utility to get clean plain text without HTML or placeholders
+    const textToCopy = createPlainTextPrompt(finalPrompt, variables.filter(v => v && v.isRelevant === true));
+    
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(textToCopy)
+        .then(() => {
+          toast({
+            title: "Copied to clipboard",
+            description: "Prompt has been copied to clipboard",
+          });
+        })
+        .catch(err => {
+          console.error('Failed to copy: ', err);
+          toast({
+            title: "Copy failed",
+            description: "Could not copy text to clipboard",
+            variant: "destructive",
+          });
+        });
+    } else {
+      toast({
+        title: "Copy failed",
+        description: "Your browser doesn't support clipboard operations",
+        variant: "destructive",
+      });
+    }
+  }, [finalPrompt, variables, toast]);
+
+  const handleRegenerate = useCallback(() => {
+    toast({
+      title: "Regenerating",
+      description: "Regenerating prompt structure...",
+    });
+    // This function is typically implemented in the component that uses this hook
+    // and passed down to it. For now, we'll make it a stub.
+  }, [toast]);
+
+  const handleAdaptPrompt = useCallback(() => {
+    toast({
+      title: "Adapting prompt",
+      description: "Adapting the prompt based on current settings...",
+    });
+    // This function is typically implemented in the component that uses this hook
+    // and passed down to it. For now, we'll make it a stub.
+  }, [toast]);
+
   return {
     handleVariableValueChange,
     recordVariableSelection,
@@ -138,6 +189,10 @@ export const usePromptOperations = (
     createVariable,
     updatePromptWithVariable,
     handleOpenEditPrompt,
-    handleSaveEditedPrompt
+    handleSaveEditedPrompt,
+    // Add the missing functions
+    handleCopyPrompt,
+    handleRegenerate,
+    handleAdaptPrompt
   };
 };

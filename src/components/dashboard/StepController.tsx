@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -113,14 +114,15 @@ export const StepController = ({
     editingPrompt
   );
   
+  // Extract all operations from promptOperations
   const {
     getProcessedPrompt,
     handleVariableValueChange,
     handleOpenEditPrompt,
     handleSaveEditedPrompt,
-    handleAdaptPrompt,
     handleCopyPrompt,
-    handleRegenerate
+    handleRegenerate,
+    handleAdaptPrompt
   } = promptOperations;
   
   useEffect(() => {
@@ -342,7 +344,7 @@ export const StepController = ({
             showJson={showJson}
             setShowJson={setShowJson}
             finalPrompt={finalPrompt}
-            setFinalPrompt={setFinalPrompt} // Pass the setFinalPrompt function explicitly
+            setFinalPrompt={setFinalPrompt}
             variables={variables}
             setVariables={setVariables}
             handleVariableValueChange={handleVariableValueChange}
