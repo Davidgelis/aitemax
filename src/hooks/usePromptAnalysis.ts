@@ -105,6 +105,13 @@ export const usePromptAnalysis = (
       // @ts-ignore
       const selectedTemplate = window.__selectedTemplate || null;
       
+      console.log("Legacy enhancePromptWithGPT called with:", {
+        originalPrompt: originalPrompt.substring(0, 50) + "...",
+        primaryToggle,
+        secondaryToggle,
+        template: selectedTemplate?.name || "none"
+      });
+      
       // Call the Supabase edge function
       const { data, error } = await supabase.functions.invoke("enhance-prompt", {
         body: { 

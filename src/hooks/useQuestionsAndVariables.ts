@@ -116,22 +116,64 @@ export const useQuestionsAndVariables = (
   };
 
   const prepareDataForEnhancement = () => {
+    console.log("PrepareDataForEnhancement - Starting with:", {
+      questionCount: questions.length,
+      variableCount: variables.length
+    });
+    
+    // Log the initial state of questions and variables to help debugging
+    console.log("Initial questions state:", questions.map(q => ({
+      id: q.id,
+      text: q.text?.substring(0, 30),
+      isRelevant: q.isRelevant,
+      hasAnswer: q.answer ? "yes" : "no",
+      answerLength: q.answer?.length || 0
+    })));
+    
+    console.log("Initial variables state:", variables.map(v => ({
+      id: v.id,
+      name: v.name,
+      isRelevant: v.isRelevant,
+      valueLength: v.value?.length || 0
+    })));
+    
     // Mark all unanswered or unreviewed questions as not relevant
     const updatedQuestions = questions.map(q => {
+      // If question is unreviewed (null) or has no answer but is marked relevant
       if (q.isRelevant === null || (q.isRelevant === true && (!q.answer || q.answer.trim() === ""))) {
+        console.log(`Marking question ${q.id} as not relevant (was: ${q.isRelevant}, answer: ${q.answer ? "present" : "missing"})`);
         return { ...q, isRelevant: false };
       }
       return q;
     });
-    setQuestions(updatedQuestions);
-
+    
+    // Log the updated questions to see what changed
+    console.log("Updated questions after preparing:", updatedQuestions.map(q => ({
+      id: q.id,
+      isRelevant: q.isRelevant,
+      answerLength: q.answer?.length || 0
+    })));
+    
     // Mark all empty or unreviewed variables as not relevant
     const updatedVariables = variables.map(v => {
+      // If variable is unreviewed (null) or has empty name/value but is marked relevant
       if (v.isRelevant === null || v.name.trim() === "" || v.value.trim() === "") {
+        console.log(`Marking variable ${v.id} as not relevant (was: ${v.isRelevant}, name: "${v.name}", value: "${v.value}")`);
         return { ...v, isRelevant: false };
       }
       return v;
     });
+    
+    // Log the updated variables to see what changed
+    console.log("Updated variables after preparing:", updatedVariables.map(v => ({
+      id: v.id,
+      name: v.name,
+      isRelevant: v.isRelevant,
+      valueLength: v.value?.length || 0
+    })));
+    
+    // Update the state with these changes
+    setQuestions(updatedQuestions);
     setVariables(updatedVariables);
 
     // Return the cleaned data
@@ -155,7 +197,7 @@ export const useQuestionsAndVariables = (
       
       // Filter out only answered and relevant questions
       const answeredQuestions = updatedQuestions.filter(
-        q => q.answer && q.answer.trim() !== "" && q.isRelevant === true
+        q => q.isRelevant === true && q.answer && q.answer.trim() !== ""
       );
       
       // Filter out only relevant variables with values
@@ -163,19 +205,24 @@ export const useQuestionsAndVariables = (
         v => v.isRelevant === true && v.name.trim() !== "" && v.value.trim() !== ""
       );
       
+      // Get selected template from the window object (added in StepOne.tsx)
+      // @ts-ignore
+      const selectedTemplate = window.__selectedTemplate || null;
+      
       console.log("Calling enhance-prompt with:", {
         originalPrompt: promptToEnhance.substring(0, 50) + "...",
-        answeredQuestions: answeredQuestions.length,
-        relevantVariables: relevantVariables.length,
+        answeredQuestionsCount: answeredQuestions.length,
+        relevantVariablesCount: relevantVariables.length,
         primaryToggle,
         secondaryToggle,
         userId: user?.id ? "Present" : "None",
-        promptId: promptId ? "Present" : "None"
+        promptId: promptId ? "Present" : "None",
+        template: selectedTemplate ? selectedTemplate.name : "None"
       });
       
       // Log more detailed input data for debugging
-      console.log("First few answered questions:", answeredQuestions.slice(0, 2));
-      console.log("First few relevant variables:", relevantVariables.slice(0, 2));
+      console.log("Sample answered questions:", answeredQuestions.slice(0, 2));
+      console.log("Sample relevant variables:", relevantVariables.slice(0, 2));
       
       const { data, error } = await supabase.functions.invoke('enhance-prompt', {
         body: {
@@ -185,7 +232,8 @@ export const useQuestionsAndVariables = (
           primaryToggle,
           secondaryToggle,
           userId: user?.id,
-          promptId
+          promptId,
+          template: selectedTemplate
         }
       });
       
@@ -199,7 +247,7 @@ export const useQuestionsAndVariables = (
         throw new Error("No enhanced prompt returned from the service");
       }
       
-      console.log("Enhanced prompt received successfully");
+      console.log("Enhanced prompt received successfully:", data.enhancedPrompt.substring(0, 100) + "...");
       setFinalPrompt(data.enhancedPrompt);
     } catch (error) {
       console.error("Error enhancing prompt with GPT:", error);
