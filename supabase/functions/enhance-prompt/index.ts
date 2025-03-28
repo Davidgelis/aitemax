@@ -97,6 +97,16 @@ IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING, 
       userMessage += `\n\nAdditional context:\n${context}`;
     }
     
+    // If we have relevant variables, add them as parameters
+    if (Array.isArray(relevantVariables) && relevantVariables.length > 0) {
+      userMessage += "\n\nParameters:";
+      relevantVariables.forEach(variable => {
+        if (variable.name && variable.value) {
+          userMessage += `\n- ${variable.name}: ${variable.value}`;
+        }
+      });
+    }
+    
     // If template has pillars, add structured guidance for the content
     if (template && template.pillars && template.pillars.length > 0) {
       userMessage += "\n\nPlease structure your response to include the following sections using the pillars as headings (without ## markdown):";
