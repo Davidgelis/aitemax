@@ -222,7 +222,7 @@ export const StepController = ({
           message += ` and to be ${secondaryLabel}`;
         }
       } else if (selectedSecondary) {
-        const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || secondarySecondary;
+        const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
         message += ` to be ${secondaryLabel}`;
       }
       message += " with GPT-4o...";
