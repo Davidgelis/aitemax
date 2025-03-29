@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, Share2, Globe, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SavedPrompt, Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,7 @@ const PromptView = () => {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState<SavedPrompt | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [jsonView, setJsonView] = useState<string>("");
   const [isOwner, setIsOwner] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [shareEmail, setShareEmail] = useState("");
@@ -129,6 +130,21 @@ const PromptView = () => {
       
       setPrompt(formattedPrompt);
       setIsOwner(user && data.user_id === user.id);
+      
+      // Generate JSON view for the prompt if it has variables
+      if (formattedPrompt.variables && formattedPrompt.variables.length > 0) {
+        const jsonObj = {
+          prompt: formattedPrompt.promptText,
+          variables: formattedPrompt.variables.reduce((acc: any, v: Variable) => {
+            if (v.name && v.value) {
+              acc[v.name] = v.value;
+            }
+            return acc;
+          }, {}),
+          masterCommand: formattedPrompt.masterCommand
+        };
+        setJsonView(JSON.stringify(jsonObj, null, 2));
+      }
       
     } catch (error: any) {
       console.error("Error fetching prompt:", error.message);
@@ -391,43 +407,66 @@ const PromptView = () => {
           <p className="text-sm text-muted-foreground">Created: {prompt.date}</p>
         </div>
         
-        <div className="mt-4">
-          {Array.isArray(variables) ? (
-            <StepThreeContent
-              masterCommand={masterCommand}
-              setMasterCommand={setMasterCommand}
-              selectedPrimary={selectedPrimary}
-              selectedSecondary={selectedSecondary}
-              handlePrimaryToggle={handlePrimaryToggle}
-              handleSecondaryToggle={handleSecondaryToggle}
-              showJson={showJson}
-              setShowJson={setShowJson}
-              finalPrompt={finalPrompt}
-              setFinalPrompt={setFinalPrompt}
-              variables={variables}
-              setVariables={setVariables}
-              handleCopyPrompt={handleCopyPrompt}
-              handleSavePrompt={handleSavePrompt}
-              handleRegenerate={handleRegenerate}
-              editingPrompt={editingPrompt}
-              setEditingPrompt={setEditingPrompt}
-              showEditPromptSheet={showEditPromptSheet}
-              setShowEditPromptSheet={setShowEditPromptSheet}
-              handleOpenEditPrompt={handleOpenEditPrompt}
-              handleSaveEditedPrompt={handleSaveEditedPrompt}
-              handleAdaptPrompt={handleAdaptPrompt}
-              getProcessedPrompt={getProcessedPrompt}
-              handleVariableValueChange={handleVariableValueChange}
-              selectedText={selectedText}
-              setSelectedText={setSelectedText}
-              onCreateVariable={handleCreateVariable}
-            />
-          ) : (
-            <div className="p-4 bg-yellow-50 rounded-md border border-yellow-200">
-              <p>Unable to display prompt editor: Variables data is not in the expected format.</p>
-            </div>
-          )}
-        </div>
+        <Tabs defaultValue="prompt" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="prompt">Prompt Editor</TabsTrigger>
+            <TabsTrigger value="json">JSON View</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="prompt" className="mt-4">
+            {Array.isArray(variables) ? (
+              <StepThreeContent
+                masterCommand={masterCommand}
+                setMasterCommand={setMasterCommand}
+                selectedPrimary={selectedPrimary}
+                selectedSecondary={selectedSecondary}
+                handlePrimaryToggle={handlePrimaryToggle}
+                handleSecondaryToggle={handleSecondaryToggle}
+                showJson={showJson}
+                setShowJson={setShowJson}
+                finalPrompt={finalPrompt}
+                setFinalPrompt={setFinalPrompt}
+                variables={variables}
+                setVariables={setVariables}
+                handleCopyPrompt={handleCopyPrompt}
+                handleSavePrompt={handleSavePrompt}
+                handleRegenerate={handleRegenerate}
+                editingPrompt={editingPrompt}
+                setEditingPrompt={setEditingPrompt}
+                showEditPromptSheet={showEditPromptSheet}
+                setShowEditPromptSheet={setShowEditPromptSheet}
+                handleOpenEditPrompt={handleOpenEditPrompt}
+                handleSaveEditedPrompt={handleSaveEditedPrompt}
+                handleAdaptPrompt={handleAdaptPrompt}
+                getProcessedPrompt={getProcessedPrompt}
+                handleVariableValueChange={handleVariableValueChange}
+                selectedText={selectedText}
+                setSelectedText={setSelectedText}
+                onCreateVariable={handleCreateVariable}
+              />
+            ) : (
+              <div className="p-4 bg-yellow-50 rounded-md border border-yellow-200">
+                <p>Unable to display prompt editor: Variables data is not in the expected format.</p>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="json" className="mt-4">
+            <Card>
+              <CardContent className="p-6">
+                <pre className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto text-sm">
+                  {jsonView}
+                </pre>
+                <div className="mt-4">
+                  <Button onClick={() => handleCopyContent(jsonView)}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy JSON
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

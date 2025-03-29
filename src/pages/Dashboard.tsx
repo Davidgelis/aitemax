@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -8,7 +7,6 @@ import { StepController } from "@/components/dashboard/StepController";
 import { usePromptState } from "@/hooks/usePromptState";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
 import XPanelButton from "@/components/dashboard/XPanelButton";
 
 const fallbackModels = [
@@ -56,7 +54,6 @@ const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const { refreshSessionTimeout } = useAuth();
   
   const promptState = usePromptState(user);
   
@@ -77,12 +74,6 @@ const Dashboard = () => {
     }
   }, [promptState.savedPrompts, promptState.drafts]);
   
-  // Refresh session timeout on significant user actions
-  useEffect(() => {
-    // Each navigation action should refresh the session timeout
-    refreshSessionTimeout();
-  }, [location.pathname, refreshSessionTimeout]);
-  
   useEffect(() => {
     const saveDraftBeforeNavigate = (nextPath: string) => {
       // Only save draft if:
@@ -90,13 +81,11 @@ const Dashboard = () => {
       // 2. There is prompt text
       // 3. We're not viewing a saved prompt
       // 4. We're on step 2 (not step 1 or 3)
-      // 5. Content has changed (isDirty)
       if (nextPath !== location.pathname && 
           promptState.promptText && 
           !promptState.isViewingSavedPrompt && 
-          promptState.currentStep === 2 &&
-          promptState.isDirty) {
-        promptState.saveDraft(true); // Force save before navigation
+          promptState.currentStep === 2) {
+        promptState.saveDraft();
       }
     };
 
@@ -123,7 +112,7 @@ const Dashboard = () => {
       window.removeEventListener('popstate', handleRouteChange);
       window.history.pushState = originalPushState;
     };
-  }, [location.pathname, promptState.promptText, promptState.isViewingSavedPrompt, promptState.saveDraft, promptState.currentStep, promptState.isDirty]);
+  }, [location.pathname, promptState.promptText, promptState.isViewingSavedPrompt, promptState.saveDraft, promptState.currentStep]);
   
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
