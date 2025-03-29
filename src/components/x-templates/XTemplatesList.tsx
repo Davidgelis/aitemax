@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { XTemplateCard, TemplateType } from "./XTemplateCard";
 import { useToast } from "@/hooks/use-toast";
@@ -91,9 +92,16 @@ export const addTemplate = async (template: TemplateType) => {
     
     // Then, save to database if it's not a default template
     if (template.id !== "default" && template.id !== "simple-framework") {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.error("User not authenticated");
+        return;
+      }
+      
       const { error } = await supabase.from('x_templates').upsert({
         id: template.id,
-        user_id: (await supabase.auth.getUser()).data.user?.id,
+        user_id: user.id,
         name: template.name,
         role: template.role,
         pillars: pillarsToJson(template.pillars),
@@ -137,18 +145,33 @@ export const deleteTemplate = async (templateId: string) => {
 
 export const XTemplatesList = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [templates, setTemplates] = useState<TemplateType[]>(defaultTemplates);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
   const [isLoading, setIsLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Fetch user templates from database
   useEffect(() => {
     const fetchTemplates = async () => {
-      if (!user) return;
-      
       setIsLoading(true);
+      setFetchError(null);
+      
       try {
+        // If user is not authenticated, just use default templates
+        if (!user || !session) {
+          console.log("User not authenticated, using default templates only");
+          
+          // Check if selectedTemplate is stored in localStorage
+          const storedTemplateId = window.localStorage.getItem('selectedTemplateId');
+          if (storedTemplateId) {
+            setSelectedTemplateId(storedTemplateId);
+          }
+          
+          setIsLoading(false);
+          return;
+        }
+        
         const { data, error } = await supabase
           .from('x_templates')
           .select('*')
@@ -156,6 +179,7 @@ export const XTemplatesList = () => {
         
         if (error) {
           console.error("Error fetching templates:", error);
+          setFetchError(error.message);
           toast({
             title: "Error fetching templates",
             description: error.message,
@@ -186,8 +210,9 @@ export const XTemplatesList = () => {
             setSelectedTemplateId(storedTemplateId);
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error in fetchTemplates:", error);
+        setFetchError(error.message || "An unknown error occurred");
       } finally {
         setIsLoading(false);
       }
@@ -197,7 +222,7 @@ export const XTemplatesList = () => {
     
     // Save the selectedTemplateId to window for StepOne.tsx to access
     window.__selectedTemplate = templates.find(t => t.id === selectedTemplateId) || defaultTemplates[0];
-  }, [user]);
+  }, [user, session]);
 
   // Listen for template events
   useEffect(() => {
@@ -261,6 +286,22 @@ export const XTemplatesList = () => {
           </p>
         </div>
       </div>
+      
+      {fetchError && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-md flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-red-500 mb-1">Error loading templates</p>
+            <p className="text-sm">{fetchError}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-2 text-sm text-blue-500 hover:text-blue-700 underline"
+            >
+              Refresh page
+            </button>
+          </div>
+        </div>
+      )}
       
       {isLoading ? (
         <div className="flex justify-center items-center h-40">
