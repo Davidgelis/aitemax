@@ -1,10 +1,22 @@
 
 /// <reference types="vite/client" />
 
-import { TemplateType } from "./components/x-templates/XTemplateCard";
+interface ImportMetaEnv {
+  readonly VITE_APP_TITLE: string
+  // more env variables...
+}
 
-declare global {
-  interface Window {
-    __selectedTemplate: TemplateType;
-  }
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+}
+
+interface Window {
+  __selectedTemplate?: any;
+}
+
+// Add PillarType definition for global access
+interface PillarType {
+  id: string;
+  title: string;
+  description: string;
 }

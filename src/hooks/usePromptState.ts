@@ -7,6 +7,7 @@ import { usePromptDrafts } from "@/hooks/usePromptDrafts";
 import { Json } from "@/integrations/supabase/types";
 
 export const usePromptState = (user: any) => {
+  // ... keep existing code for state variables 
   const [promptText, setPromptText] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionPage, setCurrentQuestionPage] = useState(0);
@@ -16,6 +17,7 @@ export const usePromptState = (user: any) => {
   const [editingPrompt, setEditingPrompt] = useState("");
   const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
   const [masterCommand, setMasterCommand] = useState("");
+  // Changed these to null so all toggles are off by default
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
   const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
@@ -27,6 +29,7 @@ export const usePromptState = (user: any) => {
   const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState(false);
   const [promptJsonStructure, setPromptJsonStructure] = useState<PromptJsonStructure | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  // Removed draftLoaded state since we don't want to auto-load drafts
 
   const { toast } = useToast();
 
@@ -204,24 +207,8 @@ export const usePromptState = (user: any) => {
           if (error) throw error;
           
           if (data && data.jsonStructure) {
-            // Validate and cast the JSON structure to ensure it matches our type
-            const receivedJson = data.jsonStructure;
-            
-            // Create a properly typed PromptJsonStructure object
-            jsonStructure = {
-              title: typeof receivedJson.title === 'string' ? receivedJson.title : undefined,
-              summary: typeof receivedJson.summary === 'string' ? receivedJson.summary : undefined,
-              sections: Array.isArray(receivedJson.sections) 
-                ? receivedJson.sections.map((section: any) => ({
-                    title: typeof section.title === 'string' ? section.title : '',
-                    content: typeof section.content === 'string' ? section.content : ''
-                  }))
-                : undefined,
-              // Include other fields as needed
-              masterCommand: masterCommand
-            };
-            
-            setPromptJsonStructure(jsonStructure);
+            jsonStructure = data.jsonStructure;
+            setPromptJsonStructure(data.jsonStructure);
           }
         } catch (jsonError) {
           console.error("Error generating JSON for saving:", jsonError);

@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, Share2, Globe, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { SavedPrompt, Variable, variablesToJson, jsonToVariables, PromptJsonStructure } from "@/components/dashboard/types";
+import { SavedPrompt, Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -128,36 +127,10 @@ const PromptView = () => {
         tags: (data.tags as unknown as Array<{category: string, subcategory: string}>) || []
       };
       
-      // Add JSON structure if it exists and properly cast it to PromptJsonStructure
+      // Add JSON structure if it exists
       if (data.json_structure) {
-        // Ensure we properly convert the Json type to PromptJsonStructure
-        const jsonStructure = data.json_structure as any;
-        
-        // Validate that it has the correct shape before assigning
-        if (typeof jsonStructure === 'object' && jsonStructure !== null) {
-          formattedPrompt.jsonStructure = {
-            title: typeof jsonStructure.title === 'string' ? jsonStructure.title : undefined,
-            summary: typeof jsonStructure.summary === 'string' ? jsonStructure.summary : undefined,
-            sections: Array.isArray(jsonStructure.sections) 
-              ? jsonStructure.sections.map((section: any) => ({
-                  title: typeof section.title === 'string' ? section.title : '',
-                  content: typeof section.content === 'string' ? section.content : ''
-                }))
-              : undefined,
-            error: typeof jsonStructure.error === 'string' ? jsonStructure.error : undefined,
-            generationError: typeof jsonStructure.generationError === 'string' ? jsonStructure.generationError : undefined,
-            masterCommand: typeof jsonStructure.masterCommand === 'string' ? jsonStructure.masterCommand : undefined,
-            variablePlaceholders: Array.isArray(jsonStructure.variablePlaceholders) 
-              ? jsonStructure.variablePlaceholders.filter((v: any) => typeof v === 'string')
-              : undefined,
-            task: typeof jsonStructure.task === 'string' ? jsonStructure.task : undefined,
-            persona: typeof jsonStructure.persona === 'string' ? jsonStructure.persona : undefined,
-            conditions: typeof jsonStructure.conditions === 'string' ? jsonStructure.conditions : undefined,
-            instructions: typeof jsonStructure.instructions === 'string' ? jsonStructure.instructions : undefined
-          };
-        }
-        
-        console.log("Loaded JSON structure:", formattedPrompt.jsonStructure);
+        formattedPrompt.jsonStructure = data.json_structure;
+        console.log("Loaded JSON structure:", data.json_structure);
       }
       
       setPrompt(formattedPrompt);

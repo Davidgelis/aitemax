@@ -63,14 +63,6 @@ export interface SavedPrompt {
   tags?: PromptTag[]; // Update this to use the proper type
 }
 
-// Define PillarType for X Templates
-export interface PillarType {
-  id: string;
-  title: string;
-  description: string;
-}
-
-// Update PromptJsonStructure to be more specific with its properties
 export interface PromptJsonStructure {
   title?: string;
   summary?: string;
