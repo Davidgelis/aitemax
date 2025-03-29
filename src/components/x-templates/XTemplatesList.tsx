@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { XTemplateCard, TemplateType } from "./XTemplateCard";
+import { XTemplateCard, TemplateType, PillarType } from "./XTemplateCard";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
