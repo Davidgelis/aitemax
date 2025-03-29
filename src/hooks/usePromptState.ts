@@ -40,7 +40,9 @@ export const usePromptState = (user: any) => {
     fetchDrafts,
     deleteDraft,
     loadSelectedDraft,
-    currentDraftId
+    currentDraftId,
+    isDirty,
+    isSaving
   } = usePromptDrafts(
     promptText,
     masterCommand,
@@ -544,6 +546,8 @@ export const usePromptState = (user: any) => {
     deleteDraft,
     currentDraftId,
     handleDeleteDraft,
-    saveDraft
+    saveDraft,
+    isDirty,
+    isSaving
   };
 };

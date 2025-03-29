@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Json } from "@/integrations/supabase/types";
+import { useAuth } from "@/context/AuthContext";
 
 interface PromptDraft {
   id?: string;
@@ -29,7 +30,50 @@ export const usePromptDrafts = (
   const [drafts, setDrafts] = useState<PromptDraft[]>([]);
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
   const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveAttempts, setSaveAttempts] = useState(0);
+  const maxRetries = 3;
+  const { sessionExpiresAt } = useAuth();
   
+  // Track previous values to detect changes
+  const prevValuesRef = useRef({
+    promptText,
+    masterCommand,
+    variables: JSON.stringify(variables),
+    selectedPrimary,
+    selectedSecondary,
+    currentStep
+  });
+  
+  // Detect changes to mark as dirty
+  useEffect(() => {
+    if (currentStep !== 1 && currentStep !== 3) {
+      const prevValues = prevValuesRef.current;
+      
+      const hasChanged = 
+        prevValues.promptText !== promptText ||
+        prevValues.masterCommand !== masterCommand || 
+        prevValues.variables !== JSON.stringify(variables) ||
+        prevValues.selectedPrimary !== selectedPrimary ||
+        prevValues.selectedSecondary !== selectedSecondary;
+      
+      if (hasChanged) {
+        setIsDirty(true);
+      }
+      
+      // Update ref with current values
+      prevValuesRef.current = {
+        promptText,
+        masterCommand,
+        variables: JSON.stringify(variables),
+        selectedPrimary,
+        selectedSecondary,
+        currentStep
+      };
+    }
+  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep]);
+
   useEffect(() => {
     if (user) {
       fetchDrafts();
@@ -66,21 +110,30 @@ export const usePromptDrafts = (
       }
     } catch (error) {
       console.error('Error fetching drafts:', error);
+      toast({
+        title: "Couldn't load drafts",
+        description: "We had trouble loading your drafts. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoadingDrafts(false);
     }
-  }, [user]);
+  }, [user, toast]);
 
-  const saveDraft = useCallback(async () => {
+  const saveDraft = useCallback(async (force = false) => {
     // Don't save drafts if:
     // 1. No user is logged in
     // 2. No prompt text
     // 3. We're on step 1 (haven't analyzed the prompt yet)
     // 4. Or we're on step 3 (final prompt)
-    if (!user || !promptText.trim() || currentStep === 1 || currentStep === 3) {
-      console.log(`Not saving draft. Step: ${currentStep}, Has text: ${!!promptText.trim()}, User: ${!!user}`);
+    // 5. Nothing has changed (not dirty) unless forced
+    if (!user || !promptText.trim() || currentStep === 1 || currentStep === 3 || (isSaving && saveAttempts >= maxRetries) || (!isDirty && !force)) {
+      console.log(`Not saving draft. Step: ${currentStep}, Has text: ${!!promptText.trim()}, User: ${!!user}, Dirty: ${isDirty}, Force: ${force}`);
       return;
     }
+
+    setIsSaving(true);
+    setSaveAttempts(prev => prev + 1);
 
     try {
       // Ensure we're saving plain text by removing any HTML tags if present
@@ -117,6 +170,9 @@ export const usePromptDrafts = (
       
       if (existingSavedPrompts && existingSavedPrompts.length > 0) {
         console.log("This prompt is already saved, not creating a draft");
+        setIsDirty(false);
+        setIsSaving(false);
+        setSaveAttempts(0);
         return;
       }
       
@@ -164,21 +220,53 @@ export const usePromptDrafts = (
         timestamp: new Date().toISOString()
       }));
 
+      // Draft successfully saved, mark as not dirty
+      setIsDirty(false);
+      setIsSaving(false);
+      setSaveAttempts(0);
+      
+      // Show toast only for explicit saves, not automatic ones
+      if (force) {
+        toast({
+          title: "Draft saved",
+          description: "Your draft has been saved successfully.",
+        });
+      }
+
       fetchDrafts();
     } catch (error) {
       console.error('Error saving draft:', error);
-      // Still save to localStorage as a backup
-      localStorage.setItem('promptDraft', JSON.stringify({
-        promptText: promptText.replace(/<[^>]*>/g, ''),
-        masterCommand,
-        variables,
-        selectedPrimary,
-        selectedSecondary,
-        currentStep,
-        timestamp: new Date().toISOString()
-      }));
+      
+      if (saveAttempts < maxRetries) {
+        // Retry with exponential backoff
+        setTimeout(() => {
+          console.log(`Retrying save (attempt ${saveAttempts + 1}/${maxRetries})...`);
+          saveDraft(force);
+        }, Math.pow(2, saveAttempts) * 1000);
+      } else {
+        // Still save to localStorage as a backup after max retries
+        localStorage.setItem('promptDraft', JSON.stringify({
+          promptText: promptText.replace(/<[^>]*>/g, ''),
+          masterCommand,
+          variables,
+          selectedPrimary,
+          selectedSecondary,
+          currentStep,
+          timestamp: new Date().toISOString()
+        }));
+        
+        setIsSaving(false);
+        
+        if (force) {
+          toast({
+            title: "Error saving to cloud",
+            description: "Your draft was saved locally. Please check your connection.",
+            variant: "destructive",
+          });
+        }
+      }
     }
-  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, user, currentDraftId, fetchDrafts]);
+  }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, user, currentDraftId, fetchDrafts, isDirty, isSaving, saveAttempts, toast]);
 
   const loadDraft = useCallback(async () => {
     if (!user) return null;
@@ -326,6 +414,9 @@ export const usePromptDrafts = (
       }));
     }
     
+    // Reset dirty state when loading a draft
+    setIsDirty(false);
+    
     return {
       promptText: draft.promptText,
       masterCommand: draft.masterCommand,
@@ -335,24 +426,53 @@ export const usePromptDrafts = (
       currentStep: draft.currentStep
     };
   }, []);
+  
+  // Check for session expiration to save drafts
+  useEffect(() => {
+    if (sessionExpiresAt && isDirty) {
+      const now = new Date();
+      const timeToExpiry = sessionExpiresAt.getTime() - now.getTime();
+      
+      // If session will expire in less than 2 minutes, save the draft
+      if (timeToExpiry < 2 * 60 * 1000 && timeToExpiry > 0) {
+        console.log("Session expiring soon, saving draft...");
+        saveDraft(true);
+      }
+    }
+  }, [sessionExpiresAt, isDirty, saveDraft]);
 
   // Window visibility event handler to save drafts when the user leaves the page
-  // Only save drafts if we're on step 2
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && currentStep === 2) {
-        saveDraft();
+      if (document.visibilityState === 'hidden' && isDirty) {
+        console.log("Page hidden, saving draft...");
+        saveDraft(false);
+      }
+    };
+    
+    // Handle page unload/close
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        console.log("Page unloading, saving draft...");
+        saveDraft(false);
+        
+        // Show browser confirmation dialog
+        e.preventDefault();
+        e.returnValue = ''; // This is required for showing the confirmation dialog
+        return ''; // This text is not actually displayed by most browsers
       }
     };
 
-    // Add event listener for visibility change
+    // Add event listeners
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     // Cleanup
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [saveDraft, currentStep]);
+  }, [isDirty, saveDraft]);
 
   return {
     drafts,
@@ -363,6 +483,8 @@ export const usePromptDrafts = (
     fetchDrafts,
     deleteDraft,
     loadSelectedDraft,
-    currentDraftId
+    currentDraftId,
+    isDirty,
+    isSaving
   };
 };

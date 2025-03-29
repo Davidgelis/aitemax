@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -8,6 +9,9 @@ import { usePromptState } from "@/hooks/usePromptState";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
 import XPanelButton from "@/components/dashboard/XPanelButton";
+import { useAuth } from "@/context/AuthContext";
+import { Badge } from "@/components/ui/badge";
+import { AlertCircle, Save, RefreshCw } from "lucide-react";
 
 const fallbackModels = [
   {
@@ -54,7 +58,10 @@ const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const { session, loading: authLoading, sessionExpiresAt, refreshSession } = useAuth();
+  const [sessionTimer, setSessionTimer] = useState<string>("");
   
+  // Create promptState after getting auth state
   const promptState = usePromptState(user);
   
   const filteredPrompts = promptState.savedPrompts.filter(
@@ -74,6 +81,43 @@ const Dashboard = () => {
     }
   }, [promptState.savedPrompts, promptState.drafts]);
   
+  // Update auth user when session changes
+  useEffect(() => {
+    if (session) {
+      setUser(session.user);
+    } else if (!authLoading) {
+      setUser(null);
+    }
+  }, [session, authLoading]);
+  
+  // Set up session timer display
+  useEffect(() => {
+    if (!sessionExpiresAt) return;
+    
+    const updateTimer = () => {
+      const now = new Date();
+      const timeLeft = sessionExpiresAt.getTime() - now.getTime();
+      
+      if (timeLeft <= 0) {
+        setSessionTimer("Expired");
+        return;
+      }
+      
+      // Format time left as MM:SS
+      const minutes = Math.floor(timeLeft / 60000);
+      const seconds = Math.floor((timeLeft % 60000) / 1000);
+      setSessionTimer(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+    
+    // Update timer immediately
+    updateTimer();
+    
+    // Set up interval to update timer every second
+    const interval = setInterval(updateTimer, 1000);
+    
+    return () => clearInterval(interval);
+  }, [sessionExpiresAt]);
+  
   useEffect(() => {
     const saveDraftBeforeNavigate = (nextPath: string) => {
       // Only save draft if:
@@ -81,10 +125,12 @@ const Dashboard = () => {
       // 2. There is prompt text
       // 3. We're not viewing a saved prompt
       // 4. We're on step 2 (not step 1 or 3)
+      // 5. There are unsaved changes (isDirty)
       if (nextPath !== location.pathname && 
           promptState.promptText && 
           !promptState.isViewingSavedPrompt && 
-          promptState.currentStep === 2) {
+          promptState.currentStep === 2 &&
+          promptState.isDirty) {
         promptState.saveDraft();
       }
     };
@@ -112,7 +158,7 @@ const Dashboard = () => {
       window.removeEventListener('popstate', handleRouteChange);
       window.history.pushState = originalPushState;
     };
-  }, [location.pathname, promptState.promptText, promptState.isViewingSavedPrompt, promptState.saveDraft, promptState.currentStep]);
+  }, [location.pathname, promptState]);
   
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -122,8 +168,17 @@ const Dashboard = () => {
     );
     
     const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user || null);
+      } catch (error) {
+        console.error("Error getting session:", error);
+        toast({
+          title: "Session Error",
+          description: "There was a problem connecting to your account. Please try refreshing the page.",
+          variant: "destructive",
+        });
+      }
     };
     
     getUser();
@@ -131,29 +186,39 @@ const Dashboard = () => {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [toast]);
 
   // Fetch user profile data when user changes
   useEffect(() => {
     if (user) {
       const fetchUserProfile = async () => {
-        const { data: profileData, error } = await supabase
-          .from("profiles")
-          .select("username, avatar_url")
-          .eq("id", user.id)
-          .single();
-        
-        if (error) {
-          console.error("Error fetching user profile:", error);
-        } else if (profileData) {
-          setUserProfile(profileData);
+        try {
+          const { data: profileData, error } = await supabase
+            .from("profiles")
+            .select("username, avatar_url")
+            .eq("id", user.id)
+            .single();
+          
+          if (error) {
+            console.error("Error fetching user profile:", error);
+            // Handle gracefully - still allow usage without profile
+          } else if (profileData) {
+            setUserProfile(profileData);
+          }
+        } catch (err) {
+          console.error("Unexpected error fetching profile:", err);
         }
       };
       
       fetchUserProfile();
       promptState.fetchSavedPrompts();
     }
-  }, [user]);
+  }, [user, promptState]);
+  
+  // Save draft when specifically requested, with explicit notification
+  const handleSaveDraft = () => {
+    promptState.saveDraft(true);
+  };
 
   return (
     <SidebarProvider>
@@ -161,6 +226,60 @@ const Dashboard = () => {
         <XPanelButton />
         <main className="flex-1 p-6">
           <div className="max-w-6xl mx-auto min-h-screen flex flex-col items-center justify-center gap-8">
+            {/* Session info and draft status bar */}
+            {user && promptState.currentStep === 2 && (
+              <div className="fixed top-0 right-0 left-0 z-50 bg-background/90 backdrop-blur-sm border-b p-2 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  {promptState.isDirty && (
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 animate-pulse flex gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>Unsaved changes</span>
+                    </Badge>
+                  )}
+                  
+                  {promptState.isSaving && (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex gap-1">
+                      <RefreshCw className="h-3 w-3 animate-spin" />
+                      <span>Saving...</span>
+                    </Badge>
+                  )}
+                  
+                  {!promptState.isDirty && !promptState.isSaving && (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex gap-1">
+                      <span>All changes saved</span>
+                    </Badge>
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  {sessionTimer && (
+                    <div className="text-xs flex items-center gap-1">
+                      <span className={sessionTimer === "Expired" ? "text-red-500" : "text-muted-foreground"}>
+                        Session: {sessionTimer}
+                      </span>
+                      <button 
+                        onClick={refreshSession}
+                        className="text-xs text-blue-500 hover:text-blue-700"
+                        title="Refresh session"
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                  
+                  {promptState.isDirty && (
+                    <button
+                      onClick={handleSaveDraft}
+                      className="text-xs flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded"
+                    >
+                      <Save className="h-3 w-3" />
+                      Save draft
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            
             <StepController 
               user={user} 
               selectedModel={selectedModel} 
