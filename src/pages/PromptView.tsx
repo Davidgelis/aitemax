@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, Share2, Globe, Lock } from "lucide-react";
@@ -12,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
 import XPanelButton from "@/components/dashboard/XPanelButton";
 import { convertPlaceholdersToSpans, createPlainTextPrompt } from "@/utils/promptUtils";
-import { Json } from "@/integrations/supabase/types";
 
 const PromptView = () => {
   const { id } = useParams();
@@ -127,12 +127,6 @@ const PromptView = () => {
         tags: (data.tags as unknown as Array<{category: string, subcategory: string}>) || []
       };
       
-      // Add JSON structure if it exists
-      if (data.json_structure) {
-        formattedPrompt.jsonStructure = data.json_structure;
-        console.log("Loaded JSON structure:", data.json_structure);
-      }
-      
       setPrompt(formattedPrompt);
       setIsOwner(user && data.user_id === user.id);
       
@@ -213,12 +207,6 @@ const PromptView = () => {
       // Convert variables array to JSON format expected by Supabase
       const variablesJson = variablesToJson(safeVariables);
       
-      // Get the JSON structure from the StepThreeContent component if available
-      let jsonStructure = null;
-      if (window.getPromptJsonStructure && typeof window.getPromptJsonStructure === 'function') {
-        jsonStructure = window.getPromptJsonStructure();
-      }
-      
       const { error } = await supabase
         .from('prompts')
         .update({
@@ -227,7 +215,6 @@ const PromptView = () => {
           variables: variablesJson,
           primary_toggle: selectedPrimary,
           secondary_toggle: selectedSecondary,
-          json_structure: jsonStructure as unknown as Json
         })
         .eq('id', prompt.id);
       
@@ -445,12 +432,5 @@ const PromptView = () => {
     </div>
   );
 };
-
-// Add the missing type to the window object
-declare global {
-  interface Window {
-    getPromptJsonStructure?: () => any;
-  }
-}
 
 export default PromptView;

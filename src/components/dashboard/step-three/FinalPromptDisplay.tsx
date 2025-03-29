@@ -580,18 +580,6 @@ export const FinalPromptDisplay = ({
       return <div className="prose prose-sm max-w-none">{finalPrompt || ""}</div>;
     }
   };
-
-  // Add a method to get the current JSON structure
-  const getJsonStructure = useCallback(() => {
-    return promptJson;
-  }, [promptJson]);
-
-  // Add this method to the component's exports
-  if (typeof window !== 'undefined') {
-    // @ts-ignore - Add to window for debugging
-    window.getPromptJsonStructure = getJsonStructure;
-  }
-
   return <div className="relative flex-1 mb-4 overflow-hidden rounded-lg">
       <div className="absolute top-2 right-2 z-10 flex items-center space-x-4">
         {!isEditing && <>

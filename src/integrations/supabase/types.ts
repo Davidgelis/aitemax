@@ -163,7 +163,6 @@ export type Database = {
           id: string
           is_draft: boolean | null
           is_private: boolean | null
-          json_structure: Json | null
           master_command: string | null
           primary_toggle: string | null
           prompt_text: string | null
@@ -180,7 +179,6 @@ export type Database = {
           id?: string
           is_draft?: boolean | null
           is_private?: boolean | null
-          json_structure?: Json | null
           master_command?: string | null
           primary_toggle?: string | null
           prompt_text?: string | null
@@ -197,7 +195,6 @@ export type Database = {
           id?: string
           is_draft?: boolean | null
           is_private?: boolean | null
-          json_structure?: Json | null
           master_command?: string | null
           primary_toggle?: string | null
           prompt_text?: string | null
