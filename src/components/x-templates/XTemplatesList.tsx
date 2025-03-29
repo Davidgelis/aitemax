@@ -1,11 +1,12 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { XTemplateCard, TemplateType, PillarType } from "./XTemplateCard";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { Json } from "@/integrations/supabase/types";
+import { Button } from "@/components/ui/button";
 
 // Default templates (this would come from an API in a real implementation)
 const defaultTemplates: TemplateType[] = [
@@ -150,79 +151,112 @@ export const XTemplatesList = () => {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
 
-  // Fetch user templates from database
-  useEffect(() => {
-    const fetchTemplates = async () => {
-      setIsLoading(true);
-      setFetchError(null);
-      
-      try {
-        // If user is not authenticated, just use default templates
-        if (!user || !session) {
-          console.log("User not authenticated, using default templates only");
-          
-          // Check if selectedTemplate is stored in localStorage
-          const storedTemplateId = window.localStorage.getItem('selectedTemplateId');
-          if (storedTemplateId) {
-            setSelectedTemplateId(storedTemplateId);
-          }
-          
-          setIsLoading(false);
-          return;
-        }
-        
-        const { data, error } = await supabase
-          .from('x_templates')
-          .select('*')
-          .eq('user_id', user.id);
-        
-        if (error) {
-          console.error("Error fetching templates:", error);
-          setFetchError(error.message);
-          toast({
-            title: "Error fetching templates",
-            description: error.message,
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        if (data) {
-          // Convert database templates to TemplateType format
-          const userTemplates: TemplateType[] = data.map(item => ({
-            id: item.id,
-            name: item.name,
-            role: item.role,
-            pillars: jsonToPillars(item.pillars),
-            temperature: item.temperature,
-            characterLimit: item.character_limit,
-            isDefault: item.is_default,
-            createdAt: new Date(item.created_at).toLocaleDateString()
-          }));
-          
-          // Combine default templates with user templates
-          setTemplates([...defaultTemplates, ...userTemplates]);
-          
-          // Check if selectedTemplate is stored in localStorage
-          const storedTemplateId = window.localStorage.getItem('selectedTemplateId');
-          if (storedTemplateId) {
-            setSelectedTemplateId(storedTemplateId);
-          }
-        }
-      } catch (error: any) {
-        console.error("Error in fetchTemplates:", error);
-        setFetchError(error.message || "An unknown error occurred");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Fetch user templates from database with retry logic
+  const fetchTemplates = useCallback(async (retryAttempt = 0) => {
+    setIsLoading(true);
+    setFetchError(null);
     
+    try {
+      // If user is not authenticated, just use default templates
+      if (!user || !session) {
+        console.log("User not authenticated, using default templates only");
+        
+        // Check if selectedTemplate is stored in localStorage
+        const storedTemplateId = window.localStorage.getItem('selectedTemplateId');
+        if (storedTemplateId) {
+          setSelectedTemplateId(storedTemplateId);
+        }
+        
+        setIsLoading(false);
+        return;
+      }
+      
+      // Fetch user templates from Supabase
+      const { data, error } = await supabase
+        .from('x_templates')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error("Error fetching templates:", error);
+        
+        // If we haven't exceeded max retries, retry after a delay
+        if (retryAttempt < MAX_RETRIES) {
+          console.log(`Retrying fetch (${retryAttempt + 1}/${MAX_RETRIES}) in 1 second...`);
+          setTimeout(() => fetchTemplates(retryAttempt + 1), 1000);
+          return;
+        }
+        
+        setFetchError(`Failed to load your templates. Using default templates instead. (${error.message})`);
+        toast({
+          title: "Error fetching templates",
+          description: `Using default templates. ${error.message}`,
+          variant: "destructive"
+        });
+        
+        // Ensure we at least have the default templates if fetch fails
+        setTemplates(defaultTemplates);
+        
+        // Check if selectedTemplate is stored in localStorage
+        const storedTemplateId = window.localStorage.getItem('selectedTemplateId');
+        if (storedTemplateId) {
+          setSelectedTemplateId(storedTemplateId);
+        }
+        
+        return;
+      }
+      
+      if (data) {
+        // Convert database templates to TemplateType format
+        const userTemplates: TemplateType[] = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          role: item.role,
+          pillars: jsonToPillars(item.pillars),
+          temperature: item.temperature,
+          characterLimit: item.character_limit,
+          isDefault: item.is_default,
+          createdAt: new Date(item.created_at).toLocaleDateString()
+        }));
+        
+        // Combine default templates with user templates
+        setTemplates([...defaultTemplates, ...userTemplates]);
+        
+        // Check if selectedTemplate is stored in localStorage
+        const storedTemplateId = window.localStorage.getItem('selectedTemplateId');
+        if (storedTemplateId) {
+          setSelectedTemplateId(storedTemplateId);
+        }
+      }
+    } catch (error: any) {
+      console.error("Error in fetchTemplates:", error);
+      
+      // If we haven't exceeded max retries, retry after a delay
+      if (retryAttempt < MAX_RETRIES) {
+        console.log(`Retrying fetch (${retryAttempt + 1}/${MAX_RETRIES}) in 1 second...`);
+        setTimeout(() => fetchTemplates(retryAttempt + 1), 1000);
+        return;
+      }
+      
+      setFetchError(error.message || "An unknown error occurred. Using default templates.");
+      
+      // Ensure we at least have the default templates if fetch fails
+      setTemplates(defaultTemplates);
+    } finally {
+      setIsLoading(false);
+      setRetryCount(retryAttempt);
+    }
+  }, [user, session, toast]);
+
+  useEffect(() => {
     fetchTemplates();
     
     // Save the selectedTemplateId to window for StepOne.tsx to access
     window.__selectedTemplate = templates.find(t => t.id === selectedTemplateId) || defaultTemplates[0];
-  }, [user, session]);
+  }, [user, session, fetchTemplates]);
 
   // Listen for template events
   useEffect(() => {
@@ -275,6 +309,10 @@ export const XTemplatesList = () => {
     }
   };
 
+  const handleRetryFetch = () => {
+    fetchTemplates(0); // Reset retry count and try again
+  };
+
   return (
     <div>
       {/* Disclaimer for users about the default template */}
@@ -293,12 +331,25 @@ export const XTemplatesList = () => {
           <div>
             <p className="text-sm font-medium text-red-500 mb-1">Error loading templates</p>
             <p className="text-sm">{fetchError}</p>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="mt-2 text-sm text-blue-500 hover:text-blue-700 underline"
-            >
-              Refresh page
-            </button>
+            <div className="mt-2 flex space-x-3">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-sm flex items-center gap-1" 
+                onClick={handleRetryFetch}
+              >
+                <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                Retry
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-sm" 
+                onClick={() => window.location.reload()}
+              >
+                Refresh page
+              </Button>
+            </div>
           </div>
         </div>
       )}
