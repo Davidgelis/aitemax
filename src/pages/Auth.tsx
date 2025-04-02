@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,18 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, session } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  
+  // If user is already logged in, redirect to dashboard
+  useEffect(() => {
+    if (session) {
+      const returnUrl = new URLSearchParams(location.search).get('returnUrl');
+      navigate(returnUrl || '/dashboard');
+    }
+  }, [session, navigate, location.search]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +33,8 @@ const Auth = () => {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) throw error;
-        navigate('/');
+        
+        // Navigate will happen automatically via the useEffect when session updates
       } else {
         const { error } = await signUp(email, password);
         if (error) throw error;
@@ -35,6 +45,7 @@ const Auth = () => {
         setIsLogin(true);
       }
     } catch (error: any) {
+      console.error("Authentication error:", error);
       toast({
         title: "Error",
         description: error.message || "An unexpected error occurred",

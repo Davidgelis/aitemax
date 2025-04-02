@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -11,7 +10,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import XPanelButton from "@/components/dashboard/XPanelButton";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Save, RefreshCw } from "lucide-react";
+import { AlertCircle, Save, RefreshCw, Clock } from "lucide-react";
 
 const fallbackModels = [
   {
@@ -90,7 +89,7 @@ const Dashboard = () => {
     }
   }, [session, authLoading]);
   
-  // Set up session timer display
+  // Set up session timer display with more frequent updates
   useEffect(() => {
     if (!sessionExpiresAt) return;
     
@@ -100,6 +99,8 @@ const Dashboard = () => {
       
       if (timeLeft <= 0) {
         setSessionTimer("Expired");
+        // If session has expired, try to refresh it automatically
+        refreshSession();
         return;
       }
       
@@ -116,7 +117,18 @@ const Dashboard = () => {
     const interval = setInterval(updateTimer, 1000);
     
     return () => clearInterval(interval);
-  }, [sessionExpiresAt]);
+  }, [sessionExpiresAt, refreshSession]);
+  
+  // Add a utility function to check if session is about to expire
+  const isSessionAboutToExpire = () => {
+    if (!sessionExpiresAt) return false;
+    
+    const now = new Date();
+    const timeLeft = sessionExpiresAt.getTime() - now.getTime();
+    
+    // Consider "about to expire" if less than 5 minutes remain
+    return timeLeft < 5 * 60 * 1000;
+  };
   
   useEffect(() => {
     const saveDraftBeforeNavigate = (nextPath: string) => {
@@ -163,6 +175,7 @@ const Dashboard = () => {
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log(`Auth state change in Dashboard: ${event}`);
         setUser(session?.user || null);
       }
     );
@@ -219,6 +232,31 @@ const Dashboard = () => {
   const handleSaveDraft = () => {
     promptState.saveDraft(true);
   };
+  
+  // Add periodic session refresh for active users
+  useEffect(() => {
+    // Only refresh if there's an active session and user is interacting with the app
+    if (!session) return;
+    
+    // Add event listeners to track user activity
+    const resetActivityTimeout = () => {
+      // User is active, refresh session if it's getting close to expiry
+      if (isSessionAboutToExpire()) {
+        refreshSession();
+      }
+    };
+    
+    // Track key user interactions
+    window.addEventListener('mousemove', resetActivityTimeout);
+    window.addEventListener('keydown', resetActivityTimeout);
+    window.addEventListener('click', resetActivityTimeout);
+    
+    return () => {
+      window.removeEventListener('mousemove', resetActivityTimeout);
+      window.removeEventListener('keydown', resetActivityTimeout);
+      window.removeEventListener('click', resetActivityTimeout);
+    };
+  }, [session, refreshSession]);
 
   return (
     <SidebarProvider>
@@ -254,12 +292,13 @@ const Dashboard = () => {
                 <div className="flex items-center gap-3">
                   {sessionTimer && (
                     <div className="text-xs flex items-center gap-1">
-                      <span className={sessionTimer === "Expired" ? "text-red-500" : "text-muted-foreground"}>
+                      <Clock className="h-3 w-3" />
+                      <span className={isSessionAboutToExpire() ? "text-red-500" : "text-muted-foreground"}>
                         Session: {sessionTimer}
                       </span>
                       <button 
                         onClick={refreshSession}
-                        className="text-xs text-blue-500 hover:text-blue-700"
+                        className="text-xs text-blue-500 hover:text-blue-700 transition-colors p-1 rounded hover:bg-blue-50"
                         title="Refresh session"
                       >
                         <RefreshCw className="h-3 w-3" />
@@ -270,7 +309,7 @@ const Dashboard = () => {
                   {promptState.isDirty && (
                     <button
                       onClick={handleSaveDraft}
-                      className="text-xs flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded"
+                      className="text-xs flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded transition-colors"
                     >
                       <Save className="h-3 w-3" />
                       Save draft

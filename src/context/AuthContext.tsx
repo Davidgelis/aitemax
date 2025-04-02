@@ -17,6 +17,12 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Constant for session refresh interval - refresh every 10 minutes
+const SESSION_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+// Warning time before session expires (in milliseconds)
+const SESSION_WARNING_TIME = 10 * 60 * 1000; // 10 minutes before expiration
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -27,13 +33,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Function to refresh the session
   const refreshSession = useCallback(async () => {
     try {
+      console.log("Refreshing authentication session...");
       const { data, error } = await supabase.auth.refreshSession();
+      
       if (error) {
         console.error("Error refreshing session:", error.message);
         return;
       }
       
       if (data.session) {
+        console.log("Session refreshed successfully");
         setSession(data.session);
         setUser(data.session.user);
         
@@ -41,34 +50,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.session.expires_at) {
           const expiryTime = new Date(data.session.expires_at * 1000);
           setSessionExpiresAt(expiryTime);
+          console.log(`Session will expire at: ${expiryTime.toLocaleString()}`);
         }
+      } else {
+        console.log("No session data returned from refresh");
       }
     } catch (error) {
       console.error("Unexpected error refreshing session:", error);
     }
   }, []);
 
+  // Set up automatic session refresh
+  useEffect(() => {
+    if (!session) return;
+    
+    // Set up interval to refresh session periodically
+    const refreshInterval = setInterval(() => {
+      console.log("Automatic session refresh triggered");
+      refreshSession();
+    }, SESSION_REFRESH_INTERVAL);
+    
+    return () => clearInterval(refreshInterval);
+  }, [session, refreshSession]);
+
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      // Calculate and set session expiration time
-      if (session?.expires_at) {
-        const expiryTime = new Date(session.expires_at * 1000);
-        setSessionExpiresAt(expiryTime);
-      }
-      
-      setLoading(false);
-    }).catch(error => {
-      console.error("Error getting session:", error);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+    const getInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -76,6 +85,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.expires_at) {
           const expiryTime = new Date(session.expires_at * 1000);
           setSessionExpiresAt(expiryTime);
+          console.log(`Initial session will expire at: ${expiryTime.toLocaleString()}`);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error("Error getting initial session:", error);
+        setLoading(false);
+      }
+    };
+    
+    getInitialSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log(`Auth state changed: ${event}`);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Calculate and set session expiration time
+        if (session?.expires_at) {
+          const expiryTime = new Date(session.expires_at * 1000);
+          setSessionExpiresAt(expiryTime);
+          console.log(`Updated session will expire at: ${expiryTime.toLocaleString()}`);
         } else {
           setSessionExpiresAt(null);
         }
@@ -91,16 +124,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!sessionExpiresAt) return;
     
-    // Calculate time until 5 minutes before session expires
-    const warningTime = new Date(sessionExpiresAt.getTime() - 5 * 60 * 1000);
+    // Calculate time until warning should appear
+    // Show warning when session is X minutes from expiring
     const now = new Date();
+    const warningTime = new Date(sessionExpiresAt.getTime() - SESSION_WARNING_TIME);
     const timeUntilWarning = Math.max(0, warningTime.getTime() - now.getTime());
+    
+    console.log(`Will show session warning in: ${Math.floor(timeUntilWarning/60000)} minutes`);
     
     // Set timeout for warning
     const warningTimeout = setTimeout(() => {
       toast({
         title: "Session expiring soon",
-        description: "Your session will expire in 5 minutes. Would you like to stay logged in?",
+        description: "Your session will expire soon. Would you like to stay logged in?",
         action: (
           <button 
             onClick={refreshSession}
@@ -109,6 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             Stay logged in
           </button>
         ),
+        duration: 0, // Don't auto-dismiss this toast
       });
     }, timeUntilWarning);
     
