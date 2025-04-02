@@ -15,7 +15,7 @@ const IndexLogo = () => {
               className="max-h-full max-w-full object-contain"
             />
             
-            {/* Aurora effect overlay */}
+            {/* Aurora effect overlay with improved masking to prevent black outlines */}
             <div 
               className="absolute inset-0 bg-aurora-gradient bg-aurora animate-aurora z-10"
               style={{ 
@@ -23,11 +23,13 @@ const IndexLogo = () => {
                 maskSize: 'contain', 
                 maskPosition: 'center', 
                 maskRepeat: 'no-repeat',
+                maskMode: 'alpha',
                 WebkitMaskImage: `url('/lovable-uploads/39093f0c-3a23-4a15-911d-eb4a315e2eb1.png')`,
                 WebkitMaskSize: 'contain',
                 WebkitMaskPosition: 'center',
                 WebkitMaskRepeat: 'no-repeat',
-                opacity: 0.85
+                WebkitMaskMode: 'alpha',
+                opacity: 0.9
               }}
             />
           </div>
