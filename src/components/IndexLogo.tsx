@@ -6,11 +6,12 @@ const IndexLogo = () => {
         <h1 
           className="text-5xl font-balgin uppercase"
           style={{
-            color: "#084b49", // Solid color replacing the aurora gradient
-            fontWeight: 100,
+            color: "#041524", // Changed color to #041524
+            fontWeight: 50,   // Made 50% thinner (was 100)
             letterSpacing: "0.6em",
             opacity: 0.9,
             textShadow: "0 0 1px rgba(255,255,255,0.2)"
+            // Removed aurora gradient/effect
           }}
         >
           AITEMA
