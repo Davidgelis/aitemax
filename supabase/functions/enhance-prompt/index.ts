@@ -29,25 +29,32 @@ serve(async (req) => {
     
     // Enhanced logging for debugging template issues
     console.log("Enhance prompt function called with:");
-    console.log(`Template: ${JSON.stringify(template ? {
+    console.log(`Template received: ${JSON.stringify(template ? {
       id: template.id,
       name: template.name,
-      pillars: template.pillars?.map(p => p.title) || []
+      pillars: template.pillars?.map(p => p.title) || [],
+      role: template.role ? "Present" : "Missing"
     } : "No template")}`);
     console.log(`Questions count: ${answeredQuestions?.length || 0}`);
     console.log(`Variables count: ${relevantVariables?.length || 0}`);
     console.log(`Primary toggle: ${primaryToggle || "None"}`);
     console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
     
-    // Default values in case no template is provided
-    const defaultMaxCharacterLimit = 3000;
-    const defaultTemperature = 0.7;
-    
-    // Extract template information if available and validate
+    // Validate template structure more thoroughly
     const templateIsValid = template && 
                            typeof template === 'object' && 
                            template.name && 
-                           Array.isArray(template.pillars);
+                           Array.isArray(template.pillars) &&
+                           template.pillars.length > 0 &&
+                           template.pillars.every(p => p && p.title && p.description);
+    
+    if (template && !templateIsValid) {
+      console.error("Invalid template structure received:", template);
+    }
+    
+    // Default values in case no template is provided
+    const defaultMaxCharacterLimit = 3000;
+    const defaultTemperature = 0.7;
     
     // Use template settings if valid, otherwise use defaults
     const maxCharacterLimit = templateIsValid && template.characterLimit 
@@ -87,7 +94,7 @@ START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This
     
     // Add template-specific formatting instructions if we have a valid template with pillars
     if (templateIsValid && template.pillars && template.pillars.length > 0) {
-      systemMessage += `\n\nIF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING (## Subtitle) in the generated prompt. Each pillar should be its own separate section of the prompt.`;
+      systemMessage += `\n\nFORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING (## Subtitle) in the generated prompt. Each pillar should be its own separate section of the prompt.`;
     }
     
     // Add the template's role if available and valid

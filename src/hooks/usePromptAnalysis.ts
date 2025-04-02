@@ -113,8 +113,19 @@ export const usePromptAnalysis = (
           temperature: selectedTemplate.temperature || "default"
         } : "No template");
       
+      // Validate template structure before sending
+      const isValidTemplate = selectedTemplate && 
+                             typeof selectedTemplate === 'object' && 
+                             selectedTemplate.name && 
+                             Array.isArray(selectedTemplate.pillars);
+      
+      if (!isValidTemplate && selectedTemplate) {
+        console.error("Invalid template structure:", selectedTemplate);
+      }
+      
       // Make a clean copy of the template to avoid reference issues
-      const templateCopy = selectedTemplate ? JSON.parse(JSON.stringify(selectedTemplate)) : null;
+      const templateCopy = selectedTemplate && isValidTemplate ? 
+        JSON.parse(JSON.stringify(selectedTemplate)) : null;
       
       // Call the Supabase edge function with all necessary data
       const { data, error } = await supabase.functions.invoke("enhance-prompt", {

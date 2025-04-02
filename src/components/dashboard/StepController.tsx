@@ -258,15 +258,26 @@ export const StepController = ({
         // @ts-ignore
         const selectedTemplate = window.__selectedTemplate || null;
         
+        // Validate the template structure
+        const isValidTemplate = selectedTemplate && 
+                               typeof selectedTemplate === 'object' && 
+                               selectedTemplate.name && 
+                               Array.isArray(selectedTemplate.pillars);
+                               
         console.log("StepController: Using template for enhancement:", 
-          selectedTemplate ? {
+          isValidTemplate ? {
             id: selectedTemplate.id,
             name: selectedTemplate.name,
             pillars: selectedTemplate.pillars?.map((p: any) => p.title) || []
-          } : "No template");
+          } : "Invalid or no template");
+          
+        if (!isValidTemplate && selectedTemplate) {
+          console.error("Invalid template structure:", selectedTemplate);
+        }
         
         // Ensure we make a clean copy of the template to avoid reference issues
-        const templateCopy = selectedTemplate ? JSON.parse(JSON.stringify(selectedTemplate)) : null;
+        const templateCopy = selectedTemplate && isValidTemplate ? 
+          JSON.parse(JSON.stringify(selectedTemplate)) : null;
         
         // Use the enhancePromptWithGPT function to get an enhanced prompt
         // Make sure we're also passing the answers to questions and relevant variables
@@ -279,7 +290,7 @@ export const StepController = ({
           templateName: templateCopy?.name || "No template"
         });
         
-        // Call the edge function directly rather than using the hook method
+        // Call the promptAnalysis.enhancePromptWithGPT with the correct parameter order
         await promptAnalysis.enhancePromptWithGPT(
           promptText,
           selectedPrimary,

@@ -29,6 +29,7 @@ export const ImageContextDialog = ({
 }: ImageContextDialogProps) => {
   const [context, setContext] = useState(savedContext);
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Update state when props change
   useEffect(() => {
@@ -58,12 +59,22 @@ export const ImageContextDialog = ({
     }
     
     console.log("ImageContextDialog: Submitting context");
+    setIsSubmitting(true);
     
-    // Pass the context to the parent component and close the dialog
-    onConfirm(context.trim());
+    // Add a slight delay to ensure that isProcessingContext flag is recognized
+    setTimeout(() => {
+      // Pass the context to the parent component and close the dialog
+      onConfirm(context.trim());
+      setIsSubmitting(false);
+    }, 300);
   };
   
   const handleDialogClose = (open: boolean) => {
+    // If already submitting, prevent dialog from closing
+    if (isSubmitting) {
+      return;
+    }
+    
     // If closing and context is required but not provided, prevent closing
     if (!open && required && !context.trim() && !savedContext.trim()) {
       toast({
@@ -130,6 +141,7 @@ export const ImageContextDialog = ({
                 type="button"
                 onClick={() => onOpenChange(false)}
                 className="mr-2 bg-transparent hover:bg-gray-100 text-[#545454]"
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
@@ -137,8 +149,9 @@ export const ImageContextDialog = ({
             <Button
               type="submit"
               className="bg-[#084b49] hover:bg-[#084b49]/90 text-white px-4 py-2"
+              disabled={isSubmitting}
             >
-              {savedContext ? 'Update Context' : 'Add Context'}
+              {isSubmitting ? 'Processing...' : (savedContext ? 'Update Context' : 'Add Context')}
             </Button>
           </div>
         </form>

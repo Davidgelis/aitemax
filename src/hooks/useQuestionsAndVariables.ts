@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -160,11 +161,26 @@ export const useQuestionsAndVariables = (
         v => v.isRelevant === true
       );
       
-      console.log("Using template for enhancement:", 
-        selectedTemplate ? {
+      // Validate template structure
+      const isValidTemplate = selectedTemplate && 
+                             typeof selectedTemplate === 'object' && 
+                             selectedTemplate.name && 
+                             Array.isArray(selectedTemplate.pillars);
+      
+      console.log("useQuestionsAndVariables: Using template for enhancement:", 
+        isValidTemplate ? {
           id: selectedTemplate.id,
-          name: selectedTemplate.name
-        } : "No template");
+          name: selectedTemplate.name,
+          pillars: selectedTemplate.pillars.map(p => p.title)
+        } : "Invalid or no template");
+      
+      if (!isValidTemplate && selectedTemplate) {
+        console.error("Invalid template structure:", selectedTemplate);
+      }
+      
+      // Make a clean copy of the template to avoid reference issues
+      const templateCopy = selectedTemplate && isValidTemplate ? 
+        JSON.parse(JSON.stringify(selectedTemplate)) : null;
       
       console.log("useQuestionsAndVariables: Calling enhance-prompt with:", {
         originalPrompt: promptToEnhance.substring(0, 50) + "...",
@@ -174,7 +190,7 @@ export const useQuestionsAndVariables = (
         secondaryToggle,
         userId: user?.id ? "Present" : "None",
         promptId: promptId ? "Present" : "None",
-        template: selectedTemplate ? selectedTemplate.name : "None"
+        template: templateCopy ? templateCopy.name : "None"
       });
       
       const { data, error } = await supabase.functions.invoke('enhance-prompt', {
@@ -186,7 +202,7 @@ export const useQuestionsAndVariables = (
           secondaryToggle,
           userId: user?.id,
           promptId,
-          template: selectedTemplate // Add the template
+          template: templateCopy // Pass the clean template copy
         }
       });
       
