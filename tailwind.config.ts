@@ -21,7 +21,6 @@ export default {
     extend: {
       fontFamily: {
         balgin: ['Balgin', 'sans-serif'],
-        jost: ['Jost', 'sans-serif'], // Adding Jost font which is similar to reference
       },
       colors: {
         border: "hsl(var(--border))",
