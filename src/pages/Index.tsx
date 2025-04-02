@@ -42,26 +42,28 @@ const Index = () => {
         style={{ zIndex: -1 }}
       />
       
-      <main className="w-full mx-auto flex flex-col items-center gap-6">
+      <main className="w-full mx-auto flex flex-col items-center">
         {/* Logo added above the text */}
-        <IndexLogo />
+        <div className="flex flex-col items-center space-y-0">
+          <IndexLogo />
         
-        <p 
-          className="text-center text-lg max-w-2xl animate-fade-in" 
-          style={{ 
-            animationDelay: "0.2s",
-            background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white)",
-            backgroundSize: "400% 400%",
-            animation: "aurora 15s ease infinite",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text"
-          }}
-        >
-          Aitema X is humanity's unyielding vote in prompt engineering, a testament to our irreplaceable creativity.
-        </p>
+          <p 
+            className="text-center text-lg max-w-2xl animate-fade-in mt-0" 
+            style={{ 
+              animationDelay: "0.2s",
+              background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white)",
+              backgroundSize: "400% 400%",
+              animation: "aurora 15s ease infinite",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text"
+            }}
+          >
+            Aitema X is humanity's unyielding vote in prompt engineering, a testament to our irreplaceable creativity.
+          </p>
+        </div>
 
-        <div className="w-full max-w-4xl animate-fade-in" style={{ animationDelay: "0.4s" }}>
+        <div className="w-full max-w-4xl animate-fade-in mt-10" style={{ animationDelay: "0.4s" }}>
           <PromptInput
             onSubmit={handlePromptSubmit}
             placeholder="Input your prompt to Aitema X... (Press Enter to continue)"

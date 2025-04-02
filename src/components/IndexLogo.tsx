@@ -4,7 +4,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 const IndexLogo = () => {
   return (
     <div className="flex flex-col items-center justify-center animate-fade-in">
-      <div className="relative w-full md:w-[1500px] h-auto mb-8">
+      <div className="relative w-full md:w-[1500px] h-auto mb-2">
         {/* Logo with aurora effect completely replacing the colors */}
         <AspectRatio ratio={16 / 6} className="bg-transparent">
           <div className="w-full h-full relative">
