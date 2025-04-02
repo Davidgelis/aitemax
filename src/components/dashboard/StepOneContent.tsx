@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
@@ -27,6 +26,7 @@ interface StepOneContentProps {
   onImagesChange?: (images: UploadedImage[]) => void;
   onWebsiteScan?: (url: string, instructions: string) => void;
   onSmartContext?: (context: string, usageInstructions: string) => void;
+  setPreventStepChange?: (prevent: boolean) => void;
 }
 
 export const StepOneContent = ({
@@ -44,7 +44,8 @@ export const StepOneContent = ({
   handleCognitiveToggle,
   onImagesChange = () => {},
   onWebsiteScan = () => {},
-  onSmartContext = () => {}
+  onSmartContext = () => {},
+  setPreventStepChange = () => {}
 }: StepOneContentProps) => {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
@@ -92,12 +93,22 @@ export const StepOneContent = ({
   };
 
   const handleOpenUploadDialog = () => {
+    // Set the flag to prevent step change during image context operations
+    setPreventStepChange(true);
     setDialogOpen(true);
   };
 
   // Handle dialog state for the image uploader
   const handleDialogOpenChange = (open: boolean) => {
     setDialogOpen(open);
+    
+    // If dialog is closing, make sure we reset the prevent step change flag
+    if (!open) {
+      // Use a small timeout to ensure the flag is reset after any context dialog actions
+      setTimeout(() => {
+        setPreventStepChange(false);
+      }, 100);
+    }
     // Don't trigger any analysis when dialog state changes
   };
 

@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -60,6 +59,7 @@ export const StepController = ({
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
   const [shouldAnalyzeAfterContextChange, setShouldAnalyzeAfterContextChange] = useState(false);
+  const [preventStepChange, setPreventStepChange] = useState(false);
   
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
@@ -165,6 +165,13 @@ export const StepController = ({
       return;
     }
     
+    // If we're currently in a context dialog operation that should prevent step change
+    if (preventStepChange) {
+      console.log("StepController: Step change prevented due to context operation");
+      setPreventStepChange(false);
+      return;
+    }
+    
     console.log("StepController: Analyzing with context", {
       imagesCount: uploadedImages?.length || 0,
       hasWebsiteContext: !!websiteContext && !!websiteContext.url,
@@ -182,6 +189,13 @@ export const StepController = ({
   };
 
   const handleStepChange = async (step: number, bypass: boolean = false) => {
+    // If we're currently in a context dialog operation that should prevent step change
+    if (preventStepChange && !bypass) {
+      console.log("StepController: Step change prevented due to context operation");
+      setPreventStepChange(false);
+      return;
+    }
+    
     if (isViewingSavedPrompt && step !== 3) {
       return;
     }
@@ -315,6 +329,7 @@ export const StepController = ({
             onImagesChange={handleImagesChange}
             onWebsiteScan={handleWebsiteScan}
             onSmartContext={handleSmartContext}
+            setPreventStepChange={setPreventStepChange}
           />
         );
 
