@@ -12,7 +12,7 @@ const IndexLogo = () => {
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
-            fontWeight: 200,
+            fontWeight: 100, // Reduced from 200 to 100 to make the font lighter
             letterSpacing: "0.3em"
           }}
         >
@@ -21,7 +21,7 @@ const IndexLogo = () => {
         <img 
           src="/public/lovable-uploads/801ba41f-3e27-49c2-9f50-4f82fdf1115e.png" 
           alt="Logo" 
-          className="h-24 ml-2"
+          className="h-28 ml-2" // Increased from h-24 to h-28 (20% bigger)
         />
       </div>
     </div>
