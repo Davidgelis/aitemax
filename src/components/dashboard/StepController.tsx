@@ -12,6 +12,13 @@ import { usePromptOperations } from "@/hooks/usePromptOperations";
 import { AIModel, UploadedImage } from "@/components/dashboard/types";
 import { primaryToggles, secondaryToggles } from "./constants";
 
+// Add this at the top of the file to declare the global type
+declare global {
+  interface Window {
+    __selectedTemplate?: any;
+  }
+}
+
 interface StepControllerProps {
   user: any;
   selectedModel: AIModel | null;
@@ -60,6 +67,23 @@ export const StepController = ({
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
   const [shouldAnalyzeAfterContextChange, setShouldAnalyzeAfterContextChange] = useState(false);
   const [preventStepChange, setPreventStepChange] = useState(false);
+  // Add a state to store the current template
+  const [currentTemplate, setCurrentTemplate] = useState<any>(null);
+  
+  // Effect to synchronize template from window.__selectedTemplate
+  useEffect(() => {
+    const template = window.__selectedTemplate;
+    if (template) {
+      console.log("StepController: Retrieved template from window:", {
+        id: template.id,
+        name: template.name,
+        pillarsCount: template.pillars?.length || 0
+      });
+      setCurrentTemplate(template);
+    } else {
+      console.log("StepController: No template found in window.__selectedTemplate");
+    }
+  }, [currentStep]); // Check when step changes
   
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
@@ -240,7 +264,7 @@ export const StepController = ({
         message += ` for ${primaryLabel}`;
         
         if (selectedSecondary) {
-          const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
+          const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || secondarySecondary;
           message += ` and to be ${secondaryLabel}`;
         }
       } else if (selectedSecondary) {
@@ -254,43 +278,59 @@ export const StepController = ({
       try {
         console.log("StepController: Enhancing prompt for step 3 with o3-mini...");
         
-        // Get the selected template from window object
-        // @ts-ignore
-        const selectedTemplate = window.__selectedTemplate || null;
+        // Use the currentTemplate state instead of window.__selectedTemplate
+        const templateToUse = currentTemplate || window.__selectedTemplate;
         
-        // Validate the template structure
-        const isValidTemplate = selectedTemplate && 
-                               typeof selectedTemplate === 'object' && 
-                               selectedTemplate.name && 
-                               Array.isArray(selectedTemplate.pillars);
-                               
-        console.log("StepController: Using template for enhancement:", 
-          isValidTemplate ? {
-            id: selectedTemplate.id,
-            name: selectedTemplate.name,
-            pillars: selectedTemplate.pillars?.map((p: any) => p.title) || []
-          } : "Invalid or no template");
-          
-        if (!isValidTemplate && selectedTemplate) {
-          console.error("Invalid template structure:", selectedTemplate);
+        // Log the template being used
+        if (templateToUse) {
+          console.log("StepController: Using template for enhancement:", {
+            id: templateToUse.id,
+            name: templateToUse.name,
+            pillarsCount: templateToUse.pillars?.length || 0,
+            temperature: templateToUse.temperature,
+            characterLimit: templateToUse.characterLimit
+          });
+        } else {
+          console.warn("StepController: No template available for enhancement");
         }
         
-        // Ensure we make a clean copy of the template to avoid reference issues
-        const templateCopy = selectedTemplate && isValidTemplate ? 
-          JSON.parse(JSON.stringify(selectedTemplate)) : null;
+        // Enhanced validation of template structure
+        const isValidTemplate = templateToUse && 
+                               typeof templateToUse === 'object' && 
+                               templateToUse.name && 
+                               Array.isArray(templateToUse.pillars) &&
+                               templateToUse.pillars.length > 0 &&
+                               templateToUse.pillars.every((p: any) => p && p.title && p.description);
+                               
+        if (!isValidTemplate && templateToUse) {
+          console.error("Invalid template structure:", JSON.stringify(templateToUse, null, 2));
+        }
         
-        // Use the enhancePromptWithGPT function to get an enhanced prompt
-        // Make sure we're also passing the answers to questions and relevant variables
+        // Create a deep copy of the template to avoid reference issues
+        let templateCopy = null;
+        if (templateToUse && isValidTemplate) {
+          try {
+            templateCopy = JSON.parse(JSON.stringify(templateToUse));
+            console.log("Template successfully copied:", templateCopy.name);
+          } catch (copyError) {
+            console.error("Error creating template copy:", copyError);
+          }
+        }
+        
+        // Get the answered questions and relevant variables
         const answeredQuestions = questions.filter(q => q.isRelevant !== false && q.answer?.trim());
         const relevantVariables = variables.filter(v => v.isRelevant === true);
         
-        console.log("StepController: Enhancing with:", {
-          answeredQuestionsCount: answeredQuestions.length,
-          relevantVariablesCount: relevantVariables.length,
-          templateName: templateCopy?.name || "No template"
+        console.log("StepController: Calling promptAnalysis.enhancePromptWithGPT with:", {
+          promptText: promptText.substring(0, 50) + "...",
+          selectedPrimary,
+          selectedSecondary,
+          answeredQuestions: answeredQuestions.length,
+          relevantVariables: relevantVariables.length,
+          templateName: templateCopy?.name || "None"
         });
         
-        // Call the promptAnalysis.enhancePromptWithGPT with the correct parameter order
+        // Call the enhancePromptWithGPT with the fixed parameter order
         await promptAnalysis.enhancePromptWithGPT(
           promptText,
           selectedPrimary,
@@ -298,7 +338,7 @@ export const StepController = ({
           setFinalPrompt,
           answeredQuestions,
           relevantVariables,
-          templateCopy  // Pass the clean template copy
+          templateCopy
         );
         
         console.log("StepController: Successfully enhanced prompt, moving to step 3");

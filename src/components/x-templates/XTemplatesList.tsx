@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { XTemplateCard, TemplateType } from "./XTemplateCard";
 import { useToast } from "@/hooks/use-toast";
@@ -6,6 +5,13 @@ import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { Json } from "@/integrations/supabase/types";
+
+// Declare the global type
+declare global {
+  interface Window {
+    __selectedTemplate?: TemplateType;
+  }
+}
 
 // Default templates (this would come from an API in a real implementation)
 const defaultTemplates: TemplateType[] = [
@@ -83,12 +89,32 @@ const jsonToPillars = (json: Json): PillarType[] => {
   return json as unknown as PillarType[];
 };
 
+// Custom event dispatching function with improved error handling
+const dispatchTemplateEvent = (eventName: string, detail: any) => {
+  try {
+    const event = new CustomEvent(eventName, { detail });
+    window.dispatchEvent(event);
+    return true;
+  } catch (error) {
+    console.error(`Error dispatching ${eventName} event:`, error);
+    return false;
+  }
+};
+
 // Create a global event for template updates
 export const addTemplate = async (template: TemplateType) => {
   try {
     // First, dispatch event for UI update
-    const event = new CustomEvent('template-added', { detail: template });
-    window.dispatchEvent(event);
+    if (!dispatchTemplateEvent('template-added', template)) {
+      console.error("Failed to dispatch template-added event");
+    }
+    
+    // Update the global selected template if this is the currently selected one
+    const storedTemplateId = window.localStorage.getItem('selectedTemplateId');
+    if (storedTemplateId === template.id) {
+      window.__selectedTemplate = template;
+      console.log("Updated window.__selectedTemplate with new template data:", template.name);
+    }
     
     // Then, save to database if it's not a default template
     if (template.id !== "default" && template.id !== "simple-framework") {
@@ -119,8 +145,9 @@ export const addTemplate = async (template: TemplateType) => {
 export const deleteTemplate = async (templateId: string) => {
   try {
     // First, dispatch event for UI update
-    const event = new CustomEvent('template-deleted', { detail: { id: templateId } });
-    window.dispatchEvent(event);
+    if (!dispatchTemplateEvent('template-deleted', { id: templateId })) {
+      console.error("Failed to dispatch template-deleted event");
+    }
     
     // Then, delete from database if it's not a default template
     if (templateId !== "default" && templateId !== "simple-framework") {
@@ -196,9 +223,40 @@ export const XTemplatesList = () => {
     
     fetchTemplates();
     
-    // Save the selectedTemplateId to window for StepOne.tsx to access
-    window.__selectedTemplate = templates.find(t => t.id === selectedTemplateId) || defaultTemplates[0];
-  }, [user]);
+  }, [user, toast]);
+  
+  // Separate effect to update the window.__selectedTemplate 
+  // This ensures it's updated whenever selectedTemplateId changes
+  useEffect(() => {
+    if (selectedTemplateId) {
+      const template = templates.find(t => t.id === selectedTemplateId);
+      if (template) {
+        console.log("Setting window.__selectedTemplate to:", {
+          id: template.id, 
+          name: template.name,
+          pillarsCount: template.pillars?.length || 0
+        });
+        
+        // Create a deep copy to avoid reference issues
+        try {
+          const templateCopy = JSON.parse(JSON.stringify(template));
+          window.__selectedTemplate = templateCopy;
+          
+          // Validate the template after setting
+          const isValid = window.__selectedTemplate && 
+                         window.__selectedTemplate.name && 
+                         Array.isArray(window.__selectedTemplate.pillars);
+                         
+          console.log(`Template validation: ${isValid ? 'Valid' : 'Invalid'}`);
+          
+          // Store the ID in localStorage for persistence across refreshes
+          window.localStorage.setItem('selectedTemplateId', selectedTemplateId);
+        } catch (error) {
+          console.error("Error copying template to window object:", error);
+        }
+      }
+    }
+  }, [selectedTemplateId, templates]);
 
   // Listen for template events
   useEffect(() => {
@@ -221,6 +279,13 @@ export const XTemplatesList = () => {
       setTemplates(prevTemplates => 
         prevTemplates.filter(t => t.id !== event.detail.id)
       );
+      
+      // If the deleted template was the selected one, revert to default
+      if (selectedTemplateId === event.detail.id) {
+        setSelectedTemplateId("default");
+        window.localStorage.setItem('selectedTemplateId', "default");
+        window.__selectedTemplate = templates.find(t => t.id === "default");
+      }
     };
 
     window.addEventListener('template-added', handleTemplateAdded as EventListener);
@@ -230,7 +295,7 @@ export const XTemplatesList = () => {
       window.removeEventListener('template-added', handleTemplateAdded as EventListener);
       window.removeEventListener('template-deleted', handleTemplateDeleted as EventListener);
     };
-  }, []);
+  }, [templates, selectedTemplateId]);
 
   const handleSelectTemplate = (id: string) => {
     setSelectedTemplateId(id);
@@ -238,12 +303,24 @@ export const XTemplatesList = () => {
     // Save selectedTemplateId to localStorage for persistence
     window.localStorage.setItem('selectedTemplateId', id);
     
-    // Update the selected template in the window object for StepOne.tsx
-    window.__selectedTemplate = templates.find(t => t.id === id) || defaultTemplates[0];
-    
-    // Show a toast notification
+    // Update the selected template in the window object
     const template = templates.find(t => t.id === id);
     if (template) {
+      try {
+        // Create a deep copy to avoid reference issues
+        const templateCopy = JSON.parse(JSON.stringify(template));
+        window.__selectedTemplate = templateCopy;
+        
+        console.log("Updated window.__selectedTemplate:", {
+          id: templateCopy.id,
+          name: templateCopy.name,
+          pillarsCount: templateCopy.pillars?.length || 0
+        });
+      } catch (error) {
+        console.error("Error creating template copy:", error);
+        window.__selectedTemplate = template; // Fallback to direct reference
+      }
+      
       toast({
         title: "Template selected",
         description: `"${template.name}" is now your default template.`

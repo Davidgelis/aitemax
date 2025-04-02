@@ -141,6 +141,14 @@ export const useQuestionsAndVariables = (
     };
   };
 
+  /**
+   * Enhanced prompt with GPT, now with standardized parameter order to match usePromptAnalysis.ts
+   * @param promptToEnhance The original prompt text to enhance
+   * @param primaryToggle Selected primary toggle
+   * @param secondaryToggle Selected secondary toggle
+   * @param setFinalPrompt Callback to set the final prompt
+   * @param selectedTemplate The selected template to use
+   */
   const enhancePromptWithGPT = async (
     promptToEnhance: string, 
     primaryToggle: string | null, 
@@ -161,26 +169,37 @@ export const useQuestionsAndVariables = (
         v => v.isRelevant === true
       );
       
-      // Validate template structure
+      // Enhanced template validation
       const isValidTemplate = selectedTemplate && 
                              typeof selectedTemplate === 'object' && 
                              selectedTemplate.name && 
-                             Array.isArray(selectedTemplate.pillars);
+                             Array.isArray(selectedTemplate.pillars) &&
+                             selectedTemplate.pillars.length > 0 &&
+                             selectedTemplate.pillars.every(p => p && p.title && p.description);
       
-      console.log("useQuestionsAndVariables: Using template for enhancement:", 
+      console.log("useQuestionsAndVariables: Template being used:", 
         isValidTemplate ? {
           id: selectedTemplate.id,
           name: selectedTemplate.name,
-          pillars: selectedTemplate.pillars.map(p => p.title)
+          pillarsCount: selectedTemplate.pillars.length,
+          temperature: selectedTemplate.temperature
         } : "Invalid or no template");
       
       if (!isValidTemplate && selectedTemplate) {
-        console.error("Invalid template structure:", selectedTemplate);
+        console.error("Invalid template structure:", JSON.stringify(selectedTemplate, null, 2));
       }
       
-      // Make a clean copy of the template to avoid reference issues
-      const templateCopy = selectedTemplate && isValidTemplate ? 
-        JSON.parse(JSON.stringify(selectedTemplate)) : null;
+      // Always create a deep copy to prevent reference issues
+      let templateCopy = null;
+      if (selectedTemplate && isValidTemplate) {
+        try {
+          templateCopy = JSON.parse(JSON.stringify(selectedTemplate));
+          console.log("Template successfully copied:", templateCopy.name);
+        } catch (copyError) {
+          console.error("Error creating template copy:", copyError);
+          // Continue without template if copy fails
+        }
+      }
       
       console.log("useQuestionsAndVariables: Calling enhance-prompt with:", {
         originalPrompt: promptToEnhance.substring(0, 50) + "...",

@@ -91,6 +91,16 @@ export const usePromptAnalysis = (
     }
   };
   
+  /**
+   * Enhanced prompt with GPT, now with standardized parameter order
+   * @param originalPrompt The original prompt text to enhance
+   * @param primaryToggle Selected primary toggle
+   * @param secondaryToggle Selected secondary toggle
+   * @param setFinalPrompt Callback to set the final prompt
+   * @param answeredQuestions Array of answered and relevant questions
+   * @param relevantVariables Array of relevant variables
+   * @param selectedTemplate The selected template to use
+   */
   const enhancePromptWithGPT = async (
     originalPrompt: string,
     primaryToggle: string | null,
@@ -103,29 +113,39 @@ export const usePromptAnalysis = (
     try {
       setCurrentLoadingMessage(`Enhancing prompt${primaryToggle ? ` for ${primaryToggle}` : ''}...`);
       
-      // Enhanced logging for template usage
-      console.log("usePromptAnalysis: Enhancing prompt with template:", 
+      // Log important information for debugging
+      console.log("usePromptAnalysis: Template being used:", 
         selectedTemplate ? {
           id: selectedTemplate.id,
           name: selectedTemplate.name,
-          pillars: selectedTemplate.pillars?.map((p: any) => p.title) || [],
+          pillarsCount: selectedTemplate.pillars?.length || 0,
           characterLimit: selectedTemplate.characterLimit || "default",
           temperature: selectedTemplate.temperature || "default"
-        } : "No template");
+        } : "No template provided");
       
-      // Validate template structure before sending
+      // Enhanced template validation
       const isValidTemplate = selectedTemplate && 
                              typeof selectedTemplate === 'object' && 
                              selectedTemplate.name && 
-                             Array.isArray(selectedTemplate.pillars);
+                             Array.isArray(selectedTemplate.pillars) &&
+                             selectedTemplate.pillars.length > 0 &&
+                             selectedTemplate.pillars.every((p: any) => p && p.title && p.description);
       
       if (!isValidTemplate && selectedTemplate) {
-        console.error("Invalid template structure:", selectedTemplate);
+        console.error("Invalid template structure:", JSON.stringify(selectedTemplate, null, 2));
       }
       
-      // Make a clean copy of the template to avoid reference issues
-      const templateCopy = selectedTemplate && isValidTemplate ? 
-        JSON.parse(JSON.stringify(selectedTemplate)) : null;
+      // Always create a deep copy to prevent reference issues
+      let templateCopy = null;
+      if (selectedTemplate && isValidTemplate) {
+        try {
+          templateCopy = JSON.parse(JSON.stringify(selectedTemplate));
+          console.log("Template successfully copied:", templateCopy.name);
+        } catch (copyError) {
+          console.error("Error creating template copy:", copyError);
+          // Continue without template if copy fails
+        }
+      }
       
       // Call the Supabase edge function with all necessary data
       const { data, error } = await supabase.functions.invoke("enhance-prompt", {
@@ -154,7 +174,7 @@ export const usePromptAnalysis = (
       }
       
       if (data.enhancedPrompt) {
-        console.log("Enhanced prompt:", data.enhancedPrompt.substring(0, 100) + "...");
+        console.log("Enhanced prompt received:", data.enhancedPrompt.substring(0, 100) + "...");
         setFinalPrompt(data.enhancedPrompt);
       } else {
         console.warn("No enhanced prompt returned");

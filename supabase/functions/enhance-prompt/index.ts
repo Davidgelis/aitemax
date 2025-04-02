@@ -32,15 +32,21 @@ serve(async (req) => {
     console.log(`Template received: ${JSON.stringify(template ? {
       id: template.id,
       name: template.name,
-      pillars: template.pillars?.map(p => p.title) || [],
-      role: template.role ? "Present" : "Missing"
+      pillarsCount: template.pillars?.length || 0,
+      temperature: template.temperature,
+      characterLimit: template.characterLimit
     } : "No template")}`);
+    
+    if (template && template.pillars) {
+      console.log(`Pillars: ${template.pillars.map(p => p.title).join(', ')}`);
+    }
+    
     console.log(`Questions count: ${answeredQuestions?.length || 0}`);
     console.log(`Variables count: ${relevantVariables?.length || 0}`);
     console.log(`Primary toggle: ${primaryToggle || "None"}`);
     console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
     
-    // Validate template structure more thoroughly
+    // Enhanced template validation
     const templateIsValid = template && 
                            typeof template === 'object' && 
                            template.name && 
@@ -49,7 +55,7 @@ serve(async (req) => {
                            template.pillars.every(p => p && p.title && p.description);
     
     if (template && !templateIsValid) {
-      console.error("Invalid template structure received:", template);
+      console.error("Invalid template structure received:", JSON.stringify(template, null, 2));
     }
     
     // Default values in case no template is provided
@@ -122,6 +128,16 @@ START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This
       userMessage += `\n\nAdditional context:\n${context}`;
     }
     
+    // Add context from relevant variables if available
+    if (relevantVariables && relevantVariables.length > 0) {
+      userMessage += "\n\nRelevant variables:";
+      relevantVariables.forEach(v => {
+        if (v.name && v.value) {
+          userMessage += `\n- ${v.name}: ${v.value}`;
+        }
+      });
+    }
+    
     // If template has valid pillars, add structured guidance for the content
     if (templateIsValid && template.pillars && template.pillars.length > 0) {
       userMessage += "\n\nPlease structure your response to include the following sections using the pillars as H2 headings (## Heading):";
@@ -172,7 +188,11 @@ START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This
       return new Response(JSON.stringify({ 
         enhancedPrompt,
         loadingMessage: `Enhancing prompt${primaryToggle ? ` for ${primaryToggle}` : ''}...`,
-        usage: completion.usage || { prompt_tokens: 0, completion_tokens: 0 }
+        usage: completion.usage || { prompt_tokens: 0, completion_tokens: 0 },
+        template: templateIsValid ? { 
+          name: template.name, 
+          usedPillars: template.pillars.map(p => p.title)
+        } : null
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
