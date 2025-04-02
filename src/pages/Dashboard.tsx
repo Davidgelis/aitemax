@@ -261,17 +261,20 @@ const Dashboard = () => {
   // Check for redirected prompt from index page
   useEffect(() => {
     const redirectedPrompt = sessionStorage.getItem("redirectedPrompt");
+    const stayOnStepOne = sessionStorage.getItem("stayOnStepOne") === "true";
+    
     if (redirectedPrompt) {
       // Set the prompt text from the redirect
       promptState.setPromptText(redirectedPrompt);
       
-      // Move to step 2 if we're on step 1
-      if (promptState.currentStep === 1) {
+      // Only move to step 2 if stayOnStepOne is false
+      if (!stayOnStepOne && promptState.currentStep === 1) {
         promptState.setCurrentStep(2);
       }
       
-      // Clear the stored prompt to avoid reusing it on refresh
+      // Clear the stored prompt and flag to avoid reusing them on refresh
       sessionStorage.removeItem("redirectedPrompt");
+      sessionStorage.removeItem("stayOnStepOne");
     }
   }, [promptState]);
 
