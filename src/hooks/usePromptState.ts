@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +28,10 @@ export const usePromptState = (user: any) => {
   const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState(false);
   const [promptJsonStructure, setPromptJsonStructure] = useState<PromptJsonStructure | null>(null);
   const [fetchPromptError, setFetchPromptError] = useState<Error | null>(null);
-  // Removed draftLoaded state since we don't want to auto-load drafts
+  const [retryCount, setRetryCount] = useState(0);
+  const [isFetchingPrompts, setIsFetchingPrompts] = useState(false);
+  // Maximum number of retries
+  const MAX_RETRIES = 3;
 
   const { toast } = useToast();
 
@@ -54,8 +56,6 @@ export const usePromptState = (user: any) => {
     currentStep,
     user
   );
-
-  // Removed the useEffect that auto-loads the draft on component mount
 
   const loadSelectedDraftState = (draft: any) => {
     const draftData = loadSelectedDraft(draft);
@@ -125,14 +125,19 @@ export const usePromptState = (user: any) => {
   const fetchSavedPrompts = useCallback(async () => {
     if (!user) return;
     
+    // If already fetching, don't start another fetch
+    if (isFetchingPrompts) return;
+    
     setIsLoadingPrompts(true);
     setFetchPromptError(null);
+    setIsFetchingPrompts(true);
     
     try {
       console.log("Fetching prompts for user:", user.id);
       const { data, error } = await supabase
         .from('prompts')
         .select('*')
+        .eq('user_id', user.id) // Ensure we're only getting prompts for this user
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -157,18 +162,35 @@ export const usePromptState = (user: any) => {
       }) || [];
       
       setSavedPrompts(formattedPrompts);
+      setRetryCount(0); // Reset retry count on success
     } catch (error: any) {
       console.error("Error fetching prompts:", error);
       setFetchPromptError(error);
-      toast({
-        title: "Error fetching prompts",
-        description: error.message || "Please try again later",
-        variant: "destructive",
-      });
+      
+      // Retry logic
+      if (retryCount < MAX_RETRIES) {
+        const nextRetryCount = retryCount + 1;
+        setRetryCount(nextRetryCount);
+        console.log(`Retrying prompt fetch (${nextRetryCount}/${MAX_RETRIES})...`);
+        
+        // Exponential backoff: 2^retry * 1000ms
+        const retryDelay = Math.pow(2, nextRetryCount) * 1000;
+        
+        setTimeout(() => {
+          fetchSavedPrompts();
+        }, retryDelay);
+      } else {
+        toast({
+          title: "Error fetching prompts",
+          description: "Unable to load your prompts after multiple attempts. Please try again later.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoadingPrompts(false);
+      setIsFetchingPrompts(false);
     }
-  }, [user, toast]);
+  }, [user, toast, retryCount]);
 
   const handleSavePrompt = async () => {
     if (!user) {
@@ -461,6 +483,7 @@ export const usePromptState = (user: any) => {
     });
   };
 
+  // Navigation handler
   useEffect(() => {
     const saveDraftBeforeNavigate = (nextPath: string) => {
       // Only save draft if on step 2 (not step 1 or 3)
@@ -497,11 +520,29 @@ export const usePromptState = (user: any) => {
     };
   }, [location.pathname, promptText, isViewingSavedPrompt, saveDraft, currentStep]);
 
+  // Fetch prompts on user load or change
   useEffect(() => {
     if (user) {
+      console.log("User available, fetching prompts");
       fetchSavedPrompts();
     }
   }, [user, fetchSavedPrompts]);
+
+  // Re-fetch prompts on visible tab focus
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && user) {
+        console.log("Tab became visible, refreshing prompts");
+        fetchSavedPrompts();
+      }
+    };
+    
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [fetchSavedPrompts, user]);
 
   return {
     promptText,

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,17 +16,21 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Constant for session refresh interval - refresh every 5 minutes
-const SESSION_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes in milliseconds
+// Constant for session refresh interval - refresh every 3 minutes
+const SESSION_REFRESH_INTERVAL = 3 * 60 * 1000; // 3 minutes in milliseconds
 
 // Warning time before session expires (in milliseconds)
 const SESSION_WARNING_TIME = 10 * 60 * 1000; // 10 minutes before expiration
+
+// Maximum retry attempts for session refresh
+const MAX_REFRESH_RETRIES = 3;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionExpiresAt, setSessionExpiresAt] = useState<Date | null>(null);
+  const [refreshRetryCount, setRefreshRetryCount] = useState(0);
   const { toast } = useToast();
   
   // Function to refresh the session
@@ -38,8 +41,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error("Error refreshing session:", error.message);
+        
+        // Implement retry logic
+        if (refreshRetryCount < MAX_REFRESH_RETRIES) {
+          console.log(`Retrying session refresh (${refreshRetryCount + 1}/${MAX_REFRESH_RETRIES})...`);
+          setRefreshRetryCount(prev => prev + 1);
+          // Try again after a delay
+          setTimeout(refreshSession, 5000);
+        } else {
+          console.error("Max refresh retries reached. Session may expire soon.");
+          toast({
+            title: "Session refresh failed",
+            description: "You may need to login again soon",
+            variant: "destructive",
+          });
+          setRefreshRetryCount(0);
+        }
         return;
       }
+      
+      // Reset retry count on success
+      setRefreshRetryCount(0);
       
       if (data.session) {
         console.log("Session refreshed successfully");
@@ -58,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error("Unexpected error refreshing session:", error);
     }
-  }, []);
+  }, [refreshRetryCount, toast]);
 
   // Set up automatic session refresh
   useEffect(() => {
@@ -81,14 +103,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Add event listeners for tab visibility and user activity
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
+    // Add additional activity monitors to keep session fresh
+    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+    let activityTimeout: number | null = null;
+    
+    const handleUserActivity = () => {
+      if (activityTimeout) {
+        clearTimeout(activityTimeout);
+      }
+      
+      // Only refresh if it's been at least 1 minute since the last refresh
+      activityTimeout = window.setTimeout(() => {
+        console.log("User activity detected, refreshing session");
+        refreshSession();
+      }, 60000); // Wait 1 minute of inactivity before refreshing
+    };
+    
+    activityEvents.forEach(event => {
+      window.addEventListener(event, handleUserActivity, { passive: true });
+    });
+    
     return () => {
       clearInterval(refreshInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      
+      if (activityTimeout) {
+        clearTimeout(activityTimeout);
+      }
+      
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, handleUserActivity);
+      });
     };
   }, [session, refreshSession]);
 
+  // Get initial session
   useEffect(() => {
-    // Get initial session
     const getInitialSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
