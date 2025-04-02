@@ -327,10 +327,9 @@ const PromptInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className={`w-full h-[320px] p-4 resize-none outline-none transition-all text-lg placeholder:text-gray-400 ${!hideFormatting ? 'rounded-b-xl' : 'rounded-xl'}`}
+            className={`w-full h-[320px] p-4 resize-none outline-none transition-all text-lg text-[#545454] placeholder:text-gray-400 ${!hideFormatting ? 'rounded-b-xl' : 'rounded-xl'}`}
             style={{ 
-              backgroundColor: "#041524",
-              color: "#33fea6",
+              backgroundColor: "#fafafa",
               border: "1px solid #e5e7eb",
               borderTop: hideFormatting ? "1px solid #e5e7eb" : "none",
               fontSize: "1.2rem"
