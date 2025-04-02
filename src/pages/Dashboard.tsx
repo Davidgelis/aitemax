@@ -267,7 +267,7 @@ const Dashboard = () => {
       
       // Move to step 2 if we're on step 1
       if (promptState.currentStep === 1) {
-        promptState.goToStep(2);
+        promptState.setCurrentStep(2);
       }
       
       // Clear the stored prompt to avoid reusing it on refresh
