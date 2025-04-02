@@ -1,7 +1,18 @@
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { RefreshCw } from 'lucide-react';
 
 type AuthContextType = {
   session: Session | null;
@@ -16,8 +27,8 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Constant for session refresh interval - refresh every 3 minutes
-const SESSION_REFRESH_INTERVAL = 3 * 60 * 1000; // 3 minutes in milliseconds
+// Constant for session refresh interval - refresh every 30 minutes
+const SESSION_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes in milliseconds
 
 // Warning time before session expires (in milliseconds)
 const SESSION_WARNING_TIME = 10 * 60 * 1000; // 10 minutes before expiration
@@ -31,6 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [sessionExpiresAt, setSessionExpiresAt] = useState<Date | null>(null);
   const [refreshRetryCount, setRefreshRetryCount] = useState(0);
+  const [showSessionExpiredDialog, setShowSessionExpiredDialog] = useState(false);
   const { toast } = useToast();
   
   // Function to refresh the session
@@ -56,6 +68,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             variant: "destructive",
           });
           setRefreshRetryCount(0);
+          // Show session expired dialog when max retries are reached
+          setShowSessionExpiredDialog(true);
         }
         return;
       }
@@ -76,11 +90,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else {
         console.log("No session data returned from refresh");
+        // Show session expired dialog when no session data is returned
+        setShowSessionExpiredDialog(true);
       }
     } catch (error) {
       console.error("Unexpected error refreshing session:", error);
+      // Show session expired dialog on unexpected errors
+      setShowSessionExpiredDialog(true);
     }
   }, [refreshRetryCount, toast]);
+
+  // Handle refresh page action
+  const handleRefreshPage = useCallback(() => {
+    window.location.reload();
+  }, []);
 
   // Set up automatic session refresh
   useEffect(() => {
@@ -257,6 +280,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       refreshSession,
       sessionExpiresAt
     }}>
+      <AlertDialog open={showSessionExpiredDialog} onOpenChange={setShowSessionExpiredDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Session Expired</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your session has expired. To continue using the app without experiencing bugs, 
+              please refresh the page to restore your session.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleRefreshPage} className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Refresh Page
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {children}
     </AuthContext.Provider>
   );
