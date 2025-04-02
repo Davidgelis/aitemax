@@ -24,7 +24,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helper function to calculate token costs - PRICING UPDATED
+// Helper function to calculate token costs - UPDATED WITH NEW PRICING
 function calculateTokenCosts(promptTokens: number, completionTokens: number) {
   // GPT-4o pricing: $0.0025 per 1K prompt tokens, $0.01 per 1K completion tokens
   const promptCost = (promptTokens / 1000) * 0.0025;

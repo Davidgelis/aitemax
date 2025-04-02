@@ -5,101 +5,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, ArrowLeft, BarChart3, Users, FileText, FileEdit, Download, HelpCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft, BarChart3, Users, FileText, FileEdit } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Table, 
-  TableBody, 
-  TableCaption, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow,
-  TableFooter 
-} from "@/components/ui/table";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent
-} from "@/components/ui/chart";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Legend,
-  Tooltip
-} from "recharts";
-import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Admin user ID
 const ADMIN_USER_ID = "8b40d73f-fffb-411f-9044-480773968d58";
 
-// Model pricing constants (per 1000 tokens)
-const MODEL_PRICING: Record<string, {
-  promptCostPerThousandTokens: number,
-  completionCostPerThousandTokens: number,
-  color: string
-}> = {
-  'gpt-4o': {
-    promptCostPerThousandTokens: 2.50,  // $2.50 per 1000 tokens
-    completionCostPerThousandTokens: 10.00,  // $10.00 per 1000 tokens
-    color: "#10B981" // green-500
-  },
-  'gpt-3.5-turbo': {
-    promptCostPerThousandTokens: 1.50,  // $1.50 per 1000 tokens
-    completionCostPerThousandTokens: 2.00,  // $2.00 per 1000 tokens
-    color: "#F59E0B" // amber-500
-  },
-  'o3-mini': {
-    promptCostPerThousandTokens: 1.10,  // $1.10 per 1000 tokens
-    completionCostPerThousandTokens: 4.40, // $4.40 per 1000 tokens
-    color: "#6366F1" // indigo-500
-  },
-  'default': {
-    promptCostPerThousandTokens: 2.50,
-    completionCostPerThousandTokens: 10.00,
-    color: "#A3A3A3" // gray-400
-  }
-};
-
-// Chart colors
-const CHART_COLORS = ["#10B981", "#F59E0B", "#6366F1", "#EC4899", "#F97316", "#8B5CF6", "#A3A3A3"];
-
-// Define appropriate TypeScript interfaces
-interface ModelUsage {
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
-  prompt_cost: number;
-  completion_cost: number;
-  total_cost: number;
-  usage_count: number;
-  percentage?: number;
-}
-
 interface UserTokenStats {
   user_id: string;
   username: string | null;
+  total_prompt_tokens: number;
+  total_completion_tokens: number;
+  total_prompt_cost: number;
+  total_completion_cost: number;
+  total_cost: number;
   prompts_count: number;
   drafts_count: number;
   total_count: number;
-  total_cost: number;
-  model_usage: {
-    [modelName: string]: ModelUsage;
-  };
-  total_prompt_tokens: number;
-  total_completion_tokens: number;
-  total_tokens: number;
 }
 
 interface TotalStats {
@@ -107,155 +32,22 @@ interface TotalStats {
   total_prompts: number;
   total_drafts: number;
   total_all_prompts: number;
-  total_tokens: number;
   total_prompt_tokens: number;
   total_completion_tokens: number;
+  total_tokens: number;
   total_cost: number;
   avg_cost_per_prompt: number;
   avg_tokens_per_prompt: number;
-  model_usage: {
-    [modelName: string]: {
-      prompt_tokens: number;
-      completion_tokens: number;
-      total_tokens: number;
-      prompt_cost: number;
-      completion_cost: number;
-      total_cost: number;
-      usage_count: number;
-      percentage: number;
-    };
-  };
 }
 
-// Format large numbers with commas and optional decimal places
-const formatNumber = (num: number, decimalPlaces = 0): string => {
-  return num.toLocaleString(undefined, {
-    minimumFractionDigits: decimalPlaces,
-    maximumFractionDigits: decimalPlaces
-  });
-};
-
-// Format tokens to show appropriate units (raw or thousands)
-const formatTokenCount = (count: number): string => {
-  if (count >= 1000) {
-    return `${formatNumber(count)} (${(count / 1000).toFixed(3)}k)`;
-  }
-  return formatNumber(count);
-};
-
-// Custom components
-interface StatsCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  tooltip?: string;
+// Define the type for the RPC response
+interface PromptCountResult {
+  user_id: string;
+  prompts_count: number;
+  drafts_count: number;
+  total_count: number;
+  total_cost: number;
 }
-
-const StatsCard = ({ title, value, icon, tooltip }: StatsCardProps) => (
-  <Card className="shadow-lg border-[#084b49]/20">
-    <CardHeader className="pb-2">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{title}</p>
-        <div className="text-muted-foreground flex items-center gap-1">
-          {icon}
-          {tooltip && (
-            <TooltipProvider>
-              <UITooltip>
-                <TooltipTrigger asChild>
-                  <HelpCircle className="h-4 w-4 opacity-70 cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  {tooltip}
-                </TooltipContent>
-              </UITooltip>
-            </TooltipProvider>
-          )}
-        </div>
-      </div>
-    </CardHeader>
-    <CardContent>
-      <h3 className="text-2xl font-bold">{value}</h3>
-    </CardContent>
-  </Card>
-);
-
-// Custom tooltip for recharts
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white p-3 border rounded-md shadow-md">
-        <p className="font-medium">{payload[0].name}</p>
-        <p>Tokens: {formatNumber(payload[0].payload.value)}</p>
-        {payload[0].payload.cost && (
-          <p>Cost: ${payload[0].payload.cost.toFixed(6)}</p>
-        )}
-        {payload[0].payload.percentage && (
-          <p>Percentage: {payload[0].payload.percentage}%</p>
-        )}
-      </div>
-    );
-  }
-  return null;
-};
-
-// Currency icon component
-const CurrencyIcon = (props: any) => (
-  <svg
-    {...props}
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="8" />
-    <line x1="12" y1="8" x2="12" y2="12" />
-    <line x1="12" y1="16" x2="12.01" y2="16" />
-  </svg>
-);
-
-// Average cost icon component
-const AvgCostIcon = (props: any) => (
-  <svg
-    {...props}
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
-    <line x1="2" y1="20" x2="2" y2="20" />
-  </svg>
-);
-
-// Token icon component
-const TokenIcon = (props: any) => (
-  <svg
-    {...props}
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="10" />
-    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-    <path d="M12 17h.01" />
-  </svg>
-);
 
 export default function Analytics() {
   const { user } = useAuth();
@@ -266,7 +58,6 @@ export default function Analytics() {
   const [userStats, setUserStats] = useState<UserTokenStats[]>([]);
   const [totalStats, setTotalStats] = useState<TotalStats | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [activeTab, setActiveTab] = useState("overview");
 
   // Check if current user is admin
   const isAdmin = user?.id === ADMIN_USER_ID;
@@ -282,63 +73,6 @@ export default function Analytics() {
     });
   };
 
-  // Prepare model usage data for charts
-  const prepareModelUsageChart = () => {
-    if (!totalStats || !totalStats.model_usage) return [];
-    
-    const data = Object.entries(totalStats.model_usage).map(([model, stats], index) => ({
-      name: model,
-      value: stats.total_tokens,
-      cost: stats.total_cost,
-      color: MODEL_PRICING[model]?.color || CHART_COLORS[index % CHART_COLORS.length]
-    }));
-    
-    return data;
-  };
-
-  // Prepare cost breakdown data for charts
-  const prepareCostBreakdownChart = () => {
-    if (!totalStats || !totalStats.model_usage) return [];
-    
-    const data = Object.entries(totalStats.model_usage).map(([model, stats], index) => ({
-      name: model,
-      value: stats.total_cost,
-      color: MODEL_PRICING[model]?.color || CHART_COLORS[index % CHART_COLORS.length],
-      percentage: (stats.total_cost / totalStats.total_cost * 100).toFixed(1)
-    }));
-    
-    return data;
-  };
-
-  // Function to export analytics data as CSV
-  const exportDataAsCSV = () => {
-    if (!userStats || !userStats.length) return;
-    
-    // Create header row
-    let csv = 'Username,Total Prompts,Drafts,Total Usage,Total Tokens,Cost ($)\n';
-    
-    // Add data rows
-    userStats.forEach(user => {
-      csv += `${user.username || 'Unknown User'},${user.prompts_count},${user.drafts_count},${user.total_count},${user.total_tokens},${user.total_cost.toFixed(4)}\n`;
-    });
-    
-    // Create download link
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('hidden', '');
-    a.setAttribute('href', url);
-    a.setAttribute('download', 'prompt_analytics.csv');
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    
-    toast({
-      title: "Export Successful",
-      description: "Analytics data has been exported as CSV.",
-    });
-  };
-
   useEffect(() => {
     if (!user || !isAdmin) return;
     
@@ -348,6 +82,30 @@ export default function Analytics() {
         setError(null);
         
         console.log("Fetching analytics data, attempt:", retryCount + 1);
+        
+        // Get user token usage with username
+        const { data: userData, error: userError } = await supabase
+          .from('user_token_summary')
+          .select(`
+            user_id,
+            total_prompt_tokens,
+            total_completion_tokens,
+            total_prompt_cost,
+            total_completion_cost,
+            total_cost
+          `);
+
+        if (userError) throw userError;
+
+        // Call the edge function to get accurate prompt counts
+        const { data: promptData, error: promptError } = await supabase.functions.invoke(
+          'get-prompt-counts-per-user',
+          { method: 'POST' }
+        );
+          
+        if (promptError) throw promptError;
+        
+        console.log("Edge function prompt count result:", promptData);
         
         // Get usernames from profiles
         const { data: profilesData, error: profilesError } = await supabase
@@ -362,97 +120,53 @@ export default function Analytics() {
           return acc;
         }, {} as Record<string, string | null>);
 
-        // Call the edge function to get detailed usage data
-        const { data: userData, error: userError } = await supabase.functions.invoke(
-          'get-prompt-counts-per-user',
-          { method: 'POST' }
-        );
-          
-        if (userError) throw userError;
-        
-        console.log("Edge function returned user data:", userData);
-        
-        if (!userData || !Array.isArray(userData)) {
-          throw new Error("Invalid data returned from the server");
-        }
+        // Combine the data
+        const combinedStats = userData.map(user => {
+          // Find matching prompt counts from edge function data
+          const promptCounts = promptData.find(p => p.user_id === user.user_id) || {
+            prompts_count: 0,
+            drafts_count: 0,
+            total_count: 0,
+            total_cost: 0
+          };
 
-        // Process the user data
-        const processedUserStats = userData.map(user => ({
-          user_id: user.user_id,
-          username: usernameMap[user.user_id] || 'Unknown User',
-          prompts_count: user.prompts_count || 0,
-          drafts_count: user.drafts_count || 0,
-          total_count: user.total_count || 0,
-          total_cost: Number(user.total_cost) || 0,
-          model_usage: user.model_usage || {},
-          total_prompt_tokens: user.total_prompt_tokens || 0,
-          total_completion_tokens: user.total_completion_tokens || 0,
-          total_tokens: user.total_prompt_tokens + user.total_completion_tokens || 0
-        }));
-
-        setUserStats(processedUserStats);
-
-        // Calculate total statistics
-        const calculatedStats: TotalStats = {
-          total_users: processedUserStats.length,
-          total_prompts: processedUserStats.reduce((sum, user) => sum + user.prompts_count, 0),
-          total_drafts: processedUserStats.reduce((sum, user) => sum + user.drafts_count, 0),
-          total_all_prompts: processedUserStats.reduce((sum, user) => sum + user.total_count, 0),
-          total_prompt_tokens: processedUserStats.reduce((sum, user) => sum + user.total_prompt_tokens, 0),
-          total_completion_tokens: processedUserStats.reduce((sum, user) => sum + user.total_completion_tokens, 0),
-          total_tokens: processedUserStats.reduce((sum, user) => sum + (user.total_prompt_tokens + user.total_completion_tokens), 0),
-          total_cost: processedUserStats.reduce((sum, user) => sum + user.total_cost, 0),
-          avg_cost_per_prompt: 0,
-          avg_tokens_per_prompt: 0,
-          model_usage: {}
-        };
-
-        // Combine model usage data across users
-        processedUserStats.forEach(user => {
-          if (user.model_usage) {
-            Object.entries(user.model_usage).forEach(([model, modelUsage]) => {
-              // Type assertion to fix the TypeScript error
-              const typedModelUsage = modelUsage as ModelUsage;
-              
-              if (!calculatedStats.model_usage[model]) {
-                calculatedStats.model_usage[model] = {
-                  prompt_tokens: 0,
-                  completion_tokens: 0,
-                  total_tokens: 0,
-                  prompt_cost: 0,
-                  completion_cost: 0,
-                  total_cost: 0,
-                  usage_count: 0,
-                  percentage: 0
-                };
-              }
-              
-              calculatedStats.model_usage[model].prompt_tokens += typedModelUsage.prompt_tokens;
-              calculatedStats.model_usage[model].completion_tokens += typedModelUsage.completion_tokens;
-              calculatedStats.model_usage[model].total_tokens += typedModelUsage.total_tokens;
-              calculatedStats.model_usage[model].prompt_cost += typedModelUsage.prompt_cost;
-              calculatedStats.model_usage[model].completion_cost += typedModelUsage.completion_cost;
-              calculatedStats.model_usage[model].total_cost += typedModelUsage.total_cost;
-              calculatedStats.model_usage[model].usage_count += typedModelUsage.usage_count;
-            });
-          }
+          return {
+            user_id: user.user_id,
+            username: usernameMap[user.user_id] || 'Unknown User',
+            total_prompt_tokens: user.total_prompt_tokens || 0,
+            total_completion_tokens: user.total_completion_tokens || 0,
+            total_prompt_cost: Number(user.total_prompt_cost) || 0,
+            total_completion_cost: Number(user.total_completion_cost) || 0,
+            total_cost: Number(user.total_cost) || 0,
+            prompts_count: promptCounts.prompts_count || 0,
+            drafts_count: promptCounts.drafts_count || 0,
+            total_count: promptCounts.total_count || 0
+          };
         });
 
-        // Calculate percentages for model usage
-        if (calculatedStats.total_cost > 0) {
-          Object.keys(calculatedStats.model_usage).forEach(model => {
-            calculatedStats.model_usage[model].percentage = 
-              (calculatedStats.model_usage[model].total_cost / calculatedStats.total_cost) * 100;
-          });
-        }
+        setUserStats(combinedStats);
+
+        // Calculate total statistics
+        const totals: TotalStats = {
+          total_users: combinedStats.length,
+          total_prompts: combinedStats.reduce((sum, user) => sum + user.prompts_count, 0),
+          total_drafts: combinedStats.reduce((sum, user) => sum + user.drafts_count, 0),
+          total_all_prompts: combinedStats.reduce((sum, user) => sum + user.total_count, 0),
+          total_prompt_tokens: combinedStats.reduce((sum, user) => sum + user.total_prompt_tokens, 0),
+          total_completion_tokens: combinedStats.reduce((sum, user) => sum + user.total_completion_tokens, 0),
+          total_tokens: combinedStats.reduce((sum, user) => sum + user.total_prompt_tokens + user.total_completion_tokens, 0),
+          total_cost: combinedStats.reduce((sum, user) => sum + user.total_cost, 0),
+          avg_cost_per_prompt: 0,
+          avg_tokens_per_prompt: 0
+        };
 
         // Calculate averages
-        if (calculatedStats.total_all_prompts > 0) {
-          calculatedStats.avg_cost_per_prompt = calculatedStats.total_cost / calculatedStats.total_all_prompts;
-          calculatedStats.avg_tokens_per_prompt = calculatedStats.total_tokens / calculatedStats.total_all_prompts;
+        if (totals.total_all_prompts > 0) {
+          totals.avg_cost_per_prompt = totals.total_cost / totals.total_all_prompts;
+          totals.avg_tokens_per_prompt = totals.total_tokens / totals.total_all_prompts;
         }
 
-        setTotalStats(calculatedStats);
+        setTotalStats(totals);
         setError(null);
         
         // Toast success message on retry success
@@ -489,91 +203,30 @@ export default function Analytics() {
         username: "Sample User 1",
         total_prompt_tokens: 5000,
         total_completion_tokens: 2500,
-        total_tokens: 7500,
-        total_cost: 0.0375, // Updated based on the pricing model
+        total_prompt_cost: 5000 * 0.0025 / 1000, // Updated pricing
+        total_completion_cost: 2500 * 0.01 / 1000, // Updated pricing
+        total_cost: (5000 * 0.0025 / 1000) + (2500 * 0.01 / 1000), // Updated pricing
         prompts_count: 20,
         drafts_count: 5,
-        total_count: 25,
-        model_usage: {
-          'gpt-4o': {
-            prompt_tokens: 3000,
-            completion_tokens: 1500,
-            total_tokens: 4500,
-            prompt_cost: 0.0075,
-            completion_cost: 0.015,
-            total_cost: 0.0225,
-            usage_count: 15
-          },
-          'o3-mini': {
-            prompt_tokens: 2000,
-            completion_tokens: 1000,
-            total_tokens: 3000,
-            prompt_cost: 0.0022,
-            completion_cost: 0.0044,
-            total_cost: 0.0066,
-            usage_count: 10
-          }
-        }
+        total_count: 25
       },
       {
         user_id: "sample-user-2",
         username: "Sample User 2",
         total_prompt_tokens: 3000,
         total_completion_tokens: 1500,
-        total_tokens: 4500,
-        total_cost: 0.0225, // Updated based on the pricing model
+        total_prompt_cost: 3000 * 0.0025 / 1000, // Updated pricing
+        total_completion_cost: 1500 * 0.01 / 1000, // Updated pricing
+        total_cost: (3000 * 0.0025 / 1000) + (1500 * 0.01 / 1000), // Updated pricing
         prompts_count: 10,
         drafts_count: 5,
-        total_count: 15,
-        model_usage: {
-          'gpt-4o': {
-            prompt_tokens: 2000,
-            completion_tokens: 1000,
-            total_tokens: 3000,
-            prompt_cost: 0.005,
-            completion_cost: 0.01,
-            total_cost: 0.015,
-            usage_count: 8
-          },
-          'o3-mini': {
-            prompt_tokens: 1000,
-            completion_tokens: 500,
-            total_tokens: 1500,
-            prompt_cost: 0.0011,
-            completion_cost: 0.0022,
-            total_cost: 0.0033,
-            usage_count: 7
-          }
-        }
+        total_count: 15
       }
     ];
     
     setUserStats(sampleUserStats);
     
     // Calculate totals
-    const modelUsage = {
-      'gpt-4o': {
-        prompt_tokens: 5000,
-        completion_tokens: 2500,
-        total_tokens: 7500,
-        prompt_cost: 0.0125,
-        completion_cost: 0.025,
-        total_cost: 0.0375,
-        usage_count: 23,
-        percentage: 75
-      },
-      'o3-mini': {
-        prompt_tokens: 3000,
-        completion_tokens: 1500,
-        total_tokens: 4500,
-        prompt_cost: 0.0033,
-        completion_cost: 0.0066,
-        total_cost: 0.0099,
-        usage_count: 17,
-        percentage: 25
-      }
-    };
-    
     const totals: TotalStats = {
       total_users: sampleUserStats.length,
       total_prompts: sampleUserStats.reduce((sum, user) => sum + user.prompts_count, 0),
@@ -581,11 +234,10 @@ export default function Analytics() {
       total_all_prompts: sampleUserStats.reduce((sum, user) => sum + user.total_count, 0),
       total_prompt_tokens: sampleUserStats.reduce((sum, user) => sum + user.total_prompt_tokens, 0),
       total_completion_tokens: sampleUserStats.reduce((sum, user) => sum + user.total_completion_tokens, 0),
-      total_tokens: sampleUserStats.reduce((sum, user) => sum + user.total_tokens, 0),
+      total_tokens: sampleUserStats.reduce((sum, user) => sum + user.total_prompt_tokens + user.total_completion_tokens, 0),
       total_cost: sampleUserStats.reduce((sum, user) => sum + user.total_cost, 0),
       avg_cost_per_prompt: 0,
-      avg_tokens_per_prompt: 0,
-      model_usage: modelUsage
+      avg_tokens_per_prompt: 0
     };
     
     // Calculate averages
@@ -611,7 +263,6 @@ export default function Analytics() {
     return <Navigate to="/auth" replace />;
   }
 
-  
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6">
       <div className="flex items-center justify-between mb-8">
@@ -626,27 +277,8 @@ export default function Analytics() {
           </Button>
           <h1 className="text-3xl font-bold">Usage Analytics</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={exportDataAsCSV}
-            className="flex items-center gap-2"
-            disabled={loading || !userStats.length}
-          >
-            <Download size={18} />
-            <span className="hidden sm:inline">Export CSV</span>
-          </Button>
-        </div>
+        <BarChart3 className="h-8 w-8 text-[#084b49]" />
       </div>
-
-      <Alert className="mb-6 bg-amber-50 border-amber-200">
-        <AlertCircle className="h-4 w-4 text-amber-500" />
-        <AlertTitle className="text-amber-700">Token Pricing Information</AlertTitle>
-        <AlertDescription className="text-amber-600">
-          Token counts shown are raw counts. Cost is calculated using the model-specific rate per 1,000 tokens.
-          For example, GPT-4o costs $2.50 per 1,000 prompt tokens and $10.00 per 1,000 completion tokens.
-        </AlertDescription>
-      </Alert>
 
       {error && (
         <Alert variant="destructive" className="mb-6">
@@ -666,328 +298,144 @@ export default function Analytics() {
         </Alert>
       )}
 
-      <Tabs 
-        defaultValue="overview" 
-        value={activeTab} 
-        onValueChange={setActiveTab}
-        className="w-full mb-6"
-      >
-        <TabsList className="w-full md:w-auto flex justify-start mb-4 bg-white border">
-          <TabsTrigger value="overview" className="flex-1 md:flex-none">Overview</TabsTrigger>
-          <TabsTrigger value="models" className="flex-1 md:flex-none">Model Usage</TabsTrigger>
-          <TabsTrigger value="users" className="flex-1 md:flex-none">User Details</TabsTrigger>
-        </TabsList>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="shadow-lg border-[#084b49]/20">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-24 mb-1" />
+                <Skeleton className="h-6 w-32" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+          <StatsCard 
+            title="Total Users" 
+            value={totalStats?.total_users || 0} 
+            icon={<Users className="h-5 w-5" />} 
+          />
+          <StatsCard 
+            title="Completed Prompts" 
+            value={totalStats?.total_prompts || 0} 
+            icon={<FileText className="h-5 w-5" />} 
+          />
+          <StatsCard 
+            title="Drafts" 
+            value={totalStats?.total_drafts || 0} 
+            icon={<FileEdit className="h-5 w-5" />} 
+          />
+          <StatsCard 
+            title="Total Prompts" 
+            value={totalStats?.total_all_prompts || 0} 
+            icon={<BarChart3 className="h-5 w-5" />} 
+          />
+          <StatsCard 
+            title="Total Cost" 
+            value={`$${(totalStats?.total_cost || 0).toFixed(4)}`} 
+            icon={<CurrencyIcon className="h-5 w-5" />} 
+          />
+          <StatsCard 
+            title="Avg. Cost/Prompt" 
+            value={`$${(totalStats?.avg_cost_per_prompt || 0).toFixed(6)}`} 
+            icon={<AvgCostIcon className="h-5 w-5" />} 
+          />
+        </div>
+      )}
 
-        {/* Overview Tab */}
-        <TabsContent value="overview">
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="shadow-lg border-[#084b49]/20">
-                  <CardHeader className="pb-2">
-                    <Skeleton className="h-4 w-24 mb-1" />
-                    <Skeleton className="h-6 w-32" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-10 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Usage Breakdown</h2>
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium">Total Tokens:</span> {loading ? (
+              <Skeleton className="h-4 w-16 inline-block align-middle ml-1" />
+            ) : (
+              <span>{totalStats?.total_tokens.toLocaleString()}</span>
+            )}
+          </div>
+        </div>
+
+        {loading ? (
+          <Card className="shadow-md">
+            <div className="p-4">
+              <Skeleton className="h-96 w-full" />
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-              <StatsCard 
-                title="Total Users" 
-                value={totalStats?.total_users || 0} 
-                icon={<Users className="h-5 w-5" />} 
-              />
-              <StatsCard 
-                title="Completed Prompts" 
-                value={totalStats?.total_prompts || 0} 
-                icon={<FileText className="h-5 w-5" />} 
-              />
-              <StatsCard 
-                title="Drafts" 
-                value={totalStats?.total_drafts || 0} 
-                icon={<FileEdit className="h-5 w-5" />} 
-              />
-              <StatsCard 
-                title="Total Prompts" 
-                value={totalStats?.total_all_prompts || 0} 
-                icon={<BarChart3 className="h-5 w-5" />} 
-              />
-              <StatsCard 
-                title="Total Cost" 
-                value={`$${(totalStats?.total_cost || 0).toFixed(4)}`} 
-                icon={<CurrencyIcon className="h-5 w-5" />}
-                tooltip="Cost calculated using model-specific pricing per 1,000 tokens" 
-              />
-              <StatsCard 
-                title="Avg. Cost/Prompt" 
-                value={`$${(totalStats?.avg_cost_per_prompt || 0).toFixed(6)}`} 
-                icon={<AvgCostIcon className="h-5 w-5" />} 
-                tooltip="Average cost per prompt across all models"
-              />
+          </Card>
+        ) : (
+          <Card className="shadow-md">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-[#fafafa] border-b">
+                    <th className="text-left p-4">User</th>
+                    <th className="text-right p-4">Completed</th>
+                    <th className="text-right p-4">Drafts</th>
+                    <th className="text-right p-4">Total</th>
+                    <th className="text-right p-4">Prompt Tokens</th>
+                    <th className="text-right p-4">Completion Tokens</th>
+                    <th className="text-right p-4">Total Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userStats.map((stat) => (
+                    <tr key={stat.user_id} className="border-b hover:bg-muted/50">
+                      <td className="p-4 font-medium">{stat.username}</td>
+                      <td className="p-4 text-right">{stat.prompts_count}</td>
+                      <td className="p-4 text-right">{stat.drafts_count}</td>
+                      <td className="p-4 text-right">{stat.total_count}</td>
+                      <td className="p-4 text-right">{stat.total_prompt_tokens.toLocaleString()}</td>
+                      <td className="p-4 text-right">{stat.total_completion_tokens.toLocaleString()}</td>
+                      <td className="p-4 text-right">${stat.total_cost.toFixed(4)}</td>
+                    </tr>
+                  ))}
+                  
+                  {userStats.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="text-center p-8 text-muted-foreground">
+                        No usage data available
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
-
-          {!loading && totalStats && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              {/* Cost Breakdown Chart */}
-              <Card className="shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-lg">Cost Distribution by Model</CardTitle>
-                </CardHeader>
-                <CardContent className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={prepareCostBreakdownChart()}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                      >
-                        {prepareCostBreakdownChart().map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Token Distribution Chart */}
-              <Card className="shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg">Token Usage by Model</CardTitle>
-                  <TooltipProvider>
-                    <UITooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="h-4 w-4 text-muted-foreground opacity-70 cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        Raw token counts, not in thousands
-                      </TooltipContent>
-                    </UITooltip>
-                  </TooltipProvider>
-                </CardHeader>
-                <CardContent className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={prepareModelUsageChart()}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        dataKey="value"
-                        labelLine={false}
-                        label={({ name, value }) => `${name}: ${formatNumber(value)}`}
-                      >
-                        {prepareModelUsageChart().map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Model Usage Tab */}
-        <TabsContent value="models">
-          {loading ? (
-            <Card className="shadow-md">
-              <CardHeader>
-                <Skeleton className="h-6 w-48" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-96 w-full" />
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="shadow-md">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Model Usage Breakdown</CardTitle>
-                <TooltipProvider>
-                  <UITooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground bg-slate-100 px-2 py-1 rounded-md cursor-help">
-                        <TokenIcon className="h-4 w-4" />
-                        <span>Pricing Info</span>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-md p-4">
-                      <p className="font-medium mb-2">Token Pricing Information</p>
-                      <ul className="space-y-1 text-sm">
-                        <li><span className="font-medium">GPT-4o:</span> $2.50 per 1K prompt tokens, $10.00 per 1K completion tokens</li>
-                        <li><span className="font-medium">GPT-3.5-turbo:</span> $1.50 per 1K prompt tokens, $2.00 per 1K completion tokens</li>
-                        <li><span className="font-medium">O3-mini:</span> $1.10 per 1K prompt tokens, $4.40 per 1K completion tokens</li>
-                      </ul>
-                      <p className="text-xs mt-2">Token counts displayed are raw counts (not in thousands).</p>
-                    </TooltipContent>
-                  </UITooltip>
-                </TooltipProvider>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Model</TableHead>
-                        <TableHead className="text-right">Usage Count</TableHead>
-                        <TableHead className="text-right">Prompt Tokens</TableHead>
-                        <TableHead className="text-right">Completion Tokens</TableHead>
-                        <TableHead className="text-right">Total Tokens</TableHead>
-                        <TableHead className="text-right">Prompt Cost</TableHead>
-                        <TableHead className="text-right">Completion Cost</TableHead>
-                        <TableHead className="text-right">Total Cost</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {totalStats && totalStats.model_usage ? (
-                        Object.entries(totalStats.model_usage).map(([model, stats]) => (
-                          <TableRow key={model}>
-                            <TableCell className="font-medium">{model}</TableCell>
-                            <TableCell className="text-right">{stats.usage_count}</TableCell>
-                            <TableCell className="text-right">{formatTokenCount(stats.prompt_tokens)}</TableCell>
-                            <TableCell className="text-right">{formatTokenCount(stats.completion_tokens)}</TableCell>
-                            <TableCell className="text-right">{formatTokenCount(stats.total_tokens)}</TableCell>
-                            <TableCell className="text-right">${stats.prompt_cost.toFixed(6)}</TableCell>
-                            <TableCell className="text-right">${stats.completion_cost.toFixed(6)}</TableCell>
-                            <TableCell className="text-right font-medium">${stats.total_cost.toFixed(6)}</TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                            No model usage data available
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                    {totalStats && totalStats.model_usage && Object.keys(totalStats.model_usage).length > 0 && (
-                      <TableFooter>
-                        <TableRow>
-                          <TableCell className="font-bold">TOTAL</TableCell>
-                          <TableCell className="text-right font-bold">
-                            {Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.usage_count, 0)}
-                          </TableCell>
-                          <TableCell className="text-right font-bold">{formatTokenCount(totalStats.total_prompt_tokens)}</TableCell>
-                          <TableCell className="text-right font-bold">{formatTokenCount(totalStats.total_completion_tokens)}</TableCell>
-                          <TableCell className="text-right font-bold">{formatTokenCount(totalStats.total_tokens)}</TableCell>
-                          <TableCell className="text-right font-bold">
-                            ${Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.prompt_cost, 0).toFixed(6)}
-                          </TableCell>
-                          <TableCell className="text-right font-bold">
-                            ${Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.completion_cost, 0).toFixed(6)}
-                          </TableCell>
-                          <TableCell className="text-right font-bold">
-                            ${totalStats.total_cost.toFixed(6)}
-                          </TableCell>
-                        </TableRow>
-                      </TableFooter>
-                    )}
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-        
-        {/* Users Tab */}
-        <TabsContent value="users">
-          {loading ? (
-            <Card className="shadow-md">
-              <CardHeader>
-                <Skeleton className="h-6 w-48" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-96 w-full" />
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="shadow-md">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>User Activity Breakdown</CardTitle>
-                <TooltipProvider>
-                  <UITooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground bg-slate-100 px-2 py-1 rounded-md cursor-help">
-                        <TokenIcon className="h-4 w-4" />
-                        <span>Token Info</span>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Token counts displayed are raw counts (not in thousands)
-                    </TooltipContent>
-                  </UITooltip>
-                </TooltipProvider>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead className="text-right">Prompts</TableHead>
-                        <TableHead className="text-right">Drafts</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead className="text-right">Total Tokens</TableHead>
-                        <TableHead className="text-right">Cost</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {userStats && userStats.length > 0 ? (
-                        userStats.map((user) => (
-                          <TableRow key={user.user_id}>
-                            <TableCell className="font-medium">{user.username || 'Unknown User'}</TableCell>
-                            <TableCell className="text-right">{user.prompts_count}</TableCell>
-                            <TableCell className="text-right">{user.drafts_count}</TableCell>
-                            <TableCell className="text-right">{user.total_count}</TableCell>
-                            <TableCell className="text-right">{formatTokenCount(user.total_tokens)}</TableCell>
-                            <TableCell className="text-right">${user.total_cost.toFixed(6)}</TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                            No user data available
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                    {userStats && userStats.length > 0 && (
-                      <TableFooter>
-                        <TableRow>
-                          <TableCell className="font-bold">TOTAL</TableCell>
-                          <TableCell className="text-right font-bold">{totalStats?.total_prompts}</TableCell>
-                          <TableCell className="text-right font-bold">{totalStats?.total_drafts}</TableCell>
-                          <TableCell className="text-right font-bold">{totalStats?.total_all_prompts}</TableCell>
-                          <TableCell className="text-right font-bold">{formatTokenCount(totalStats?.total_tokens || 0)}</TableCell>
-                          <TableCell className="text-right font-bold">${totalStats?.total_cost.toFixed(6)}</TableCell>
-                        </TableRow>
-                      </TableFooter>
-                    )}
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
+
+// Helper components
+const StatsCard = ({ title, value, icon }: { title: string, value: string | number, icon: React.ReactNode }) => (
+  <Card className="shadow-lg border-[#084b49]/20 transition-all hover:shadow-[0_0_10px_rgba(51,254,166,0.2)]">
+    <CardHeader className="pb-2">
+      <div className="flex items-center justify-between">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <div className="text-[#084b49]">{icon}</div>
+      </div>
+    </CardHeader>
+    <CardContent>
+      <p className="text-2xl font-bold">{value}</p>
+    </CardContent>
+  </Card>
+);
+
+const CurrencyIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <circle cx="12" cy="12" r="10" />
+    <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+    <path d="M12 18V6" />
+  </svg>
+);
+
+const AvgCostIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M3 3v18h18" />
+    <path d="m19 9-5 5-4-4-3 3" />
+  </svg>
+);
