@@ -48,7 +48,7 @@ const Index = () => {
           <IndexLogo />
           
           <p 
-            className="text-center text-lg max-w-2xl animate-fade-in -mt-10" 
+            className="text-center text-lg max-w-2xl animate-fade-in -mt-8" 
             style={{ 
               animationDelay: "0.2s",
               background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white)",
