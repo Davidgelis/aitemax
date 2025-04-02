@@ -6,24 +6,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Define model pricing constants
+// Define model pricing constants (per 1000 tokens)
 const MODEL_PRICING = {
   'gpt-4o': {
-    promptCostPerToken: 0.0025,  // $2.50 per 1000 tokens
-    completionCostPerToken: 0.01  // $10.00 per 1000 tokens
+    promptCostPerThousandTokens: 2.50,  // $2.50 per 1000 tokens
+    completionCostPerThousandTokens: 10.00  // $10.00 per 1000 tokens
   },
   'o3-mini': {
-    promptCostPerToken: 0.0011,  // $1.10 per 1000 tokens
-    completionCostPerToken: 0.0044  // $4.40 per 1000 tokens
+    promptCostPerThousandTokens: 1.10,  // $1.10 per 1000 tokens
+    completionCostPerThousandTokens: 4.40  // $4.40 per 1000 tokens
   },
   'gpt-3.5-turbo': {
-    promptCostPerToken: 0.0015, // $1.50 per 1000 tokens (approximate)
-    completionCostPerToken: 0.002 // $2.00 per 1000 tokens (approximate)
+    promptCostPerThousandTokens: 1.50, // $1.50 per 1000 tokens
+    completionCostPerThousandTokens: 2.00 // $2.00 per 1000 tokens
   },
   // Default pricing for any other models
   'default': {
-    promptCostPerToken: 0.0025,
-    completionCostPerToken: 0.01
+    promptCostPerThousandTokens: 2.50,
+    completionCostPerThousandTokens: 10.00
   }
 }
 
@@ -31,8 +31,12 @@ const MODEL_PRICING = {
 const calculateModelCost = (model: string, promptTokens: number, completionTokens: number) => {
   const pricing = MODEL_PRICING[model] || MODEL_PRICING.default
   
-  const promptCost = promptTokens * pricing.promptCostPerToken
-  const completionCost = completionTokens * pricing.completionCostPerToken
+  // Convert raw token counts to thousands and calculate costs
+  const promptTokensInThousands = promptTokens / 1000
+  const completionTokensInThousands = completionTokens / 1000
+  
+  const promptCost = promptTokensInThousands * pricing.promptCostPerThousandTokens
+  const completionCost = completionTokensInThousands * pricing.completionCostPerThousandTokens
   
   return {
     promptCost,
@@ -187,7 +191,7 @@ Deno.serve(async (req) => {
             }
           }
           
-          // Add to token counts
+          // Add to token counts (using raw token counts)
           const promptTokens = item.prompt_tokens || 0
           const completionTokens = item.completion_tokens || 0
           
@@ -196,7 +200,7 @@ Deno.serve(async (req) => {
           userStats[item.user_id].model_usage[modelName].total_tokens += (promptTokens + completionTokens)
           userStats[item.user_id].model_usage[modelName].usage_count += 1
           
-          // Calculate costs
+          // Calculate costs using the updated calculation function
           const costs = calculateModelCost(modelName, promptTokens, completionTokens)
           
           userStats[item.user_id].model_usage[modelName].prompt_cost += costs.promptCost

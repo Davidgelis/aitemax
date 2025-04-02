@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, ArrowLeft, BarChart3, Users, FileText, FileEdit, Download } from "lucide-react";
+import { AlertCircle, ArrowLeft, BarChart3, Users, FileText, FileEdit, Download, HelpCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,34 +39,35 @@ import {
   Legend,
   Tooltip
 } from "recharts";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Admin user ID
 const ADMIN_USER_ID = "8b40d73f-fffb-411f-9044-480773968d58";
 
-// Model pricing constants
+// Model pricing constants (per 1000 tokens)
 const MODEL_PRICING: Record<string, {
-  promptCostPerToken: number,
-  completionCostPerToken: number,
+  promptCostPerThousandTokens: number,
+  completionCostPerThousandTokens: number,
   color: string
 }> = {
   'gpt-4o': {
-    promptCostPerToken: 0.0025,  // $2.50 per 1000 tokens
-    completionCostPerToken: 0.01,  // $10.00 per 1000 tokens
+    promptCostPerThousandTokens: 2.50,  // $2.50 per 1000 tokens
+    completionCostPerThousandTokens: 10.00,  // $10.00 per 1000 tokens
     color: "#10B981" // green-500
   },
   'gpt-3.5-turbo': {
-    promptCostPerToken: 0.0015,  // $1.50 per 1000 tokens
-    completionCostPerToken: 0.002,  // $2.00 per 1000 tokens
+    promptCostPerThousandTokens: 1.50,  // $1.50 per 1000 tokens
+    completionCostPerThousandTokens: 2.00,  // $2.00 per 1000 tokens
     color: "#F59E0B" // amber-500
   },
   'o3-mini': {
-    promptCostPerToken: 0.0011,  // $1.10 per 1000 tokens
-    completionCostPerToken: 0.0044, // $4.40 per 1000 tokens
+    promptCostPerThousandTokens: 1.10,  // $1.10 per 1000 tokens
+    completionCostPerThousandTokens: 4.40, // $4.40 per 1000 tokens
     color: "#6366F1" // indigo-500
   },
   'default': {
-    promptCostPerToken: 0.0025,
-    completionCostPerToken: 0.01,
+    promptCostPerThousandTokens: 2.50,
+    completionCostPerThousandTokens: 10.00,
     color: "#A3A3A3" // gray-400
   }
 };
@@ -126,19 +127,50 @@ interface TotalStats {
   };
 }
 
+// Format large numbers with commas and optional decimal places
+const formatNumber = (num: number, decimalPlaces = 0): string => {
+  return num.toLocaleString(undefined, {
+    minimumFractionDigits: decimalPlaces,
+    maximumFractionDigits: decimalPlaces
+  });
+};
+
+// Format tokens to show appropriate units (raw or thousands)
+const formatTokenCount = (count: number): string => {
+  if (count >= 1000) {
+    return `${formatNumber(count)} (${(count / 1000).toFixed(3)}k)`;
+  }
+  return formatNumber(count);
+};
+
 // Custom components
 interface StatsCardProps {
   title: string;
   value: string | number;
   icon: React.ReactNode;
+  tooltip?: string;
 }
 
-const StatsCard = ({ title, value, icon }: StatsCardProps) => (
+const StatsCard = ({ title, value, icon, tooltip }: StatsCardProps) => (
   <Card className="shadow-lg border-[#084b49]/20">
     <CardHeader className="pb-2">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{title}</p>
-        <div className="text-muted-foreground">{icon}</div>
+        <div className="text-muted-foreground flex items-center gap-1">
+          {icon}
+          {tooltip && (
+            <TooltipProvider>
+              <UITooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 opacity-70 cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  {tooltip}
+                </TooltipContent>
+              </UITooltip>
+            </TooltipProvider>
+          )}
+        </div>
       </div>
     </CardHeader>
     <CardContent>
@@ -153,7 +185,7 @@ const CustomTooltip = ({ active, payload }: any) => {
     return (
       <div className="bg-white p-3 border rounded-md shadow-md">
         <p className="font-medium">{payload[0].name}</p>
-        <p>Tokens: {payload[0].payload.value.toLocaleString()}</p>
+        <p>Tokens: {formatNumber(payload[0].payload.value)}</p>
         {payload[0].payload.cost && (
           <p>Cost: ${payload[0].payload.cost.toFixed(6)}</p>
         )}
@@ -202,6 +234,26 @@ const AvgCostIcon = (props: any) => (
   >
     <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
     <line x1="2" y1="20" x2="2" y2="20" />
+  </svg>
+);
+
+// Token icon component
+const TokenIcon = (props: any) => (
+  <svg
+    {...props}
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+    <path d="M12 17h.01" />
   </svg>
 );
 
@@ -587,6 +639,15 @@ export default function Analytics() {
         </div>
       </div>
 
+      <Alert className="mb-6 bg-amber-50 border-amber-200">
+        <AlertCircle className="h-4 w-4 text-amber-500" />
+        <AlertTitle className="text-amber-700">Token Pricing Information</AlertTitle>
+        <AlertDescription className="text-amber-600">
+          Token counts shown are raw counts. Cost is calculated using the model-specific rate per 1,000 tokens.
+          For example, GPT-4o costs $2.50 per 1,000 prompt tokens and $10.00 per 1,000 completion tokens.
+        </AlertDescription>
+      </Alert>
+
       {error && (
         <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
@@ -658,12 +719,14 @@ export default function Analytics() {
               <StatsCard 
                 title="Total Cost" 
                 value={`$${(totalStats?.total_cost || 0).toFixed(4)}`} 
-                icon={<CurrencyIcon className="h-5 w-5" />} 
+                icon={<CurrencyIcon className="h-5 w-5" />}
+                tooltip="Cost calculated using model-specific pricing per 1,000 tokens" 
               />
               <StatsCard 
                 title="Avg. Cost/Prompt" 
                 value={`$${(totalStats?.avg_cost_per_prompt || 0).toFixed(6)}`} 
                 icon={<AvgCostIcon className="h-5 w-5" />} 
+                tooltip="Average cost per prompt across all models"
               />
             </div>
           )}
@@ -702,8 +765,18 @@ export default function Analytics() {
 
               {/* Token Distribution Chart */}
               <Card className="shadow-md">
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg">Token Usage by Model</CardTitle>
+                  <TooltipProvider>
+                    <UITooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 text-muted-foreground opacity-70 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Raw token counts, not in thousands
+                      </TooltipContent>
+                    </UITooltip>
+                  </TooltipProvider>
                 </CardHeader>
                 <CardContent className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
@@ -717,7 +790,7 @@ export default function Analytics() {
                         paddingAngle={2}
                         dataKey="value"
                         labelLine={false}
-                        label={({ name, value }) => `${name}: ${value.toLocaleString()}`}
+                        label={({ name, value }) => `${name}: ${formatNumber(value)}`}
                       >
                         {prepareModelUsageChart().map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -746,8 +819,27 @@ export default function Analytics() {
             </Card>
           ) : (
             <Card className="shadow-md">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Model Usage Breakdown</CardTitle>
+                <TooltipProvider>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground bg-slate-100 px-2 py-1 rounded-md cursor-help">
+                        <TokenIcon className="h-4 w-4" />
+                        <span>Pricing Info</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-md p-4">
+                      <p className="font-medium mb-2">Token Pricing Information</p>
+                      <ul className="space-y-1 text-sm">
+                        <li><span className="font-medium">GPT-4o:</span> $2.50 per 1K prompt tokens, $10.00 per 1K completion tokens</li>
+                        <li><span className="font-medium">GPT-3.5-turbo:</span> $1.50 per 1K prompt tokens, $2.00 per 1K completion tokens</li>
+                        <li><span className="font-medium">O3-mini:</span> $1.10 per 1K prompt tokens, $4.40 per 1K completion tokens</li>
+                      </ul>
+                      <p className="text-xs mt-2">Token counts displayed are raw counts (not in thousands).</p>
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -770,9 +862,9 @@ export default function Analytics() {
                           <TableRow key={model}>
                             <TableCell className="font-medium">{model}</TableCell>
                             <TableCell className="text-right">{stats.usage_count}</TableCell>
-                            <TableCell className="text-right">{stats.prompt_tokens.toLocaleString()}</TableCell>
-                            <TableCell className="text-right">{stats.completion_tokens.toLocaleString()}</TableCell>
-                            <TableCell className="text-right">{stats.total_tokens.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">{formatTokenCount(stats.prompt_tokens)}</TableCell>
+                            <TableCell className="text-right">{formatTokenCount(stats.completion_tokens)}</TableCell>
+                            <TableCell className="text-right">{formatTokenCount(stats.total_tokens)}</TableCell>
                             <TableCell className="text-right">${stats.prompt_cost.toFixed(6)}</TableCell>
                             <TableCell className="text-right">${stats.completion_cost.toFixed(6)}</TableCell>
                             <TableCell className="text-right font-medium">${stats.total_cost.toFixed(6)}</TableCell>
@@ -793,9 +885,9 @@ export default function Analytics() {
                           <TableCell className="text-right font-bold">
                             {Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.usage_count, 0)}
                           </TableCell>
-                          <TableCell className="text-right font-bold">{totalStats.total_prompt_tokens.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-bold">{totalStats.total_completion_tokens.toLocaleString()}</TableCell>
-                          <TableCell className="text-right font-bold">{totalStats.total_tokens.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-bold">{formatTokenCount(totalStats.total_prompt_tokens)}</TableCell>
+                          <TableCell className="text-right font-bold">{formatTokenCount(totalStats.total_completion_tokens)}</TableCell>
+                          <TableCell className="text-right font-bold">{formatTokenCount(totalStats.total_tokens)}</TableCell>
                           <TableCell className="text-right font-bold">
                             ${Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.prompt_cost, 0).toFixed(6)}
                           </TableCell>
@@ -828,8 +920,21 @@ export default function Analytics() {
             </Card>
           ) : (
             <Card className="shadow-md">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>User Activity Breakdown</CardTitle>
+                <TooltipProvider>
+                  <UITooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground bg-slate-100 px-2 py-1 rounded-md cursor-help">
+                        <TokenIcon className="h-4 w-4" />
+                        <span>Token Info</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Token counts displayed are raw counts (not in thousands)
+                    </TooltipContent>
+                  </UITooltip>
+                </TooltipProvider>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -852,7 +957,7 @@ export default function Analytics() {
                             <TableCell className="text-right">{user.prompts_count}</TableCell>
                             <TableCell className="text-right">{user.drafts_count}</TableCell>
                             <TableCell className="text-right">{user.total_count}</TableCell>
-                            <TableCell className="text-right">{user.total_tokens.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">{formatTokenCount(user.total_tokens)}</TableCell>
                             <TableCell className="text-right">${user.total_cost.toFixed(6)}</TableCell>
                           </TableRow>
                         ))
@@ -871,7 +976,7 @@ export default function Analytics() {
                           <TableCell className="text-right font-bold">{totalStats?.total_prompts}</TableCell>
                           <TableCell className="text-right font-bold">{totalStats?.total_drafts}</TableCell>
                           <TableCell className="text-right font-bold">{totalStats?.total_all_prompts}</TableCell>
-                          <TableCell className="text-right font-bold">{totalStats?.total_tokens.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-bold">{formatTokenCount(totalStats?.total_tokens || 0)}</TableCell>
                           <TableCell className="text-right font-bold">${totalStats?.total_cost.toFixed(6)}</TableCell>
                         </TableRow>
                       </TableFooter>
