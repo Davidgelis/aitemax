@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +53,11 @@ const MODEL_PRICING: Record<string, {
     completionCostPerToken: 0.01,  // $10.00 per 1000 tokens
     color: "#10B981" // green-500
   },
+  'gpt-3.5-turbo': {
+    promptCostPerToken: 0.0015,  // $1.50 per 1000 tokens
+    completionCostPerToken: 0.002,  // $2.00 per 1000 tokens
+    color: "#F59E0B" // amber-500
+  },
   'o3-mini': {
     promptCostPerToken: 0.0011,  // $1.10 per 1000 tokens
     completionCostPerToken: 0.0044, // $4.40 per 1000 tokens
@@ -67,8 +71,9 @@ const MODEL_PRICING: Record<string, {
 };
 
 // Chart colors
-const CHART_COLORS = ["#10B981", "#6366F1", "#EC4899", "#F97316", "#8B5CF6", "#A3A3A3"];
+const CHART_COLORS = ["#10B981", "#F59E0B", "#6366F1", "#EC4899", "#F97316", "#8B5CF6", "#A3A3A3"];
 
+// Define appropriate TypeScript interfaces
 interface ModelUsage {
   prompt_tokens: number;
   completion_tokens: number;
@@ -77,6 +82,7 @@ interface ModelUsage {
   completion_cost: number;
   total_cost: number;
   usage_count: number;
+  percentage?: number;
 }
 
 interface UserTokenStats {
@@ -793,117 +799,3 @@ export default function Analytics() {
                             ${Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.prompt_cost, 0).toFixed(6)}
                           </TableCell>
                           <TableCell className="text-right font-bold">
-                            ${Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.completion_cost, 0).toFixed(6)}
-                          </TableCell>
-                          <TableCell className="text-right font-bold">${totalStats.total_cost.toFixed(6)}</TableCell>
-                        </TableRow>
-                      </TableFooter>
-                    )}
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {!loading && (
-            <div className="mt-6">
-              <Card className="shadow-md">
-                <CardHeader>
-                  <CardTitle>Model Pricing Reference</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">GPT-4o</h3>
-                      <ul className="space-y-1 text-sm">
-                        <li>Input: $2.50 per 1000 tokens ($0.0025 per token)</li>
-                        <li>Output: $10.00 per 1000 tokens ($0.01 per token)</li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">O3-mini</h3>
-                      <ul className="space-y-1 text-sm">
-                        <li>Input: $1.10 per 1000 tokens ($0.0011 per token)</li>
-                        <li>Output: $4.40 per 1000 tokens ($0.0044 per token)</li>
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </TabsContent>
-
-        {/* User Details Tab */}
-        <TabsContent value="users">
-          {loading ? (
-            <Card className="shadow-md">
-              <div className="p-4">
-                <Skeleton className="h-96 w-full" />
-              </div>
-            </Card>
-          ) : (
-            <Card className="shadow-md">
-              <CardHeader>
-                <CardTitle>User Analytics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead className="text-right">Completed</TableHead>
-                        <TableHead className="text-right">Drafts</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead className="text-right">Total Tokens</TableHead>
-                        <TableHead className="text-right">Cost</TableHead>
-                        <TableHead className="text-right">Models Used</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {userStats.map((stat) => (
-                        <TableRow key={stat.user_id} className="border-b hover:bg-muted/50">
-                          <TableCell className="font-medium">{stat.username}</TableCell>
-                          <TableCell className="text-right">{stat.prompts_count}</TableCell>
-                          <TableCell className="text-right">{stat.drafts_count}</TableCell>
-                          <TableCell className="text-right">{stat.total_count}</TableCell>
-                          <TableCell className="text-right">{stat.total_tokens.toLocaleString()}</TableCell>
-                          <TableCell className="text-right">${stat.total_cost.toFixed(6)}</TableCell>
-                          <TableCell className="text-right">
-                            {stat.model_usage ? Object.keys(stat.model_usage).join(', ') : 'None'}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      
-                      {userStats.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center p-8 text-muted-foreground">
-                            No usage data available
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                    {userStats.length > 0 && (
-                      <TableFooter>
-                        <TableRow>
-                          <TableCell className="font-medium">Total ({userStats.length} users)</TableCell>
-                          <TableCell className="text-right">{totalStats?.total_prompts}</TableCell>
-                          <TableCell className="text-right">{totalStats?.total_drafts}</TableCell>
-                          <TableCell className="text-right">{totalStats?.total_all_prompts}</TableCell>
-                          <TableCell className="text-right">{totalStats?.total_tokens.toLocaleString()}</TableCell>
-                          <TableCell className="text-right">${totalStats?.total_cost.toFixed(6)}</TableCell>
-                          <TableCell></TableCell>
-                        </TableRow>
-                      </TableFooter>
-                    )}
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}

@@ -13,6 +13,11 @@ const MODEL_PRICING = {
     promptCostPerToken: 0.0011,  // $1.10 per 1000 tokens
     completionCostPerToken: 0.0044  // $4.40 per 1000 tokens
   },
+  // Adding gpt-3.5-turbo to the pricing model
+  'gpt-3.5-turbo': {
+    promptCostPerToken: 0.0015, // $1.50 per 1000 tokens (approximate)
+    completionCostPerToken: 0.002 // $2.00 per 1000 tokens (approximate)
+  },
   // Default pricing for any other models
   'default': {
     promptCostPerToken: 0.0025,
