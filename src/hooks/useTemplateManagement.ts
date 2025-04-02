@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Json } from "@/integrations/supabase/types";
 
 export interface PillarType {
   id: string;
@@ -141,7 +142,7 @@ export function useTemplateManagement() {
                 id: data.id,
                 name: data.name,
                 role: data.role,
-                pillars: Array.isArray(data.pillars) ? data.pillars : [],
+                pillars: Array.isArray(data.pillars) ? (data.pillars as any[] as PillarType[]) : [],
                 temperature: data.temperature,
                 characterLimit: data.character_limit,
                 isDefault: data.is_default,
@@ -221,7 +222,7 @@ export function useTemplateManagement() {
           id: data.id,
           name: data.name,
           role: data.role,
-          pillars: Array.isArray(data.pillars) ? data.pillars : [],
+          pillars: Array.isArray(data.pillars) ? (data.pillars as any[] as PillarType[]) : [],
           temperature: data.temperature,
           characterLimit: data.character_limit,
           isDefault: data.is_default,
