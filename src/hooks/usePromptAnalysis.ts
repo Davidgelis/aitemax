@@ -92,7 +92,7 @@ export const usePromptAnalysis = (
   };
   
   /**
-   * Enhanced prompt with GPT, now with standardized parameter order
+   * Enhanced prompt with GPT with standardized parameter order
    * @param originalPrompt The original prompt text to enhance
    * @param primaryToggle Selected primary toggle
    * @param secondaryToggle Selected secondary toggle
@@ -113,7 +113,7 @@ export const usePromptAnalysis = (
     try {
       setCurrentLoadingMessage(`Enhancing prompt${primaryToggle ? ` for ${primaryToggle}` : ''}...`);
       
-      // Log important information for debugging
+      // Log template information
       console.log("usePromptAnalysis: Template being used:", 
         selectedTemplate ? {
           id: selectedTemplate.id,
@@ -123,7 +123,7 @@ export const usePromptAnalysis = (
           temperature: selectedTemplate.temperature || "default"
         } : "No template provided");
       
-      // Enhanced template validation
+      // Standardized template validation
       const isValidTemplate = selectedTemplate && 
                              typeof selectedTemplate === 'object' && 
                              selectedTemplate.name && 
@@ -167,13 +167,13 @@ export const usePromptAnalysis = (
         return;
       }
       
-      if (data.error) {
+      if (data?.error) {
         console.error("API error:", data.error);
         setFinalPrompt(originalPrompt);
         return;
       }
       
-      if (data.enhancedPrompt) {
+      if (data?.enhancedPrompt) {
         console.log("Enhanced prompt received:", data.enhancedPrompt.substring(0, 100) + "...");
         setFinalPrompt(data.enhancedPrompt);
       } else {

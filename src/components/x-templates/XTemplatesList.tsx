@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { XTemplateCard, TemplateType } from "./XTemplateCard";
 import { useToast } from "@/hooks/use-toast";
@@ -5,6 +6,7 @@ import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { Json } from "@/integrations/supabase/types";
+import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 
 // Use the already declared Window interface in vite-env.d.ts
 // instead of redeclaring it here
@@ -13,7 +15,7 @@ import { Json } from "@/integrations/supabase/types";
 const defaultTemplates: TemplateType[] = [
   {
     id: "default",
-    name: "Aitema X Framework", // Updated name here
+    name: "Aitema X Framework", 
     role: "You are an expert prompt engineer who transforms input prompts or intents along with context infromation into highly effective, well-structured prompts in accordance with the four-pillar framework. You will be provided with intent and context information, which may be as brief as two sentences or as extensive as a comprehensive brief. Your role is to refine and enhance the given prompt while preserving its core objectives and style",
     pillars: [
       {
@@ -85,22 +87,10 @@ const jsonToPillars = (json: Json): PillarType[] => {
   return json as unknown as PillarType[];
 };
 
-// Custom event dispatching function with improved error handling
-const dispatchTemplateEvent = (eventName: string, detail: any) => {
-  try {
-    const event = new CustomEvent(eventName, { detail });
-    window.dispatchEvent(event);
-    return true;
-  } catch (error) {
-    console.error(`Error dispatching ${eventName} event:`, error);
-    return false;
-  }
-};
-
 // Create a global event for template updates
 export const addTemplate = async (template: TemplateType) => {
   try {
-    // First, dispatch event for UI update
+    // Dispatch event for UI update
     if (!dispatchTemplateEvent('template-added', template)) {
       console.error("Failed to dispatch template-added event");
     }
@@ -112,7 +102,7 @@ export const addTemplate = async (template: TemplateType) => {
       console.log("Updated window.__selectedTemplate with new template data:", template.name);
     }
     
-    // Then, save to database if it's not a default template
+    // Save to database if not a default template
     if (template.id !== "default" && template.id !== "simple-framework") {
       const { error } = await supabase.from('x_templates').upsert({
         id: template.id,
@@ -129,7 +119,6 @@ export const addTemplate = async (template: TemplateType) => {
       
       if (error) {
         console.error("Error saving template:", error);
-        // Could add error toast here
       }
     }
   } catch (error) {
@@ -140,18 +129,17 @@ export const addTemplate = async (template: TemplateType) => {
 // Create a global event for template deletion
 export const deleteTemplate = async (templateId: string) => {
   try {
-    // First, dispatch event for UI update
+    // Dispatch event for UI update
     if (!dispatchTemplateEvent('template-deleted', { id: templateId })) {
       console.error("Failed to dispatch template-deleted event");
     }
     
-    // Then, delete from database if it's not a default template
+    // Delete from database if not a default template
     if (templateId !== "default" && templateId !== "simple-framework") {
       const { error } = await supabase.from('x_templates').delete().eq('id', templateId);
       
       if (error) {
         console.error("Error deleting template:", error);
-        // Could add error toast here
       }
     }
   } catch (error) {
@@ -159,9 +147,22 @@ export const deleteTemplate = async (templateId: string) => {
   }
 };
 
+// Custom event dispatching function with improved error handling
+const dispatchTemplateEvent = (eventName: string, detail: any) => {
+  try {
+    const event = new CustomEvent(eventName, { detail });
+    window.dispatchEvent(event);
+    return true;
+  } catch (error) {
+    console.error(`Error dispatching ${eventName} event:`, error);
+    return false;
+  }
+};
+
 export const XTemplatesList = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { selectTemplate, getCurrentTemplate } = useTemplateManagement();
   const [templates, setTemplates] = useState<TemplateType[]>(defaultTemplates);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
   const [isLoading, setIsLoading] = useState(false);
@@ -221,39 +222,6 @@ export const XTemplatesList = () => {
     
   }, [user, toast]);
   
-  // Separate effect to update the window.__selectedTemplate 
-  // This ensures it's updated whenever selectedTemplateId changes
-  useEffect(() => {
-    if (selectedTemplateId) {
-      const template = templates.find(t => t.id === selectedTemplateId);
-      if (template) {
-        console.log("Setting window.__selectedTemplate to:", {
-          id: template.id, 
-          name: template.name,
-          pillarsCount: template.pillars?.length || 0
-        });
-        
-        // Create a deep copy to avoid reference issues
-        try {
-          const templateCopy = JSON.parse(JSON.stringify(template));
-          window.__selectedTemplate = templateCopy;
-          
-          // Validate the template after setting
-          const isValid = window.__selectedTemplate && 
-                         window.__selectedTemplate.name && 
-                         Array.isArray(window.__selectedTemplate.pillars);
-                         
-          console.log(`Template validation: ${isValid ? 'Valid' : 'Invalid'}`);
-          
-          // Store the ID in localStorage for persistence across refreshes
-          window.localStorage.setItem('selectedTemplateId', selectedTemplateId);
-        } catch (error) {
-          console.error("Error copying template to window object:", error);
-        }
-      }
-    }
-  }, [selectedTemplateId, templates]);
-
   // Listen for template events
   useEffect(() => {
     const handleTemplateAdded = (event: CustomEvent<TemplateType>) => {
@@ -280,7 +248,6 @@ export const XTemplatesList = () => {
       if (selectedTemplateId === event.detail.id) {
         setSelectedTemplateId("default");
         window.localStorage.setItem('selectedTemplateId', "default");
-        window.__selectedTemplate = templates.find(t => t.id === "default");
       }
     };
 
@@ -296,32 +263,8 @@ export const XTemplatesList = () => {
   const handleSelectTemplate = (id: string) => {
     setSelectedTemplateId(id);
     
-    // Save selectedTemplateId to localStorage for persistence
-    window.localStorage.setItem('selectedTemplateId', id);
-    
-    // Update the selected template in the window object
-    const template = templates.find(t => t.id === id);
-    if (template) {
-      try {
-        // Create a deep copy to avoid reference issues
-        const templateCopy = JSON.parse(JSON.stringify(template));
-        window.__selectedTemplate = templateCopy;
-        
-        console.log("Updated window.__selectedTemplate:", {
-          id: templateCopy.id,
-          name: templateCopy.name,
-          pillarsCount: templateCopy.pillars?.length || 0
-        });
-      } catch (error) {
-        console.error("Error creating template copy:", error);
-        window.__selectedTemplate = template; // Fallback to direct reference
-      }
-      
-      toast({
-        title: "Template selected",
-        description: `"${template.name}" is now your default template.`
-      });
-    }
+    // Use our template management hook to handle template selection
+    selectTemplate(id);
   };
 
   return (

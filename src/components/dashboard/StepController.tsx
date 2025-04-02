@@ -11,13 +11,7 @@ import { useQuestionsAndVariables } from "@/hooks/useQuestionsAndVariables";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
 import { AIModel, UploadedImage } from "@/components/dashboard/types";
 import { primaryToggles, secondaryToggles } from "./constants";
-
-// Add this at the top of the file to declare the global type
-declare global {
-  interface Window {
-    __selectedTemplate?: any;
-  }
-}
+import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 
 interface StepControllerProps {
   user: any;
@@ -39,6 +33,7 @@ export const StepController = ({
   const variablesContainerRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
+  const { currentTemplate, getCurrentTemplate, isLoading: isLoadingTemplate } = useTemplateManagement();
   
   const {
     promptText, setPromptText,
@@ -67,23 +62,6 @@ export const StepController = ({
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
   const [shouldAnalyzeAfterContextChange, setShouldAnalyzeAfterContextChange] = useState(false);
   const [preventStepChange, setPreventStepChange] = useState(false);
-  // Add a state to store the current template
-  const [currentTemplate, setCurrentTemplate] = useState<any>(null);
-  
-  // Effect to synchronize template from window.__selectedTemplate
-  useEffect(() => {
-    const template = window.__selectedTemplate;
-    if (template) {
-      console.log("StepController: Retrieved template from window:", {
-        id: template.id,
-        name: template.name,
-        pillarsCount: template.pillars?.length || 0
-      });
-      setCurrentTemplate(template);
-    } else {
-      console.log("StepController: No template found in window.__selectedTemplate");
-    }
-  }, [currentStep]); // Check when step changes
   
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
@@ -123,7 +101,7 @@ export const StepController = ({
     addVariable,
     removeVariable,
     canProceedToStep3,
-    enhancePromptWithGPT,
+    enhancePromptWithGPT: qvEnhancePromptWithGPT,
     isEnhancing
   } = questionVarOps;
   
@@ -171,7 +149,6 @@ export const StepController = ({
   const handleImagesChange = (images: UploadedImage[]) => {
     console.log("StepController: Images updated:", images);
     setUploadedImages(images);
-    // Don't automatically analyze when images change - let the user explicitly trigger analysis
   };
 
   const handleSmartContext = (context: string, usageInstructions: string) => {
@@ -183,7 +160,6 @@ export const StepController = ({
   };
 
   const handleAnalyzeWithContext = () => {
-    // Only proceed with analysis if we're on step 1
     if (currentStep !== 1) {
       console.log("StepController: Not on step 1, not analyzing");
       return;
@@ -278,44 +254,17 @@ export const StepController = ({
       try {
         console.log("StepController: Enhancing prompt for step 3 with o3-mini...");
         
-        // Use the currentTemplate state instead of window.__selectedTemplate
-        const templateToUse = currentTemplate || window.__selectedTemplate;
+        // Get the current template from our hook
+        const templateToUse = getCurrentTemplate();
         
         // Log the template being used
-        if (templateToUse) {
-          console.log("StepController: Using template for enhancement:", {
-            id: templateToUse.id,
-            name: templateToUse.name,
-            pillarsCount: templateToUse.pillars?.length || 0,
-            temperature: templateToUse.temperature,
-            characterLimit: templateToUse.characterLimit
-          });
-        } else {
-          console.warn("StepController: No template available for enhancement");
-        }
-        
-        // Enhanced validation of template structure
-        const isValidTemplate = templateToUse && 
-                               typeof templateToUse === 'object' && 
-                               templateToUse.name && 
-                               Array.isArray(templateToUse.pillars) &&
-                               templateToUse.pillars.length > 0 &&
-                               templateToUse.pillars.every((p: any) => p && p.title && p.description);
-                               
-        if (!isValidTemplate && templateToUse) {
-          console.error("Invalid template structure:", JSON.stringify(templateToUse, null, 2));
-        }
-        
-        // Create a deep copy of the template to avoid reference issues
-        let templateCopy = null;
-        if (templateToUse && isValidTemplate) {
-          try {
-            templateCopy = JSON.parse(JSON.stringify(templateToUse));
-            console.log("Template successfully copied:", templateCopy.name);
-          } catch (copyError) {
-            console.error("Error creating template copy:", copyError);
-          }
-        }
+        console.log("StepController: Using template for enhancement:", {
+          id: templateToUse.id,
+          name: templateToUse.name,
+          pillarsCount: templateToUse.pillars?.length || 0,
+          temperature: templateToUse.temperature,
+          characterLimit: templateToUse.characterLimit
+        });
         
         // Get the answered questions and relevant variables
         const answeredQuestions = questions.filter(q => q.isRelevant !== false && q.answer?.trim());
@@ -327,10 +276,10 @@ export const StepController = ({
           selectedSecondary,
           answeredQuestions: answeredQuestions.length,
           relevantVariables: relevantVariables.length,
-          templateName: templateCopy?.name || "None"
+          templateName: templateToUse.name
         });
         
-        // Call the enhancePromptWithGPT with the fixed parameter order
+        // Call the enhancePromptWithGPT with the STANDARDIZED parameter order
         await promptAnalysis.enhancePromptWithGPT(
           promptText,
           selectedPrimary,
@@ -338,7 +287,7 @@ export const StepController = ({
           setFinalPrompt,
           answeredQuestions,
           relevantVariables,
-          templateCopy
+          templateToUse // Using our managed template
         );
         
         console.log("StepController: Successfully enhanced prompt, moving to step 3");
@@ -350,7 +299,7 @@ export const StepController = ({
         toast({
           title: "Warning",
           description: "There was an issue enhancing your prompt, but you can still proceed with the original text.",
-          variant: "default", // Changed from "warning" to "default"
+          variant: "default",
         });
         
         setCurrentStep(step);
@@ -379,12 +328,14 @@ export const StepController = ({
   );
 
   const renderContent = () => {
-    if (isAnalyzing || isEnhancingPrompt || isEnhancing) {
+    if (isAnalyzing || isEnhancingPrompt || isEnhancing || isLoadingTemplate) {
       let message = isEnhancingPrompt 
         ? enhancingMessage
         : isEnhancing
           ? currentLoadingMessage
-          : currentLoadingMessage;
+          : isLoadingTemplate
+            ? "Loading template..."
+            : currentLoadingMessage;
           
       return <LoadingState currentLoadingMessage={message} />;
     }

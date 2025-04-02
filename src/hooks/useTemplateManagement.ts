@@ -1,0 +1,275 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+export interface PillarType {
+  id: string;
+  title: string;
+  description: string;
+}
+
+export interface TemplateType {
+  id: string;
+  name: string;
+  role: string;
+  pillars: PillarType[];
+  temperature: number;
+  characterLimit?: number;
+  isDefault?: boolean;
+  createdAt: string;
+}
+
+// Default template as fallback
+const DEFAULT_TEMPLATE: TemplateType = {
+  id: "default",
+  name: "Aitema X Framework",
+  role: "You are an expert prompt engineer...", // Shortened for brevity
+  pillars: [
+    {
+      id: "1",
+      title: "Task",
+      description: "Purpose: Clearly communicate the main objective..."
+    },
+    {
+      id: "2",
+      title: "Persona",
+      description: "Assume the role of an advanced scenario generator..."
+    },
+    {
+      id: "3",
+      title: "Conditions",
+      description: "The purpose is to provide detailed guidelines..."
+    },
+    {
+      id: "4",
+      title: "Instructions",
+      description: "Provide overarching guidance that unifies..."
+    }
+  ],
+  temperature: 0.7,
+  characterLimit: 5000,
+  isDefault: true,
+  createdAt: "System Default"
+};
+
+export function useTemplateManagement() {
+  const [currentTemplate, setCurrentTemplate] = useState<TemplateType | null>(null);
+  const [templates, setTemplates] = useState<TemplateType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Helper for deep template validation
+  const validateTemplate = (template: any): boolean => {
+    if (!template) return false;
+    
+    return (
+      typeof template === 'object' &&
+      typeof template.id === 'string' &&
+      typeof template.name === 'string' &&
+      Array.isArray(template.pillars) &&
+      template.pillars.length > 0 &&
+      template.pillars.every((p: any) => 
+        p && 
+        typeof p.id === 'string' &&
+        typeof p.title === 'string' &&
+        typeof p.description === 'string'
+      ) &&
+      typeof template.temperature === 'number'
+    );
+  };
+
+  // Helper to create a deep copy of the template
+  const deepCopyTemplate = (template: TemplateType): TemplateType => {
+    try {
+      return JSON.parse(JSON.stringify(template));
+    } catch (error) {
+      console.error("Failed to create deep copy of template:", error);
+      // Return a shallow copy as fallback
+      return { ...template, pillars: [...template.pillars] };
+    }
+  };
+
+  // Fetch templates and set the current template
+  useEffect(() => {
+    const fetchAndSetTemplates = async () => {
+      setIsLoading(true);
+      
+      try {
+        // First check if there's a template ID in localStorage
+        const storedTemplateId = window.localStorage.getItem('selectedTemplateId');
+        
+        // Try to get the template from the window object
+        const windowTemplate = window.__selectedTemplate;
+        let validWindowTemplate = validateTemplate(windowTemplate);
+        
+        // If window has a valid template and it matches the stored ID, use it
+        if (validWindowTemplate && windowTemplate && windowTemplate.id === storedTemplateId) {
+          setCurrentTemplate(deepCopyTemplate(windowTemplate));
+          console.log("useTemplateManagement: Using template from window object:", windowTemplate.name);
+        } 
+        // Otherwise try to fetch the template from Supabase
+        else if (storedTemplateId) {
+          console.log(`useTemplateManagement: Fetching template with ID: ${storedTemplateId}`);
+          
+          // First check if it's a default template
+          if (storedTemplateId === "default" || storedTemplateId === "simple-framework") {
+            const defaultTemplate = DEFAULT_TEMPLATE;
+            setCurrentTemplate(deepCopyTemplate(defaultTemplate));
+            
+            // Also update the window object
+            window.__selectedTemplate = deepCopyTemplate(defaultTemplate);
+            console.log("useTemplateManagement: Using default template:", defaultTemplate.name);
+          } else {
+            // Try to fetch from database
+            const { data, error } = await supabase
+              .from('x_templates')
+              .select('*')
+              .eq('id', storedTemplateId)
+              .maybeSingle();
+            
+            if (error) {
+              console.error("Error fetching template:", error);
+              setCurrentTemplate(deepCopyTemplate(DEFAULT_TEMPLATE));
+              toast({
+                title: "Error loading template",
+                description: "Falling back to default template",
+                variant: "destructive"
+              });
+            } else if (data) {
+              // Convert database format to TemplateType
+              const template: TemplateType = {
+                id: data.id,
+                name: data.name,
+                role: data.role,
+                pillars: Array.isArray(data.pillars) ? data.pillars : [],
+                temperature: data.temperature,
+                characterLimit: data.character_limit,
+                isDefault: data.is_default,
+                createdAt: new Date(data.created_at).toLocaleDateString()
+              };
+              
+              setCurrentTemplate(template);
+              
+              // Update the window object
+              window.__selectedTemplate = deepCopyTemplate(template);
+              console.log("useTemplateManagement: Loaded template from database:", template.name);
+            } else {
+              // If no template found, use default
+              setCurrentTemplate(deepCopyTemplate(DEFAULT_TEMPLATE));
+              window.__selectedTemplate = deepCopyTemplate(DEFAULT_TEMPLATE);
+              console.log("useTemplateManagement: No template found, using default");
+            }
+          }
+        } else {
+          // No stored template ID, use default
+          setCurrentTemplate(deepCopyTemplate(DEFAULT_TEMPLATE));
+          window.__selectedTemplate = deepCopyTemplate(DEFAULT_TEMPLATE);
+          window.localStorage.setItem('selectedTemplateId', DEFAULT_TEMPLATE.id);
+          console.log("useTemplateManagement: No stored template ID, using default");
+        }
+      } catch (error) {
+        console.error("Error in fetchAndSetTemplates:", error);
+        setCurrentTemplate(deepCopyTemplate(DEFAULT_TEMPLATE));
+        toast({
+          title: "Error loading template",
+          description: "Falling back to default template",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchAndSetTemplates();
+  }, [toast]);
+  
+  // Function to select a template
+  const selectTemplate = async (templateId: string) => {
+    try {
+      console.log(`useTemplateManagement: Selecting template with ID: ${templateId}`);
+      
+      // Store the selection in localStorage
+      window.localStorage.setItem('selectedTemplateId', templateId);
+      
+      // If it's a default template
+      if (templateId === "default" || templateId === "simple-framework") {
+        const defaultTemplate = DEFAULT_TEMPLATE;
+        setCurrentTemplate(deepCopyTemplate(defaultTemplate));
+        window.__selectedTemplate = deepCopyTemplate(defaultTemplate);
+        
+        toast({
+          title: "Template selected",
+          description: `"${defaultTemplate.name}" is now your default template.`
+        });
+        return;
+      }
+      
+      // Fetch from database
+      const { data, error } = await supabase
+        .from('x_templates')
+        .select('*')
+        .eq('id', templateId)
+        .maybeSingle();
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        // Convert database format to TemplateType
+        const template: TemplateType = {
+          id: data.id,
+          name: data.name,
+          role: data.role,
+          pillars: Array.isArray(data.pillars) ? data.pillars : [],
+          temperature: data.temperature,
+          characterLimit: data.character_limit,
+          isDefault: data.is_default,
+          createdAt: new Date(data.created_at).toLocaleDateString()
+        };
+        
+        setCurrentTemplate(deepCopyTemplate(template));
+        
+        // Update window object
+        window.__selectedTemplate = deepCopyTemplate(template);
+        
+        toast({
+          title: "Template selected",
+          description: `"${template.name}" is now your default template.`
+        });
+      }
+    } catch (error) {
+      console.error("Error selecting template:", error);
+      toast({
+        title: "Error selecting template",
+        description: "Failed to select template",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Getter function for current template - always returns a valid template
+  const getCurrentTemplate = (): TemplateType => {
+    // If we have a loaded template, return it
+    if (currentTemplate && validateTemplate(currentTemplate)) {
+      return deepCopyTemplate(currentTemplate);
+    }
+    
+    // Try from window as backup
+    if (window.__selectedTemplate && validateTemplate(window.__selectedTemplate)) {
+      return deepCopyTemplate(window.__selectedTemplate);
+    }
+    
+    // Fall back to default template
+    console.warn("getCurrentTemplate: Using fallback default template");
+    return deepCopyTemplate(DEFAULT_TEMPLATE);
+  };
+
+  return {
+    currentTemplate,
+    isLoading,
+    selectTemplate,
+    getCurrentTemplate,
+    validateTemplate
+  };
+}

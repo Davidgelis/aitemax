@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -231,26 +230,16 @@ export const useQuestionsAndVariables = (
       }
       
       if (!data || !data.enhancedPrompt) {
-        console.error("No enhancedPrompt in response data:", data);
-        throw new Error("No enhanced prompt returned from the service");
+        console.error("No enhanced prompt returned from edge function");
+        throw new Error("No enhanced prompt returned");
       }
       
-      console.log("Enhanced prompt received successfully");
+      console.log("Enhanced prompt received (length):", data.enhancedPrompt.length);
       setFinalPrompt(data.enhancedPrompt);
-    } catch (error) {
-      console.error("Error enhancing prompt with GPT:", error);
-      toast({
-        title: "Error enhancing prompt",
-        description: "An error occurred while enhancing your prompt. Please try again.",
-        variant: "destructive",
-      });
       
-      // Set a fallback prompt to avoid blocking the user
-      setFinalPrompt(`# Enhanced Prompt (Error Recovery)
-
-${promptToEnhance}
-
-Note: There was an error generating an enhanced version of your prompt. This is the original prompt you provided.`);
+    } catch (error) {
+      console.error("Error in enhancePromptWithGPT:", error);
+      throw error;
     } finally {
       setIsEnhancing(false);
     }
@@ -265,7 +254,6 @@ Note: There was an error generating an enhanced version of your prompt. This is 
     removeVariable,
     canProceedToStep3,
     enhancePromptWithGPT,
-    isEnhancing,
-    prepareDataForEnhancement
+    isEnhancing
   };
 };
