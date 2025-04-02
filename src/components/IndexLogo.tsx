@@ -7,7 +7,7 @@ const IndexLogo = () => {
         <img 
           src="/public/lovable-uploads/4a57ecc2-3abd-4837-b9bb-6e3f2187fc91.png" 
           alt="AITEMA X"
-          className="h-40 md:h-48"
+          className="h-120 md:h-144" // Increased from h-40 md:h-48 to h-120 md:h-144 (3x bigger)
         />
         
         {/* Overlay the X part with aurora effect */}

@@ -22,6 +22,10 @@ export default {
       fontFamily: {
         balgin: ['Balgin', 'sans-serif'],
       },
+      height: {
+        '120': '30rem', // 3x of h-40 (10rem)
+        '144': '36rem', // 3x of h-48 (12rem)
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
