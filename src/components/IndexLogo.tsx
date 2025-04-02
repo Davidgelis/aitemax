@@ -19,22 +19,16 @@ const IndexLogo = () => {
           <img 
             src="/public/lovable-uploads/801ba41f-3e27-49c2-9f50-4f82fdf1115e.png" 
             alt="Logo" 
-            className="h-36" // Increased from h-28 (about 30% bigger)
+            className="h-36" 
             style={{
-              filter: "drop-shadow(0 0 3px rgba(51, 254, 166, 0.4))"
-            }}
-          />
-          <div 
-            className="absolute inset-0 animate-pulse"
-            style={{
+              filter: "hue-rotate(15deg) saturate(1.2)",
+              mixBlendMode: "multiply",
               background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95)",
               backgroundSize: "400% 400%",
               animation: "aurora 15s ease infinite",
-              opacity: 0.6,
-              mixBlendMode: "overlay",
-              borderRadius: "50%"
+              borderRadius: "2px"
             }}
-          ></div>
+          />
         </div>
       </div>
     </div>
