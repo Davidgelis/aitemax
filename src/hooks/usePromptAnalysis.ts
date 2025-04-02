@@ -1,6 +1,24 @@
+
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
+
+// Define model pricing constants for client-side calculations
+const MODEL_PRICING = {
+  'gpt-4o': {
+    promptCostPerToken: 0.0025,  // $2.50 per 1000 tokens
+    completionCostPerToken: 0.01  // $10.00 per 1000 tokens
+  },
+  'o3-mini': {
+    promptCostPerToken: 0.0011,  // $1.10 per 1000 tokens
+    completionCostPerToken: 0.0044  // $4.40 per 1000 tokens
+  },
+  // Default pricing for any other models
+  'default': {
+    promptCostPerToken: 0.0025,
+    completionCostPerToken: 0.01
+  }
+};
 
 export const usePromptAnalysis = (
   promptText: string,
@@ -16,6 +34,20 @@ export const usePromptAnalysis = (
 ) => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState("");
+
+  // Helper function to calculate cost based on model and token usage
+  const calculateModelCost = (model: string, promptTokens: number, completionTokens: number) => {
+    const pricing = MODEL_PRICING[model] || MODEL_PRICING.default;
+    
+    const promptCost = promptTokens * pricing.promptCostPerToken;
+    const completionCost = completionTokens * pricing.completionCostPerToken;
+    
+    return {
+      promptCost,
+      completionCost,
+      totalCost: promptCost + completionCost
+    };
+  };
 
   const handleAnalyze = async (
     uploadedImages: any[] | null = null,
@@ -90,16 +122,6 @@ export const usePromptAnalysis = (
     }
   };
   
-  /**
-   * Enhanced prompt with GPT with standardized parameter order
-   * @param originalPrompt The original prompt text to enhance
-   * @param primaryToggle Selected primary toggle
-   * @param secondaryToggle Selected secondary toggle
-   * @param setFinalPrompt Callback to set the final prompt
-   * @param answeredQuestions Array of answered and relevant questions
-   * @param relevantVariables Array of relevant variables
-   * @param selectedTemplate The selected template to use
-   */
   const enhancePromptWithGPT = async (
     originalPrompt: string,
     primaryToggle: string | null,
@@ -191,6 +213,8 @@ export const usePromptAnalysis = (
     isLoading,
     currentLoadingMessage,
     handleAnalyze,
-    enhancePromptWithGPT
+    enhancePromptWithGPT,
+    calculateModelCost, // Expose the cost calculation function
+    MODEL_PRICING // Expose pricing constants
   };
 };
