@@ -13,6 +13,7 @@ interface ImageContextDialogProps {
   savedContext?: string;
   imageName?: string;
   required?: boolean;
+  stayOnCurrentStep?: boolean;
 }
 
 export const ImageContextDialog = ({
@@ -21,7 +22,8 @@ export const ImageContextDialog = ({
   onConfirm,
   savedContext = '',
   imageName = '',
-  required = false
+  required = false,
+  stayOnCurrentStep = true
 }: ImageContextDialogProps) => {
   const [context, setContext] = useState(savedContext);
   const { toast } = useToast();

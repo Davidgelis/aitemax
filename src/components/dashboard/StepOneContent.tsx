@@ -233,7 +233,7 @@ export const StepOneContent = ({
           isLoading={isLoading}
           onOpenUploadDialog={handleOpenUploadDialog}
           dialogOpen={dialogOpen}
-          setDialogOpen={setDialogOpen}  // Fixed: using setDialogOpen directly
+          setDialogOpen={setDialogOpen}
           maxLength={maxCharacterLimit}
         />
       </div>

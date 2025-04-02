@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
@@ -58,6 +59,7 @@ export const StepController = ({
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
+  const [shouldAnalyzeAfterContextChange, setShouldAnalyzeAfterContextChange] = useState(false);
   
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
@@ -145,6 +147,7 @@ export const StepController = ({
   const handleImagesChange = (images: UploadedImage[]) => {
     console.log("StepController: Images updated:", images);
     setUploadedImages(images);
+    // Don't automatically analyze when images change - let the user explicitly trigger analysis
   };
 
   const handleSmartContext = (context: string, usageInstructions: string) => {

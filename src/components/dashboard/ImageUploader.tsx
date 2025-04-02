@@ -167,6 +167,7 @@ export const ImageUploader = ({
         imageName={currentImage?.file.name}
         savedContext={currentImage?.context || ''}
         required={true}
+        stayOnCurrentStep={true}
       />
     </div>
   );
