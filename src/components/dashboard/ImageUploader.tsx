@@ -75,6 +75,7 @@ export const ImageUploader = ({
     
     // Close the context dialog without triggering any other actions
     setContextDialogOpen(false);
+    // Don't trigger any analyze action here - just update the context
   };
 
   // Function to handle opening context dialog for an existing image

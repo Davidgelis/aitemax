@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
@@ -94,6 +95,12 @@ export const StepOneContent = ({
     setDialogOpen(true);
   };
 
+  // Handle dialog state for the image uploader
+  const handleDialogOpenChange = (open: boolean) => {
+    setDialogOpen(open);
+    // Don't trigger any analysis when dialog state changes
+  };
+
   return (
     <div className="border rounded-xl p-6 bg-card">
       <div className="mb-4 flex justify-between items-center">
@@ -128,7 +135,7 @@ export const StepOneContent = ({
             images={uploadedImages}
             onImagesChange={handleImagesChange}
             open={dialogOpen}
-            onOpenChange={setDialogOpen}
+            onOpenChange={handleDialogOpenChange}
           />
         </div>
       )}
@@ -226,7 +233,7 @@ export const StepOneContent = ({
           isLoading={isLoading}
           onOpenUploadDialog={handleOpenUploadDialog}
           dialogOpen={dialogOpen}
-          setDialogOpen={setDialogOpen}
+          setDialogOpen={setDialogOpen}  // Fixed: using setDialogOpen directly
           maxLength={maxCharacterLimit}
         />
       </div>

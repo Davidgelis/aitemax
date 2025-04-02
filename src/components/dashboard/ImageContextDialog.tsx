@@ -46,10 +46,10 @@ export const ImageContextDialog = ({
       return;
     }
     
-    // Just pass the context to the parent component and close the dialog
+    // Pass the context to the parent component and close the dialog
     // The parent will decide what to do with it (but should not initiate analysis)
     onConfirm(context.trim());
-    onOpenChange(false);
+    // Dialog will be closed by the onConfirm handler
   };
   
   const handleDialogClose = (open: boolean) => {
