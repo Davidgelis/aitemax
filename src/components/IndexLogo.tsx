@@ -3,19 +3,11 @@ const IndexLogo = () => {
   return (
     <div className="flex flex-col items-center justify-center animate-fade-in">
       <div className="flex items-center">
-        <h1 
-          className="text-5xl font-balgin uppercase"
-          style={{
-            color: "#041524", // Changed color to #041524
-            fontWeight: 50,   // Made 50% thinner (was 100)
-            letterSpacing: "0.6em",
-            opacity: 0.9,
-            textShadow: "0 0 1px rgba(255,255,255,0.2)"
-            // Removed aurora gradient/effect
-          }}
-        >
-          AITEMA
-        </h1>
+        <img 
+          src="/public/lovable-uploads/33d2b401-4f0d-4cb3-80a7-bbe01dd9f991.png" 
+          alt="AITEMA"
+          className="h-16 md:h-20"
+        />
         <div className="relative ml-2">
           <div 
             className="h-36 w-36 bg-aurora-gradient bg-aurora animate-aurora"
