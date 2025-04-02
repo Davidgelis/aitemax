@@ -174,10 +174,11 @@ START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This
 
     try {
       // Make the API call with "o3-mini" model instead of "gpt-4o"
+      // IMPORTANT CHANGE: Remove temperature parameter for o3-mini model
       const completion = await openai.chat.completions.create({
         model: "o3-mini",
         messages: messages,
-        temperature: temperature  // Use the template's temperature or default
+        // Temperature parameter removed for o3-mini model compatibility
       });
 
       const enhancedPrompt = completion.choices[0].message.content;
