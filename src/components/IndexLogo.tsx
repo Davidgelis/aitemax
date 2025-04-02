@@ -5,18 +5,25 @@ const IndexLogo = () => {
   return (
     <div className="flex flex-col items-center justify-center animate-fade-in">
       <div className="relative w-full md:w-[1500px] h-auto mb-0">
-        {/* Logo with aurora effect completely replacing the colors */}
+        {/* Logo container */}
         <AspectRatio ratio={16 / 6} className="bg-transparent">
-          <div className="w-full h-full relative">
-            {/* We'll use the PNG as a mask only, not showing the original colors */}
+          <div className="w-full h-full relative flex items-center justify-center">
+            {/* Direct image display instead of using mask */}
+            <img 
+              src="/lovable-uploads/39093f0c-3a23-4a15-911d-eb4a315e2eb1.png" 
+              alt="Aitema X Logo"
+              className="max-h-full max-w-full object-contain"
+            />
+            
+            {/* Fallback with aurora effect if needed */}
             <div 
-              className="absolute inset-0 bg-aurora-gradient bg-aurora animate-aurora z-10"
+              className="absolute inset-0 bg-aurora-gradient bg-aurora animate-aurora z-10 opacity-0"
               style={{ 
-                maskImage: `url('/lovable-uploads/5d804d23-e4d2-4330-9bfa-d6fd89cdc94b.png')`, 
+                maskImage: `url('/lovable-uploads/39093f0c-3a23-4a15-911d-eb4a315e2eb1.png')`, 
                 maskSize: 'contain', 
                 maskPosition: 'center', 
                 maskRepeat: 'no-repeat',
-                WebkitMaskImage: `url('/lovable-uploads/5d804d23-e4d2-4330-9bfa-d6fd89cdc94b.png')`,
+                WebkitMaskImage: `url('/lovable-uploads/39093f0c-3a23-4a15-911d-eb4a315e2eb1.png')`,
                 WebkitMaskSize: 'contain',
                 WebkitMaskPosition: 'center',
                 WebkitMaskRepeat: 'no-repeat'
