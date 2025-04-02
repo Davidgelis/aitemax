@@ -66,7 +66,7 @@ const Index = () => {
         <div className="w-full max-w-4xl animate-fade-in mt-10" style={{ animationDelay: "0.4s" }}>
           <PromptInput
             onSubmit={handlePromptSubmit}
-            placeholder="Input your prompt to Aitema X... (Press Enter to continue)"
+            placeholder="Input your prompt to Aitema X..."
             className="w-full"
             onKeyDown={handleKeyDown}
             hideFormatting={true} // Hide formatting tools
