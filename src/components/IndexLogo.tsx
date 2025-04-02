@@ -6,11 +6,11 @@ const IndexLogo = () => {
         <img 
           src="/public/lovable-uploads/33d2b401-4f0d-4cb3-80a7-bbe01dd9f991.png" 
           alt="AITEMA"
-          className="h-96 md:h-120" // Changed from h-48 md:h-60 to h-96 md:h-120 (2x bigger)
+          className="h-[76.8rem] md:h-[96rem]" // Reduced by 20% from h-96(24rem)/h-120(30rem)
         />
-        <div className="relative ml-2">
+        <div className="relative ml-1"> {/* Changed from ml-2 to ml-1 (50% closer) */}
           <div 
-            className="h-72 w-72 bg-aurora-gradient bg-aurora animate-aurora" // Changed from h-36 w-36 to h-72 w-72 (2x bigger)
+            className="h-[57.6rem] w-[57.6rem] bg-aurora-gradient bg-aurora animate-aurora" // Reduced by 20% from h-72(18rem)/w-72(18rem)
             style={{
               WebkitMaskImage: "url('/public/lovable-uploads/801ba41f-3e27-49c2-9f50-4f82fdf1115e.png')",
               maskImage: "url('/public/lovable-uploads/801ba41f-3e27-49c2-9f50-4f82fdf1115e.png')",
