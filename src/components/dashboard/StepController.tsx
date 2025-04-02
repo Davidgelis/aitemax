@@ -254,12 +254,36 @@ export const StepController = ({
       try {
         console.log("StepController: Enhancing prompt for step 3 with o3-mini...");
         
+        // Get the selected template from window object
+        // @ts-ignore
+        const selectedTemplate = window.__selectedTemplate || null;
+        
+        console.log("StepController: Using template for enhancement:", 
+          selectedTemplate ? {
+            id: selectedTemplate.id,
+            name: selectedTemplate.name,
+            pillars: selectedTemplate.pillars?.map((p: any) => p.title) || []
+          } : "No template");
+        
         // Use the enhancePromptWithGPT function to get an enhanced prompt
+        // Make sure we're also passing the answers to questions and relevant variables
+        const answeredQuestions = questions.filter(q => q.isRelevant !== false && q.answer?.trim());
+        const relevantVariables = variables.filter(v => v.isRelevant === true);
+        
+        console.log("StepController: Enhancing with:", {
+          answeredQuestionsCount: answeredQuestions.length,
+          relevantVariablesCount: relevantVariables.length
+        });
+        
+        // Call the edge function directly rather than using the hook method
         await promptAnalysis.enhancePromptWithGPT(
           promptText,
           selectedPrimary,
           selectedSecondary,
-          setFinalPrompt
+          setFinalPrompt,
+          answeredQuestions,
+          relevantVariables,
+          selectedTemplate
         );
         
         console.log("StepController: Successfully enhanced prompt, moving to step 3");

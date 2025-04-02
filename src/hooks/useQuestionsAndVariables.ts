@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -145,7 +144,8 @@ export const useQuestionsAndVariables = (
     promptToEnhance: string, 
     primaryToggle: string | null, 
     secondaryToggle: string | null,
-    setFinalPrompt: React.Dispatch<React.SetStateAction<string>>
+    setFinalPrompt: React.Dispatch<React.SetStateAction<string>>,
+    selectedTemplate: any = null
   ): Promise<void> => {
     try {
       setIsEnhancing(true);
@@ -160,14 +160,21 @@ export const useQuestionsAndVariables = (
         v => v.isRelevant === true
       );
       
-      console.log("Calling enhance-prompt with:", {
+      console.log("Using template for enhancement:", 
+        selectedTemplate ? {
+          id: selectedTemplate.id,
+          name: selectedTemplate.name
+        } : "No template");
+      
+      console.log("useQuestionsAndVariables: Calling enhance-prompt with:", {
         originalPrompt: promptToEnhance.substring(0, 50) + "...",
         answeredQuestions: answeredQuestions.length,
         relevantVariables: relevantVariables.length,
         primaryToggle,
         secondaryToggle,
         userId: user?.id ? "Present" : "None",
-        promptId: promptId ? "Present" : "None"
+        promptId: promptId ? "Present" : "None",
+        template: selectedTemplate ? selectedTemplate.name : "None"
       });
       
       const { data, error } = await supabase.functions.invoke('enhance-prompt', {
@@ -178,7 +185,8 @@ export const useQuestionsAndVariables = (
           primaryToggle,
           secondaryToggle,
           userId: user?.id,
-          promptId
+          promptId,
+          template: selectedTemplate // Add the template
         }
       });
       

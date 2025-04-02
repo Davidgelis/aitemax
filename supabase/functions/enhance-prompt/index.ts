@@ -27,6 +27,16 @@ serve(async (req) => {
       template  // Template data
     } = await req.json();
     
+    // Enhanced logging for debugging template issues
+    console.log("Enhance prompt function called with:");
+    console.log(`Template: ${JSON.stringify(template ? {
+      id: template.id,
+      name: template.name,
+      pillars: template.pillars?.map(p => p.title) || []
+    } : "No template")}`);
+    console.log(`Questions count: ${answeredQuestions?.length || 0}`);
+    console.log(`Variables count: ${relevantVariables?.length || 0}`);
+    
     // Default values in case no template is provided
     const defaultMaxCharacterLimit = 3000;
     const defaultTemperature = 0.7;
@@ -35,11 +45,10 @@ serve(async (req) => {
     const maxCharacterLimit = template?.characterLimit || defaultMaxCharacterLimit;
     const temperature = template?.temperature || defaultTemperature;
     
-    console.log(`Enhancing prompt with focus on ${primaryToggle || "no specific toggle"}`);
     console.log(`Using template: ${template ? template.name : "default"}`);
     console.log(`Character limit: ${maxCharacterLimit}`);
     console.log(`Temperature: ${temperature}`);
-    console.log(`Original prompt: "${originalPrompt.substring(0, 100)}..."`);
+    console.log(`Original prompt: "${originalPrompt?.substring(0, 100)}..."`);
 
     // Initialize OpenAI client
     const openai = new OpenAI({
@@ -48,8 +57,10 @@ serve(async (req) => {
 
     // Prepare context from answered questions
     const context = answeredQuestions
-      .filter(q => q.answer && q.answer.trim() !== "")
-      .map(q => `${q.text}\nAnswer: ${q.answer}`).join("\n\n");
+      ? answeredQuestions
+          .filter(q => q.answer && q.answer.trim() !== "")
+          .map(q => `${q.text}\nAnswer: ${q.answer}`).join("\n\n")
+      : "";
     
     // Create a prefix for the system message that instructs the AI to create a finalized prompt
     // This is crucial to ensure we get a usable prompt, not instructions
@@ -80,7 +91,7 @@ IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING (
     }
     
     // Construct a user message that directly requests content creation
-    let userMessage = originalPrompt;
+    let userMessage = originalPrompt || "";
     
     // Add context from answered questions if available
     if (context) {
@@ -124,6 +135,10 @@ IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING (
       });
 
       const enhancedPrompt = completion.choices[0].message.content;
+      
+      console.log("Enhanced prompt generated successfully");
+      console.log(`Enhanced prompt length: ${enhancedPrompt.length} characters`);
+      console.log(`Enhanced prompt start: ${enhancedPrompt.substring(0, 100)}...`);
       
       return new Response(JSON.stringify({ 
         enhancedPrompt,

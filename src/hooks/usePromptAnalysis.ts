@@ -94,21 +94,27 @@ export const usePromptAnalysis = (
     originalPrompt: string,
     primaryToggle: string | null,
     secondaryToggle: string | null,
-    setFinalPrompt: (text: string) => void
+    setFinalPrompt: (text: string) => void,
+    answeredQuestions: Question[] = [],
+    relevantVariables: Variable[] = [],
+    selectedTemplate: any = null
   ) => {
     try {
       setCurrentLoadingMessage(`Enhancing prompt${primaryToggle ? ` for ${primaryToggle}` : ''}...`);
       
-      // Get selected template from the window object (added in StepOne.tsx)
-      // @ts-ignore
-      const selectedTemplate = window.__selectedTemplate || null;
+      console.log("usePromptAnalysis: Enhancing prompt with template:", 
+        selectedTemplate ? {
+          id: selectedTemplate.id,
+          name: selectedTemplate.name,
+          pillars: selectedTemplate.pillars?.map((p: any) => p.title) || []
+        } : "No template");
       
-      // Call the Supabase edge function
+      // Call the Supabase edge function with all necessary data
       const { data, error } = await supabase.functions.invoke("enhance-prompt", {
         body: { 
           originalPrompt, 
-          answeredQuestions: [], // We'll need to capture these from somewhere else
-          relevantVariables: [], // We'll need to capture these from somewhere else
+          answeredQuestions,  // Pass the answered questions
+          relevantVariables,  // Pass the relevant variables
           primaryToggle,
           secondaryToggle,
           userId: user?.id || null,
