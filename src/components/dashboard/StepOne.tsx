@@ -11,7 +11,7 @@ const getDefaultTemplate = (): TemplateType => {
   // This would normally come from a context, localStorage, or a more sophisticated state management
   return {
     id: "default",
-    name: "Four-Pillar Framework",
+    name: "Aitema X Framework", // Updated name here
     role: "You are an expert prompt engineer who transforms input prompts or intents along with context infromation into highly effective, well-structured prompts in accordance with the four-pillar framework. You will be provided with intent and context information, which may be as brief as two sentences or as extensive as a comprehensive brief. Your role is to refine and enhance the given prompt while preserving its core objectives and style",
     pillars: [
       {

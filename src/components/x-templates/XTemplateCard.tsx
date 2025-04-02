@@ -39,6 +39,9 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
   const [showActions, setShowActions] = useState(false);
   const isSystemDefault = template.id === "default";
 
+  // Display "Aitema X Framework" if the template is the default Four-Pillar Framework
+  const displayName = template.id === "default" ? "Aitema X Framework" : template.name;
+
   const handleDelete = () => {
     // Delete the template using the global event
     deleteTemplate(template.id);
@@ -72,14 +75,11 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
       <CardContent className="p-6">
         <div className="flex flex-col h-full">
           <div className="mb-3">
-            <h3 className="font-semibold text-lg mb-1 line-clamp-1">{template.name}</h3>
+            <h3 className="font-semibold text-lg mb-1 line-clamp-1">{displayName}</h3>
             <p className="text-sm text-muted-foreground">{template.createdAt}</p>
           </div>
           
-          <div className="flex-1 mb-4">
-            <p className="text-sm font-medium mb-1">Role Definition:</p>
-            <p className="text-sm line-clamp-2">{template.role}</p>
-          </div>
+          {/* Role Definition section is now hidden */}
           
           <div className="mb-4">
             <p className="text-sm font-medium mb-1">Pillars:</p>
