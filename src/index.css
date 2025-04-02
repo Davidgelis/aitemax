@@ -78,6 +78,14 @@
   }
 }
 
+/* Aurora effect specifically for the logo */
+.aurora-effect {
+  background-clip: text;
+  background-image: linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white);
+  background-size: 400% 400%;
+  animation: aurora 15s ease infinite;
+}
+
 /* Custom textarea placeholder color */
 textarea::placeholder {
   color: #9ca3af !important;
