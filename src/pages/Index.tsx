@@ -42,7 +42,8 @@ const Index = () => {
         style={{ zIndex: -1 }}
       />
       
-      <main className="w-full max-w-4xl mx-auto flex flex-col items-center gap-12">
+      <main className="w-full max-w-4xl mx-auto flex flex-col items-center gap-6">
+        {/* Logo added above the text */}
         <IndexLogo />
         
         <p 
