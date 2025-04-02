@@ -12,11 +12,11 @@ const IndexLogo = () => {
             <div 
               className="absolute inset-0 bg-aurora-gradient bg-aurora animate-aurora z-10"
               style={{ 
-                maskImage: `url('/lovable-uploads/9d596da8-aa99-4737-b70e-5fdb9fec0ee0.png')`, 
+                maskImage: `url('/lovable-uploads/5d804d23-e4d2-4330-9bfa-d6fd89cdc94b.png')`, 
                 maskSize: 'contain', 
                 maskPosition: 'center', 
                 maskRepeat: 'no-repeat',
-                WebkitMaskImage: `url('/lovable-uploads/9d596da8-aa99-4737-b70e-5fdb9fec0ee0.png')`,
+                WebkitMaskImage: `url('/lovable-uploads/5d804d23-e4d2-4330-9bfa-d6fd89cdc94b.png')`,
                 WebkitMaskSize: 'contain',
                 WebkitMaskPosition: 'center',
                 WebkitMaskRepeat: 'no-repeat'
