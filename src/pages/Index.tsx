@@ -1,5 +1,5 @@
 
-import Logo from "@/components/Logo";
+import IndexLogo from "@/components/IndexLogo";
 import PromptInput from "@/components/PromptInput";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -43,7 +43,7 @@ const Index = () => {
       />
       
       <main className="w-full max-w-4xl mx-auto flex flex-col items-center gap-12">
-        <Logo />
+        <IndexLogo />
         
         <p 
           className="text-center text-lg max-w-2xl animate-fade-in" 
