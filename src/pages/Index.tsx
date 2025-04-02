@@ -35,14 +35,14 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-x-hidden">
       {/* Aurora background overlay */}
       <div 
         className="fixed inset-0 bg-aurora-gradient bg-aurora animate-aurora opacity-15 pointer-events-none"
         style={{ zIndex: -1 }}
       />
       
-      <main className="w-full max-w-4xl mx-auto flex flex-col items-center gap-6">
+      <main className="w-full mx-auto flex flex-col items-center gap-6">
         {/* Logo added above the text */}
         <IndexLogo />
         
@@ -61,7 +61,7 @@ const Index = () => {
           Aitema X is humanity's unyielding vote in prompt engineering, a testament to our irreplaceable creativity.
         </p>
 
-        <div className="w-full animate-fade-in" style={{ animationDelay: "0.4s" }}>
+        <div className="w-full max-w-4xl animate-fade-in" style={{ animationDelay: "0.4s" }}>
           <PromptInput
             onSubmit={handlePromptSubmit}
             placeholder="Input your prompt to Aitema X... (Press Enter to continue)"
