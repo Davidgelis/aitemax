@@ -1,9 +1,15 @@
+
 import { useState, useEffect, KeyboardEvent, useRef } from 'react';
 import { UploadedImage } from '@/components/dashboard/types';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
 import { ListOrdered, List } from 'lucide-react';
 import { ImageUploader } from '@/components/dashboard/ImageUploader';
 import { Button } from "@/components/ui/button";
+
+interface CustomStyles {
+  textareaBackground?: string;
+  textareaText?: string;
+}
 
 interface PromptInputProps {
   onSubmit: (prompt: string, images?: UploadedImage[]) => void;
@@ -20,7 +26,8 @@ interface PromptInputProps {
   setDialogOpen?: (open: boolean) => void;
   maxLength?: number;
   onKeyDown?: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
-  hideFormatting?: boolean; // Add this new prop
+  hideFormatting?: boolean;
+  customStyles?: CustomStyles; // Add custom styles prop
 }
 
 const PromptInput = ({ 
@@ -38,7 +45,8 @@ const PromptInput = ({
   setDialogOpen = () => {},
   maxLength = 3000,
   onKeyDown,
-  hideFormatting = false, // Default to false to maintain backward compatibility
+  hideFormatting = false,
+  customStyles = {},
 }: PromptInputProps) => {
   const [inputValue, setInputValue] = useState(value || "");
   const [carouselOpen, setCarouselOpen] = useState(false);
@@ -283,6 +291,10 @@ const PromptInput = ({
   const isNearLimit = inputValue.length > maxLength * 0.8;
   const isAtLimit = inputValue.length >= maxLength;
 
+  // Determine text and background colors based on customStyles prop
+  const textareaBackground = customStyles.textareaBackground || "#fafafa";
+  const textareaText = customStyles.textareaText || "#545454";
+
   return (
     <form onSubmit={handleSubmit} className={`w-full mx-auto ${className}`}>
       <div className="relative group">
@@ -327,9 +339,10 @@ const PromptInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className={`w-full h-[320px] p-4 resize-none outline-none transition-all text-lg text-[#545454] placeholder:text-gray-400 ${!hideFormatting ? 'rounded-b-xl' : 'rounded-xl'}`}
+            className={`w-full h-[320px] p-4 resize-none outline-none transition-all text-lg placeholder:text-gray-400 ${!hideFormatting ? 'rounded-b-xl' : 'rounded-xl'}`}
             style={{ 
-              backgroundColor: "#fafafa",
+              backgroundColor: textareaBackground,
+              color: textareaText,
               border: "1px solid #e5e7eb",
               borderTop: hideFormatting ? "1px solid #e5e7eb" : "none",
               fontSize: "1.2rem"
