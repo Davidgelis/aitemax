@@ -13,6 +13,8 @@ const Index = () => {
     if (prompt.trim()) {
       // Store the prompt in sessionStorage so we can access it on the dashboard
       sessionStorage.setItem("redirectedPrompt", prompt);
+      // Add a flag to indicate we want to stay on step 1
+      sessionStorage.setItem("stayOnStepOne", "true");
       
       // Navigate to the dashboard
       if (user) {
@@ -64,7 +66,7 @@ const Index = () => {
             placeholder="Input your prompt to Aitema X... (Press Enter to continue)"
             className="w-full"
             onKeyDown={handleKeyDown}
-            hideFormatting={true} // Add this prop to hide formatting tools
+            hideFormatting={true} // Hide formatting tools
           />
         </div>
       </main>
