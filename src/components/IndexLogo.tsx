@@ -16,17 +16,17 @@ const IndexLogo = () => {
           AITEMA
         </h1>
         <div className="relative ml-2">
-          <img 
-            src="/public/lovable-uploads/801ba41f-3e27-49c2-9f50-4f82fdf1115e.png" 
-            alt="Logo" 
-            className="h-36" 
+          <div 
+            className="h-36 w-36 bg-aurora-gradient bg-aurora animate-aurora"
             style={{
-              filter: "hue-rotate(15deg) saturate(1.2)",
-              mixBlendMode: "multiply",
-              background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95)",
-              backgroundSize: "400% 400%",
-              animation: "aurora 15s ease infinite",
-              borderRadius: "2px"
+              WebkitMaskImage: "url('/public/lovable-uploads/801ba41f-3e27-49c2-9f50-4f82fdf1115e.png')",
+              maskImage: "url('/public/lovable-uploads/801ba41f-3e27-49c2-9f50-4f82fdf1115e.png')",
+              WebkitMaskSize: "contain",
+              maskSize: "contain",
+              WebkitMaskRepeat: "no-repeat",
+              maskRepeat: "no-repeat",
+              WebkitMaskPosition: "center",
+              maskPosition: "center",
             }}
           />
         </div>
