@@ -170,24 +170,25 @@ START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This
 
     console.log("Sending request to OpenAI with system message length:", systemMessage.length);
     console.log("User message length:", userMessage.length);
+    console.log("Using model: o3-mini");
 
     try {
-      // Make the API call
+      // Make the API call with "o3-mini" model instead of "gpt-4o"
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "o3-mini",
         messages: messages,
         temperature: temperature  // Use the template's temperature or default
       });
 
       const enhancedPrompt = completion.choices[0].message.content;
       
-      console.log("Enhanced prompt generated successfully");
+      console.log("Enhanced prompt generated successfully with o3-mini model");
       console.log(`Enhanced prompt length: ${enhancedPrompt.length} characters`);
       console.log(`Enhanced prompt start: ${enhancedPrompt.substring(0, 100)}...`);
       
       return new Response(JSON.stringify({ 
         enhancedPrompt,
-        loadingMessage: `Enhancing prompt${primaryToggle ? ` for ${primaryToggle}` : ''}...`,
+        loadingMessage: `Enhancing prompt${primaryToggle ? ` for ${primaryToggle}` : ''} with o3-mini...`,
         usage: completion.usage || { prompt_tokens: 0, completion_tokens: 0 },
         template: templateIsValid ? { 
           name: template.name, 
@@ -198,18 +199,18 @@ START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (openaiError) {
-      console.error("Error calling OpenAI API:", openaiError);
+      console.error("Error calling OpenAI API with o3-mini model:", openaiError);
       
       // Return a structured error response
       return new Response(JSON.stringify({
         error: openaiError.message,
         enhancedPrompt: `# Error Enhancing Prompt
 
-We encountered an error while trying to enhance your prompt. Please try again.
+We encountered an error while trying to enhance your prompt with o3-mini. Please try again.
 
 Original Prompt:
 ${originalPrompt}`,
-        loadingMessage: "Error enhancing prompt..."
+        loadingMessage: "Error enhancing prompt with o3-mini..."
       }), {
         status: 200, // Keep 200 to avoid edge function errors
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -220,7 +221,7 @@ ${originalPrompt}`,
     return new Response(JSON.stringify({ 
       error: error.message,
       enhancedPrompt: "Error: Could not process the prompt enhancement request.",
-      loadingMessage: "Error processing request..." 
+      loadingMessage: "Error processing request with o3-mini..." 
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
