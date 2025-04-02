@@ -17,7 +17,7 @@ const Auth = () => {
   const location = useLocation();
   const { toast } = useToast();
   
-  // If user is already logged in, redirect to dashboard
+  // If user is already logged in, redirect to dashboard or returnUrl
   useEffect(() => {
     if (session) {
       const returnUrl = new URLSearchParams(location.search).get('returnUrl');

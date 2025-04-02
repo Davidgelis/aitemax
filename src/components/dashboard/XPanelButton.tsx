@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { PanelTopClose } from "lucide-react";
 import { Button } from "../ui/button";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 const XPanelButton = () => {
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollPosition, setLastScrollPosition] = useState(0);
+  const { user } = useAuth();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -32,7 +34,14 @@ const XPanelButton = () => {
 
   const handleButtonClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigate("/x-panel");
+    
+    // Check if user is authenticated
+    if (user) {
+      navigate("/x-panel");
+    } else {
+      // Redirect to auth page with return URL parameter
+      navigate("/auth?returnUrl=/x-panel");
+    }
   };
 
   return (

@@ -21,6 +21,14 @@ const Index = () => {
     }
   };
 
+  const handleXPanelClick = () => {
+    if (user) {
+      navigate("/x-panel");
+    } else {
+      navigate("/auth?returnUrl=/x-panel");
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative">
       {/* Aurora background overlay */}
@@ -32,7 +40,7 @@ const Index = () => {
       <nav className="fixed top-0 w-full max-w-7xl mx-auto p-6 flex justify-between items-center animate-fade-in">
         <button 
           className="aurora-button"
-          onClick={() => navigate("/x-panel")}
+          onClick={handleXPanelClick}
         >
           X Panel
         </button>
