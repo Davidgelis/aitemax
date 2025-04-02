@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -799,3 +800,89 @@ export default function Analytics() {
                             ${Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.prompt_cost, 0).toFixed(6)}
                           </TableCell>
                           <TableCell className="text-right font-bold">
+                            ${Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.completion_cost, 0).toFixed(6)}
+                          </TableCell>
+                          <TableCell className="text-right font-bold">
+                            ${totalStats.total_cost.toFixed(6)}
+                          </TableCell>
+                        </TableRow>
+                      </TableFooter>
+                    )}
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+        
+        {/* Users Tab */}
+        <TabsContent value="users">
+          {loading ? (
+            <Card className="shadow-md">
+              <CardHeader>
+                <Skeleton className="h-6 w-48" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-96 w-full" />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="shadow-md">
+              <CardHeader>
+                <CardTitle>User Activity Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead className="text-right">Prompts</TableHead>
+                        <TableHead className="text-right">Drafts</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead className="text-right">Total Tokens</TableHead>
+                        <TableHead className="text-right">Cost</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {userStats && userStats.length > 0 ? (
+                        userStats.map((user) => (
+                          <TableRow key={user.user_id}>
+                            <TableCell className="font-medium">{user.username || 'Unknown User'}</TableCell>
+                            <TableCell className="text-right">{user.prompts_count}</TableCell>
+                            <TableCell className="text-right">{user.drafts_count}</TableCell>
+                            <TableCell className="text-right">{user.total_count}</TableCell>
+                            <TableCell className="text-right">{user.total_tokens.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">${user.total_cost.toFixed(6)}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                            No user data available
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                    {userStats && userStats.length > 0 && (
+                      <TableFooter>
+                        <TableRow>
+                          <TableCell className="font-bold">TOTAL</TableCell>
+                          <TableCell className="text-right font-bold">{totalStats?.total_prompts}</TableCell>
+                          <TableCell className="text-right font-bold">{totalStats?.total_drafts}</TableCell>
+                          <TableCell className="text-right font-bold">{totalStats?.total_all_prompts}</TableCell>
+                          <TableCell className="text-right font-bold">{totalStats?.total_tokens.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-bold">${totalStats?.total_cost.toFixed(6)}</TableCell>
+                        </TableRow>
+                      </TableFooter>
+                    )}
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
