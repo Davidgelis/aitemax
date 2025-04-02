@@ -17,7 +17,7 @@ const IndexLogo = () => {
         </h1>
         <div className="relative ml-2">
           <div 
-            className="h-[46.8px] w-[46.8px] bg-aurora-gradient bg-aurora animate-aurora"
+            className="h-16 w-16 bg-aurora-gradient bg-aurora animate-aurora"
             style={{
               WebkitMaskImage: "url('/public/lovable-uploads/801ba41f-3e27-49c2-9f50-4f82fdf1115e.png')",
               maskImage: "url('/public/lovable-uploads/801ba41f-3e27-49c2-9f50-4f82fdf1115e.png')",
@@ -27,7 +27,6 @@ const IndexLogo = () => {
               maskRepeat: "no-repeat",
               WebkitMaskPosition: "center",
               maskPosition: "center",
-              transform: "scale(1.3)", // Increasing size by 30%
             }}
           />
         </div>
