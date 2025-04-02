@@ -1,16 +1,17 @@
 
-import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText, Clock, BarChart } from "lucide-react";
+import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText, Clock, BarChart, AlertCircle } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SavedPrompt } from "./types";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { getTextLines } from "@/lib/utils";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/context/AuthContext";
 
 const ADMIN_USER_ID = "8b40d73f-fffb-411f-9044-480773968d58";
 
@@ -35,6 +36,7 @@ interface UserSidebarProps {
     avatar_url?: string;
     username?: string;
   };
+  fetchSavedPrompts?: () => Promise<void>;
 }
 
 export const UserSidebar = ({
@@ -53,13 +55,17 @@ export const UserSidebar = ({
   isLoadingDrafts = false,
   loadDraft,
   handleDeleteDraft,
-  userProfile
+  userProfile,
+  fetchSavedPrompts
 }: UserSidebarProps) => {
   const navigate = useNavigate();
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>('');
   const [draftToDelete, setDraftToDelete] = useState<string | null>(null);
   const [promptToDelete, setPromptToDelete] = useState<string | null>(null);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const { refreshSession } = useAuth();
 
   const isAdmin = user?.id === ADMIN_USER_ID;
   
@@ -96,6 +102,35 @@ export const UserSidebar = ({
       return dateString;
     }
   };
+
+  // Function to retry loading prompts
+  const retryFetchPrompts = useCallback(async () => {
+    setLoadingError(null);
+    if (fetchSavedPrompts) {
+      try {
+        await fetchSavedPrompts();
+        setRetryCount(0); // Reset retry count on success
+      } catch (error: any) {
+        console.error("Error retrying prompt fetch:", error);
+        setLoadingError(error?.message || "Failed to load prompts. Please try again.");
+        setRetryCount(prev => prev + 1);
+      }
+    }
+  }, [fetchSavedPrompts]);
+
+  // Attempt to refresh session if we're having network issues
+  useEffect(() => {
+    if (loadingError && retryCount > 2 && retryCount < 5) {
+      // Try refreshing session after a few failed attempts
+      console.log("Attempting to refresh session due to fetch errors");
+      refreshSession().then(() => {
+        // Wait a bit before trying to fetch prompts again
+        setTimeout(() => {
+          retryFetchPrompts();
+        }, 1000);
+      });
+    }
+  }, [loadingError, retryCount, refreshSession, retryFetchPrompts]);
 
   const filteredContent = searchTerm
     ? filteredPrompts
@@ -210,10 +245,30 @@ export const UserSidebar = ({
         </div>
 
         <div className="overflow-auto">
-          {(isLoadingPrompts || isLoadingDrafts) ? (
+          {loadingError ? (
+            <div className="p-4 text-center">
+              <div className="flex flex-col items-center justify-center gap-2 bg-red-50 border border-red-200 rounded-md p-4">
+                <AlertCircle className="w-6 h-6 text-red-500" />
+                <p className="text-sm text-red-600">{loadingError}</p>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={retryFetchPrompts}
+                  className="mt-2 text-xs"
+                >
+                  Retry Loading
+                </Button>
+                {retryCount > 2 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Having issues? Try refreshing the page.
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (isLoadingPrompts || isLoadingDrafts) ? (
             <div className="p-4 text-center">
               <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-              <span className="text-sm text-muted-foreground">Loading...</span>
+              <span className="text-sm text-muted-foreground">Loading content...</span>
             </div>
           ) : filteredContent.length > 0 ? (
             <>
@@ -237,7 +292,7 @@ export const UserSidebar = ({
                     <div className="flex flex-col flex-1 min-w-0 w-[70%]">
                       <div className="flex items-center">
                         <span className="text-sm font-medium line-clamp-2">
-                          {getPlainText(draft.title)} <span className="text-xs font-normal text-muted-foreground">(Draft)</span>
+                          {getPlainText(draft.title || 'Untitled Draft')} <span className="text-xs font-normal text-muted-foreground">(Draft)</span>
                         </span>
                       </div>
                       <span className="text-xs text-muted-foreground">

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { defaultVariables, mockQuestions, sampleFinalPrompt } from "@/components/dashboard/constants";
@@ -27,6 +28,7 @@ export const usePromptState = (user: any) => {
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(false);
   const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState(false);
   const [promptJsonStructure, setPromptJsonStructure] = useState<PromptJsonStructure | null>(null);
+  const [fetchPromptError, setFetchPromptError] = useState<Error | null>(null);
   // Removed draftLoaded state since we don't want to auto-load drafts
 
   const { toast } = useToast();
@@ -120,11 +122,14 @@ export const usePromptState = (user: any) => {
     }
   };
 
-  const fetchSavedPrompts = async () => {
+  const fetchSavedPrompts = useCallback(async () => {
     if (!user) return;
     
     setIsLoadingPrompts(true);
+    setFetchPromptError(null);
+    
     try {
+      console.log("Fetching prompts for user:", user.id);
       const { data, error } = await supabase
         .from('prompts')
         .select('*')
@@ -133,6 +138,8 @@ export const usePromptState = (user: any) => {
       if (error) {
         throw error;
       }
+      
+      console.log(`User has ${data?.length || 0} saved prompts`, data);
       
       const formattedPrompts: SavedPrompt[] = data?.map(item => {
         const prompt: SavedPrompt = {
@@ -151,16 +158,17 @@ export const usePromptState = (user: any) => {
       
       setSavedPrompts(formattedPrompts);
     } catch (error: any) {
-      console.error("Error fetching prompts:", error.message);
+      console.error("Error fetching prompts:", error);
+      setFetchPromptError(error);
       toast({
         title: "Error fetching prompts",
-        description: error.message,
+        description: error.message || "Please try again later",
         variant: "destructive",
       });
     } finally {
       setIsLoadingPrompts(false);
     }
-  };
+  }, [user, toast]);
 
   const handleSavePrompt = async () => {
     if (!user) {
@@ -493,7 +501,7 @@ export const usePromptState = (user: any) => {
     if (user) {
       fetchSavedPrompts();
     }
-  }, [user]);
+  }, [user, fetchSavedPrompts]);
 
   return {
     promptText,
@@ -548,6 +556,7 @@ export const usePromptState = (user: any) => {
     handleDeleteDraft,
     saveDraft,
     isDirty,
-    isSaving
+    isSaving,
+    fetchPromptError
   };
 };

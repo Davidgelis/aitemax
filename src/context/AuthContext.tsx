@@ -17,8 +17,8 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Constant for session refresh interval - refresh every 10 minutes
-const SESSION_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
+// Constant for session refresh interval - refresh every 5 minutes
+const SESSION_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Warning time before session expires (in milliseconds)
 const SESSION_WARNING_TIME = 10 * 60 * 1000; // 10 minutes before expiration
@@ -70,7 +70,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       refreshSession();
     }, SESSION_REFRESH_INTERVAL);
     
-    return () => clearInterval(refreshInterval);
+    // Also refresh when user becomes active again after being away
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("User returned to the app, refreshing session");
+        refreshSession();
+      }
+    };
+
+    // Add event listeners for tab visibility and user activity
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [session, refreshSession]);
 
   useEffect(() => {
