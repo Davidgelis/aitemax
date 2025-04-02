@@ -6,7 +6,7 @@ const IndexLogo = () => {
         <img 
           src="/public/lovable-uploads/33d2b401-4f0d-4cb3-80a7-bbe01dd9f991.png" 
           alt="AITEMA"
-          className="h-16 md:h-20"
+          className="h-48 md:h-60" // Changed from h-16 md:h-20 to h-48 md:h-60 (3x bigger)
         />
         <div className="relative ml-2">
           <div 
