@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -111,7 +110,7 @@ export const usePromptAnalysis = (
     selectedTemplate: any = null
   ) => {
     try {
-      setCurrentLoadingMessage(`Enhancing prompt${primaryToggle ? ` for ${primaryToggle}` : ''}...`);
+      setCurrentLoadingMessage("Building your final prompt with Aitema X");
       
       // Log template information
       console.log("usePromptAnalysis: Template being used:", 

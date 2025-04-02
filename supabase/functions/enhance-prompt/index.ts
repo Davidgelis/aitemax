@@ -189,7 +189,7 @@ START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This
       
       return new Response(JSON.stringify({ 
         enhancedPrompt,
-        loadingMessage: `Enhancing prompt${primaryToggle ? ` for ${primaryToggle}` : ''} with o3-mini...`,
+        loadingMessage: `Building your final prompt with Aitema X`,
         usage: completion.usage || { prompt_tokens: 0, completion_tokens: 0 },
         template: templateIsValid ? { 
           name: template.name, 
@@ -211,7 +211,7 @@ We encountered an error while trying to enhance your prompt with o3-mini. Please
 
 Original Prompt:
 ${originalPrompt}`,
-        loadingMessage: "Error enhancing prompt with o3-mini..."
+        loadingMessage: "Error enhancing prompt with Aitema X..."
       }), {
         status: 200, // Keep 200 to avoid edge function errors
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -222,7 +222,7 @@ ${originalPrompt}`,
     return new Response(JSON.stringify({ 
       error: error.message,
       enhancedPrompt: "Error: Could not process the prompt enhancement request.",
-      loadingMessage: "Error processing request with o3-mini..." 
+      loadingMessage: "Error processing request with Aitema X..." 
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

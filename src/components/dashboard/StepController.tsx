@@ -56,7 +56,7 @@ export const StepController = ({
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
-  const [enhancingMessage, setEnhancingMessage] = useState("Enhancing your prompt with o3-mini...");
+  const [enhancingMessage, setEnhancingMessage] = useState("Building your final prompt with Aitema X");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
@@ -233,23 +233,8 @@ export const StepController = ({
       // When moving to step 3, don't save draft
       setIsEnhancingPrompt(true);
       
-      // Update enhancement message based on toggles
-      let message = "Enhancing your prompt";
-      if (selectedPrimary) {
-        const primaryLabel = primaryToggles.find(t => t.id === selectedPrimary)?.label || selectedPrimary;
-        message += ` for ${primaryLabel}`;
-        
-        if (selectedSecondary) {
-          const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
-          message += ` and to be ${secondaryLabel}`;
-        }
-      } else if (selectedSecondary) {
-        const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
-        message += ` to be ${secondaryLabel}`;
-      }
-      message += " with o3-mini...";
-      
-      setEnhancingMessage(message);
+      // Set the fixed message for step 3 transition
+      setEnhancingMessage("Building your final prompt with Aitema X");
       
       try {
         console.log("StepController: Enhancing prompt for step 3 with o3-mini...");
