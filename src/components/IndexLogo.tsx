@@ -2,27 +2,33 @@
 const IndexLogo = () => {
   return (
     <div className="flex flex-col items-center justify-center animate-fade-in">
-      <div className="flex items-center">
+      <div className="relative w-auto h-auto">
+        {/* Base image */}
         <img 
-          src="/public/lovable-uploads/33d2b401-4f0d-4cb3-80a7-bbe01dd9f991.png" 
-          alt="AITEMA"
-          className="h-48 md:h-60" // Changed from h-16 md:h-20 to h-48 md:h-60 (3x bigger)
+          src="/public/lovable-uploads/4a57ecc2-3abd-4837-b9bb-6e3f2187fc91.png" 
+          alt="AITEMA X"
+          className="h-40 md:h-48"
         />
-        <div className="relative ml-2">
-          <div 
-            className="h-36 w-36 bg-aurora-gradient bg-aurora animate-aurora"
-            style={{
-              WebkitMaskImage: "url('/public/lovable-uploads/801ba41f-3e27-49c2-9f50-4f82fdf1115e.png')",
-              maskImage: "url('/public/lovable-uploads/801ba41f-3e27-49c2-9f50-4f82fdf1115e.png')",
-              WebkitMaskSize: "contain",
-              maskSize: "contain",
-              WebkitMaskRepeat: "no-repeat",
-              maskRepeat: "no-repeat",
-              WebkitMaskPosition: "center",
-              maskPosition: "center",
-            }}
-          />
-        </div>
+        
+        {/* Overlay the X part with aurora effect */}
+        <div 
+          className="absolute top-0 right-0 w-full h-full"
+          style={{
+            maskImage: "url('/public/lovable-uploads/4a57ecc2-3abd-4837-b9bb-6e3f2187fc91.png')",
+            WebkitMaskImage: "url('/public/lovable-uploads/4a57ecc2-3abd-4837-b9bb-6e3f2187fc91.png')",
+            maskSize: "contain",
+            WebkitMaskSize: "contain",
+            maskRepeat: "no-repeat",
+            WebkitMaskRepeat: "no-repeat",
+            maskPosition: "center",
+            WebkitMaskPosition: "center",
+            background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white)",
+            backgroundSize: "400% 400%",
+            animation: "aurora 8s ease infinite",
+            opacity: 0.9,
+            mixBlendMode: "screen"
+          }}
+        />
       </div>
     </div>
   );
