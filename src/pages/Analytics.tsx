@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,7 +44,11 @@ import {
 const ADMIN_USER_ID = "8b40d73f-fffb-411f-9044-480773968d58";
 
 // Model pricing constants
-const MODEL_PRICING = {
+const MODEL_PRICING: Record<string, {
+  promptCostPerToken: number,
+  completionCostPerToken: number,
+  color: string
+}> = {
   'gpt-4o': {
     promptCostPerToken: 0.0025,  // $2.50 per 1000 tokens
     completionCostPerToken: 0.01,  // $10.00 per 1000 tokens
@@ -113,6 +118,85 @@ interface TotalStats {
     };
   };
 }
+
+// Custom components
+interface StatsCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+}
+
+const StatsCard = ({ title, value, icon }: StatsCardProps) => (
+  <Card className="shadow-lg border-[#084b49]/20">
+    <CardHeader className="pb-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{title}</p>
+        <div className="text-muted-foreground">{icon}</div>
+      </div>
+    </CardHeader>
+    <CardContent>
+      <h3 className="text-2xl font-bold">{value}</h3>
+    </CardContent>
+  </Card>
+);
+
+// Custom tooltip for recharts
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border rounded-md shadow-md">
+        <p className="font-medium">{payload[0].name}</p>
+        <p>Tokens: {payload[0].payload.value.toLocaleString()}</p>
+        {payload[0].payload.cost && (
+          <p>Cost: ${payload[0].payload.cost.toFixed(6)}</p>
+        )}
+        {payload[0].payload.percentage && (
+          <p>Percentage: {payload[0].payload.percentage}%</p>
+        )}
+      </div>
+    );
+  }
+  return null;
+};
+
+// Currency icon component
+const CurrencyIcon = (props: any) => (
+  <svg
+    {...props}
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="8" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
+
+// Average cost icon component
+const AvgCostIcon = (props: any) => (
+  <svg
+    {...props}
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
+    <line x1="2" y1="20" x2="2" y2="20" />
+  </svg>
+);
 
 export default function Analytics() {
   const { user } = useAuth();
@@ -659,60 +743,64 @@ export default function Analytics() {
                 <CardTitle>Model Usage Breakdown</CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Model</TableHead>
-                      <TableHead className="text-right">Usage Count</TableHead>
-                      <TableHead className="text-right">Prompt Tokens</TableHead>
-                      <TableHead className="text-right">Completion Tokens</TableHead>
-                      <TableHead className="text-right">Total Tokens</TableHead>
-                      <TableHead className="text-right">Prompt Cost</TableHead>
-                      <TableHead className="text-right">Completion Cost</TableHead>
-                      <TableHead className="text-right">Total Cost</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {totalStats && totalStats.model_usage ? (
-                      Object.entries(totalStats.model_usage).map(([model, stats]) => (
-                        <TableRow key={model}>
-                          <TableCell className="font-medium">{model}</TableCell>
-                          <TableCell className="text-right">{stats.usage_count}</TableCell>
-                          <TableCell className="text-right">{stats.prompt_tokens.toLocaleString()}</TableCell>
-                          <TableCell className="text-right">{stats.completion_tokens.toLocaleString()}</TableCell>
-                          <TableCell className="text-right">{stats.total_tokens.toLocaleString()}</TableCell>
-                          <TableCell className="text-right">${stats.prompt_cost.toFixed(6)}</TableCell>
-                          <TableCell className="text-right">${stats.completion_cost.toFixed(6)}</TableCell>
-                          <TableCell className="text-right font-medium">${stats.total_cost.toFixed(6)}</TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                          No model usage data available
-                        </TableCell>
+                        <TableHead>Model</TableHead>
+                        <TableHead className="text-right">Usage Count</TableHead>
+                        <TableHead className="text-right">Prompt Tokens</TableHead>
+                        <TableHead className="text-right">Completion Tokens</TableHead>
+                        <TableHead className="text-right">Total Tokens</TableHead>
+                        <TableHead className="text-right">Prompt Cost</TableHead>
+                        <TableHead className="text-right">Completion Cost</TableHead>
+                        <TableHead className="text-right">Total Cost</TableHead>
                       </TableRow>
-                    )}
+                    </TableHeader>
+                    <TableBody>
+                      {totalStats && totalStats.model_usage ? (
+                        Object.entries(totalStats.model_usage).map(([model, stats]) => (
+                          <TableRow key={model}>
+                            <TableCell className="font-medium">{model}</TableCell>
+                            <TableCell className="text-right">{stats.usage_count}</TableCell>
+                            <TableCell className="text-right">{stats.prompt_tokens.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">{stats.completion_tokens.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">{stats.total_tokens.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">${stats.prompt_cost.toFixed(6)}</TableCell>
+                            <TableCell className="text-right">${stats.completion_cost.toFixed(6)}</TableCell>
+                            <TableCell className="text-right font-medium">${stats.total_cost.toFixed(6)}</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                            No model usage data available
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
                     {totalStats && totalStats.model_usage && Object.keys(totalStats.model_usage).length > 0 && (
-                      <TableRow className="bg-muted/50">
-                        <TableCell className="font-bold">TOTAL</TableCell>
-                        <TableCell className="text-right font-bold">
-                          {Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.usage_count, 0)}
-                        </TableCell>
-                        <TableCell className="text-right font-bold">{totalStats.total_prompt_tokens.toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-bold">{totalStats.total_completion_tokens.toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-bold">{totalStats.total_tokens.toLocaleString()}</TableCell>
-                        <TableCell className="text-right font-bold">
-                          ${Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.prompt_cost, 0).toFixed(6)}
-                        </TableCell>
-                        <TableCell className="text-right font-bold">
-                          ${Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.completion_cost, 0).toFixed(6)}
-                        </TableCell>
-                        <TableCell className="text-right font-bold">${totalStats.total_cost.toFixed(6)}</TableCell>
-                      </TableRow>
+                      <TableFooter>
+                        <TableRow>
+                          <TableCell className="font-bold">TOTAL</TableCell>
+                          <TableCell className="text-right font-bold">
+                            {Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.usage_count, 0)}
+                          </TableCell>
+                          <TableCell className="text-right font-bold">{totalStats.total_prompt_tokens.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-bold">{totalStats.total_completion_tokens.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-bold">{totalStats.total_tokens.toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-bold">
+                            ${Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.prompt_cost, 0).toFixed(6)}
+                          </TableCell>
+                          <TableCell className="text-right font-bold">
+                            ${Object.values(totalStats.model_usage).reduce((sum, stat) => sum + stat.completion_cost, 0).toFixed(6)}
+                          </TableCell>
+                          <TableCell className="text-right font-bold">${totalStats.total_cost.toFixed(6)}</TableCell>
+                        </TableRow>
+                      </TableFooter>
                     )}
-                  </TableBody>
-                </Table>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -800,4 +888,22 @@ export default function Analytics() {
                       <TableFooter>
                         <TableRow>
                           <TableCell className="font-medium">Total ({userStats.length} users)</TableCell>
-                          <TableCell
+                          <TableCell className="text-right">{totalStats?.total_prompts}</TableCell>
+                          <TableCell className="text-right">{totalStats?.total_drafts}</TableCell>
+                          <TableCell className="text-right">{totalStats?.total_all_prompts}</TableCell>
+                          <TableCell className="text-right">{totalStats?.total_tokens.toLocaleString()}</TableCell>
+                          <TableCell className="text-right">${totalStats?.total_cost.toFixed(6)}</TableCell>
+                          <TableCell></TableCell>
+                        </TableRow>
+                      </TableFooter>
+                    )}
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
