@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,14 +26,20 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Constant for session refresh interval - refresh every 30 minutes
-const SESSION_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes in milliseconds
+// Constant for session refresh interval - refresh every 15 minutes (reduced from 30)
+const SESSION_REFRESH_INTERVAL = 15 * 60 * 1000; // 15 minutes in milliseconds
+
+// Shorter inactivity period before refreshing session - 5 minutes
+const INACTIVITY_REFRESH_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Warning time before session expires (in milliseconds)
-const SESSION_WARNING_TIME = 10 * 60 * 1000; // 10 minutes before expiration
+const SESSION_WARNING_TIME = 15 * 60 * 1000; // 15 minutes before expiration
 
 // Maximum retry attempts for session refresh
 const MAX_REFRESH_RETRIES = 3;
+
+// Debounce time for refresh attempts
+const REFRESH_DEBOUNCE = 2000; // 2 seconds
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -43,11 +48,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [sessionExpiresAt, setSessionExpiresAt] = useState<Date | null>(null);
   const [refreshRetryCount, setRefreshRetryCount] = useState(0);
   const [showSessionExpiredDialog, setShowSessionExpiredDialog] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const { toast } = useToast();
   
-  // Function to refresh the session
+  // Function to refresh the session with debounce to prevent multiple simultaneous refreshes
   const refreshSession = useCallback(async () => {
     try {
+      // Implement debounce - prevent multiple refresh attempts within 2 seconds
+      const now = Date.now();
+      if (now - lastRefreshTime < REFRESH_DEBOUNCE) {
+        console.log("Skipping refresh - too soon since last attempt");
+        return;
+      }
+      
+      setLastRefreshTime(now);
       console.log("Refreshing authentication session...");
       const { data, error } = await supabase.auth.refreshSession();
       
@@ -58,8 +72,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (refreshRetryCount < MAX_REFRESH_RETRIES) {
           console.log(`Retrying session refresh (${refreshRetryCount + 1}/${MAX_REFRESH_RETRIES})...`);
           setRefreshRetryCount(prev => prev + 1);
-          // Try again after a delay
-          setTimeout(refreshSession, 5000);
+          // Try again after a delay with exponential backoff
+          setTimeout(refreshSession, 1000 * Math.pow(2, refreshRetryCount));
         } else {
           console.error("Max refresh retries reached. Session may expire soon.");
           toast({
@@ -98,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Show session expired dialog on unexpected errors
       setShowSessionExpiredDialog(true);
     }
-  }, [refreshRetryCount, toast]);
+  }, [refreshRetryCount, toast, lastRefreshTime]);
 
   // Handle refresh page action
   const handleRefreshPage = useCallback(() => {
@@ -109,53 +123,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!session) return;
     
+    let lastActivity = Date.now();
+    
+    // Update last activity time when user interacts with the page
+    const updateLastActivity = () => {
+      lastActivity = Date.now();
+    };
+    
     // Set up interval to refresh session periodically
     const refreshInterval = setInterval(() => {
       console.log("Automatic session refresh triggered");
       refreshSession();
     }, SESSION_REFRESH_INTERVAL);
     
-    // Also refresh when user becomes active again after being away
+    // Also check for inactivity every minute
+    const inactivityInterval = setInterval(() => {
+      const now = Date.now();
+      const inactiveTime = now - lastActivity;
+      
+      // If user has been inactive but now becomes active again after threshold, refresh session
+      if (inactiveTime >= INACTIVITY_REFRESH_TIMEOUT) {
+        console.log(`User was inactive for ${inactiveTime/1000} seconds, refreshing session`);
+        refreshSession();
+        lastActivity = now; // Reset last activity
+      }
+    }, 60000); // Check every minute
+    
+    // Add event listeners for tab visibility and user activity
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log("User returned to the app, refreshing session");
-        refreshSession();
+        const now = Date.now();
+        const timeSinceLastActivity = now - lastActivity;
+        
+        // Only refresh if it's been more than 1 minute since the last activity
+        if (timeSinceLastActivity > 60000) {
+          console.log("User returned to the app after inactivity, refreshing session");
+          refreshSession();
+        }
+        
+        updateLastActivity();
       }
     };
-
-    // Add event listeners for tab visibility and user activity
+    
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
     // Add additional activity monitors to keep session fresh
-    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll'];
-    let activityTimeout: number | null = null;
-    
-    const handleUserActivity = () => {
-      if (activityTimeout) {
-        clearTimeout(activityTimeout);
-      }
-      
-      // Only refresh if it's been at least 1 minute since the last refresh
-      activityTimeout = window.setTimeout(() => {
-        console.log("User activity detected, refreshing session");
-        refreshSession();
-      }, 60000); // Wait 1 minute of inactivity before refreshing
-    };
+    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
     
     activityEvents.forEach(event => {
-      window.addEventListener(event, handleUserActivity, { passive: true });
+      window.addEventListener(event, updateLastActivity, { passive: true });
     });
     
     return () => {
       clearInterval(refreshInterval);
+      clearInterval(inactivityInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       
-      if (activityTimeout) {
-        clearTimeout(activityTimeout);
-      }
-      
       activityEvents.forEach(event => {
-        window.removeEventListener(event, handleUserActivity);
+        window.removeEventListener(event, updateLastActivity);
       });
     };
   }, [session, refreshSession]);
@@ -232,7 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             Stay logged in
           </button>
         ),
-        duration: 0, // Don't auto-dismiss this toast
+        duration: 60000, // Show for 1 minute instead of indefinitely
       });
     }, timeUntilWarning);
     

@@ -5,6 +5,7 @@ import { defaultVariables, mockQuestions, sampleFinalPrompt } from "@/components
 import { supabase } from "@/integrations/supabase/client";
 import { usePromptDrafts } from "@/hooks/usePromptDrafts";
 import { Json } from "@/integrations/supabase/types";
+import { useLocation } from "react-router-dom";
 
 export const usePromptState = (user: any) => {
   const [promptText, setPromptText] = useState("");
@@ -34,6 +35,7 @@ export const usePromptState = (user: any) => {
   const MAX_RETRIES = 3;
 
   const { toast } = useToast();
+  const location = useLocation();
 
   const {
     saveDraft,
@@ -134,17 +136,42 @@ export const usePromptState = (user: any) => {
     
     try {
       console.log("Fetching prompts for user:", user.id);
-      const { data, error } = await supabase
-        .from('prompts')
-        .select('*')
-        .eq('user_id', user.id) // Ensure we're only getting prompts for this user
-        .order('created_at', { ascending: false });
+      // Add exponential backoff with retry
+      const fetchWithRetry = async (retries = 0): Promise<any> => {
+        try {
+          const { data, error } = await supabase
+            .from('prompts')
+            .select('*')
+            .eq('user_id', user.id) // Ensure we're only getting prompts for this user
+            .order('created_at', { ascending: false });
+          
+          if (error) {
+            if (error.code === 'PGRST301' || // JWT expired 
+                error.message?.includes('JWT')) { // Any JWT related error
+              throw new Error('Auth token expired');
+            }
+            throw error;
+          }
+          
+          return { data, error: null };
+        } catch (err: any) {
+          if (retries >= MAX_RETRIES) {
+            throw err;
+          }
+          
+          console.log(`Fetch attempt ${retries + 1} failed, retrying in ${Math.pow(2, retries) * 1000}ms`);
+          await new Promise(r => setTimeout(r, Math.pow(2, retries) * 1000));
+          return fetchWithRetry(retries + 1);
+        }
+      };
+      
+      const { data, error } = await fetchWithRetry();
       
       if (error) {
         throw error;
       }
       
-      console.log(`User has ${data?.length || 0} saved prompts`, data);
+      console.log(`User has ${data?.length || 0} saved prompts`);
       
       const formattedPrompts: SavedPrompt[] = data?.map(item => {
         const prompt: SavedPrompt = {
@@ -167,22 +194,22 @@ export const usePromptState = (user: any) => {
       console.error("Error fetching prompts:", error);
       setFetchPromptError(error);
       
-      // Retry logic
+      // Check if it's an auth error and try refreshing the session
+      if (error.message?.includes('JWT') || 
+          error.message?.includes('token') || 
+          error.message?.includes('auth')) {
+        console.log("Auth error detected, trying to refresh session");
+        // The actual refresh will happen via Dashboard.tsx with refreshSession
+      }
+      
+      // Retry logic - now handled by fetchWithRetry
       if (retryCount < MAX_RETRIES) {
         const nextRetryCount = retryCount + 1;
         setRetryCount(nextRetryCount);
-        console.log(`Retrying prompt fetch (${nextRetryCount}/${MAX_RETRIES})...`);
-        
-        // Exponential backoff: 2^retry * 1000ms
-        const retryDelay = Math.pow(2, nextRetryCount) * 1000;
-        
-        setTimeout(() => {
-          fetchSavedPrompts();
-        }, retryDelay);
       } else {
         toast({
           title: "Error fetching prompts",
-          description: "Unable to load your prompts after multiple attempts. Please try again later.",
+          description: "Unable to load your prompts. Please refresh the page or try again later.",
           variant: "destructive",
         });
       }
@@ -190,7 +217,7 @@ export const usePromptState = (user: any) => {
       setIsLoadingPrompts(false);
       setIsFetchingPrompts(false);
     }
-  }, [user, toast, retryCount]);
+  }, [user, toast, retryCount, MAX_RETRIES]);
 
   const handleSavePrompt = async () => {
     if (!user) {

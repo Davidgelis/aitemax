@@ -99,7 +99,7 @@ const Dashboard = () => {
       
       if (timeLeft <= 0) {
         setSessionTimer("Expired");
-        // If session has expired, try to refresh it automatically
+        // If session has expired, try to refresh it immediately
         refreshSession();
         return;
       }
@@ -108,6 +108,12 @@ const Dashboard = () => {
       const minutes = Math.floor(timeLeft / 60000);
       const seconds = Math.floor((timeLeft % 60000) / 1000);
       setSessionTimer(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      
+      // Pre-emptive refresh when getting close to expiration
+      if (timeLeft < 120000) { // Less than 2 minutes remaining
+        console.log("Session expiring soon, refreshing proactively");
+        refreshSession();
+      }
     };
     
     // Update timer immediately
@@ -233,30 +239,39 @@ const Dashboard = () => {
     promptState.saveDraft(true);
   };
   
-  // Add periodic session refresh for active users
+  // Add periodic session refresh for active users with better error handling
   useEffect(() => {
     // Only refresh if there's an active session and user is interacting with the app
     if (!session) return;
     
-    // Add event listeners to track user activity
-    const resetActivityTimeout = () => {
-      // User is active, refresh session if it's getting close to expiry
-      if (isSessionAboutToExpire()) {
-        refreshSession();
+    // Auto-refresh when fetching prompts fails due to auth issues
+    if (promptState.fetchPromptError) {
+      const errorMessage = promptState.fetchPromptError.message || '';
+      if (errorMessage.includes('JWT') || 
+          errorMessage.includes('token') ||
+          errorMessage.includes('auth')) {
+        console.log("Auth error detected in prompt fetch, refreshing session");
+        refreshSession().then(() => {
+          // Wait a bit after refresh before retrying fetch
+          setTimeout(() => {
+            promptState.fetchSavedPrompts();
+          }, 1000);
+        });
       }
-    };
-    
-    // Track key user interactions
-    window.addEventListener('mousemove', resetActivityTimeout);
-    window.addEventListener('keydown', resetActivityTimeout);
-    window.addEventListener('click', resetActivityTimeout);
+    }
+
+    // Add additional hotfix for prompt loading issues
+    const checkPromptsInterval = setInterval(() => {
+      if (promptState.fetchPromptError && !promptState.isLoadingPrompts) {
+        console.log("Periodic retry for failed prompt fetch");
+        promptState.fetchSavedPrompts();
+      }
+    }, 30000); // Check every 30 seconds
     
     return () => {
-      window.removeEventListener('mousemove', resetActivityTimeout);
-      window.removeEventListener('keydown', resetActivityTimeout);
-      window.removeEventListener('click', resetActivityTimeout);
+      clearInterval(checkPromptsInterval);
     };
-  }, [session, refreshSession]);
+  }, [session, refreshSession, promptState]);
 
   // Check for redirected prompt from index page
   useEffect(() => {

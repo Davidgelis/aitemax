@@ -1,4 +1,3 @@
-
 import { User, MoreVertical, CopyIcon, Pencil, Trash, Search, FileText, Clock, BarChart, AlertCircle } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarTrigger } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -103,11 +102,18 @@ export const UserSidebar = ({
     }
   };
 
-  // Function to retry loading prompts
+  // Enhanced retry function with better error handling
   const retryFetchPrompts = useCallback(async () => {
     setLoadingError(null);
     if (fetchSavedPrompts) {
       try {
+        console.log("Manually retrying prompt fetch");
+        // Try refreshing the session before fetching
+        await refreshSession();
+        
+        // Short delay to allow token to propagate
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         await fetchSavedPrompts();
         setRetryCount(0); // Reset retry count on success
       } catch (error: any) {
@@ -116,19 +122,29 @@ export const UserSidebar = ({
         setRetryCount(prev => prev + 1);
       }
     }
-  }, [fetchSavedPrompts]);
+  }, [fetchSavedPrompts, refreshSession]);
 
-  // Attempt to refresh session if we're having network issues
+  // Attempt to refresh session if we're having network issues - improved logic
   useEffect(() => {
-    if (loadingError && retryCount > 2 && retryCount < 5) {
-      // Try refreshing session after a few failed attempts
-      console.log("Attempting to refresh session due to fetch errors");
-      refreshSession().then(() => {
-        // Wait a bit before trying to fetch prompts again
-        setTimeout(() => {
-          retryFetchPrompts();
-        }, 1000);
-      });
+    if (loadingError) {
+      const isAuthError = loadingError.toLowerCase().includes('jwt') || 
+                          loadingError.toLowerCase().includes('token') ||
+                          loadingError.toLowerCase().includes('auth');
+      
+      if (isAuthError || retryCount > 1) {
+        console.log("Attempting to refresh session due to fetch errors");
+        // Adding a delay before refreshing to avoid race conditions
+        const timer = setTimeout(() => {
+          refreshSession().then(() => {
+            // Wait a bit before trying to fetch prompts again
+            setTimeout(() => {
+              retryFetchPrompts();
+            }, 1000);
+          });
+        }, 300);
+        
+        return () => clearTimeout(timer);
+      }
     }
   }, [loadingError, retryCount, refreshSession, retryFetchPrompts]);
 
@@ -250,17 +266,29 @@ export const UserSidebar = ({
               <div className="flex flex-col items-center justify-center gap-2 bg-red-50 border border-red-200 rounded-md p-4">
                 <AlertCircle className="w-6 h-6 text-red-500" />
                 <p className="text-sm text-red-600">{loadingError}</p>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={retryFetchPrompts}
-                  className="mt-2 text-xs"
-                >
-                  Retry Loading
-                </Button>
-                {retryCount > 2 && (
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={retryFetchPrompts}
+                    className="mt-2 text-xs"
+                  >
+                    Retry Loading
+                  </Button>
+                  {retryCount > 1 && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => window.location.reload()}
+                      className="mt-2 text-xs bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                    >
+                      Refresh Page
+                    </Button>
+                  )}
+                </div>
+                {retryCount > 1 && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Having issues? Try refreshing the page.
+                    Session may have expired. Try refreshing the page.
                   </p>
                 )}
               </div>
