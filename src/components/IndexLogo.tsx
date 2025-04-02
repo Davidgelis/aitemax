@@ -11,7 +11,9 @@ const IndexLogo = () => {
             animation: "aurora 300s ease infinite", 
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
-            backgroundClip: "text"
+            backgroundClip: "text",
+            fontWeight: 200,
+            letterSpacing: "0.3em"
           }}
         >
           AITEMA
@@ -19,7 +21,7 @@ const IndexLogo = () => {
         <img 
           src="/public/lovable-uploads/801ba41f-3e27-49c2-9f50-4f82fdf1115e.png" 
           alt="Logo" 
-          className="h-12 ml-2"
+          className="h-24 ml-2"
         />
       </div>
     </div>
