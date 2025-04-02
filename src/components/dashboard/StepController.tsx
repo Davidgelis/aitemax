@@ -159,6 +159,12 @@ export const StepController = ({
   };
 
   const handleAnalyzeWithContext = () => {
+    // Only proceed with analysis if we're on step 1
+    if (currentStep !== 1) {
+      console.log("StepController: Not on step 1, not analyzing");
+      return;
+    }
+    
     console.log("StepController: Analyzing with context", {
       imagesCount: uploadedImages?.length || 0,
       hasWebsiteContext: !!websiteContext && !!websiteContext.url,
