@@ -12,8 +12,10 @@ const IndexLogo = () => {
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
-            fontWeight: 100, // Reduced from 200 to 100 to make the font lighter
-            letterSpacing: "0.3em"
+            fontWeight: 100, // Maintaining the lightest possible weight
+            letterSpacing: "0.3em",
+            opacity: 0.9, // Adding slight opacity to make it appear thinner
+            textShadow: "0 0 1px rgba(255,255,255,0.2)" // Adding a subtle text shadow for thinner appearance
           }}
         >
           AITEMA
@@ -21,7 +23,7 @@ const IndexLogo = () => {
         <img 
           src="/public/lovable-uploads/801ba41f-3e27-49c2-9f50-4f82fdf1115e.png" 
           alt="Logo" 
-          className="h-28 ml-2" // Increased from h-24 to h-28 (20% bigger)
+          className="h-28 ml-2" // Maintaining the 20% bigger size from previous update
         />
       </div>
     </div>
