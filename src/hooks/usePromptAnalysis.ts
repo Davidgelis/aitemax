@@ -41,7 +41,8 @@ export const usePromptAnalysis = (
         hasImages: !!uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0,
         hasWebsiteContext: !!websiteContext && !!websiteContext.url,
         hasSmartContext: !!smartContext && !!smartContext.context,
-        inputTypes
+        inputTypes,
+        uploadedImagesCount: uploadedImages?.length || 0
       });
 
       const { data, error } = await supabase.functions.invoke("analyze-prompt", {
@@ -102,12 +103,18 @@ export const usePromptAnalysis = (
     try {
       setCurrentLoadingMessage(`Enhancing prompt${primaryToggle ? ` for ${primaryToggle}` : ''}...`);
       
+      // Enhanced logging for template usage
       console.log("usePromptAnalysis: Enhancing prompt with template:", 
         selectedTemplate ? {
           id: selectedTemplate.id,
           name: selectedTemplate.name,
-          pillars: selectedTemplate.pillars?.map((p: any) => p.title) || []
+          pillars: selectedTemplate.pillars?.map((p: any) => p.title) || [],
+          characterLimit: selectedTemplate.characterLimit || "default",
+          temperature: selectedTemplate.temperature || "default"
         } : "No template");
+      
+      // Make a clean copy of the template to avoid reference issues
+      const templateCopy = selectedTemplate ? JSON.parse(JSON.stringify(selectedTemplate)) : null;
       
       // Call the Supabase edge function with all necessary data
       const { data, error } = await supabase.functions.invoke("enhance-prompt", {
@@ -119,7 +126,7 @@ export const usePromptAnalysis = (
           secondaryToggle,
           userId: user?.id || null,
           promptId: currentPromptId,
-          template: selectedTemplate  // Pass the template to the edge function
+          template: templateCopy  // Pass the template copy to the edge function
         }
       });
       

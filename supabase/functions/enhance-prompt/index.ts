@@ -36,16 +36,29 @@ serve(async (req) => {
     } : "No template")}`);
     console.log(`Questions count: ${answeredQuestions?.length || 0}`);
     console.log(`Variables count: ${relevantVariables?.length || 0}`);
+    console.log(`Primary toggle: ${primaryToggle || "None"}`);
+    console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
     
     // Default values in case no template is provided
     const defaultMaxCharacterLimit = 3000;
     const defaultTemperature = 0.7;
     
-    // Extract template information if available
-    const maxCharacterLimit = template?.characterLimit || defaultMaxCharacterLimit;
-    const temperature = template?.temperature || defaultTemperature;
+    // Extract template information if available and validate
+    const templateIsValid = template && 
+                           typeof template === 'object' && 
+                           template.name && 
+                           Array.isArray(template.pillars);
     
-    console.log(`Using template: ${template ? template.name : "default"}`);
+    // Use template settings if valid, otherwise use defaults
+    const maxCharacterLimit = templateIsValid && template.characterLimit 
+                            ? template.characterLimit 
+                            : defaultMaxCharacterLimit;
+                            
+    const temperature = templateIsValid && typeof template.temperature === 'number'
+                      ? template.temperature
+                      : defaultTemperature;
+    
+    console.log(`Using template: ${templateIsValid ? template.name : "default"}`);
     console.log(`Character limit: ${maxCharacterLimit}`);
     console.log(`Temperature: ${temperature}`);
     console.log(`Original prompt: "${originalPrompt?.substring(0, 100)}..."`);
@@ -63,23 +76,27 @@ serve(async (req) => {
       : "";
     
     // Create a prefix for the system message that instructs the AI to create a finalized prompt
-    // This is crucial to ensure we get a usable prompt, not instructions
     const systemPrefix = `You are creating a FINALIZED PROMPT that will be directly used in another AI system. DO NOT give instructions on how to create a prompt - instead, generate the actual prompt itself that is ready to be used.
 
 IMPORTANT: Your output must be the final prompt text itself, not instructions or explanations about the prompt.
 
-START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This title should be concise and capture the essence of the prompt.
-
-IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING (## Subtitle) in the generated prompt. Each pillar should be its own separate section of the prompt.`;
+START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This title should be concise and capture the essence of the prompt.`;
     
-    // Use the template's role with our prefix
+    // Start with the system prefix
     let systemMessage = systemPrefix;
     
-    // Add the template's role if available
-    if (template?.role) {
+    // Add template-specific formatting instructions if we have a valid template with pillars
+    if (templateIsValid && template.pillars && template.pillars.length > 0) {
+      systemMessage += `\n\nIF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING (## Subtitle) in the generated prompt. Each pillar should be its own separate section of the prompt.`;
+    }
+    
+    // Add the template's role if available and valid
+    if (templateIsValid && template.role && typeof template.role === 'string') {
       systemMessage += `\n\n${template.role}`;
+      console.log("Added template role to system message");
     } else {
       systemMessage += `\n\nYou are a helpful assistant.`;
+      console.log("Using default assistant role");
     }
     
     // Add toggle information to the system message if available
@@ -98,12 +115,14 @@ IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING (
       userMessage += `\n\nAdditional context:\n${context}`;
     }
     
-    // If template has pillars, add structured guidance for the content
-    if (template && template.pillars && template.pillars.length > 0) {
+    // If template has valid pillars, add structured guidance for the content
+    if (templateIsValid && template.pillars && template.pillars.length > 0) {
       userMessage += "\n\nPlease structure your response to include the following sections using the pillars as H2 headings (## Heading):";
       
       template.pillars.forEach(pillar => {
-        userMessage += `\n- ## ${pillar.title}: ${pillar.description}`;
+        if (pillar && pillar.title && pillar.description) {
+          userMessage += `\n- ## ${pillar.title}: ${pillar.description}`;
+        }
       });
       
       userMessage += "\n\nExample format:\n# Main Prompt Title\n\n## First Pillar Title\nContent related to first pillar...\n\n## Second Pillar Title\nContent related to second pillar...";
@@ -114,7 +133,7 @@ IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING (
     
     userMessage += `\n\nRemember to start with a 4-6 word title formatted as a Markdown H1 heading (# Title) that captures the essence of the prompt.`;
     
-    if (template && template.pillars && template.pillars.length > 0) {
+    if (templateIsValid && template.pillars && template.pillars.length > 0) {
       userMessage += `\n\nAlso remember to format each pillar title as a Markdown H2 heading (## Subtitle) to create distinct sections in your response.`;
     }
     
@@ -125,6 +144,9 @@ IF THE TEMPLATE HAS PILLARS, FORMAT EACH PILLAR TITLE AS A MARKDOWN H2 HEADING (
       { role: "system", content: systemMessage },
       { role: "user", content: userMessage }
     ];
+
+    console.log("Sending request to OpenAI with system message length:", systemMessage.length);
+    console.log("User message length:", userMessage.length);
 
     try {
       // Make the API call

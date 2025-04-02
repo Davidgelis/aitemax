@@ -14,6 +14,7 @@ interface ImageContextDialogProps {
   imageName?: string;
   required?: boolean;
   stayOnCurrentStep?: boolean;
+  isProcessingContext?: boolean;
 }
 
 export const ImageContextDialog = ({
@@ -23,7 +24,8 @@ export const ImageContextDialog = ({
   savedContext = '',
   imageName = '',
   required = false,
-  stayOnCurrentStep = true
+  stayOnCurrentStep = true,
+  isProcessingContext = false
 }: ImageContextDialogProps) => {
   const [context, setContext] = useState(savedContext);
   const { toast } = useToast();
@@ -34,6 +36,13 @@ export const ImageContextDialog = ({
       setContext(savedContext);
     }
   }, [open, savedContext]);
+  
+  // Report to parent component that we're handling context
+  useEffect(() => {
+    if (open && isProcessingContext) {
+      console.log("ImageContextDialog: Context processing is active");
+    }
+  }, [open, isProcessingContext]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,12 +57,10 @@ export const ImageContextDialog = ({
       return;
     }
     
-    // Pass the context to the parent component and close the dialog
-    // The parent will decide what to do with it (but should not initiate analysis)
-    onConfirm(context.trim());
+    console.log("ImageContextDialog: Submitting context");
     
-    // Close the dialog without any side effects
-    onOpenChange(false);
+    // Pass the context to the parent component and close the dialog
+    onConfirm(context.trim());
   };
   
   const handleDialogClose = (open: boolean) => {

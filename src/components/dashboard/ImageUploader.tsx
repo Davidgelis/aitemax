@@ -25,6 +25,7 @@ export const ImageUploader = ({
   const [contextDialogOpen, setContextDialogOpen] = useState(false);
   const [currentImage, setCurrentImage] = useState<UploadedImage | null>(null);
   const [hoveredImageId, setHoveredImageId] = useState<string | null>(null);
+  const [isProcessingContext, setIsProcessingContext] = useState(false);
   
   // When upload dialog opens, we should check if we have any images
   // If not, open the upload dialog directly
@@ -56,6 +57,7 @@ export const ImageUploader = ({
     if (newlyAddedImages.length > 0) {
       setCurrentImage(newlyAddedImages[0]);
       setContextDialogOpen(true);
+      setIsProcessingContext(true); // Set flag to indicate we're in a context operation
     }
     
     onImagesChange(newImages);
@@ -73,13 +75,18 @@ export const ImageUploader = ({
     
     onImagesChange(updatedImages);
     
-    // Close the context dialog without triggering any other actions
+    // Close the context dialog
     setContextDialogOpen(false);
-    // Don't trigger any analyze action here - just update the context
+    
+    // Wait a moment before clearing the processing flag to ensure step changes don't happen too quickly
+    setTimeout(() => {
+      setIsProcessingContext(false);
+    }, 300);
   };
 
   // Function to handle opening context dialog for an existing image
   const handleEditContext = (image: UploadedImage) => {
+    setIsProcessingContext(true); // Set flag before opening dialog
     setCurrentImage(image);
     setContextDialogOpen(true);
   };
@@ -89,6 +96,14 @@ export const ImageUploader = ({
     const updatedImages = images.filter(img => img.id !== imageId);
     onImagesChange(updatedImages);
   };
+  
+  // Effect to sync the processing state with parent's preventStepChange
+  useEffect(() => {
+    // At component mount, ensure we're not in processing state
+    if (!contextDialogOpen && !open) {
+      setIsProcessingContext(false);
+    }
+  }, [contextDialogOpen, open]);
   
   return (
     <div>
@@ -162,12 +177,21 @@ export const ImageUploader = ({
       
       <ImageContextDialog
         open={contextDialogOpen}
-        onOpenChange={setContextDialogOpen}
+        onOpenChange={(open) => {
+          setContextDialogOpen(open);
+          // If dialog is closing, ensure we reset the processing state after a short delay
+          if (!open) {
+            setTimeout(() => {
+              setIsProcessingContext(false);
+            }, 300);
+          }
+        }}
         onConfirm={handleAddContext}
         imageName={currentImage?.file.name}
         savedContext={currentImage?.context || ''}
         required={true}
         stayOnCurrentStep={true}
+        isProcessingContext={isProcessingContext}
       />
     </div>
   );

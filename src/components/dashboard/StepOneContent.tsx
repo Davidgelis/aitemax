@@ -95,6 +95,7 @@ export const StepOneContent = ({
   const handleOpenUploadDialog = () => {
     // Set the flag to prevent step change during image context operations
     setPreventStepChange(true);
+    console.log("StepOneContent: Opening image upload dialog, preventing step change");
     setDialogOpen(true);
   };
 
@@ -103,13 +104,15 @@ export const StepOneContent = ({
     setDialogOpen(open);
     
     // If dialog is closing, make sure we reset the prevent step change flag
+    // but with a slight delay to ensure any context dialogs have time to open
     if (!open) {
+      console.log("StepOneContent: Image dialog closing, will reset prevent step flag soon");
       // Use a small timeout to ensure the flag is reset after any context dialog actions
       setTimeout(() => {
+        console.log("StepOneContent: Resetting prevent step change flag");
         setPreventStepChange(false);
-      }, 100);
+      }, 300);
     }
-    // Don't trigger any analysis when dialog state changes
   };
 
   return (

@@ -265,6 +265,9 @@ export const StepController = ({
             pillars: selectedTemplate.pillars?.map((p: any) => p.title) || []
           } : "No template");
         
+        // Ensure we make a clean copy of the template to avoid reference issues
+        const templateCopy = selectedTemplate ? JSON.parse(JSON.stringify(selectedTemplate)) : null;
+        
         // Use the enhancePromptWithGPT function to get an enhanced prompt
         // Make sure we're also passing the answers to questions and relevant variables
         const answeredQuestions = questions.filter(q => q.isRelevant !== false && q.answer?.trim());
@@ -272,7 +275,8 @@ export const StepController = ({
         
         console.log("StepController: Enhancing with:", {
           answeredQuestionsCount: answeredQuestions.length,
-          relevantVariablesCount: relevantVariables.length
+          relevantVariablesCount: relevantVariables.length,
+          templateName: templateCopy?.name || "No template"
         });
         
         // Call the edge function directly rather than using the hook method
@@ -283,7 +287,7 @@ export const StepController = ({
           setFinalPrompt,
           answeredQuestions,
           relevantVariables,
-          selectedTemplate
+          templateCopy  // Pass the clean template copy
         );
         
         console.log("StepController: Successfully enhanced prompt, moving to step 3");
