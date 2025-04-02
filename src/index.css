@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Balgin:wght@100;400;500;700&display=swap');
 
 @tailwind base;
@@ -76,6 +77,26 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Aurora gradient and animation for the logo */
+.bg-aurora-gradient {
+  background-image: linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white);
+  background-size: 400% 400%;
+}
+
+.bg-aurora {
+  background-size: 400% 400%;
+}
+
+@keyframes aurora {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-aurora {
+  animation: aurora 15s ease infinite;
 }
 
 /* Aurora effect specifically for the logo */
