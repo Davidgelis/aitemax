@@ -264,7 +264,7 @@ export const StepController = ({
         message += ` for ${primaryLabel}`;
         
         if (selectedSecondary) {
-          const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || secondarySecondary;
+          const secondaryLabel = secondaryToggles.find(t => t.id === selectedSecondary)?.label || selectedSecondary;
           message += ` and to be ${secondaryLabel}`;
         }
       } else if (selectedSecondary) {

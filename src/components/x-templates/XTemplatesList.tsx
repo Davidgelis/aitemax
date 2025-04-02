@@ -6,12 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { Json } from "@/integrations/supabase/types";
 
-// Declare the global type
-declare global {
-  interface Window {
-    __selectedTemplate?: TemplateType;
-  }
-}
+// Use the already declared Window interface in vite-env.d.ts
+// instead of redeclaring it here
 
 // Default templates (this would come from an API in a real implementation)
 const defaultTemplates: TemplateType[] = [
