@@ -28,7 +28,8 @@ const IndexLogo = () => {
                 WebkitMaskSize: 'contain',
                 WebkitMaskPosition: 'center',
                 WebkitMaskRepeat: 'no-repeat',
-                WebkitMaskMode: 'alpha',
+                // Fix: Change WebkitMaskMode to a supported format
+                WebkitMask: 'url("/lovable-uploads/39093f0c-3a23-4a15-911d-eb4a315e2eb1.png") center / contain no-repeat',
                 opacity: 0.9
               }}
             />
