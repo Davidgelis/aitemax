@@ -18,7 +18,7 @@ const IndexLogo = () => {
             />
             {/* Aurora effect as a direct overlay on the actual logo */}
             <div 
-              className="absolute inset-0 bg-aurora-gradient bg-aurora animate-aurora opacity-75 mix-blend-color z-20 pointer-events-none"
+              className="absolute inset-0 bg-aurora-gradient bg-aurora animate-aurora opacity-30 mix-blend-overlay z-20 pointer-events-none"
               style={{ maskImage: `url('/lovable-uploads/9d596da8-aa99-4737-b70e-5fdb9fec0ee0.png')`, maskSize: 'contain', maskPosition: 'center', maskRepeat: 'no-repeat' }}
             />
           </div>
