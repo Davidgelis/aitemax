@@ -64,6 +64,7 @@ const Index = () => {
             placeholder="Input your prompt to Aitema X... (Press Enter to continue)"
             className="w-full"
             onKeyDown={handleKeyDown}
+            hideFormatting={true} // Add this prop to hide formatting tools
           />
         </div>
       </main>

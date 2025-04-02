@@ -20,6 +20,7 @@ interface PromptInputProps {
   setDialogOpen?: (open: boolean) => void;
   maxLength?: number;
   onKeyDown?: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
+  hideFormatting?: boolean; // Add this new prop
 }
 
 const PromptInput = ({ 
@@ -36,7 +37,8 @@ const PromptInput = ({
   dialogOpen = false,
   setDialogOpen = () => {},
   maxLength = 3000,
-  onKeyDown
+  onKeyDown,
+  hideFormatting = false, // Default to false to maintain backward compatibility
 }: PromptInputProps) => {
   const [inputValue, setInputValue] = useState(value || "");
   const [carouselOpen, setCarouselOpen] = useState(false);
@@ -285,37 +287,39 @@ const PromptInput = ({
     <form onSubmit={handleSubmit} className={`w-full mx-auto ${className}`}>
       <div className="relative group">
         <div className="relative">
-          <div className="flex flex-wrap items-start justify-between gap-4 mb-1 p-4 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
-            <div className="flex gap-4 items-start self-start">
-              <button 
-                type="button" 
-                className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
-                onClick={insertBulletList}
-                title="Insert bullet list"
-              >
-                <List style={{ width: `${iconSize * 4}px`, height: `${iconSize * 4}px` }} />
-              </button>
-              <button 
-                type="button" 
-                className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
-                onClick={insertNumberedList}
-                title="Insert numbered list"
-              >
-                <ListOrdered style={{ width: `${iconSize * 4}px`, height: `${iconSize * 4}px` }} />
-              </button>
-            </div>
-            
-            {/* Character counter */}
-            <div className={`text-xs flex items-center gap-2 ${isNearLimit ? (isAtLimit ? 'text-red-500' : 'text-amber-500') : 'text-gray-500'}`}>
-              <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full ${isAtLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-500' : 'bg-green-500'}`}
-                  style={{ width: `${characterPercentage}%` }}
-                ></div>
+          {!hideFormatting && (
+            <div className="flex flex-wrap items-start justify-between gap-4 mb-1 p-4 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
+              <div className="flex gap-4 items-start self-start">
+                <button 
+                  type="button" 
+                  className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
+                  onClick={insertBulletList}
+                  title="Insert bullet list"
+                >
+                  <List style={{ width: `${iconSize * 4}px`, height: `${iconSize * 4}px` }} />
+                </button>
+                <button 
+                  type="button" 
+                  className="p-1 hover:bg-[#f0f0f0] rounded text-[#64bf95]"
+                  onClick={insertNumberedList}
+                  title="Insert numbered list"
+                >
+                  <ListOrdered style={{ width: `${iconSize * 4}px`, height: `${iconSize * 4}px` }} />
+                </button>
               </div>
-              <span>{inputValue.length}/{maxLength}</span>
+              
+              {/* Character counter */}
+              <div className={`text-xs flex items-center gap-2 ${isNearLimit ? (isAtLimit ? 'text-red-500' : 'text-amber-500') : 'text-gray-500'}`}>
+                <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${isAtLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-500' : 'bg-green-500'}`}
+                    style={{ width: `${characterPercentage}%` }}
+                  ></div>
+                </div>
+                <span>{inputValue.length}/{maxLength}</span>
+              </div>
             </div>
-          </div>
+          )}
           
           <textarea
             value={inputValue}
@@ -323,11 +327,11 @@ const PromptInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className="w-full h-[320px] p-4 rounded-b-xl resize-none outline-none transition-all text-lg text-[#545454] placeholder:text-gray-400"
+            className={`w-full h-[320px] p-4 resize-none outline-none transition-all text-lg text-[#545454] placeholder:text-gray-400 ${!hideFormatting ? 'rounded-b-xl' : 'rounded-xl'}`}
             style={{ 
               backgroundColor: "#fafafa",
               border: "1px solid #e5e7eb",
-              borderTop: "none",
+              borderTop: hideFormatting ? "1px solid #e5e7eb" : "none",
               fontSize: "1.2rem"
             }}
             ref={textareaRef}
