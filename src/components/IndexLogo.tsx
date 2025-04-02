@@ -5,17 +5,17 @@ const IndexLogo = () => {
       <div className="relative w-auto h-auto">
         {/* Base image */}
         <img 
-          src="/public/lovable-uploads/4a57ecc2-3abd-4837-b9bb-6e3f2187fc91.png" 
+          src="/public/lovable-uploads/4926a3f1-54e3-44f2-81a1-a6f6d768275b.png" 
           alt="AITEMA X"
-          className="h-120 md:h-144" // Increased from h-40 md:h-48 to h-120 md:h-144 (3x bigger)
+          className="h-120 md:h-144" // Keeping the 3x bigger size
         />
         
-        {/* Overlay the X part with aurora effect */}
+        {/* Overlay with aurora effect */}
         <div 
           className="absolute top-0 right-0 w-full h-full"
           style={{
-            maskImage: "url('/public/lovable-uploads/4a57ecc2-3abd-4837-b9bb-6e3f2187fc91.png')",
-            WebkitMaskImage: "url('/public/lovable-uploads/4a57ecc2-3abd-4837-b9bb-6e3f2187fc91.png')",
+            maskImage: "url('/public/lovable-uploads/4926a3f1-54e3-44f2-81a1-a6f6d768275b.png')",
+            WebkitMaskImage: "url('/public/lovable-uploads/4926a3f1-54e3-44f2-81a1-a6f6d768275b.png')",
             maskSize: "contain",
             WebkitMaskSize: "contain",
             maskRepeat: "no-repeat",
