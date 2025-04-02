@@ -43,12 +43,12 @@ const Index = () => {
       />
       
       <main className="w-full mx-auto flex flex-col items-center">
-        {/* Logo added above the text */}
-        <div className="flex flex-col items-center space-y-0">
+        {/* Combined logo and text container with negative margin to bring them closer */}
+        <div className="flex flex-col items-center">
           <IndexLogo />
-        
+          
           <p 
-            className="text-center text-lg max-w-2xl animate-fade-in mt-0" 
+            className="text-center text-lg max-w-2xl animate-fade-in -mt-6" 
             style={{ 
               animationDelay: "0.2s",
               background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95, white)",
