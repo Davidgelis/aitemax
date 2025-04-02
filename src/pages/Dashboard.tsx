@@ -258,6 +258,23 @@ const Dashboard = () => {
     };
   }, [session, refreshSession]);
 
+  // Check for redirected prompt from index page
+  useEffect(() => {
+    const redirectedPrompt = sessionStorage.getItem("redirectedPrompt");
+    if (redirectedPrompt) {
+      // Set the prompt text from the redirect
+      promptState.setPromptText(redirectedPrompt);
+      
+      // Move to step 2 if we're on step 1
+      if (promptState.currentStep === 1) {
+        promptState.goToStep(2);
+      }
+      
+      // Clear the stored prompt to avoid reusing it on refresh
+      sessionStorage.removeItem("redirectedPrompt");
+    }
+  }, [promptState]);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">

@@ -19,6 +19,7 @@ interface PromptInputProps {
   dialogOpen?: boolean;
   setDialogOpen?: (open: boolean) => void;
   maxLength?: number;
+  onKeyDown?: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
 }
 
 const PromptInput = ({ 
@@ -34,7 +35,8 @@ const PromptInput = ({
   onOpenUploadDialog,
   dialogOpen = false,
   setDialogOpen = () => {},
-  maxLength = 3000
+  maxLength = 3000,
+  onKeyDown
 }: PromptInputProps) => {
   const [inputValue, setInputValue] = useState(value || "");
   const [carouselOpen, setCarouselOpen] = useState(false);
@@ -68,6 +70,15 @@ const PromptInput = ({
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // If there's a custom key handler, call it first
+    if (onKeyDown) {
+      onKeyDown(e);
+      // If the event was prevented, don't continue with default handling
+      if (e.defaultPrevented) {
+        return;
+      }
+    }
+    
     if (e.key === 'Enter' && !e.shiftKey && textareaRef.current) {
       const cursorPosition = textareaRef.current.selectionStart;
       const text = inputValue;
