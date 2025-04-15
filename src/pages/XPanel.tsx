@@ -531,6 +531,9 @@ const XPanel = () => {
                                         </AlertDialogContent>
                                       </AlertDialog>
                                     </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Delete prompt</p>
+                                    </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
                               </div>
@@ -659,6 +662,4 @@ const XPanel = () => {
                             <input type="text" value={editingTitle} onChange={e => setEditingTitle(e.target.value)} onBlur={saveEdit} onKeyDown={handleKeyDown} className="text-sm font-medium border border-transparent focus:border-[#33fea6] focus:outline-none rounded px-1 w-full" autoFocus onClick={e => e.stopPropagation()} />
                           ) : (
                             <div className="flex items-center">
-                              <span className="text-sm font-medium break-words">
-                                {getPlainText(item.title)}
-                              </span>
+                              <span className
