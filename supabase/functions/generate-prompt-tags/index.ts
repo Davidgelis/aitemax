@@ -34,7 +34,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-mini',  // Changed from o3-mini to gpt-4.1-mini
+        model: "GPT-4.1 mini",  // Updated to use the exact model name you specified
         messages: [
           { 
             role: 'system', 
@@ -45,7 +45,7 @@ serve(async (req) => {
           },
           { role: 'user', content: promptText }
         ],
-        temperature: 0.7, // Added temperature parameter for more creative tag generation
+        temperature: 0.7,
         max_tokens: 150,
       }),
     });
