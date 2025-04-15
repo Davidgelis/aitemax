@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Copy, Share2, Globe, Lock, RefreshCw } from "lucide-react";
+import { ArrowLeft, Copy, Share2, Globe, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,7 +36,6 @@ const PromptView = () => {
   const [editingPrompt, setEditingPrompt] = useState("");
   const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
   const [selectedText, setSelectedText] = useState("");
-  const [isLoadingJson, setIsLoadingJson] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
@@ -300,38 +299,6 @@ const PromptView = () => {
     });
   };
 
-  const handleRefreshJson = async () => {
-    setIsLoadingJson(true);
-    try {
-      // Create a new structure with latest values
-      const updatedJsonView = {
-        prompt: finalPrompt,
-        variables: variables.reduce((acc: any, v: Variable) => {
-          if (v.name && v.value) {
-            acc[v.name] = v.value;
-          }
-          return acc;
-        }, {}),
-        masterCommand: masterCommand
-      };
-      setJsonView(JSON.stringify(updatedJsonView, null, 2));
-      
-      toast({
-        title: "JSON Updated",
-        description: "JSON view has been refreshed with latest changes",
-      });
-    } catch (error: any) {
-      console.error("Error refreshing JSON:", error);
-      toast({
-        title: "Error refreshing JSON",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingJson(false);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex justify-center items-center">
@@ -455,6 +422,8 @@ const PromptView = () => {
                 selectedSecondary={selectedSecondary}
                 handlePrimaryToggle={handlePrimaryToggle}
                 handleSecondaryToggle={handleSecondaryToggle}
+                showJson={showJson}
+                setShowJson={setShowJson}
                 finalPrompt={finalPrompt}
                 setFinalPrompt={setFinalPrompt}
                 variables={variables}
@@ -474,8 +443,6 @@ const PromptView = () => {
                 selectedText={selectedText}
                 setSelectedText={setSelectedText}
                 onCreateVariable={handleCreateVariable}
-                showJson={false}
-                setShowJson={() => {}}
               />
             ) : (
               <div className="p-4 bg-yellow-50 rounded-md border border-yellow-200">
@@ -487,24 +454,9 @@ const PromptView = () => {
           <TabsContent value="json" className="mt-4">
             <Card>
               <CardContent className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">JSON Structure</h3>
-                  <Button 
-                    onClick={handleRefreshJson} 
-                    variant="outline" 
-                    size="sm"
-                    className="flex items-center gap-2"
-                    disabled={isLoadingJson}
-                  >
-                    <RefreshCw className={`h-4 w-4 ${isLoadingJson ? 'animate-spin' : ''}`} />
-                    {isLoadingJson ? 'Refreshing...' : 'Refresh JSON'}
-                  </Button>
-                </div>
-                <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto max-w-full">
-                  <pre className="whitespace-pre-wrap break-words text-sm">
-                    {jsonView}
-                  </pre>
-                </div>
+                <pre className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto text-sm">
+                  {jsonView}
+                </pre>
                 <div className="mt-4">
                   <Button onClick={() => handleCopyContent(jsonView)}>
                     <Copy className="h-4 w-4 mr-2" />
