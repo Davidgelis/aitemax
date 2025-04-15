@@ -1,21 +1,16 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-
 const Navbar = () => {
-  const { user } = useAuth();
-  return (
-    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-white/90 backdrop-blur-md">
+  const {
+    user
+  } = useAuth();
+  return <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-white/90 backdrop-blur-md">
       {/* Left side - Logo and navigation */}
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-4">
-          <img 
-            src="/lovable-uploads/7818bcd0-a360-4974-ab21-fed307b695c9.png" 
-            alt="Aitema X Logo" 
-            className="h-14 w-auto" 
-          />
-          <span className="text-[#041524] font-bold text-xl">AITEMA X</span>
+          <img src="/lovable-uploads/7818bcd0-a360-4974-ab21-fed307b695c9.png" alt="Aitema X Logo" className="h-14 w-auto" />
+          
         </div>
         
         <div className="flex items-center gap-6">
@@ -39,9 +34,6 @@ const Navbar = () => {
             </Button>
           </Link>}
       </div>
-    </nav>
-  );
+    </nav>;
 };
-
 export default Navbar;
-
