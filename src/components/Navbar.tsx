@@ -5,7 +5,7 @@ const Navbar = () => {
   const {
     user
   } = useAuth();
-  return <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-white/90 backdrop-blur-md">
+  return <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 backdrop-blur-md bg-white/0">
       {/* Left side - Logo and navigation */}
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-4">
