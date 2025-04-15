@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -266,21 +267,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string, rememberMe = false) => {
     try {
-      // When using rememberMe, we need to pass the credentials object directly
-      // The Supabase API doesn't accept expiresIn at the options level for signInWithPassword
+      // For Supabase v2, we can't directly specify a longer session during login
+      // We need to login first, then adjust settings if rememberMe is true
       const { error } = await supabase.auth.signInWithPassword({ 
         email, 
         password 
       });
       
-      // If rememberMe is true and login was successful, we need to separately set session expiry
+      // If rememberMe is true and login was successful, we can use the session method
+      // to get a new session with longer expiry
       if (!error && rememberMe) {
-        // This will update the session to expire in 30 days
-        // The setSession method is used to control session parameters after authentication
-        await supabase.auth.updateSession({
+        // This will extend the session (get a new session with longer expiry)
+        console.log("Remember me selected, extending session duration");
+        const { error: refreshError } = await supabase.auth.refreshSession({
           // Set a longer expiration time (30 days in seconds)
-          expiresIn: 60 * 60 * 24 * 30
+          options: {
+            expiresIn: 60 * 60 * 24 * 30
+          }
         });
+        
+        if (refreshError) {
+          console.error("Error extending session:", refreshError);
+        }
       }
       
       return { error };
