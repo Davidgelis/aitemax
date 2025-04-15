@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +17,7 @@ import { RefreshCw } from 'lucide-react';
 type AuthContextType = {
   session: Session | null;
   user: User | null;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: any }>;
   signUp: (email: string, password: string, options?: { data?: { username?: string } }) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   loading: boolean;
@@ -26,20 +27,20 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Constant for session refresh interval - refresh every 15 minutes (reduced from 30)
-const SESSION_REFRESH_INTERVAL = 15 * 60 * 1000; // 15 minutes in milliseconds
+// Increase session refresh interval to 30 minutes (matching longer-lived sessions)
+const SESSION_REFRESH_INTERVAL = 30 * 60 * 1000; 
 
-// Shorter inactivity period before refreshing session - 5 minutes
-const INACTIVITY_REFRESH_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
+// Increase inactivity threshold to 4 hours before requiring a session refresh
+const INACTIVITY_REFRESH_TIMEOUT = 4 * 60 * 60 * 1000;
 
-// Warning time before session expires (in milliseconds)
-const SESSION_WARNING_TIME = 15 * 60 * 1000; // 15 minutes before expiration
+// Warning time before session expires (in milliseconds) - 30 minutes
+const SESSION_WARNING_TIME = 30 * 60 * 1000;
 
 // Maximum retry attempts for session refresh
 const MAX_REFRESH_RETRIES = 3;
 
 // Debounce time for refresh attempts
-const REFRESH_DEBOUNCE = 2000; // 2 seconds
+const REFRESH_DEBOUNCE = 2000;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -119,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.reload();
   }, []);
 
-  // Set up automatic session refresh
+  // Set up automatic session refresh with longer intervals
   useEffect(() => {
     if (!session) return;
     
@@ -136,18 +137,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       refreshSession();
     }, SESSION_REFRESH_INTERVAL);
     
-    // Also check for inactivity every minute
+    // Check for inactivity every 15 minutes (reduced frequency)
     const inactivityInterval = setInterval(() => {
       const now = Date.now();
       const inactiveTime = now - lastActivity;
       
       // If user has been inactive but now becomes active again after threshold, refresh session
       if (inactiveTime >= INACTIVITY_REFRESH_TIMEOUT) {
-        console.log(`User was inactive for ${inactiveTime/1000} seconds, refreshing session`);
+        console.log(`User was inactive for ${inactiveTime/1000/60} minutes, refreshing session`);
         refreshSession();
         lastActivity = now; // Reset last activity
       }
-    }, 60000); // Check every minute
+    }, 15 * 60 * 1000); // Check every 15 minutes
     
     // Add event listeners for tab visibility and user activity
     const handleVisibilityChange = () => {
@@ -155,8 +156,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const now = Date.now();
         const timeSinceLastActivity = now - lastActivity;
         
-        // Only refresh if it's been more than 1 minute since the last activity
-        if (timeSinceLastActivity > 60000) {
+        // Only refresh if it's been more than 5 minutes since the last activity
+        if (timeSinceLastActivity > 5 * 60 * 1000) {
           console.log("User returned to the app after inactivity, refreshing session");
           refreshSession();
         }
@@ -232,7 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  // Set up session expiration warning
+  // Set up session expiration warning with larger buffer time
   useEffect(() => {
     if (!sessionExpiresAt) return;
     
@@ -264,9 +265,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearTimeout(warningTimeout);
   }, [sessionExpiresAt, refreshSession, toast]);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, rememberMe = false) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      // If rememberMe is true, we'll extend the session expiry (handled by Supabase)
+      const options = rememberMe ? { expiresIn: 60 * 60 * 24 * 30 } : undefined; // 30 days if remember me
+      
+      const { error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password,
+        options
+      });
       return { error };
     } catch (err) {
       console.error("Error during sign in:", err);

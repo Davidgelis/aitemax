@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +37,9 @@ export const usePromptDrafts = (
   const maxRetries = 3;
   const { sessionExpiresAt } = useAuth();
   
+  // How often to auto-save drafts (in milliseconds) - 10 seconds
+  const autoSaveInterval = 10000;
+  
   // Track previous values to detect changes
   const prevValuesRef = useRef({
     promptText,
@@ -46,9 +50,9 @@ export const usePromptDrafts = (
     currentStep
   });
   
-  // Detect changes to mark as dirty
+  // Detect changes to mark as dirty - only on steps 2 and 3
   useEffect(() => {
-    if (currentStep !== 1 && currentStep !== 3) {
+    if (currentStep === 2 || currentStep === 3) {
       const prevValues = prevValuesRef.current;
       
       const hasChanged = 
@@ -125,9 +129,12 @@ export const usePromptDrafts = (
     // 1. No user is logged in
     // 2. No prompt text
     // 3. We're on step 1 (haven't analyzed the prompt yet)
-    // 4. Or we're on step 3 (final prompt)
-    // 5. Nothing has changed (not dirty) unless forced
-    if (!user || !promptText.trim() || currentStep === 1 || currentStep === 3 || (isSaving && saveAttempts >= maxRetries) || (!isDirty && !force)) {
+    // 4. Or nothing has changed (not dirty) unless forced
+    if (!user || 
+        !promptText.trim() || 
+        currentStep === 1 || 
+        (isSaving && saveAttempts >= maxRetries) || 
+        (!isDirty && !force)) {
       console.log(`Not saving draft. Step: ${currentStep}, Has text: ${!!promptText.trim()}, User: ${!!user}, Dirty: ${isDirty}, Force: ${force}`);
       return;
     }
@@ -267,6 +274,18 @@ export const usePromptDrafts = (
       }
     }
   }, [promptText, masterCommand, variables, selectedPrimary, selectedSecondary, currentStep, user, currentDraftId, fetchDrafts, isDirty, isSaving, saveAttempts, toast]);
+
+  // Add auto-save functionality at regular intervals for steps 2 and 3
+  useEffect(() => {
+    if (!user || currentStep === 1 || !isDirty) return;
+    
+    const autoSaveTimer = setTimeout(() => {
+      console.log("Auto-saving draft...");
+      saveDraft(false);
+    }, autoSaveInterval);
+    
+    return () => clearTimeout(autoSaveTimer);
+  }, [user, isDirty, saveDraft, currentStep, autoSaveInterval, promptText, masterCommand, variables]);
 
   const loadDraft = useCallback(async () => {
     if (!user) return null;
@@ -444,7 +463,7 @@ export const usePromptDrafts = (
   // Window visibility event handler to save drafts when the user leaves the page
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && isDirty) {
+      if (document.visibilityState === 'hidden' && isDirty && (currentStep === 2 || currentStep === 3)) {
         console.log("Page hidden, saving draft...");
         saveDraft(false);
       }
@@ -452,7 +471,7 @@ export const usePromptDrafts = (
     
     // Handle page unload/close
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
+      if (isDirty && (currentStep === 2 || currentStep === 3)) {
         console.log("Page unloading, saving draft...");
         saveDraft(false);
         
@@ -472,7 +491,7 @@ export const usePromptDrafts = (
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isDirty, saveDraft]);
+  }, [isDirty, saveDraft, currentStep]);
 
   return {
     drafts,

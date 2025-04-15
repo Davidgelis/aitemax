@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -6,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -14,6 +17,7 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [usernameError, setUsernameError] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const { signIn, signUp, session } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,7 +51,7 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await signIn(email, password);
+        const { error } = await signIn(email, password, rememberMe);
         if (error) throw error;
       } else {
         // Check username availability before signup
@@ -146,6 +150,19 @@ const Auth = () => {
               className="w-full"
             />
           </div>
+          
+          {isLogin && (
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="rememberMe" 
+                checked={rememberMe} 
+                onCheckedChange={(checked) => setRememberMe(checked === true)}
+              />
+              <Label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
+                Keep me signed in
+              </Label>
+            </div>
+          )}
           
           <Button 
             type="submit" 
