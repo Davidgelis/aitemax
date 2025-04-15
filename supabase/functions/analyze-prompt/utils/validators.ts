@@ -4,6 +4,7 @@ export function validateQuestionVariablePairs(questions: any[], variables: any[]
   const variableNames = variables.map(v => v.name.toLowerCase());
   
   // Check each question to ensure it's not directly asking for a variable value
+  // and follows user-friendly guidelines
   for (const question of questions) {
     const questionLower = question.text.toLowerCase();
     
@@ -26,7 +27,18 @@ export function validateQuestionVariablePairs(questions: any[], variables: any[]
         return false;
       }
     }
+    
+    // Validate question follows user-friendly guidelines
+    const hasExample = question.text.includes('(') && question.text.includes(')');
+    const hasTechnicalJargon = /\b(api|sdk|oauth|jwt|sql|regex|kubernetes|docker)\b/i.test(questionLower);
+    
+    // If technical jargon is present but no example is provided
+    if (hasTechnicalJargon && !hasExample) {
+      console.warn(`Question "${question.text}" contains technical terms without examples`);
+      return false;
+    }
   }
   
   return true;
 }
+

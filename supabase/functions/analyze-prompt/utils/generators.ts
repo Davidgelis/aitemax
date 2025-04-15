@@ -1,4 +1,3 @@
-
 // Helper functions to generate fallback data
 
 /**
@@ -10,17 +9,31 @@ export function generateContextQuestionsForPrompt(promptText: string): any[] {
   // For Google Sheets / spreadsheet scripts
   if (lowerPrompt.includes('google sheet') || lowerPrompt.includes('spreadsheet') || lowerPrompt.includes('excel')) {
     return [
-      { id: "q1", text: "What specific data transformation or calculation needs to be performed?", isRelevant: null, answer: "", category: "Task" },
-      { id: "q2", text: "Who will be using this script and what is their technical proficiency?", isRelevant: null, answer: "", category: "Persona" },
-      { id: "q3", text: "What volume of data will the script typically process?", isRelevant: null, answer: "", category: "Conditions" },
-      { id: "q4", text: "Should the script run automatically on a schedule or be manually triggered?", isRelevant: null, answer: "", category: "Instructions" },
-      { id: "q5", text: "What is the ultimate business goal of this spreadsheet automation?", isRelevant: null, answer: "", category: "Task" },
-      { id: "q6", text: "What specific validation or error handling is required?", isRelevant: null, answer: "", category: "Conditions" },
-      { id: "q7", text: "How should the script's output be formatted or presented?", isRelevant: null, answer: "", category: "Instructions" },
-      { id: "q8", text: "Who needs to maintain or modify this script in the future?", isRelevant: null, answer: "", category: "Persona" },
+      { id: "q1", text: "What do you want to do with the spreadsheet data? (For example: calculate totals, organize information, or create reports)", isRelevant: null, answer: "", category: "Task" },
+      { id: "q2", text: "Who will be using this spreadsheet tool and how comfortable are they with technology?", isRelevant: null, answer: "", category: "Persona" },
+      { id: "q3", text: "How much information will this need to handle? (For example: hundreds of rows, thousands, or millions)", isRelevant: null, answer: "", category: "Conditions" },
+      { id: "q4", text: "Would you like this to run automatically or when someone clicks a button?", isRelevant: null, answer: "", category: "Instructions" },
+      { id: "q5", text: "What problem are you trying to solve with this spreadsheet automation?", isRelevant: null, answer: "", category: "Task" },
+      { id: "q6", text: "What should happen if there's a mistake in the data? (For example: show an error message, skip the row, or use a default value)", isRelevant: null, answer: "", category: "Conditions" },
+      { id: "q7", text: "How would you like to see the results? (For example: in a new sheet, as a chart, or in a summary)", isRelevant: null, answer: "", category: "Instructions" },
+      { id: "q8", text: "Will someone else need to update or change how this works in the future?", isRelevant: null, answer: "", category: "Persona" },
     ];
   }
   
+  // For coding/programming tasks
+  if (lowerPrompt.includes('code') || lowerPrompt.includes('script') || lowerPrompt.includes('program') || lowerPrompt.includes('function')) {
+    return [
+      { id: "q1", text: "What should this program do in simple terms? (Think of it like giving instructions to a helper)", isRelevant: null, answer: "", category: "Task" },
+      { id: "q2", text: "Who will be using this tool and what's their technical background?", isRelevant: null, answer: "", category: "Persona" },
+      { id: "q3", text: "How fast does this need to work? (For example: instant response, within a few seconds, or can take longer)", isRelevant: null, answer: "", category: "Conditions" },
+      { id: "q4", text: "Should this follow any specific way of doing things? (Like company guidelines or best practices)", isRelevant: null, answer: "", category: "Instructions" },
+      { id: "q5", text: "What information goes in and what should come out? (Like a recipe's ingredients and final dish)", isRelevant: null, answer: "", category: "Task" },
+      { id: "q6", text: "Who will need to understand or modify this code later?", isRelevant: null, answer: "", category: "Persona" },
+      { id: "q7", text: "Are there any specific tools or systems this needs to work with?", isRelevant: null, answer: "", category: "Conditions" },
+      { id: "q8", text: "What should happen when something goes wrong? (For example: show an error message, try again, or have a backup plan)", isRelevant: null, answer: "", category: "Instructions" },
+    ];
+  }
+
   // For email-related prompts
   if (lowerPrompt.includes('email') || lowerPrompt.includes('message') || lowerPrompt.includes('communication')) {
     return [
@@ -32,20 +45,6 @@ export function generateContextQuestionsForPrompt(promptText: string): any[] {
       { id: "q6", text: "What tone and level of formality is appropriate for this audience?", isRelevant: null, answer: "", category: "Persona" },
       { id: "q7", text: "What is the maximum length or time constraint for this message?", isRelevant: null, answer: "", category: "Conditions" },
       { id: "q8", text: "How should supporting information or attachments be organized?", isRelevant: null, answer: "", category: "Instructions" },
-    ];
-  }
-  
-  // For coding/programming tasks
-  if (lowerPrompt.includes('code') || lowerPrompt.includes('script') || lowerPrompt.includes('program') || lowerPrompt.includes('function')) {
-    return [
-      { id: "q1", text: "What is the core functionality this code needs to implement?", isRelevant: null, answer: "", category: "Task" },
-      { id: "q2", text: "Who will be using or maintaining this code in the future?", isRelevant: null, answer: "", category: "Persona" },
-      { id: "q3", text: "What are the performance requirements or constraints?", isRelevant: null, answer: "", category: "Conditions" },
-      { id: "q4", text: "What coding style or patterns should the implementation follow?", isRelevant: null, answer: "", category: "Instructions" },
-      { id: "q5", text: "What inputs and outputs should this code handle?", isRelevant: null, answer: "", category: "Task" },
-      { id: "q6", text: "What level of technical expertise will users or maintainers have?", isRelevant: null, answer: "", category: "Persona" },
-      { id: "q7", text: "What dependencies or libraries are available or preferred?", isRelevant: null, answer: "", category: "Conditions" },
-      { id: "q8", text: "How should errors and edge cases be handled?", isRelevant: null, answer: "", category: "Instructions" },
     ];
   }
   
@@ -77,16 +76,16 @@ export function generateContextQuestionsForPrompt(promptText: string): any[] {
     ];
   }
   
-  // Default to general context questions
+  // Default questions updated to be more user-friendly
   return [
-    { id: "q1", text: "What specific outcome or result are you looking to achieve?", isRelevant: null, answer: "", category: "Task" },
-    { id: "q2", text: "Who is the intended audience or end user for this output?", isRelevant: null, answer: "", category: "Persona" },
-    { id: "q3", text: "What constraints, limitations, or requirements must be considered?", isRelevant: null, answer: "", category: "Conditions" },
-    { id: "q4", text: "What process, methodology, or approach should be followed?", isRelevant: null, answer: "", category: "Instructions" },
-    { id: "q5", text: "What metrics will define a successful outcome for this task?", isRelevant: null, answer: "", category: "Task" },
-    { id: "q6", text: "What tone, style, or perspective is appropriate for the audience?", isRelevant: null, answer: "", category: "Persona" },
-    { id: "q7", text: "What contextual factors or background information is relevant?", isRelevant: null, answer: "", category: "Conditions" },
-    { id: "q8", text: "How should the information be structured or presented?", isRelevant: null, answer: "", category: "Instructions" },
+    { id: "q1", text: "What are you trying to achieve? (Describe it like you would to a friend)", isRelevant: null, answer: "", category: "Task" },
+    { id: "q2", text: "Who is this for and what do they need to know to use it?", isRelevant: null, answer: "", category: "Persona" },
+    { id: "q3", text: "Are there any limitations or requirements we should know about?", isRelevant: null, answer: "", category: "Conditions" },
+    { id: "q4", text: "How would you like this to work, step by step?", isRelevant: null, answer: "", category: "Instructions" },
+    { id: "q5", text: "How will you know if this is successful? (What would make you happy with the result?)", isRelevant: null, answer: "", category: "Task" },
+    { id: "q6", text: "What kind of language or style should be used?", isRelevant: null, answer: "", category: "Persona" },
+    { id: "q7", text: "Is there any background information that would help understand this better?", isRelevant: null, answer: "", category: "Conditions" },
+    { id: "q8", text: "How should the information be organized or presented?", isRelevant: null, answer: "", category: "Instructions" },
   ];
 }
 
