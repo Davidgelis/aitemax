@@ -298,95 +298,101 @@ const XPanel = () => {
   };
   return <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <main className="flex-1 p-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-4">
-                {/* Updated logo to use the provided image */}
-                <div className="w-10 h-10">
-                  <img alt="Aitema X Logo" className="w-full h-full" src="/lovable-uploads/68b3431d-50df-4904-96cc-983f6b3e6e89.png" />
+        <main className="flex-1 p-0 relative">
+          <div className="sticky top-0 z-10 bg-background border-b">
+            <div className="max-w-6xl mx-auto px-6 py-6">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10">
+                    <img alt="Aitema X Logo" className="w-full h-full" src="/lovable-uploads/68b3431d-50df-4904-96cc-983f6b3e6e89.png" />
+                  </div>
+                  <h1 className="text-3xl font-bold">
+                    <span className="bg-aurora-gradient bg-aurora animate-aurora bg-clip-text text-transparent" style={{
+                    backgroundSize: "400% 400%"
+                  }}>
+                      X Panel
+                    </span>
+                  </h1>
                 </div>
-                <h1 className="text-3xl font-bold">
-                  <span className="bg-aurora-gradient bg-aurora animate-aurora bg-clip-text text-transparent" style={{
-                  backgroundSize: "400% 400%"
-                }}>
-                    X Panel
-                  </span>
-                </h1>
+                <Button variant="aurora" onClick={() => navigate("/dashboard")}>
+                  Create New Prompt
+                </Button>
               </div>
-              <Button variant="aurora" onClick={() => navigate("/dashboard")}>
-                Create New Prompt
-              </Button>
+
+              {/* Tabs Navigation */}
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+                <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
+                  <TabsTrigger value="prompts">Saved Prompts</TabsTrigger>
+                  <TabsTrigger value="templates">X Templates</TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              {/* Search and Filters - Only show in prompts tab */}
+              {activeTab === "prompts" && <div className="mb-8 flex flex-col sm:flex-row gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input className="pl-9" placeholder="Search prompts..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                  </div>
+                  <div className="flex gap-2">
+                    <DropdownMenu>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="icon" className={selectedCategory ? "bg-accent text-white" : ""}>
+                                <Filter className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Filter by category</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={clearFilters}>
+                          Show all
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {categories.map(category => <DropdownMenuItem key={category} onClick={() => setSelectedCategory(category)} className={selectedCategory === category ? "bg-accent/20" : ""}>
+                            {category}
+                          </DropdownMenuItem>)}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <DropdownMenu>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="icon" className={selectedSubcategory ? "bg-accent text-white" : ""}>
+                                <Filter className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Filter by subcategory</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={clearFilters}>
+                          Show all
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {subcategories.map(subcategory => <DropdownMenuItem key={subcategory} onClick={() => setSelectedSubcategory(subcategory)} className={selectedSubcategory === subcategory ? "bg-accent/20" : ""}>
+                            {subcategory}
+                          </DropdownMenuItem>)}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    {(selectedCategory || selectedSubcategory || searchTerm) && <Button variant="ghost" onClick={clearFilters}>
+                        Clear filters
+                      </Button>}
+                  </div>
+                </div>}
             </div>
-            {/* Tabs Navigation */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-              <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
-                <TabsTrigger value="prompts">Saved Prompts</TabsTrigger>
-                <TabsTrigger value="templates">X Templates</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            {/* Search and Filters - Only show in prompts tab */}
-            {activeTab === "prompts" && <div className="mb-8 flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input className="pl-9" placeholder="Search prompts..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                </div>
-                <div className="flex gap-2">
-                  <DropdownMenu>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="icon" className={selectedCategory ? "bg-accent text-white" : ""}>
-                              <Filter className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Filter by category</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuItem onClick={clearFilters}>
-                        Show all
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      {categories.map(category => <DropdownMenuItem key={category} onClick={() => setSelectedCategory(category)} className={selectedCategory === category ? "bg-accent/20" : ""}>
-                          {category}
-                        </DropdownMenuItem>)}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <DropdownMenu>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="icon" className={selectedSubcategory ? "bg-accent text-white" : ""}>
-                              <Filter className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Filter by subcategory</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuItem onClick={clearFilters}>
-                        Show all
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      {subcategories.map(subcategory => <DropdownMenuItem key={subcategory} onClick={() => setSelectedSubcategory(subcategory)} className={selectedSubcategory === subcategory ? "bg-accent/20" : ""}>
-                          {subcategory}
-                        </DropdownMenuItem>)}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  {(selectedCategory || selectedSubcategory || searchTerm) && <Button variant="ghost" onClick={clearFilters}>
-                      Clear filters
-                    </Button>}
-                </div>
-              </div>}
+          </div>
+
+          <div className="max-w-6xl mx-auto px-6 py-6">
             {/* Templates Tab Content */}
             {activeTab === "templates" && <div>
                 <div className="flex justify-between items-center mb-6">
@@ -405,6 +411,7 @@ const XPanel = () => {
                 </div>
                 <XTemplatesList />
               </div>}
+
             {/* Prompts Grid - Only show in prompts tab */}
             {activeTab === "prompts" && <>
                 {isLoading ? <div className="flex justify-center items-center h-64">
@@ -611,61 +618,4 @@ const XPanel = () => {
                         <DropdownMenu>
                           <DropdownMenuTrigger>
                             <div className="p-1 hover:text-[#33fea6] transition-colors" onClick={e => e.stopPropagation()}>
-                              <MoreVertical className="h-4 w-4" />
-                            </div>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem onClick={e => {
-                        e.stopPropagation();
-                        handleCopyPrompt(item.promptText);
-                      }}>
-                              <CopyIcon className="mr-2 h-4 w-4" />
-                              <span>Copy</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={e => {
-                            e.stopPropagation();
-                          }}>
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  <span>Delete</span>
-                                </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent className="bg-white border p-6">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete prompt?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete this prompt? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter className="mt-4">
-                                  <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
-                                  <AlertDialogAction className="bg-[#ea384c] hover:bg-[#ea384c]/90" onClick={e => {
-                              e.stopPropagation();
-                              handleDeletePrompt(item.id);
-                            }}>
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </div>) : <div className="p-4 text-center text-muted-foreground">
-                  {user ? searchTerm ? "No matching prompts found" : "No saved prompts yet" : <div className="space-y-3">
-                      <p>Please sign in to save and view your prompts</p>
-                      <Button onClick={() => navigate("/auth")} className="aurora-button">
-                        Sign in
-                      </Button>
-                    </div>}
-                </div>}
-            </div>
-          </SidebarContent>
-        </Sidebar>
-      </div>
-    </SidebarProvider>;
-};
-export default XPanel;
+                              <MoreVertical className="h-4 w-4"
