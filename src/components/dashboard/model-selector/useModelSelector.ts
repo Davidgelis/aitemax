@@ -24,6 +24,21 @@ export const useModelSelector = (selectedModel: AIModel | null, onSelect: (model
     try {
       setLoading(true);
       const modelList = await ModelService.fetchModels();
+      
+      // Add gpt-4.1 to the model list if it doesn't exist
+      const hasGpt41 = modelList.some(model => model.name === "GPT-4.1");
+      if (!hasGpt41) {
+        modelList.push({
+          id: "gpt-4.1",
+          name: "GPT-4.1",
+          provider: "OpenAI",
+          description: "The latest GPT-4.1 model from OpenAI",
+          strengths: ["Advanced reasoning", "State-of-the-art performance", "Better context handling"],
+          limitations: ["Experimental model", "May produce unexpected results"],
+          updated_at: new Date().toISOString()
+        });
+      }
+      
       setModels(modelList);
       
       const providerList = await ModelService.getProviders();

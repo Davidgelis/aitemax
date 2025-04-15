@@ -27,7 +27,7 @@ export async function analyzePromptWithAI(
   
   // If we have an image, create a message with content parts
   if (imageBase64) {
-    console.log("Image provided for analysis - adding to OpenAI API request with GPT-4o");
+    console.log("Image provided for analysis - adding to OpenAI API request with gpt-4.1");
     
     // Extract image context instructions if present in additionalContext
     let imageInstructionsText = "";
@@ -132,7 +132,7 @@ When creating and pre-filling questions from Smart Context:
   }
   
   try {
-    console.log("Calling OpenAI API with GPT-4o for prompt analysis...");
+    console.log("Calling OpenAI API with gpt-4.1 for prompt analysis...");
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -141,7 +141,7 @@ When creating and pre-filling questions from Smart Context:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // Using GPT-4o for analysis
+        model: 'gpt-4.1', // Changed from gpt-4o to gpt-4.1
         messages,
         temperature: 0.7,
       }),
@@ -167,7 +167,7 @@ When creating and pre-filling questions from Smart Context:
       throw new Error("Invalid response format from OpenAI API");
     }
     
-    console.log("Successfully analyzed prompt with GPT-4o");
+    console.log("Successfully analyzed prompt with gpt-4.1");
     
     return {
       content: data.choices[0].message.content,

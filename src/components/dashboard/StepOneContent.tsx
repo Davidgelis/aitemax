@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
@@ -80,13 +81,14 @@ export const StepOneContent = ({
   };
 
   const handleAnalyzeWithContext = () => {
-    console.log("StepOneContent: Analyzing with context:", {
+    console.log("StepOneContent: Analyzing with GPT-4.1:", {
       promptText,
       uploadedImages: uploadedImages.length,
       websiteContext,
       smartContext: smartContext ? "Provided" : "None",
       selectedPrimary,
-      selectedSecondary
+      selectedSecondary,
+      model: "gpt-4.1"
     });
     
     onAnalyze();
@@ -132,9 +134,9 @@ export const StepOneContent = ({
               <button 
                 onClick={handleOpenUploadDialog}
                 className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
-                title="Upload and analyze images with specific context"
+                title="Upload and analyze images with GPT-4.1"
               >
-                <span className="truncate ml-1">Image Smart Scan</span>
+                <span className="truncate ml-1">Image Smart Scan (GPT-4.1)</span>
                 <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
               </button>
             </div>
@@ -259,7 +261,7 @@ export const StepOneContent = ({
           variant="aurora"
           className="ml-2"
         >
-          {isLoading ? "Analyzing..." : "Analyze with AI"}
+          {isLoading ? "Analyzing with GPT-4.1..." : "Analyze with GPT-4.1"}
         </Button>
       </div>
     </div>

@@ -83,7 +83,7 @@ async function callOpenAIWithRetry(systemMessage: string, prompt: string, maxRet
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
+          model: 'gpt-4.1', // Changed from gpt-3.5-turbo to gpt-4.1
           messages: [
             { role: 'system', content: systemMessage },
             { role: 'user', content: `Analyze this prompt and convert to the specified JSON structure: ${prompt}` }
@@ -313,7 +313,7 @@ serve(async (req) => {
           4, // Step 4: JSON structure generation
           data.usage.prompt_tokens,
           data.usage.completion_tokens,
-          'gpt-3.5-turbo'
+          'gpt-4.1'
         ).catch((err) => console.error("Token usage recording failed:", err));
       }
     } catch (parseError) {

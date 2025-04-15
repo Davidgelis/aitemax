@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -23,7 +24,7 @@ export const usePromptAnalysis = (
     smartContext: { context: string; usageInstructions: string } | null = null
   ) => {
     setIsLoading(true);
-    setCurrentLoadingMessage("Analyzing your prompt...");
+    setCurrentLoadingMessage("Analyzing your prompt with GPT-4.1...");
 
     try {
       // Add more robust input validation
@@ -41,7 +42,8 @@ export const usePromptAnalysis = (
         hasWebsiteContext: !!websiteContext && !!websiteContext.url,
         hasSmartContext: !!smartContext && !!smartContext.context,
         inputTypes,
-        uploadedImagesCount: uploadedImages?.length || 0
+        uploadedImagesCount: uploadedImages?.length || 0,
+        model: "gpt-4.1" // Updated model reference
       });
 
       const { data, error } = await supabase.functions.invoke("analyze-prompt", {
@@ -54,7 +56,8 @@ export const usePromptAnalysis = (
           websiteData: websiteContext || null,
           imageData: uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0 ? uploadedImages : null,
           smartContextData: smartContext || null,
-          inputTypes
+          inputTypes,
+          model: "gpt-4.1" // Added model specification
         },
       });
 
