@@ -42,7 +42,11 @@ const Navbar = () => {
       {/* Left side - Logo and navigation */}
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-4">
-          <img src="/lovable-uploads/7818bcd0-a360-4974-ab21-fed307b695c9.png" alt="Aitema X Logo" className="h-14 w-auto" />
+          <img 
+            src="/lovable-uploads/763c313c-8954-47ec-89c9-fe24a606d8c4.png" 
+            alt="Aitema X Logo" 
+            className="h-14 w-auto" 
+          />
         </div>
         
         <div className="flex items-center gap-6">
