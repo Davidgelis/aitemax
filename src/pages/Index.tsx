@@ -1,9 +1,9 @@
-
 import IndexLogo from "@/components/IndexLogo";
 import PromptInput from "@/components/PromptInput";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { KeyboardEvent } from "react";
+import Navbar from "@/components/Navbar";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -35,14 +35,16 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-x-hidden">
+    <div className="min-h-screen flex flex-col items-center p-6 relative overflow-x-hidden">
       {/* Aurora background overlay */}
       <div 
         className="fixed inset-0 bg-aurora-gradient bg-aurora animate-aurora opacity-15 pointer-events-none"
         style={{ zIndex: -1 }}
       />
       
-      <main className="w-full mx-auto flex flex-col items-center">
+      <Navbar />
+      
+      <main className="w-full mx-auto flex flex-col items-center mt-20">
         {/* Combined logo and text container with adjusted margin for smaller logo */}
         <div className="flex flex-col items-center">
           <IndexLogo />
