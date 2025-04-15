@@ -74,6 +74,7 @@ export type Database = {
           created_at: string
           current_step: number | null
           id: string
+          is_deleted: boolean | null
           is_private: boolean | null
           master_command: string | null
           primary_toggle: string | null
@@ -88,6 +89,7 @@ export type Database = {
           created_at?: string
           current_step?: number | null
           id?: string
+          is_deleted?: boolean | null
           is_private?: boolean | null
           master_command?: string | null
           primary_toggle?: string | null
@@ -102,6 +104,7 @@ export type Database = {
           created_at?: string
           current_step?: number | null
           id?: string
+          is_deleted?: boolean | null
           is_private?: boolean | null
           master_command?: string | null
           primary_toggle?: string | null
