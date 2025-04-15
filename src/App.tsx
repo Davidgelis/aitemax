@@ -13,7 +13,6 @@ import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Analytics from "./pages/Analytics";
 import XPanel from "./pages/XPanel";
-import PromptView from "./pages/PromptView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,12 +56,7 @@ const App = () => (
                   <XPanel />
                 </ProtectedRoute>
               } />
-              <Route path="/prompt/:id" element={
-                <ProtectedRoute>
-                  <PromptView />
-                </ProtectedRoute>
-              } />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              {/* Removed the /prompt/:id route */}
               <Route path="*" element={
                 <ProtectedRoute>
                   <NotFound />

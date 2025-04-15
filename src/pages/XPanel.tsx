@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, Twitter, Facebook, Instagram, Link2, Mail, Trash2, Eye, Copy, Share2, User, FileText, MoreVertical, CopyIcon, Pencil, Lock, Plus, GripVertical } from "lucide-react";
+import { Search, Filter, Twitter, Facebook, Instagram, Link2, Mail, Trash2, Eye, Copy, Share2, User, FileText, MoreVertical, CopyIcon, Pencil, Lock, Plus, GripVertical, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,6 +48,11 @@ const XPanel = () => {
 
   // Add state for prompt to delete
   const [promptToDelete, setPromptToDelete] = useState<string | null>(null);
+  
+  // Add new state for selected prompt
+  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
+  const selectedPrompt = prompts.find(p => p.id === selectedPromptId);
+
   useEffect(() => {
     const getUser = async () => {
       const {
@@ -222,7 +227,7 @@ const XPanel = () => {
     }
   };
   const handlePreviewPrompt = (promptId: string) => {
-    window.open(`/prompt/${promptId}`, '_blank');
+    setSelectedPromptId(promptId);
   };
   const clearFilters = () => {
     setSearchTerm("");
@@ -298,278 +303,340 @@ const XPanel = () => {
     return avatarMap[userProfile.avatar_url] || '';
   };
 
+  const handleClosePromptView = () => {
+    setSelectedPromptId(null);
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <main className="flex-1 p-0 relative">
-          <div className="sticky top-0 z-10 bg-background border-b">
-            <div className="max-w-6xl mx-auto px-6 py-6">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10">
-                    <img alt="Aitema X Logo" className="w-full h-full" src="/lovable-uploads/68b3431d-50df-4904-96cc-983f6b3e6e89.png" />
+          {selectedPrompt ? (
+            // Selected Prompt View
+            <div className="h-full">
+              <div className="sticky top-0 z-10 bg-background border-b">
+                <div className="max-w-6xl mx-auto px-6 py-6">
+                  <div className="flex items-center gap-4">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleClosePromptView}
+                      className="hover:bg-gray-100"
+                    >
+                      <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                    <h1 className="text-3xl font-bold">{getPlainText(selectedPrompt.title)}</h1>
                   </div>
-                  <h1 className="text-3xl font-bold">
-                    <span className="bg-aurora-gradient bg-aurora animate-aurora bg-clip-text text-transparent" style={{
-                    backgroundSize: "400% 400%"
-                  }}>
-                      X Panel
-                    </span>
-                  </h1>
-                </div>
-                <Button variant="aurora" onClick={() => navigate("/dashboard")}>
-                  Create New Prompt
-                </Button>
-              </div>
-
-              {/* Tabs Navigation */}
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-                <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
-                  <TabsTrigger value="prompts">Saved Prompts</TabsTrigger>
-                  <TabsTrigger value="templates">X Templates</TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-              {/* Search and Filters - Only show in prompts tab */}
-              {activeTab === "prompts" && (
-                <div className="mb-8 flex flex-col sm:flex-row gap-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input className="pl-9" placeholder="Search prompts..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                  </div>
-                  <div className="flex gap-2">
-                    <DropdownMenu>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="icon" className={selectedCategory ? "bg-accent text-white" : ""}>
-                                <Filter className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Filter by category</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuItem onClick={clearFilters}>
-                          Show all
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {categories.map(category => (
-                          <DropdownMenuItem key={category} onClick={() => setSelectedCategory(category)} className={selectedCategory === category ? "bg-accent/20" : ""}>
-                            {category}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    <DropdownMenu>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="icon" className={selectedSubcategory ? "bg-accent text-white" : ""}>
-                                <Filter className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Filter by subcategory</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuItem onClick={clearFilters}>
-                          Show all
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {subcategories.map(subcategory => (
-                          <DropdownMenuItem key={subcategory} onClick={() => setSelectedSubcategory(subcategory)} className={selectedSubcategory === subcategory ? "bg-accent/20" : ""}>
-                            {subcategory}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    {(selectedCategory || selectedSubcategory || searchTerm) && (
-                      <Button variant="ghost" onClick={clearFilters}>
-                        Clear filters
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="max-w-6xl mx-auto px-6 py-6">
-            {/* Templates Tab Content */}
-            {activeTab === "templates" && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-medium">Your System Message Templates</h2>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="template">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Create Template
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                      <TemplateEditor />
-                    </DialogContent>
-                  </Dialog>
-                </div>
-                <XTemplatesList />
-              </div>
-            )}
-
-            {/* Prompts Grid - Only show in prompts tab */}
-            {activeTab === "prompts" && (
-              <>
-                {isLoading ? (
-                  <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
-                  </div>
-                ) : filteredPrompts.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredPrompts.map(prompt => (
-                      <Card 
-                        key={prompt.id} 
-                        className="group hover:scale-[1.01] transition-all overflow-hidden bg-white border-[1.5px] border-[#64bf95] shadow-md relative"
-                      >
-                        {/* Share Button in Top Right Corner - Now part of the card flow */}
-                        <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/0">
-                                <Share2 className="h-4 w-4" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-80 p-4 bg-white border border-gray-200 shadow-md">
-                              <div className="space-y-4">
-                                <h4 className="font-medium text-sm">Share "{getPlainText(prompt.title)}"</h4>
-                                <div className="space-y-2">
-                                  <Label htmlFor={`share-email-${prompt.id}`}>
-                                    Email address
-                                  </Label>
-                                  <Input 
-                                    id={`share-email-${prompt.id}`} 
-                                    placeholder="colleague@example.com" 
-                                    type="email" 
-                                    value={sharingPromptId === prompt.id ? shareEmail : ""} 
-                                    onChange={e => {
-                                      setSharingPromptId(prompt.id);
-                                      setShareEmail(e.target.value);
-                                    }} 
-                                  />
-                                </div>
-                                <Button 
-                                  className="w-full bg-[#64bf95] hover:bg-[#64bf95]/90 text-white" 
-                                  onClick={handleSharePrompt} 
-                                  disabled={!shareEmail || isSharing || sharingPromptId !== prompt.id}
-                                >
-                                  {isSharing && sharingPromptId === prompt.id ? "Sharing..." : "Share"}
-                                </Button>
-                              </div>
-                            </PopoverContent>
-                          </Popover>
+                  
+                  <div className="mb-4 mt-4">
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {selectedPrompt.tags && selectedPrompt.tags.map((tag, index) => (
+                        <div key={index} className="bg-accent/10 text-xs rounded-full px-2.5 py-1 flex items-center gap-1">
+                          <span className="font-medium">{tag.category}</span>
+                          {tag.subcategory && (
+                            <>
+                              <span>•</span>
+                              <span>{tag.subcategory}</span>
+                            </>
+                          )}
                         </div>
-
-                        <CardContent className="p-6">
-                          <div className="flex flex-col h-full">
-                            <div className="mb-3">
-                              <h3 className="font-semibold text-lg mb-1 line-clamp-1">{getPlainText(prompt.title)}</h3>
-                              <p className="text-sm text-muted-foreground">{prompt.date}</p>
-                            </div>
-                            <div className="flex-1 mb-4">
-                              <p className="text-sm line-clamp-3">{getPlainText(prompt.promptText)}</p>
-                            </div>
-                            {/* Tags */}
-                            <div className="flex flex-wrap gap-2 mb-4">
-                              {prompt.tags && prompt.tags.map((tag, index) => (
-                                <div key={index} className="bg-[#64bf95]/10 text-xs rounded-full px-2.5 py-1 flex items-center gap-1">
-                                  <span className="font-medium">{tag.category}</span>
-                                  {tag.subcategory && (
-                                    <>
-                                      <span>•</span>
-                                      <span>{tag.subcategory}</span>
-                                    </>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                            {/* Action Buttons - Updated with AlertDialog for delete */}
-                            <div className="flex justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                              <div className="flex gap-1">
-                                {/* Empty div to keep the flex layout balanced */}
-                              </div>
-                              <div className="flex gap-1">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <AlertDialog open={promptToDelete === prompt.id} onOpenChange={open => !open && setPromptToDelete(null)}>
-                                        <AlertDialogTrigger asChild>
-                                          <Button variant="ghost" size="icon" className="prompt-action-button" onClick={() => setPromptToDelete(prompt.id)}>
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent className="bg-white border p-6">
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete prompt?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Are you sure you want to delete this prompt? This action cannot be undone.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter className="mt-4">
-                                            <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
-                                            <AlertDialogAction className="bg-[#ea384c] hover:bg-[#ea384c]/90" onClick={() => handleDeletePrompt(prompt.id)}>
-                                              Delete
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Delete prompt</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                            </div>
-                            {/* Main Actions */}
-                            <div className="mt-4 flex justify-between">
-                              <Button variant="outline" size="sm" onClick={() => handleCopyPrompt(prompt.promptText)}>
-                                <Copy className="h-4 w-4 mr-2" />
-                                Copy
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => handlePreviewPrompt(prompt.id)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Open
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                      ))}
+                    </div>
+                    <p className="text-sm text-muted-foreground">Created: {selectedPrompt.date}</p>
                   </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <h3 className="text-xl font-medium mb-2">No prompts found</h3>
-                    <p className="text-muted-foreground mb-6">
-                      {searchTerm || selectedCategory || selectedSubcategory ? "Try adjusting your search or filters" : "You haven't created any prompts yet"}
-                    </p>
-                    {!searchTerm && !selectedCategory && !selectedSubcategory && (
-                      <Button variant="aurora" onClick={() => navigate("/dashboard")}>
-                        Create Your First Prompt
+                </div>
+              </div>
+
+              <div className="container mx-auto py-4 px-4">
+                <Card className="w-full mt-4">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Prompt Content</h3>
+                      <Button onClick={() => handleCopyPrompt(selectedPrompt.promptText)}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Prompt
                       </Button>
-                    )}
+                    </div>
+                    <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto max-w-full whitespace-pre-wrap break-words">
+                      <pre className="text-sm">{getPlainText(selectedPrompt.promptText)}</pre>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          ) : (
+            // Main Panel View
+            <>
+              <div className="sticky top-0 z-10 bg-background border-b">
+                <div className="max-w-6xl mx-auto px-6 py-6">
+                  <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10">
+                        <img alt="Aitema X Logo" className="w-full h-full" src="/lovable-uploads/68b3431d-50df-4904-96cc-983f6b3e6e89.png" />
+                      </div>
+                      <h1 className="text-3xl font-bold">
+                        <span className="bg-aurora-gradient bg-aurora animate-aurora bg-clip-text text-transparent" style={{
+                        backgroundSize: "400% 400%"
+                      }}>
+                          X Panel
+                        </span>
+                      </h1>
+                    </div>
+                    <Button variant="aurora" onClick={() => navigate("/dashboard")}>
+                      Create New Prompt
+                    </Button>
+                  </div>
+
+                  {/* Tabs Navigation */}
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+                    <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
+                      <TabsTrigger value="prompts">Saved Prompts</TabsTrigger>
+                      <TabsTrigger value="templates">X Templates</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+
+                  {/* Search and Filters - Only show in prompts tab */}
+                  {activeTab === "prompts" && (
+                    <div className="mb-8 flex flex-col sm:flex-row gap-4">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input className="pl-9" placeholder="Search prompts..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                      </div>
+                      <div className="flex gap-2">
+                        <DropdownMenu>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" size="icon" className={selectedCategory ? "bg-accent text-white" : ""}>
+                                    <Filter className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Filter by category</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem onClick={clearFilters}>
+                              Show all
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {categories.map(category => (
+                              <DropdownMenuItem key={category} onClick={() => setSelectedCategory(category)} className={selectedCategory === category ? "bg-accent/20" : ""}>
+                                {category}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        <DropdownMenu>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" size="icon" className={selectedSubcategory ? "bg-accent text-white" : ""}>
+                                    <Filter className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Filter by subcategory</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem onClick={clearFilters}>
+                              Show all
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {subcategories.map(subcategory => (
+                              <DropdownMenuItem key={subcategory} onClick={() => setSelectedSubcategory(subcategory)} className={selectedSubcategory === subcategory ? "bg-accent/20" : ""}>
+                                {subcategory}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                        {(selectedCategory || selectedSubcategory || searchTerm) && (
+                          <Button variant="ghost" onClick={clearFilters}>
+                            Clear filters
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="max-w-6xl mx-auto px-6 py-6">
+                {/* Templates Tab Content */}
+                {activeTab === "templates" && (
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-xl font-medium">Your System Message Templates</h2>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="template">
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create Template
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                          <TemplateEditor />
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    <XTemplatesList />
                   </div>
                 )}
-              </>
-            )}
-          </div>
+
+                {/* Prompts Grid - Only show in prompts tab */}
+                {activeTab === "prompts" && (
+                  <>
+                    {isLoading ? (
+                      <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
+                      </div>
+                    ) : filteredPrompts.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredPrompts.map(prompt => (
+                          <Card 
+                            key={prompt.id} 
+                            className="group hover:scale-[1.01] transition-all overflow-hidden bg-white border-[1.5px] border-[#64bf95] shadow-md relative"
+                          >
+                            {/* Share Button in Top Right Corner - Now part of the card flow */}
+                            <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/0">
+                                    <Share2 className="h-4 w-4" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-80 p-4 bg-white border border-gray-200 shadow-md">
+                                  <div className="space-y-4">
+                                    <h4 className="font-medium text-sm">Share "{getPlainText(prompt.title)}"</h4>
+                                    <div className="space-y-2">
+                                      <Label htmlFor={`share-email-${prompt.id}`}>
+                                        Email address
+                                      </Label>
+                                      <Input 
+                                        id={`share-email-${prompt.id}`} 
+                                        placeholder="colleague@example.com" 
+                                        type="email" 
+                                        value={sharingPromptId === prompt.id ? shareEmail : ""} 
+                                        onChange={e => {
+                                          setSharingPromptId(prompt.id);
+                                          setShareEmail(e.target.value);
+                                        }} 
+                                      />
+                                    </div>
+                                    <Button 
+                                      className="w-full bg-[#64bf95] hover:bg-[#64bf95]/90 text-white" 
+                                      onClick={handleSharePrompt} 
+                                      disabled={!shareEmail || isSharing || sharingPromptId !== prompt.id}
+                                    >
+                                      {isSharing && sharingPromptId === prompt.id ? "Sharing..." : "Share"}
+                                    </Button>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+
+                            <CardContent className="p-6">
+                              <div className="flex flex-col h-full">
+                                <div className="mb-3">
+                                  <h3 className="font-semibold text-lg mb-1 line-clamp-1">{getPlainText(prompt.title)}</h3>
+                                  <p className="text-sm text-muted-foreground">{prompt.date}</p>
+                                </div>
+                                <div className="flex-1 mb-4">
+                                  <p className="text-sm line-clamp-3">{getPlainText(prompt.promptText)}</p>
+                                </div>
+                                {/* Tags */}
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                  {prompt.tags && prompt.tags.map((tag, index) => (
+                                    <div key={index} className="bg-[#64bf95]/10 text-xs rounded-full px-2.5 py-1 flex items-center gap-1">
+                                      <span className="font-medium">{tag.category}</span>
+                                      {tag.subcategory && (
+                                        <>
+                                          <span>•</span>
+                                          <span>{tag.subcategory}</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                                {/* Action Buttons - Updated with AlertDialog for delete */}
+                                <div className="flex justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="flex gap-1">
+                                    {/* Empty div to keep the flex layout balanced */}
+                                  </div>
+                                  <div className="flex gap-1">
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <AlertDialog open={promptToDelete === prompt.id} onOpenChange={open => !open && setPromptToDelete(null)}>
+                                            <AlertDialogTrigger asChild>
+                                              <Button variant="ghost" size="icon" className="prompt-action-button" onClick={() => setPromptToDelete(prompt.id)}>
+                                                <Trash2 className="h-4 w-4" />
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent className="bg-white border p-6">
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Delete prompt?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Are you sure you want to delete this prompt? This action cannot be undone.
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter className="mt-4">
+                                                <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
+                                                <AlertDialogAction className="bg-[#ea384c] hover:bg-[#ea384c]/90" onClick={() => handleDeletePrompt(prompt.id)}>
+                                                  Delete
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Delete prompt</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                </div>
+                                {/* Main Actions */}
+                                <div className="mt-4 flex justify-between">
+                                  <Button variant="outline" size="sm" onClick={() => handleCopyPrompt(prompt.promptText)}>
+                                    <Copy className="h-4 w-4 mr-2" />
+                                    Copy
+                                  </Button>
+                                  <Button variant="outline" size="sm" onClick={() => handlePreviewPrompt(prompt.id)}>
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Open
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <h3 className="text-xl font-medium mb-2">No prompts found</h3>
+                        <p className="text-muted-foreground mb-6">
+                          {searchTerm || selectedCategory || selectedSubcategory ? "Try adjusting your search or filters" : "You haven't created any prompts yet"}
+                        </p>
+                        {!searchTerm && !selectedCategory && !selectedSubcategory && (
+                          <Button variant="aurora" onClick={() => navigate("/dashboard")}>
+                            Create Your First Prompt
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </main>
 
         {/* Sidebar with delete confirmation */}
@@ -619,70 +686,4 @@ const XPanel = () => {
                   ) : (
                     <DropdownMenuItem onClick={() => navigate("/auth")} className="menu-item-glow">
                       <svg className="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                        <polyline points="10 17 15 12 10 7"></polyline>
-                        <line x1="15" y1="12" x2="3" y2="12"></line>
-                      </svg>
-                      <span>Sign in</span>
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            <div className="p-4 border-b">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input className="pl-9" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-              </div>
-            </div>
-            <div className="px-4 py-2 border-b bg-muted/20">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-muted-foreground">Saved Prompts</span>
-              </div>
-            </div>
-            <div className="overflow-auto">
-              {isLoading ? (
-                <div className="p-4 text-center">
-                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                  <span className="text-sm text-muted-foreground">Loading...</span>
-                </div>
-              ) : filteredPrompts.length > 0 ? (
-                filteredPrompts.map(item => (
-                  <div key={item.id} className="p-4 border-b group/item cursor-pointer hover:bg-gray-50 transition-colors" 
-                    style={{
-                      minHeight: `${Math.max(72, getTextLines(getPlainText(item.title), 25) * 20 + 32)}px`
-                    }} 
-                    onClick={() => handlePreviewPrompt(item.id)}>
-                    <div className="flex items-start w-full h-full">
-                      <div className="flex items-start gap-2 w-[70%]">
-                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground mt-1.5 flex-shrink-0" />
-                        <div className="flex flex-col flex-1 min-w-0">
-                          {editingPromptId === item.id ? (
-                            <input type="text" value={editingTitle} onChange={e => setEditingTitle(e.target.value)} onBlur={saveEdit} onKeyDown={handleKeyDown} className="text-sm font-medium border border-transparent focus:border-[#33fea6] focus:outline-none rounded px-1 w-full" autoFocus onClick={e => e.stopPropagation()} />
-                          ) : (
-                            <div className="flex items-center">
-                              <span className="text-sm font-medium break-words">
-                                {getPlainText(item.title)}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="p-4 text-center text-muted-foreground">
-                  <p className="text-sm">No prompts found</p>
-                </div>
-              )}
-            </div>
-          </SidebarContent>
-        </Sidebar>
-      </div>
-    </SidebarProvider>
-  );
-};
-
-export default XPanel;
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2
