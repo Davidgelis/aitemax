@@ -14,7 +14,7 @@ export const usePromptOperations = (
   setVariables: React.Dispatch<React.SetStateAction<Variable[]>>,
   finalPrompt: string,
   setFinalPrompt: React.Dispatch<React.SetStateAction<string>>,
-  showJson: boolean,
+  _showJson: boolean, // Keep parameter for backward compatibility but don't use it
   setEditingPrompt: React.Dispatch<React.SetStateAction<string>>,
   setShowEditPromptSheet: React.Dispatch<React.SetStateAction<boolean>>,
   masterCommand: string,

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -38,6 +39,9 @@ interface StepThreeContentProps {
   selectedText?: string;
   setSelectedText?: React.Dispatch<React.SetStateAction<string>>;
   onCreateVariable?: (selectedText: string) => void;
+  // Add showJson and setShowJson as optional props for backward compatibility
+  showJson?: boolean;
+  setShowJson?: (show: boolean) => void;
 }
 
 export const StepThreeContent = ({
