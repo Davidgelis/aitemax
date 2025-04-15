@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -103,7 +102,7 @@ const Auth = () => {
         </div>
         
         <h2 className="text-2xl font-semibold text-center mb-6 text-[#545454]">
-          {isLogin ? 'Login to Aitema X' : 'Create Account'}
+          {isLogin ? 'Login' : 'Sign Up'}
         </h2>
         
         <form onSubmit={handleAuth} className="space-y-4">
