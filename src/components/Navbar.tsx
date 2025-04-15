@@ -1,48 +1,37 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { UserRound, LogOut } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
 const Navbar = () => {
-  const { user, signOut } = useAuth();
+  const {
+    user,
+    signOut
+  } = useAuth();
   const [username, setUsername] = useState("");
-
   useEffect(() => {
     const fetchUsername = async () => {
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("username")
-          .eq("id", user.id)
-          .single();
-
+        const {
+          data: profile
+        } = await supabase.from("profiles").select("username").eq("id", user.id).single();
         if (profile?.username) {
           setUsername(profile.username);
         }
       }
     };
-
     fetchUsername();
   }, [user]);
-
   const handleSignOut = async () => {
     await signOut();
   };
-
   return <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 backdrop-blur-md bg-white/0">
       {/* Left side - Logo and navigation */}
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-4">
-          <img src="/lovable-uploads/8e3194ea-b661-47d6-8cfa-0b407ead657a.png" alt="Aitema X Logo" className="h-14 w-auto" />
+          <img alt="Aitema X Logo" className="h-14 w-auto" src="/lovable-uploads/f35f3772-9fb0-4f48-bb70-fecac84fff54.png" />
         </div>
         
         <div className="flex items-center gap-6">
@@ -60,13 +49,9 @@ const Navbar = () => {
 
       {/* Right side - Auth button or user dropdown */}
       <div>
-        {user ? (
-          <DropdownMenu>
+        {user ? <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                className="flex items-center gap-2 text-[#041524] hover:text-[#33fea6]"
-              >
+              <Button variant="ghost" className="flex items-center gap-2 text-[#041524] hover:text-[#33fea6]">
                 <UserRound className="h-4 w-4" />
                 <span>{username || "User"}</span>
               </Button>
@@ -82,16 +67,12 @@ const Navbar = () => {
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <Link to="/auth">
+          </DropdownMenu> : <Link to="/auth">
             <Button variant="outline" className="border-[#041524] text-[#041524]">
               Login / Sign up
             </Button>
-          </Link>
-        )}
+          </Link>}
       </div>
     </nav>;
 };
-
 export default Navbar;
