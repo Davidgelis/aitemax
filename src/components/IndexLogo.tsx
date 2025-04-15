@@ -7,11 +7,12 @@ const IndexLogo = () => {
       <div className="relative w-full md:w-[750px] h-auto mb-0">
         <AspectRatio ratio={16 / 6} className="bg-transparent">
           <div className="w-full h-full relative flex items-center justify-center">
-            {/* Base image - now visible with opacity 1 */}
+            {/* Base image - now with 0 opacity */}
             <img 
               src="/lovable-uploads/8e3194ea-b661-47d6-8cfa-0b407ead657a.png" 
               alt="Aitema X Logo"
               className="max-h-full max-w-full object-contain"
+              style={{ opacity: 0 }}
             />
             
             {/* Aurora effect overlay as a second layer */}
@@ -27,7 +28,7 @@ const IndexLogo = () => {
                 WebkitMaskPosition: 'center',
                 WebkitMaskRepeat: 'no-repeat',
                 WebkitMask: 'url("/lovable-uploads/8e3194ea-b661-47d6-8cfa-0b407ead657a.png") center / contain no-repeat',
-                opacity: 0.7 // Reduced opacity to allow the base image to show through
+                opacity: 1 // Full opacity for the aurora effect
               }}
             />
           </div>
