@@ -167,6 +167,7 @@ export type Database = {
           master_command: string | null
           primary_toggle: string | null
           prompt_text: string | null
+          saved_variables: Json | null
           secondary_toggle: string | null
           tags: Json | null
           title: string
@@ -184,6 +185,7 @@ export type Database = {
           master_command?: string | null
           primary_toggle?: string | null
           prompt_text?: string | null
+          saved_variables?: Json | null
           secondary_toggle?: string | null
           tags?: Json | null
           title?: string
@@ -201,6 +203,7 @@ export type Database = {
           master_command?: string | null
           primary_toggle?: string | null
           prompt_text?: string | null
+          saved_variables?: Json | null
           secondary_toggle?: string | null
           tags?: Json | null
           title?: string
