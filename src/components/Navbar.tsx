@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -34,7 +35,7 @@ const Navbar = () => {
         <div className="flex items-center gap-4">
           <img 
             alt="Aitema X Logo" 
-            className="h-[18.2px] w-auto" // Increased from h-14 to h-[18.2px] which is 30% larger
+            className="h-[23.4px] w-auto" // Increased from h-[18.2px] to h-[23.4px] which is 30% larger
             src="/lovable-uploads/f35f3772-9fb0-4f48-bb70-fecac84fff54.png" 
           />
         </div>
