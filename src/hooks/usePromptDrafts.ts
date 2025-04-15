@@ -96,11 +96,12 @@ export const usePromptDrafts = (
       
       if (savedPromptsError) throw savedPromptsError;
       
-      // Get all drafts
+      // Get all non-deleted drafts
       const { data, error } = await supabase
         .from('prompt_drafts')
         .select('*')
         .eq('user_id', user.id)
+        .eq('is_deleted', false)
         .order('updated_at', { ascending: false });
       
       if (error) throw error;
@@ -404,10 +405,10 @@ export const usePromptDrafts = (
     if (!user) return;
 
     try {
-      // Delete from database
+      // Instead of deleting, mark the draft as deleted
       const { error } = await supabase
         .from('prompt_drafts')
-        .delete()
+        .update({ is_deleted: true })
         .eq('id', draftId);
 
       if (error) throw error;
