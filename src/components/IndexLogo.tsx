@@ -7,27 +7,27 @@ const IndexLogo = () => {
       <div className="relative w-full md:w-[750px] h-auto mb-0">
         <AspectRatio ratio={16 / 6} className="bg-transparent">
           <div className="w-full h-full relative flex items-center justify-center">
-            {/* Base image for structure - hidden but used for dimensions */}
+            {/* Base image - now visible with opacity 1 */}
             <img 
-              src="/lovable-uploads/353c484b-27b8-4920-a298-87d0907d09f8.png" 
+              src="/lovable-uploads/d3f0ce86-b60c-4c7a-81cc-4bb140e56118.png" 
               alt="Aitema X Logo"
-              className="max-h-full max-w-full object-contain opacity-0"
+              className="max-h-full max-w-full object-contain"
             />
             
-            {/* Aurora effect overlay with improved masking for complete color replacement */}
+            {/* Aurora effect overlay as a second layer */}
             <div 
               className="absolute inset-0 bg-aurora-gradient bg-aurora animate-aurora z-10"
               style={{ 
-                maskImage: `url('/lovable-uploads/353c484b-27b8-4920-a298-87d0907d09f8.png')`, 
+                maskImage: `url('/lovable-uploads/d3f0ce86-b60c-4c7a-81cc-4bb140e56118.png')`, 
                 maskSize: 'contain', 
                 maskPosition: 'center', 
                 maskRepeat: 'no-repeat',
-                WebkitMaskImage: `url('/lovable-uploads/353c484b-27b8-4920-a298-87d0907d09f8.png')`,
+                WebkitMaskImage: `url('/lovable-uploads/d3f0ce86-b60c-4c7a-81cc-4bb140e56118.png')`,
                 WebkitMaskSize: 'contain',
                 WebkitMaskPosition: 'center',
                 WebkitMaskRepeat: 'no-repeat',
-                WebkitMask: 'url("/lovable-uploads/353c484b-27b8-4920-a298-87d0907d09f8.png") center / contain no-repeat',
-                opacity: 1
+                WebkitMask: 'url("/lovable-uploads/d3f0ce86-b60c-4c7a-81cc-4bb140e56118.png") center / contain no-repeat',
+                opacity: 0.7 // Reduced from 1 to allow the base image to show through
               }}
             />
           </div>
