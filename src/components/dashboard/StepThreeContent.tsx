@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -20,8 +19,6 @@ interface StepThreeContentProps {
   selectedSecondary: string | null;
   handlePrimaryToggle: (id: string) => void;
   handleSecondaryToggle: (id: string) => void;
-  showJson: boolean;
-  setShowJson: (show: boolean) => void;
   finalPrompt: string;
   setFinalPrompt: (prompt: string) => void;
   variables: Variable[];
@@ -50,8 +47,6 @@ export const StepThreeContent = ({
   selectedSecondary,
   handlePrimaryToggle,
   handleSecondaryToggle,
-  showJson,
-  setShowJson,
   finalPrompt,
   setFinalPrompt,
   variables,
@@ -83,7 +78,7 @@ export const StepThreeContent = ({
     setVariables,
     finalPrompt,
     setFinalPrompt,
-    showJson,
+    false, // Remove showJson parameter
     setEditingPrompt,
     setShowEditPromptSheet,
     masterCommand,
@@ -137,9 +132,7 @@ export const StepThreeContent = ({
       setRenderTrigger(prev => prev + 1);
       
       // Only manually refresh JSON if already showing
-      if (showJson) {
-        handleRefreshJson();
-      }
+      
     } catch (error) {
       console.error("Error saving edited prompt:", error);
       toast({
@@ -148,7 +141,7 @@ export const StepThreeContent = ({
         variant: "destructive",
       });
     }
-  }, [toast, showJson]);
+  }, [toast]);
 
   const getProcessedPromptFunction = useCallback(() => {
     if (typeof externalGetProcessedPrompt === 'function') {
@@ -191,8 +184,6 @@ export const StepThreeContent = ({
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
       <ToggleSection 
-        showJson={showJson}
-        setShowJson={setShowJson}
         refreshJson={handleRefreshJson}
         isRefreshing={isRefreshingJson}
       />
@@ -203,7 +194,7 @@ export const StepThreeContent = ({
         getProcessedPrompt={getProcessedPromptFunction}
         variables={safeVariables}
         setVariables={setVariables}
-        showJson={showJson}
+        showJson={false}
         masterCommand={masterCommand || ""}
         handleOpenEditPrompt={externalHandleOpenEditPrompt}
         recordVariableSelection={recordVariableSelection}

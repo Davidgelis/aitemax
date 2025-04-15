@@ -1,28 +1,18 @@
 
 import { RefreshCw } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 
 interface ToggleSectionProps {
-  showJson: boolean;
-  setShowJson: (show: boolean) => void;
   refreshJson?: () => void;
   isRefreshing?: boolean;
 }
 
 export const ToggleSection = ({
-  showJson,
-  setShowJson,
   refreshJson,
   isRefreshing = false
 }: ToggleSectionProps) => {
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
-  
-  // Simple direct toggle handler
-  const handleToggle = (checked: boolean) => {
-    setShowJson(checked);
-  };
   
   // Handle refresh with debounce to prevent multiple clicks
   const handleRefresh = () => {
@@ -46,15 +36,7 @@ export const ToggleSection = ({
 
   return (
     <div className="flex items-center gap-2 mb-3">
-      <span className="text-xs">JSON Toggle view</span>
-      <Switch
-        checked={showJson}
-        onCheckedChange={handleToggle}
-        className="scale-75"
-        variant="primary"
-      />
-      
-      {showJson && refreshJson && (
+      {refreshJson && (
         <Button 
           onClick={handleRefresh}
           variant="ghost" 
