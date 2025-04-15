@@ -1,18 +1,11 @@
+
 const Logo = () => {
   return <div className="flex flex-col items-center justify-center animate-fade-in">
       <div className="relative mb-6" style={{
       width: '240px',
       height: '240px'
     }}>
-        {/* Aurora circle background */}
-        <div className="absolute inset-0 rounded-full" style={{
-        background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95)",
-        backgroundSize: "400% 400%",
-        animation: "aurora 300s ease infinite",
-        // Changed from 15s to 300s (20x slower)
-        zIndex: 0
-      }} />
-        {/* Logo image */}
+        {/* Removed the aurora circle background */}
         <img alt="Aitema X Logo" style={{
         width: '240px',
         height: '240px'
@@ -22,7 +15,6 @@ const Logo = () => {
       background: "linear-gradient(-45deg, #041524, #084b49, #33fea6, #64bf95)",
       backgroundSize: "400% 400%",
       animation: "aurora 300s ease infinite",
-      // Changed from 15s to 300s (20x slower)
       WebkitBackgroundClip: "text",
       WebkitTextFillColor: "transparent",
       backgroundClip: "text"
