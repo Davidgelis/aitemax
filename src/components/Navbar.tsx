@@ -5,6 +5,7 @@ import { UserRound, LogOut } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+
 const Navbar = () => {
   const {
     user,
@@ -31,7 +32,11 @@ const Navbar = () => {
       {/* Left side - Logo and navigation */}
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-4">
-          <img alt="Aitema X Logo" className="h-14 w-auto" src="/lovable-uploads/f35f3772-9fb0-4f48-bb70-fecac84fff54.png" />
+          <img 
+            alt="Aitema X Logo" 
+            className="h-[18.2px] w-auto" // Increased from h-14 to h-[18.2px] which is 30% larger
+            src="/lovable-uploads/f35f3772-9fb0-4f48-bb70-fecac84fff54.png" 
+          />
         </div>
         
         <div className="flex items-center gap-6">
