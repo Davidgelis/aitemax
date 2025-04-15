@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Filter, Twitter, Facebook, Instagram, Link2, Mail, Trash2, Eye, Copy, Share2, User, FileText, MoreVertical, CopyIcon, Pencil, Lock, Plus, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -436,9 +435,12 @@ const XPanel = () => {
                 ) : filteredPrompts.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredPrompts.map(prompt => (
-                      <Card key={prompt.id} className="group hover:scale-[1.01] transition-all overflow-hidden bg-white border-[1.5px] border-[#64bf95] shadow-md relative">
-                        {/* Share Button in Top Right Corner */}
-                        <div className="absolute top-3 right-3 z-10">
+                      <Card 
+                        key={prompt.id} 
+                        className="group hover:scale-[1.01] transition-all overflow-hidden bg-white border-[1.5px] border-[#64bf95] shadow-md relative"
+                      >
+                        {/* Share Button in Top Right Corner - Now part of the card flow */}
+                        <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/0">
@@ -452,18 +454,29 @@ const XPanel = () => {
                                   <Label htmlFor={`share-email-${prompt.id}`}>
                                     Email address
                                   </Label>
-                                  <Input id={`share-email-${prompt.id}`} placeholder="colleague@example.com" type="email" value={sharingPromptId === prompt.id ? shareEmail : ""} onChange={e => {
-                                    setSharingPromptId(prompt.id);
-                                    setShareEmail(e.target.value);
-                                  }} />
+                                  <Input 
+                                    id={`share-email-${prompt.id}`} 
+                                    placeholder="colleague@example.com" 
+                                    type="email" 
+                                    value={sharingPromptId === prompt.id ? shareEmail : ""} 
+                                    onChange={e => {
+                                      setSharingPromptId(prompt.id);
+                                      setShareEmail(e.target.value);
+                                    }} 
+                                  />
                                 </div>
-                                <Button className="w-full bg-[#64bf95] hover:bg-[#64bf95]/90 text-white" onClick={handleSharePrompt} disabled={!shareEmail || isSharing || sharingPromptId !== prompt.id}>
+                                <Button 
+                                  className="w-full bg-[#64bf95] hover:bg-[#64bf95]/90 text-white" 
+                                  onClick={handleSharePrompt} 
+                                  disabled={!shareEmail || isSharing || sharingPromptId !== prompt.id}
+                                >
                                   {isSharing && sharingPromptId === prompt.id ? "Sharing..." : "Share"}
                                 </Button>
                               </div>
                             </PopoverContent>
                           </Popover>
                         </div>
+
                         <CardContent className="p-6">
                           <div className="flex flex-col h-full">
                             <div className="mb-3">
@@ -649,66 +662,3 @@ const XPanel = () => {
                               <span className="text-sm font-medium break-words">
                                 {getPlainText(item.title)}
                               </span>
-                            </div>
-                          )}
-                          <span className="text-xs text-muted-foreground">{item.date}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center ml-auto w-[30%] justify-center h-full flex-shrink-0">
-                        {editingPromptId !== item.id && (
-                          <button onClick={e => {
-                            e.stopPropagation();
-                            startEditing(item);
-                          }} className="p-1 transition-colors">
-                            <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-[#33fea6]" />
-                          </button>
-                        )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger>
-                            <div className="p-1 hover:text-[#33fea6] transition-colors" onClick={e => e.stopPropagation()}>
-                              <MoreVertical className="h-4 w-4" />
-                            </div>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              handleCopyPrompt(item.promptText);
-                            }} className="menu-item-glow">
-                              <Copy className="mr-2 h-4 w-4" />
-                              <span>Copy prompt</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              handleCopyLink(item.id);
-                            }} className="menu-item-glow">
-                              <Link2 className="mr-2 h-4 w-4" />
-                              <span>Copy link</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive menu-item-glow" onClick={(e) => {
-                              e.stopPropagation();
-                              setPromptToDelete(item.id);
-                            }}>
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              <span>Delete</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  No prompts found
-                </div>
-              )}
-            </div>
-          </SidebarContent>
-        </Sidebar>
-      </div>
-    </SidebarProvider>
-  );
-};
-
-export default XPanel;
