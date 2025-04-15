@@ -32,7 +32,6 @@ const PromptView = () => {
   const [variables, setVariables] = useState<Variable[]>([]);
   const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
   const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
-  const [showJson, setShowJson] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState("");
   const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
   const [selectedText, setSelectedText] = useState("");
