@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Copy, Share2, Globe, Lock, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -499,8 +499,10 @@ const PromptView = () => {
                     {isLoadingJson ? 'Refreshing...' : 'Refresh JSON'}
                   </Button>
                 </div>
-                <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto max-w-full whitespace-pre-wrap break-words">
-                  <pre className="text-sm">{jsonView}</pre>
+                <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto max-w-full">
+                  <pre className="whitespace-pre-wrap break-words text-sm">
+                    {jsonView}
+                  </pre>
                 </div>
                 <div className="mt-4">
                   <Button onClick={() => handleCopyContent(jsonView)}>
