@@ -7,16 +7,16 @@ const Navbar = () => {
   const { user } = useAuth();
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4">
+    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-white/90 backdrop-blur-md">
       {/* Left side - Logo and navigation */}
       <div className="flex items-center gap-8">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <img 
-            src="/lovable-uploads/432df757-3f0d-4fe4-99f4-ca27f2322a86.png" 
+            src="/lovable-uploads/24072656-f4ba-40b1-91e2-8b689db23cf5.png" 
             alt="Aitema X Logo" 
             className="h-8 w-8"
           />
-          <span className="text-[#041524] font-semibold text-xl">Aitema X</span>
+          <span className="text-[#041524] font-semibold text-xl">AITEMA X</span>
         </div>
         
         <div className="flex items-center gap-6">
