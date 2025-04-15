@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -14,6 +13,7 @@ import {
   generateContextQuestionsForPrompt,
   generateContextualVariablesForPrompt
 } from "./utils/generators.ts";
+import { validateQuestionVariablePairs } from "./utils/validators.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -519,6 +519,47 @@ Based on this combination, follow these guidelines:
       // Process the analysis to extract questions, variables, etc.
       const questions = extractQuestions(analysis, promptText);
       const variables = extractVariables(analysis, promptText);
+      
+      // Validate question-variable relationships
+      const isValid = validateQuestionVariablePairs(questions, variables);
+      
+      if (!isValid) {
+        console.warn("Generated questions directly mirror variables. Requesting new analysis.");
+        
+        // Retry the analysis with stronger emphasis on the rules
+        const retryResult = await analyzePromptWithAI(
+          promptText,
+          systemMessage + "\n\nCRITICAL: Your previous analysis created questions that directly asked for variable values. Questions MUST explore context around variables, not ask for their values directly.",
+          openAIApiKey,
+          contextualData + imageContext + toggleContext + combinationInstructions
+        );
+        
+        // Extract and validate the retry results
+        const retryQuestions = extractQuestions(retryResult.content, promptText);
+        const retryVariables = extractVariables(retryResult.content, promptText);
+        
+        // Use the retry results if valid, otherwise fall back to original but log the issue
+        if (validateQuestionVariablePairs(retryQuestions, retryVariables)) {
+          console.log("Retry successful - using new questions and variables");
+          return new Response(JSON.stringify({
+            questions: retryQuestions,
+            variables: retryVariables,
+            masterCommand: extractMasterCommand(retryResult.content),
+            enhancedPrompt: extractEnhancedPrompt(retryResult.content),
+            usage: retryResult.usage,
+            primaryToggle,
+            secondaryToggle,
+            hasAdditionalContext,
+            inputTypes
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        } else {
+          console.warn("Retry also failed validation - using original results but logging issue");
+        }
+      }
+      
       const masterCommand = extractMasterCommand(analysis);
       const enhancedPrompt = extractEnhancedPrompt(analysis);
       
@@ -685,106 +726,3 @@ Based on this combination, follow these guidelines:
           return q;
         });
       } else if (hasAdditionalContext && smartContextData && smartContextData.context) {
-        // Try to pre-fill based on smart context data
-        contextQuestions = contextQuestions.map(q => {
-          if (q.text.toLowerCase().includes("topic") || q.text.toLowerCase().includes("subject")) {
-            const firstSentence = smartContextData.context.split('.')[0];
-            return {
-              ...q,
-              answer: `Based on the provided context: ${firstSentence}.`,
-              prefillSource: "smartcontext"
-            };
-          }
-          return q;
-        });
-      } else {
-        // Ensure all answers are empty when no additional context is provided
-        contextQuestions = contextQuestions.map(q => ({...q, answer: ""}));
-      }
-      
-      // Filter out potentially irrelevant questions based on toggle type
-      if (primaryToggle === "image") {
-        contextQuestions = contextQuestions.filter(q => 
-          !q.text.toLowerCase().includes("file format") && 
-          !q.text.toLowerCase().includes("file type")
-        );
-      }
-      
-      let contextVariables = generateContextualVariablesForPrompt(promptText);
-      
-      // If we have website data, pre-fill some variables
-      if (hasAdditionalContext && websiteData && websiteData.url && websiteKeywords.length > 0) {
-        contextVariables = contextVariables.map(v => {
-          // Try to pre-fill based on website keywords
-          if (v.name.toLowerCase().includes("topic") || v.name.toLowerCase().includes("subject")) {
-            return {
-              ...v, 
-              value: websiteKeywords.slice(0, 3).join(', '),
-              prefillSource: "webscan"
-            };
-          }
-          if (v.name.toLowerCase().includes("keywords")) {
-            return {
-              ...v, 
-              value: websiteKeywords.slice(0, 5).join(', '),
-              prefillSource: "webscan"
-            };
-          }
-          return v;
-        });
-      } else if (hasAdditionalContext && smartContextData && smartContextData.context) {
-        // Try to pre-fill based on smart context data
-        contextVariables = contextVariables.map(v => {
-          if (v.name.toLowerCase().includes("topic") || v.name.toLowerCase().includes("subject")) {
-            const words = smartContextData.context.split(' ').slice(0, 5).join(' ');
-            return {
-              ...v,
-              value: words,
-              prefillSource: "smartcontext"
-            };
-          }
-          return v;
-        });
-      } else {
-        // Ensure all values are empty when no additional context is provided
-        contextVariables = contextVariables.map(v => ({...v, value: ""}));
-      }
-      
-      // Fallback to mock data but still return a 200 status code
-      return new Response(JSON.stringify({
-        questions: contextQuestions,
-        variables: contextVariables,
-        masterCommand: "Analyzed prompt: " + promptText.substring(0, 50) + "...",
-        enhancedPrompt: "# Enhanced Prompt\n\n" + promptText,
-        error: extractionError.message,
-        rawAnalysis: analysis,
-        usage: analysisResult.usage,
-        primaryToggle,
-        secondaryToggle,
-        hasAdditionalContext,
-        inputTypes
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-  } catch (error) {
-    console.error("Error in analyze-prompt function:", error);
-    
-    // Always return a 200 status code even on error, with error details in the response body
-    return new Response(JSON.stringify({
-      questions: generateContextQuestionsForPrompt("").map(q => ({...q, answer: ""})),
-      variables: generateContextualVariablesForPrompt("").map(v => ({...v, value: ""})),
-      masterCommand: "Error analyzing prompt",
-      enhancedPrompt: "# Error\n\nThere was an error analyzing your prompt. Please try again.",
-      error: error.message,
-      primaryToggle: null,
-      secondaryToggle: null,
-      hasAdditionalContext: false,
-      inputTypes: {}
-    }), {
-      status: 200, // Always return a 200 to avoid edge function errors
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-});

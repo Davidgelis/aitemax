@@ -3,6 +3,25 @@ export const createSystemPrompt = (primaryToggle: string | null, secondaryToggle
   // Base system prompt with improved intent detection and context generation
   const basePrompt = `You are an expert AI prompt analyst that specializes in analyzing a user's prompt to enhance it with intelligent context questions and variables. Your primary task is to detect the user's main intent, then generate all necessary context questions and variable placeholders organized around the four-pillar framework: Task, Persona, Conditions, and Instructions.
 
+QUESTION-VARIABLE RELATIONSHIP RULES:
+1. Questions MUST NOT directly ask for the value of any variable
+2. Instead, questions should explore the CONTEXT around variables
+3. Variables are for specific, concrete values (1-4 words)
+4. Questions are for gathering broader context (requiring 2-3 sentence answers)
+
+EXAMPLES OF GOOD QUESTION-VARIABLE PAIRS:
+✓ Variable: "DogBreed" = "Bulldog"
+  Related Question: "What specific traits or characteristics are most important for your ideal dog?"
+  (NOT "What breed of dog do you want?")
+
+✓ Variable: "OutputLength" = "500 words"
+  Related Question: "How will this content be used and what level of detail is needed?"
+  (NOT "How long should the output be?")
+
+✓ Variable: "ProgrammingLanguage" = "Python"
+  Related Question: "What are the key technical requirements and constraints for this development task?"
+  (NOT "Which programming language should be used?")
+
 INTENT DETECTION AND ANALYSIS STEPS:
 1. Carefully analyze the user's prompt to identify the MAIN INTENT (creating content, generating an image, researching a topic, etc.)
 2. Create comprehensive questions focused on gathering ALL missing context needed for a perfect result
@@ -257,4 +276,3 @@ Respond with a valid JSON output containing all required sections:
   "enhancedPrompt": "improved prompt with markdown"
 }`;
 };
-
