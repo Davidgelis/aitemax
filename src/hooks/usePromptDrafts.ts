@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,6 +88,15 @@ export const usePromptDrafts = (
     
     setIsLoadingDrafts(true);
     try {
+      // First, get all saved prompts for this user
+      const { data: savedPrompts, error: savedPromptsError } = await supabase
+        .from('prompts')
+        .select('prompt_text')
+        .eq('user_id', user.id);
+      
+      if (savedPromptsError) throw savedPromptsError;
+      
+      // Get all drafts
       const { data, error } = await supabase
         .from('prompt_drafts')
         .select('*')
@@ -98,7 +106,25 @@ export const usePromptDrafts = (
       if (error) throw error;
       
       if (data) {
-        const formattedDrafts: PromptDraft[] = data.map(draft => ({
+        // Filter out duplicates and saved prompts
+        const uniqueDrafts = new Map();
+        
+        data.forEach(draft => {
+          // Skip if this is a saved prompt
+          const isAlreadySaved = savedPrompts?.some(saved => 
+            saved.prompt_text?.trim() === draft.prompt_text?.trim()
+          );
+          
+          if (!isAlreadySaved && draft.prompt_text) {
+            // Only keep the most recent version of each draft
+            const existingDraft = uniqueDrafts.get(draft.prompt_text.trim());
+            if (!existingDraft || new Date(draft.updated_at) > new Date(existingDraft.updated_at)) {
+              uniqueDrafts.set(draft.prompt_text.trim(), draft);
+            }
+          }
+        });
+        
+        const formattedDrafts: PromptDraft[] = Array.from(uniqueDrafts.values()).map(draft => ({
           id: draft.id,
           title: draft.title || 'Untitled Draft',
           promptText: draft.prompt_text || '',
@@ -129,10 +155,12 @@ export const usePromptDrafts = (
     // 1. No user is logged in
     // 2. No prompt text
     // 3. We're on step 1 (haven't analyzed the prompt yet)
-    // 4. Or nothing has changed (not dirty) unless forced
+    // 4. We're on step 3 (final step - should be saved as a prompt instead)
+    // 5. Nothing has changed (not dirty) unless forced
     if (!user || 
         !promptText.trim() || 
-        currentStep === 1 || 
+        currentStep === 1 ||
+        currentStep === 3 ||
         (isSaving && saveAttempts >= maxRetries) || 
         (!isDirty && !force)) {
       console.log(`Not saving draft. Step: ${currentStep}, Has text: ${!!promptText.trim()}, User: ${!!user}, Dirty: ${isDirty}, Force: ${force}`);
