@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -13,7 +12,7 @@ const Navbar = () => {
           <img 
             src="/lovable-uploads/7818bcd0-a360-4974-ab21-fed307b695c9.png" 
             alt="Aitema X Logo" 
-            className="h-10 w-auto" 
+            className="h-12 w-auto" 
           />
           <span className="text-[#041524] font-bold text-xl">AITEMA X</span>
         </div>
