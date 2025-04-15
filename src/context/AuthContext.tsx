@@ -274,20 +274,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password 
       });
       
-      // If rememberMe is true and login was successful, we can use the session method
-      // to get a new session with longer expiry
+      // If rememberMe is true and login was successful, we can set a longer session
       if (!error && rememberMe) {
-        // This will extend the session (get a new session with longer expiry)
         console.log("Remember me selected, extending session duration");
-        const { error: refreshError } = await supabase.auth.refreshSession({
-          // Set a longer expiration time (30 days in seconds)
-          options: {
-            expiresIn: 60 * 60 * 24 * 30
-          }
-        });
         
-        if (refreshError) {
-          console.error("Error extending session:", refreshError);
+        // Get the current session
+        const { data: sessionData } = await supabase.auth.getSession();
+        
+        if (sessionData && sessionData.session) {
+          // Refresh the session to extend its duration
+          // This will get a new session with longer expiration
+          const { error: refreshError } = await supabase.auth.refreshSession({
+            refresh_token: sessionData.session.refresh_token,
+          });
+          
+          if (refreshError) {
+            console.error("Error extending session:", refreshError);
+          }
         }
       }
       
