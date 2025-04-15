@@ -9,7 +9,7 @@ const IndexLogo = () => {
           <div className="w-full h-full relative flex items-center justify-center">
             {/* Base image - now visible with opacity 1 */}
             <img 
-              src="/lovable-uploads/d3f0ce86-b60c-4c7a-81cc-4bb140e56118.png" 
+              src="/lovable-uploads/8e3194ea-b661-47d6-8cfa-0b407ead657a.png" 
               alt="Aitema X Logo"
               className="max-h-full max-w-full object-contain"
             />
@@ -18,16 +18,16 @@ const IndexLogo = () => {
             <div 
               className="absolute inset-0 bg-aurora-gradient bg-aurora animate-aurora z-10"
               style={{ 
-                maskImage: `url('/lovable-uploads/d3f0ce86-b60c-4c7a-81cc-4bb140e56118.png')`, 
+                maskImage: `url('/lovable-uploads/8e3194ea-b661-47d6-8cfa-0b407ead657a.png')`, 
                 maskSize: 'contain', 
                 maskPosition: 'center', 
                 maskRepeat: 'no-repeat',
-                WebkitMaskImage: `url('/lovable-uploads/d3f0ce86-b60c-4c7a-81cc-4bb140e56118.png')`,
+                WebkitMaskImage: `url('/lovable-uploads/8e3194ea-b661-47d6-8cfa-0b407ead657a.png')`,
                 WebkitMaskSize: 'contain',
                 WebkitMaskPosition: 'center',
                 WebkitMaskRepeat: 'no-repeat',
-                WebkitMask: 'url("/lovable-uploads/d3f0ce86-b60c-4c7a-81cc-4bb140e56118.png") center / contain no-repeat',
-                opacity: 0.7 // Reduced from 1 to allow the base image to show through
+                WebkitMask: 'url("/lovable-uploads/8e3194ea-b661-47d6-8cfa-0b407ead657a.png") center / contain no-repeat',
+                opacity: 0.7 // Reduced opacity to allow the base image to show through
               }}
             />
           </div>
