@@ -23,7 +23,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { XTemplateCard } from "@/components/x-templates/XTemplateCard";
 import { TemplateEditor } from "@/components/x-templates/TemplateEditor";
 import { XTemplatesList } from "@/components/x-templates/XTemplatesList";
-
 const XPanel = () => {
   const navigate = useNavigate();
   const {
@@ -45,10 +44,9 @@ const XPanel = () => {
   const [shareEmail, setShareEmail] = useState("");
   const [sharingPromptId, setSharingPromptId] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
-  
+
   // Add state for prompt to delete
   const [promptToDelete, setPromptToDelete] = useState<string | null>(null);
-
   useEffect(() => {
     const getUser = async () => {
       const {
@@ -182,7 +180,6 @@ const XPanel = () => {
       }
       setPrompts(prevPrompts => prevPrompts.filter(prompt => prompt.id !== id));
       setFilteredPrompts(prevPrompts => prevPrompts.filter(prompt => prompt.id !== id));
-      
       toast({
         title: "Success",
         description: "Prompt deleted successfully"
@@ -307,7 +304,7 @@ const XPanel = () => {
               <div className="flex items-center gap-4">
                 {/* Updated logo to use the provided image */}
                 <div className="w-10 h-10">
-                  <img src="/lovable-uploads/c0991d84-ffed-4450-ab0d-f6dfc51bb4be.png" alt="Aitema X Logo" className="w-full h-full" />
+                  <img alt="Aitema X Logo" className="w-full h-full" src="/lovable-uploads/68b3431d-50df-4904-96cc-983f6b3e6e89.png" />
                 </div>
                 <h1 className="text-3xl font-bold">
                   <span className="bg-aurora-gradient bg-aurora animate-aurora bg-clip-text text-transparent" style={{
@@ -469,7 +466,7 @@ const XPanel = () => {
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <AlertDialog open={promptToDelete === prompt.id} onOpenChange={(open) => !open && setPromptToDelete(null)}>
+                                      <AlertDialog open={promptToDelete === prompt.id} onOpenChange={open => !open && setPromptToDelete(null)}>
                                         <AlertDialogTrigger asChild>
                                           <Button variant="ghost" size="icon" className="prompt-action-button" onClick={() => setPromptToDelete(prompt.id)}>
                                             <Trash2 className="h-4 w-4" />
@@ -484,10 +481,7 @@ const XPanel = () => {
                                           </AlertDialogHeader>
                                           <AlertDialogFooter className="mt-4">
                                             <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
-                                            <AlertDialogAction 
-                                              className="bg-[#ea384c] hover:bg-[#ea384c]/90" 
-                                              onClick={() => handleDeletePrompt(prompt.id)}
-                                            >
+                                            <AlertDialogAction className="bg-[#ea384c] hover:bg-[#ea384c]/90" onClick={() => handleDeletePrompt(prompt.id)}>
                                               Delete
                                             </AlertDialogAction>
                                           </AlertDialogFooter>
@@ -631,12 +625,9 @@ const XPanel = () => {
                             <DropdownMenuSeparator />
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <DropdownMenuItem 
-                                  className="text-destructive focus:text-destructive" 
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                  }}
-                                >
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={e => {
+                            e.stopPropagation();
+                          }}>
                                   <Trash2 className="mr-2 h-4 w-4" />
                                   <span>Delete</span>
                                 </DropdownMenuItem>
@@ -650,13 +641,10 @@ const XPanel = () => {
                                 </AlertDialogHeader>
                                 <AlertDialogFooter className="mt-4">
                                   <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                    className="bg-[#ea384c] hover:bg-[#ea384c]/90"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeletePrompt(item.id);
-                                    }}
-                                  >
+                                  <AlertDialogAction className="bg-[#ea384c] hover:bg-[#ea384c]/90" onClick={e => {
+                              e.stopPropagation();
+                              handleDeletePrompt(item.id);
+                            }}>
                                     Delete
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
