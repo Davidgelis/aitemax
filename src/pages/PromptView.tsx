@@ -439,32 +439,79 @@ const PromptView = () => {
           <p className="text-sm text-muted-foreground">Created: {prompt.date}</p>
         </div>
         
-        <Card className="w-full mt-4">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">JSON Structure</h3>
-              <Button 
-                onClick={handleRefreshJson} 
-                variant="outline" 
-                size="sm"
-                className="flex items-center gap-2"
-                disabled={isLoadingJson}
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoadingJson ? 'animate-spin' : ''}`} />
-                {isLoadingJson ? 'Refreshing...' : 'Refresh JSON'}
-              </Button>
-            </div>
-            <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto max-w-full whitespace-pre-wrap break-words">
-              <pre className="text-sm">{jsonView}</pre>
-            </div>
-            <div className="mt-4">
-              <Button onClick={() => handleCopyContent(jsonView)}>
-                <Copy className="h-4 w-4 mr-2" />
-                Copy JSON
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="prompt" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="prompt">Prompt Editor</TabsTrigger>
+            <TabsTrigger value="json">JSON View</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="prompt" className="mt-4">
+            {Array.isArray(variables) ? (
+              <StepThreeContent
+                masterCommand={masterCommand}
+                setMasterCommand={setMasterCommand}
+                selectedPrimary={selectedPrimary}
+                selectedSecondary={selectedSecondary}
+                handlePrimaryToggle={handlePrimaryToggle}
+                handleSecondaryToggle={handleSecondaryToggle}
+                finalPrompt={finalPrompt}
+                setFinalPrompt={setFinalPrompt}
+                variables={variables}
+                setVariables={setVariables}
+                handleCopyPrompt={handleCopyPrompt}
+                handleSavePrompt={handleSavePrompt}
+                handleRegenerate={handleRegenerate}
+                editingPrompt={editingPrompt}
+                setEditingPrompt={setEditingPrompt}
+                showEditPromptSheet={showEditPromptSheet}
+                setShowEditPromptSheet={setShowEditPromptSheet}
+                handleOpenEditPrompt={handleOpenEditPrompt}
+                handleSaveEditedPrompt={handleSaveEditedPrompt}
+                handleAdaptPrompt={handleAdaptPrompt}
+                getProcessedPrompt={getProcessedPrompt}
+                handleVariableValueChange={handleVariableValueChange}
+                selectedText={selectedText}
+                setSelectedText={setSelectedText}
+                onCreateVariable={handleCreateVariable}
+                showJson={false}
+                setShowJson={() => {}}
+              />
+            ) : (
+              <div className="p-4 bg-yellow-50 rounded-md border border-yellow-200">
+                <p>Unable to display prompt editor: Variables data is not in the expected format.</p>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="json" className="mt-4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">JSON Structure</h3>
+                  <Button 
+                    onClick={handleRefreshJson} 
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-2"
+                    disabled={isLoadingJson}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoadingJson ? 'animate-spin' : ''}`} />
+                    {isLoadingJson ? 'Refreshing...' : 'Refresh JSON'}
+                  </Button>
+                </div>
+                <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto max-w-full whitespace-pre-wrap break-words">
+                  <pre className="text-sm">{jsonView}</pre>
+                </div>
+                <div className="mt-4">
+                  <Button onClick={() => handleCopyContent(jsonView)}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy JSON
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
