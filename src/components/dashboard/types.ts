@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface AIModel {
@@ -120,3 +119,19 @@ export const jsonToVariables = (json: Json | Record<string, any> | null): Variab
   
   return variables;
 };
+
+interface TechnicalTerm {
+  term: string;
+  explanation: string;
+  example: string;
+}
+
+export interface Question {
+  id: string;
+  text: string;
+  answer: string;
+  isRelevant: boolean | null;
+  category?: string;
+  prefillSource?: string;
+  technicalTerms?: TechnicalTerm[];
+}

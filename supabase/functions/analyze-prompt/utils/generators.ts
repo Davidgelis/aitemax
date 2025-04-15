@@ -5,7 +5,45 @@
  */
 export function generateContextQuestionsForPrompt(promptText: string): any[] {
   const lowerPrompt = promptText.toLowerCase();
-  
+
+  // Define common technical terms that might need explanation
+  const commonTechnicalTerms = {
+    api: {
+      explanation: "Application Programming Interface - A way for different software systems to communicate",
+      example: "Like a waiter taking orders between restaurant customers and the kitchen"
+    },
+    database: {
+      explanation: "A system for storing and organizing information",
+      example: "Like a digital filing cabinet for your app's information"
+    },
+    authentication: {
+      explanation: "The process of verifying who a user is",
+      example: "Like checking ID at the entrance of a building"
+    },
+    encryption: {
+      explanation: "A way to secure sensitive information",
+      example: "Like using a secret code to protect messages"
+    }
+  };
+
+  // Helper function to check for technical terms and add explanations
+  const addTechnicalTerms = (question: any) => {
+    const terms = [];
+    for (const [term, info] of Object.entries(commonTechnicalTerms)) {
+      if (question.text.toLowerCase().includes(term)) {
+        terms.push({
+          term,
+          explanation: info.explanation,
+          example: info.example
+        });
+      }
+    }
+    if (terms.length > 0) {
+      question.technicalTerms = terms;
+    }
+    return question;
+  };
+
   // For Google Sheets / spreadsheet scripts
   if (lowerPrompt.includes('google sheet') || lowerPrompt.includes('spreadsheet') || lowerPrompt.includes('excel')) {
     return [
@@ -17,9 +55,9 @@ export function generateContextQuestionsForPrompt(promptText: string): any[] {
       { id: "q6", text: "What should happen if there's a mistake in the data? (For example: show an error message, skip the row, or use a default value)", isRelevant: null, answer: "", category: "Conditions" },
       { id: "q7", text: "How would you like to see the results? (For example: in a new sheet, as a chart, or in a summary)", isRelevant: null, answer: "", category: "Instructions" },
       { id: "q8", text: "Will someone else need to update or change how this works in the future?", isRelevant: null, answer: "", category: "Persona" },
-    ];
+    ].map(addTechnicalTerms);
   }
-  
+
   // For coding/programming tasks
   if (lowerPrompt.includes('code') || lowerPrompt.includes('script') || lowerPrompt.includes('program') || lowerPrompt.includes('function')) {
     return [
@@ -31,7 +69,7 @@ export function generateContextQuestionsForPrompt(promptText: string): any[] {
       { id: "q6", text: "Who will need to understand or modify this code later?", isRelevant: null, answer: "", category: "Persona" },
       { id: "q7", text: "Are there any specific tools or systems this needs to work with?", isRelevant: null, answer: "", category: "Conditions" },
       { id: "q8", text: "What should happen when something goes wrong? (For example: show an error message, try again, or have a backup plan)", isRelevant: null, answer: "", category: "Instructions" },
-    ];
+    ].map(addTechnicalTerms);
   }
 
   // For email-related prompts
@@ -45,7 +83,7 @@ export function generateContextQuestionsForPrompt(promptText: string): any[] {
       { id: "q6", text: "What tone and level of formality is appropriate for this audience?", isRelevant: null, answer: "", category: "Persona" },
       { id: "q7", text: "What is the maximum length or time constraint for this message?", isRelevant: null, answer: "", category: "Conditions" },
       { id: "q8", text: "How should supporting information or attachments be organized?", isRelevant: null, answer: "", category: "Instructions" },
-    ];
+    ].map(addTechnicalTerms);
   }
   
   // For creative writing
@@ -59,7 +97,7 @@ export function generateContextQuestionsForPrompt(promptText: string): any[] {
       { id: "q6", text: "What tone, style, or voice is appropriate for the audience?", isRelevant: null, answer: "", category: "Persona" },
       { id: "q7", text: "Are there any content restrictions or guidelines to follow?", isRelevant: null, answer: "", category: "Conditions" },
       { id: "q8", text: "How should research or supporting information be incorporated?", isRelevant: null, answer: "", category: "Instructions" },
-    ];
+    ].map(addTechnicalTerms);
   }
   
   // For data analysis or reporting
@@ -73,7 +111,7 @@ export function generateContextQuestionsForPrompt(promptText: string): any[] {
       { id: "q6", text: "What level of technical expertise does the audience have?", isRelevant: null, answer: "", category: "Persona" },
       { id: "q7", text: "What data quality issues or limitations need to be considered?", isRelevant: null, answer: "", category: "Conditions" },
       { id: "q8", text: "How should conclusions and recommendations be presented?", isRelevant: null, answer: "", category: "Instructions" },
-    ];
+    ].map(addTechnicalTerms);
   }
   
   // Default questions updated to be more user-friendly
@@ -86,7 +124,7 @@ export function generateContextQuestionsForPrompt(promptText: string): any[] {
     { id: "q6", text: "What kind of language or style should be used?", isRelevant: null, answer: "", category: "Persona" },
     { id: "q7", text: "Is there any background information that would help understand this better?", isRelevant: null, answer: "", category: "Conditions" },
     { id: "q8", text: "How should the information be organized or presented?", isRelevant: null, answer: "", category: "Instructions" },
-  ];
+  ].map(addTechnicalTerms);
 }
 
 /**

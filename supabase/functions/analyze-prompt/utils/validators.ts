@@ -30,10 +30,53 @@ export function validateQuestionVariablePairs(questions: any[], variables: any[]
     
     // Validate question follows user-friendly guidelines
     const hasExample = question.text.includes('(') && question.text.includes(')');
-    const hasTechnicalJargon = /\b(api|sdk|oauth|jwt|sql|regex|kubernetes|docker)\b/i.test(questionLower);
+    
+    // Define common technical terms that need explanation
+    const technicalTerms = {
+      api: "Application Programming Interface",
+      sdk: "Software Development Kit",
+      oauth: "Open Authentication",
+      jwt: "JSON Web Token",
+      sql: "Structured Query Language",
+      regex: "Regular Expression",
+      kubernetes: "Container Orchestration System",
+      docker: "Container Platform"
+    };
+    
+    // Check for technical terms and ensure they have explanations
+    const foundTechnicalTerms = Object.entries(technicalTerms).reduce((terms: any[], [term, fullName]) => {
+      if (questionLower.includes(term)) {
+        terms.push({
+          term,
+          explanation: `${fullName} - A technical tool that helps with ${term === 'api' ? 'connecting different software systems' : 
+            term === 'sdk' ? 'building software applications' :
+            term === 'oauth' ? 'secure login systems' :
+            term === 'jwt' ? 'secure data transfer' :
+            term === 'sql' ? 'managing database information' :
+            term === 'regex' ? 'finding patterns in text' :
+            term === 'kubernetes' ? 'managing large applications' :
+            term === 'docker' ? 'packaging applications' : 'technical operations'}`,
+          example: `For example: ${
+            term === 'api' ? 'connecting to a weather service to get today\'s forecast' :
+            term === 'sdk' ? 'tools that help create mobile apps' :
+            term === 'oauth' ? 'logging in with your Google account' :
+            term === 'jwt' ? 'securely remembering who you are while using an app' :
+            term === 'sql' ? 'finding all orders from the last month' :
+            term === 'regex' ? 'checking if an email address is valid' :
+            term === 'kubernetes' ? 'running a website that can handle millions of users' :
+            term === 'docker' ? 'making sure an app works the same on any computer' : ''
+          }`
+        });
+      }
+      return terms;
+    }, []);
+    
+    if (foundTechnicalTerms.length > 0) {
+      question.technicalTerms = foundTechnicalTerms;
+    }
     
     // If technical jargon is present but no example is provided
-    if (hasTechnicalJargon && !hasExample) {
+    if (foundTechnicalTerms.length > 0 && !hasExample) {
       console.warn(`Question "${question.text}" contains technical terms without examples`);
       return false;
     }
@@ -41,4 +84,3 @@ export function validateQuestionVariablePairs(questions: any[], variables: any[]
   
   return true;
 }
-

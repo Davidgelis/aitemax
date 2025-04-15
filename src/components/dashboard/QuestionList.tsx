@@ -1,4 +1,3 @@
-
 import { X, FileText, Edit } from "lucide-react";
 import { Question } from "./types";
 import { RefObject, useState } from "react";
@@ -88,6 +87,32 @@ export const QuestionList = ({
     const words = answer.split(' ');
     return words.slice(0, 10).join(' ') + (words.length > 10 ? '...' : '');
   };
+
+  const renderTechnicalTerms = (question: Question) => {
+    if (!question.technicalTerms || question.technicalTerms.length === 0) return null;
+
+    return (
+      <div className="ml-11 mt-2 space-y-2">
+        {question.technicalTerms.map((term, index) => (
+          <TooltipProvider key={index}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="inline-flex items-center gap-2 text-xs bg-accent/10 px-2 py-1 rounded-full cursor-help">
+                  <span className="font-medium">{term.term}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[300px]">
+                <div className="space-y-2">
+                  <p className="font-medium">{term.explanation}</p>
+                  <p className="text-sm text-muted-foreground">{term.example}</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ))}
+      </div>
+    );
+  };
   
   return (
     <div className="mb-6">
@@ -144,6 +169,10 @@ export const QuestionList = ({
                       <X className="w-5 h-5" />
                     </button>
                   </div>
+                  
+                  {/* Add technical terms display */}
+                  {question.isRelevant !== false && renderTechnicalTerms(question)}
+                  
                   {question.isRelevant !== false && question.answer && (
                     <div className="pl-8 pr-2 text-sm text-gray-600 line-clamp-2 italic bg-gray-50 p-2 rounded">
                       {getAnswerPreview(question.answer)}
