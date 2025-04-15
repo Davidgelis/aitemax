@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -35,7 +34,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'o3-mini',  // Changed from gpt-3.5-turbo to o3-mini
+        model: 'gpt-4.1-mini',  // Changed from o3-mini to gpt-4.1-mini
         messages: [
           { 
             role: 'system', 
@@ -46,7 +45,7 @@ serve(async (req) => {
           },
           { role: 'user', content: promptText }
         ],
-        // Temperature parameter removed as it's not needed for o3-mini
+        temperature: 0.7, // Added temperature parameter for more creative tag generation
         max_tokens: 150,
       }),
     });
@@ -58,7 +57,7 @@ serve(async (req) => {
     }
 
     const openAIData = await openAIResponse.json();
-    console.log('o3-mini response received successfully');
+    console.log('GPT-4.1 mini response received successfully');
     
     let tags;
     try {
@@ -68,7 +67,7 @@ serve(async (req) => {
       
       console.log('Tags generated successfully:', tags);
     } catch (parseError) {
-      console.error('Failed to parse o3-mini response as JSON:', parseError);
+      console.error('Failed to parse GPT-4.1 mini response as JSON:', parseError);
       console.log('Raw content:', openAIData.choices[0].message.content);
       
       // If parsing fails, attempt to extract the tags using regex or other means
