@@ -267,13 +267,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string, rememberMe = false) => {
     try {
-      // If rememberMe is true, we'll extend the session expiry (handled by Supabase)
-      const options = rememberMe ? { expiresIn: 60 * 60 * 24 * 30 } : undefined; // 30 days if remember me
-      
+      // Fixed: Update the options parameter to match Supabase's expected type
+      // If rememberMe is true, we'll set a longer session
       const { error } = await supabase.auth.signInWithPassword({ 
         email, 
         password,
-        options
+        // Using options.session parameter instead of options.expiresIn
+        options: rememberMe ? {
+          session: {
+            expiresIn: 60 * 60 * 24 * 30 // 30 days if remember me is checked
+          }
+        } : undefined
       });
       return { error };
     } catch (err) {
