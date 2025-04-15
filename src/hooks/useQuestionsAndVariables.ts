@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -77,7 +78,10 @@ export const useQuestionsAndVariables = (
         }
 
         // Prepare updated saved variables
-        const currentSavedVariables = promptData.saved_variables || [];
+        const currentSavedVariables = Array.isArray(promptData.saved_variables) 
+          ? promptData.saved_variables 
+          : [];
+          
         const newVariable = {
           id: newVariableId,
           name: '',
@@ -123,20 +127,20 @@ export const useQuestionsAndVariables = (
 
     // If a prompt is currently being viewed/edited, remove from saved variables
     if (user && promptId) {
+      const filteredVariables = variables
+        .filter((v) => v.id !== varId)
+        .map(v => ({ 
+          id: v.id, 
+          name: v.name, 
+          value: v.value, 
+          isRelevant: v.isRelevant,
+          category: v.category,
+          code: v.code
+        }));
+
       supabase
         .from('prompts')
-        .update({ 
-          saved_variables: variables
-            .filter((v) => v.id !== varId)
-            .map(v => ({ 
-              id: v.id, 
-              name: v.name, 
-              value: v.value, 
-              isRelevant: v.isRelevant,
-              category: v.category,
-              code: v.code
-            }))
-        })
+        .update({ saved_variables: filteredVariables })
         .eq('id', promptId)
         .eq('user_id', user.id)
         .then(({ error }) => {
@@ -180,22 +184,22 @@ export const useQuestionsAndVariables = (
 
     // If a prompt is currently being viewed/edited, save changes to saved_variables
     if (user && promptId) {
+      const variablesToSave = variables.map(v => 
+        v.id === variableId 
+          ? { ...v, [field]: value } 
+          : { 
+              id: v.id, 
+              name: v.name, 
+              value: v.value, 
+              isRelevant: v.isRelevant,
+              category: v.category,
+              code: v.code
+            }
+      );
+
       supabase
         .from('prompts')
-        .update({ 
-          saved_variables: variables.map(v => 
-            v.id === variableId 
-              ? { ...v, [field]: value } 
-              : { 
-                  id: v.id, 
-                  name: v.name, 
-                  value: v.value, 
-                  isRelevant: v.isRelevant,
-                  category: v.category,
-                  code: v.code
-                }
-          )
-        })
+        .update({ saved_variables: variablesToSave })
         .eq('id', promptId)
         .eq('user_id', user.id)
         .then(({ error }) => {
