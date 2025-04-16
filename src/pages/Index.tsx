@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { KeyboardEvent } from "react";
 import Navbar from "@/components/Navbar";
+import { getAvatarByValue } from "@/config/avatarConfig";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -43,6 +44,21 @@ const Index = () => {
       />
       
       <Navbar />
+      
+      <nav className="w-full flex justify-end mb-8">
+        {user && (
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-white flex items-center justify-center">
+              <img 
+                src={getAvatarByValue(user.avatar_url || "avatar1").src}
+                alt="User Avatar"
+                className="w-full h-full object-contain p-1"
+              />
+            </div>
+            <span className="text-[#041524]">{user.email}</span>
+          </div>
+        )}
+      </nav>
       
       <main className="w-full mx-auto flex flex-col items-center mt-20">
         {/* Combined logo and text container with adjusted margin for smaller logo */}

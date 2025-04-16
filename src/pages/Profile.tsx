@@ -6,44 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import MasterPanel from "@/components/dashboard/MasterPanel";
 import { ChangeEmailForm } from "@/components/profile/ChangeEmailForm";
-
-const avatarOptions = [
-  {
-    id: "avatar1",
-    value: "avatar1",
-    src: "/lovable-uploads/9e9dab89-7884-4529-8d21-4635694140a0.png", 
-    alt: "Intersecting circles"
-  },
-  {
-    id: "avatar2",
-    value: "avatar2", 
-    src: "/lovable-uploads/599e8307-b1eb-411f-ac99-f096310d8073.png",
-    alt: "Green diagonal line"
-  },
-  {
-    id: "avatar3",
-    value: "avatar3",
-    src: "/lovable-uploads/6880916c-ef0f-41df-bba8-bae4076a3355.png",
-    alt: "Teal diagonal line"
-  },
-  {
-    id: "avatar4",
-    value: "avatar4",
-    src: "/lovable-uploads/57623e13-ceba-4029-a7cc-a0317bcecff5.png",
-    alt: "Teal circle"
-  },
-  {
-    id: "avatar5",
-    value: "avatar5",
-    src: "/lovable-uploads/6bc3d174-c5ec-4312-adb8-2c7834ab72e0.png",
-    alt: "Dark blue circle"
-  }
-];
+import { avatarOptions } from "@/config/avatarConfig";
 
 const Profile = () => {
   const [username, setUsername] = useState("");
@@ -183,7 +150,7 @@ const Profile = () => {
               <img 
                 src={getSelectedAvatarSrc()} 
                 alt="Selected Avatar" 
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain p-1"
               />
             </div>
             <div>
