@@ -3,32 +3,32 @@ export const avatarOptions = [
   {
     id: "avatar1",
     value: "avatar1",
-    src: "/lovable-uploads/e6ba8713-6a9f-489c-833b-15043ebdd529.png",
-    alt: "Multicolor X logo"
+    src: "/lovable-uploads/0d79bf27-1645-4a1d-b27c-c52a2d5a8eac.png",
+    alt: "Multi-color X logo with circular design"
   },
   {
     id: "avatar2",
     value: "avatar2",
-    src: "/lovable-uploads/f3556436-66fa-43b9-9118-b334d1ea63c2.png",
-    alt: "Dark X logo"
+    src: "/lovable-uploads/b5feb8cf-9f99-4d10-a84e-81ebfdecb7cb.png",
+    alt: "Dark teal X logo with circular design"
   },
   {
     id: "avatar3",
     value: "avatar3",
-    src: "/lovable-uploads/9338fd0a-f3fe-4425-a313-8e202c5f18d7.png",
-    alt: "Neon green X logo"
+    src: "/lovable-uploads/ecc5d24f-e08e-495a-8bbc-5d7901783c3e.png",
+    alt: "Navy X logo with circular design"
   },
   {
     id: "avatar4",
     value: "avatar4",
-    src: "/lovable-uploads/f77ee10e-191a-411e-be23-358ef67cba6f.png",
-    alt: "Mint green X logo"
+    src: "/lovable-uploads/afabb846-16f9-4570-bd28-490cd59a9e9d.png",
+    alt: "Neon green X logo with circular design"
   },
   {
     id: "avatar5",
     value: "avatar5",
-    src: "/lovable-uploads/48045a3f-c89c-44f1-9f22-6c442f6aadef.png",
-    alt: "Green X circular logo"
+    src: "/lovable-uploads/14a6b3b2-3a74-4460-84fe-ae743b3b7849.png",
+    alt: "Mint green X logo with circular design"
   }
 ];
 
