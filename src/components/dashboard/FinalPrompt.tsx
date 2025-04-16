@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Variable } from "./types";
@@ -16,7 +15,7 @@ import {
 
 interface FinalPromptProps {
   finalPrompt: string;
-  setFinalPrompt: (prompt: string) => void;
+  updateFinalPrompt: (prompt: string) => void;
   getProcessedPrompt: () => string;
   variables: Variable[];
   setVariables: React.Dispatch<React.SetStateAction<Variable[]>>;
@@ -38,7 +37,7 @@ interface FinalPromptProps {
 
 export const FinalPromptDisplay = ({
   finalPrompt,
-  setFinalPrompt,
+  updateFinalPrompt,
   getProcessedPrompt,
   variables,
   setVariables,

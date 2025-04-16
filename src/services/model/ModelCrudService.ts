@@ -1,140 +1,94 @@
 
-import { AIModel } from '@/components/dashboard/types';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
+import { AIModel } from "@/components/dashboard/types";
 
-export class ModelCrudService {
-  /**
-   * Create a new AI model
-   * @param model The model to create
-   * @returns The created model
-   */
-  async createModel(model: Omit<AIModel, 'id'>): Promise<AIModel> {
+export const ModelCrudService = {
+  async addModel(model: Partial<AIModel>): Promise<AIModel | null> {
     try {
+      console.log('Adding new model:', model);
       const { data, error } = await supabase
         .from('ai_models')
         .insert({
           name: model.name,
-          provider: model.provider,
-          description: model.description,
-          strengths: model.strengths,
-          limitations: model.limitations,
+          provider: model.provider
         })
-        .select()
-        .single();
-
-      if (error) throw new Error(error.message);
-      return data as AIModel;
-    } catch (error) {
-      console.error('Error creating model:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get an AI model by ID
-   * @param id The ID of the model to get
-   * @returns The model
-   */
-  async getModelById(id: string): Promise<AIModel> {
-    try {
-      const { data, error } = await supabase
-        .from('ai_models')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw new Error(error.message);
-      if (!data) throw new Error('Model not found');
+        .select();
       
-      return data as AIModel;
+      if (error) {
+        console.error('Error adding model:', error);
+        throw error;
+      }
+      
+      console.log('Model added successfully:', data[0]);
+      return data[0] as AIModel;
     } catch (error) {
-      console.error('Error getting model:', error);
+      console.error('Exception in addModel:', error);
       throw error;
     }
-  }
-
-  /**
-   * Update an AI model
-   * @param id The ID of the model to update
-   * @param model The updated model data
-   * @returns The updated model
-   */
-  async updateModel(id: string, model: Partial<AIModel>): Promise<AIModel> {
+  },
+  
+  async updateModel(id: string, model: Partial<AIModel>): Promise<boolean> {
     try {
-      const { data, error } = await supabase
+      console.log(`Updating model with ID ${id}:`, model);
+      const { error } = await supabase
         .from('ai_models')
         .update({
           name: model.name,
-          provider: model.provider,
-          description: model.description,
-          strengths: model.strengths,
-          limitations: model.limitations,
+          provider: model.provider
         })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw new Error(error.message);
-      if (!data) throw new Error('Model not found');
+        .eq('id', id);
       
-      return data as AIModel;
+      if (error) {
+        console.error('Error updating model:', error);
+        throw error;
+      }
+      
+      console.log(`Model ${id} updated successfully`);
+      return true;
     } catch (error) {
-      console.error('Error updating model:', error);
+      console.error('Exception in updateModel:', error);
       throw error;
     }
-  }
-
-  /**
-   * Delete an AI model
-   * @param id The ID of the model to delete
-   */
-  async deleteModel(id: string): Promise<void> {
+  },
+  
+  async deleteModel(id: string): Promise<boolean> {
     try {
+      console.log(`ModelService: Starting deletion for model ID: ${id}`);
+      
+      // Mark the model as deleted in the database using a dedicated column
+      // This ensures the edge function won't recreate it
+      const { error: markError } = await supabase
+        .from('ai_models')
+        .update({ 
+          updated_at: new Date().toISOString(),
+          is_deleted: true 
+        })
+        .eq('id', id);
+        
+      if (markError) {
+        console.error('Error marking model as deleted:', markError);
+        return false;
+      }
+      
+      // Now perform the actual deletion
       const { error } = await supabase
         .from('ai_models')
         .delete()
-        .eq('id', id);
-
-      if (error) throw new Error(error.message);
+        .match({ id });
+      
+      if (error) {
+        console.error('Error deleting model:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        return false;
+      }
+      
+      console.log(`ModelService: Successfully deleted model ${id}`);
+      return true;
     } catch (error) {
-      console.error('Error deleting model:', error);
-      throw error;
+      console.error('Exception in deleteModel:', error);
+      return false;
     }
   }
-
-  /**
-   * Soft delete an AI model 
-   * @param id The ID of the model to soft delete
-   */
-  async softDeleteModel(id: string): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('ai_models')
-        .update({ is_deleted: true })
-        .eq('id', id);
-
-      if (error) throw new Error(error.message);
-    } catch (error) {
-      console.error('Error soft deleting model:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Restore a soft-deleted AI model
-   * @param id The ID of the model to restore
-   */
-  async restoreModel(id: string): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('ai_models')
-        .update({ is_deleted: false })
-        .eq('id', id);
-
-      if (error) throw new Error(error.message);
-    } catch (error) {
-      console.error('Error restoring model:', error);
-      throw error;
-    }
-  }
-}
+};

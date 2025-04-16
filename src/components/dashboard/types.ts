@@ -1,4 +1,24 @@
 
+import { Json } from "@/integrations/supabase/types";
+
+export interface AIModel {
+  id?: string;
+  name: string;
+  provider: string;
+  description: string;
+  strengths: string[];
+  limitations: string[];
+  updated_at?: string;
+}
+
+// Update the UploadedImage interface to include context
+export interface UploadedImage {
+  id: string;
+  url: string;
+  file: File;
+  context?: string;
+}
+
 export interface TechnicalTerm {
   term: string;
   explanation: string;
@@ -9,8 +29,8 @@ export interface Variable {
   id: string;
   name: string;
   value: string;
-  category: string;
   isRelevant: boolean | null;
+  category?: string; // Task, Persona, Conditions, Instructions categories
   code?: string;
   technicalTerms?: TechnicalTerm[];
 }
@@ -18,141 +38,106 @@ export interface Variable {
 export interface Question {
   id: string;
   text: string;
-  category: string;
   answer: string;
-  isRelevant: boolean;
-  technicalTerms?: TechnicalTerm[]; // Added to support QuestionList component
-}
-
-export interface UploadedImage {
-  id: string;
-  url: string;
-  file: File;
-  context?: string;
-}
-
-export interface AIModel {
-  id: string;
-  name: string;
-  provider: string;
-  description: string;
-  contextLength: number;
-  capabilities: string[];
-  pricing?: {
-    input?: number;
-    output?: number;
-    unit?: string;
-  };
-  isRecommended?: boolean;
-  lastUpdated?: string;
-  strengths?: string[]; // Added to support ModelTooltip and related components
-  limitations?: string[]; // Added to support ModelTooltip and related components
-  updated_at?: string; // Added to support useModelSelector
-  is_deleted?: boolean; // Added to support model services
-  created_at?: string; // Added to support model services
+  isRelevant: boolean | null;
+  category?: string; // Task, Persona, Conditions, Instructions categories
+  prefillSource?: string;
+  technicalTerms?: TechnicalTerm[];
 }
 
 export interface Toggle {
   id: string;
   label: string;
   definition: string;
-  prompt: string; // Added to support constants.ts usage
+  prompt: string;
+}
+
+// Define a proper type for the tag structure
+export interface PromptTag {
+  category: string;
+  subcategory: string;
 }
 
 export interface SavedPrompt {
-  id: string;
+  id?: string;
   title: string;
-  prompt: string;
-  promptText?: string; // Added for backward compatibility
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  variables?: Variable[] | Record<string, any>;
-  questions?: Record<string, any>;
-  masterCommand?: string;
-  primaryToggle?: string | null;
-  secondaryToggle?: string | null;
-  tags?: PromptTag[];
-  date?: string; // Added to support existing code
-  jsonStructure?: PromptJsonStructure; // Added to support usePromptState
+  date: string;
+  promptText: string;
+  masterCommand: string;
+  primaryToggle: string | null;
+  secondaryToggle: string | null;
+  variables: Variable[];
+  jsonStructure?: PromptJsonStructure;
+  tags?: PromptTag[]; // Update this to use the proper type
 }
 
 export interface PromptJsonStructure {
-  questions: Question[];
-  variables: Variable[];
-  masterCommand: string;
-  enhancedPrompt: string;
-  selectedPrimary: string | null;
-  selectedSecondary: string | null;
-  title?: string; // Added to support FinalPromptDisplay
-  summary?: string; // Added to support FinalPromptDisplay
+  title?: string;
+  summary?: string;
+  sections?: Array<{ title: string; content: string }>;
+  error?: string;
+  generationError?: string;
+  masterCommand?: string;
+  timestamp?: string; // Make timestamp optional and ensure it's removed in UI
+  variablePlaceholders?: string[];
+  task?: string;
+  persona?: string;
+  conditions?: string;
+  instructions?: string;
+  [key: string]: any; // Allow for any additional properties
 }
 
-export interface PromptTag {
-  id: string;
-  name: string;
-  color?: string;
-  category?: string; // Added to support XPanel and PromptView
-  subcategory?: string; // Added to support XPanel and PromptView
-}
-
-// Helper functions for variable conversion
+// Helper functions for variable serialization/deserialization with updated types
 export const variablesToJson = (variables: Variable[]): Record<string, any> => {
-  return variables.reduce((acc, variable) => {
-    acc[variable.id] = {
-      name: variable.name,
-      value: variable.value,
-      category: variable.category,
-      isRelevant: variable.isRelevant,
-      code: variable.code,
-      technicalTerms: variable.technicalTerms
-    };
-    return acc;
-  }, {} as Record<string, any>);
-};
-
-export const jsonToVariables = (json: Record<string, any> | null | any): Variable[] => {
-  if (!json) return [];
+  if (!variables || !Array.isArray(variables)) return {};
   
-  // Added type safety checks
-  if (typeof json !== 'object') return [];
-  
-  // If it's already an array of Variables, return it
-  if (Array.isArray(json) && json.length > 0 && 'id' in json[0]) {
-    return json as Variable[];
-  }
-  
-  return Object.entries(json).map(([id, value]) => {
-    // Handle the case where value might not be an object
-    if (typeof value !== 'object' || value === null) {
-      return {
-        id,
-        name: '',
-        value: '',
-        category: '',
-        isRelevant: true,
-        code: undefined,
-        technicalTerms: []
+  const result: Record<string, any> = {};
+  variables.forEach(variable => {
+    if (variable && variable.id) {
+      // Convert technicalTerms to simple objects that match the Json type
+      const simplifiedTechnicalTerms = variable.technicalTerms?.map(term => ({
+        term: term.term,
+        explanation: term.explanation,
+        example: term.example
+      }));
+      
+      result[variable.id] = {
+        name: variable.name,
+        value: variable.value,
+        isRelevant: variable.isRelevant,
+        category: variable.category,
+        code: variable.code,
+        technicalTerms: simplifiedTechnicalTerms
       };
     }
-
-    // Safely access properties with proper type checking
-    const val = value as Record<string, any>;
-    const name = typeof val.name === 'string' ? val.name : '';
-    const valStr = typeof val.value === 'string' ? val.value : '';
-    const category = typeof val.category === 'string' ? val.category : '';
-    const isRelevant = typeof val.isRelevant === 'boolean' ? val.isRelevant : true;
-    const code = val.code;
-    const technicalTerms = Array.isArray(val.technicalTerms) ? val.technicalTerms : [];
-
-    return {
-      id,
-      name,
-      value: valStr,
-      category,
-      isRelevant,
-      code,
-      technicalTerms
-    };
   });
+  
+  return result;
+};
+
+// Update jsonToVariables to handle Json type from Supabase
+export const jsonToVariables = (json: Json | Record<string, any> | null): Variable[] => {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return [];
+  
+  const variables: Variable[] = [];
+  Object.keys(json).forEach(id => {
+    const varData = json[id];
+    if (varData && typeof varData === 'object' && !Array.isArray(varData)) {
+      variables.push({
+        id,
+        name: varData.name || '',
+        value: varData.value || '',
+        isRelevant: varData.isRelevant === undefined ? null : varData.isRelevant,
+        category: varData.category || 'Other',
+        code: varData.code || '',
+        technicalTerms: varData.technicalTerms ? varData.technicalTerms.map((term: any) => ({
+          term: term.term || '',
+          explanation: term.explanation || '',
+          example: term.example || ''
+        })) : undefined
+      });
+    }
+  });
+  
+  return variables;
 };

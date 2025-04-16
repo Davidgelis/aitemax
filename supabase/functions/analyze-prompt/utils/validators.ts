@@ -1,3 +1,4 @@
+
 export function validateQuestionVariablePairs(questions: any[], variables: any[]): boolean {
   // Improved logging with pillar tracking
   console.log("Starting validation of questions and variables", {
@@ -58,28 +59,6 @@ export function validateQuestionVariablePairs(questions: any[], variables: any[]
     if (!variable.id || !variable.name || !variable.category) {
       console.error("Invalid variable format:", variable);
       return false;
-    }
-  }
-
-  // Check pillar distribution and technical term explanations
-  for (const variable of variables) {
-    if (variable.technicalTerms) {
-      for (const term of variable.technicalTerms) {
-        if (!term.term || !term.explanation || !term.example) {
-          console.error("Invalid technical term format:", term);
-          return false;
-        }
-        
-        // Ensure explanations are concise (2-3 sentences)
-        const sentenceCount = term.explanation.split(/[.!?]+/).filter(Boolean).length;
-        if (sentenceCount < 1 || sentenceCount > 3) {
-          console.error("Technical term explanation should be 2-3 sentences:", {
-            term: term.term,
-            sentenceCount
-          });
-          return false;
-        }
-      }
     }
   }
 

@@ -174,13 +174,14 @@ export const StepThreeContent = ({
 
       <FinalPromptDisplay 
         finalPrompt={finalPrompt || ""}
-        setFinalPrompt={setFinalPrompt}
+        updateFinalPrompt={setFinalPrompt}
         getProcessedPrompt={getProcessedPromptFunction}
         variables={safeVariables}
         setVariables={setVariables}
+        showJson={false}
         masterCommand={masterCommand || ""}
         handleOpenEditPrompt={externalHandleOpenEditPrompt}
-        recordVariableSelection={promptOperations.recordVariableSelection}
+        recordVariableSelection={recordVariableSelection}
         isEditing={isEditing}
         setIsEditing={setIsEditing}
         editablePrompt={editablePrompt}

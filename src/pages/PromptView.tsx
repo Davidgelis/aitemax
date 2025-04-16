@@ -1,279 +1,523 @@
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, Copy, Share2, Globe, Lock, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SavedPrompt, Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
+import XPanelButton from "@/components/dashboard/XPanelButton";
+import { convertPlaceholdersToSpans, createPlainTextPrompt } from "@/utils/promptUtils";
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Json } from '@/integrations/supabase/types';
-import { Layout } from '@/components/Layout';
-import { useToast } from '@/hooks/use-toast';
-import { SavedPrompt, Variable, jsonToVariables, PromptTag } from '@/components/dashboard/types';
-import { formatDistanceToNow } from 'date-fns';
-import { Spinner } from '@/components/dashboard/Spinner';
-import { Button } from '@/components/ui/button';
-import {
-  Copy,
-  Clock,
-  Tag,
-  X,
-  ChevronDown,
-  ChevronUp,
-  ArrowLeft,
-  Edit
-} from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-
-export const PromptView = () => {
-  const { id } = useParams<{ id: string }>();
-  const [selectedPrompt, setSelectedPrompt] = useState<SavedPrompt | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [variables, setVariables] = useState<Variable[]>([]);
-  const [tags, setTags] = useState<PromptTag[]>([]);
-  const [showFullPrompt, setShowFullPrompt] = useState(false);
-  const [user, setUser] = useState<{ id: string; username: string; avatar_url: string } | null>(null);
+const PromptView = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [prompt, setPrompt] = useState<SavedPrompt | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [jsonView, setJsonView] = useState<string>("");
+  const [isOwner, setIsOwner] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [shareEmail, setShareEmail] = useState("");
+  const [isSharing, setIsSharing] = useState(false);
+  
+  // Step 3 related states
+  const [finalPrompt, setFinalPrompt] = useState("");
+  const [masterCommand, setMasterCommand] = useState("");
+  const [variables, setVariables] = useState<Variable[]>([]);
+  const [selectedPrimary, setSelectedPrimary] = useState<string | null>(null);
+  const [selectedSecondary, setSelectedSecondary] = useState<string | null>(null);
+  const [showJson, setShowJson] = useState(false);
+  const [editingPrompt, setEditingPrompt] = useState("");
+  const [showEditPromptSheet, setShowEditPromptSheet] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
+  const [isLoadingJson, setIsLoadingJson] = useState(false);
 
-  const fetchUser = async (userId: string) => {
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+    
+    getUser();
+  }, []);
+
+  useEffect(() => {
+    if (id) {
+      fetchPrompt(id);
+    }
+  }, [id, user]);
+
+  useEffect(() => {
+    if (prompt && prompt.variables) {
+      setFinalPrompt(prompt.promptText || "");
+      setMasterCommand(prompt.masterCommand || "");
+      // Ensure variables is always an array and properly typed
+      setVariables(prompt.variables);
+      setSelectedPrimary(prompt.primaryToggle || null);
+      setSelectedSecondary(prompt.secondaryToggle || null);
+    }
+  }, [prompt]);
+
+  const fetchPrompt = async (promptId: string) => {
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url')
-        .eq('id', userId)
+        .from('prompts')
+        .select('*')
+        .eq('id', promptId)
         .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setUser({
-          id: data.id,
-          username: data.username || 'Unknown User',
-          avatar_url: data.avatar_url || ''
-        });
+      
+      if (error) {
+        throw error;
       }
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      setUser({ id: userId, username: 'Unknown User', avatar_url: '' });
+      
+      if (!data) {
+        toast({
+          title: "Prompt not found",
+          description: "The prompt you're looking for doesn't exist.",
+          variant: "destructive",
+        });
+        navigate("/x-panel");
+        return;
+      }
+      
+      // Convert the variables from JSON to the Variable type array
+      let processedVariables: Variable[] = [];
+      if (data.variables) {
+        if (Array.isArray(data.variables)) {
+          // If it's already an array, map it to ensure it matches the Variable type
+          processedVariables = data.variables.map((v: any) => ({
+            id: typeof v.id === 'string' ? v.id : String(v.id || ''),
+            name: v.name || '',
+            value: v.value || '',
+            isRelevant: v.isRelevant === undefined ? null : v.isRelevant,
+            category: v.category || 'Other',
+            code: v.code || ''
+          }));
+        } else if (typeof data.variables === 'object' && data.variables !== null) {
+          // If it's an object with variable IDs as keys
+          processedVariables = Object.keys(data.variables).map(id => {
+            const v = data.variables[id];
+            return {
+              id,
+              name: typeof v === 'object' && v !== null ? (v.name || '') : '',
+              value: typeof v === 'object' && v !== null ? (v.value || '') : '',
+              isRelevant: typeof v === 'object' && v !== null ? 
+                (v.isRelevant === undefined ? null : v.isRelevant) : null,
+              category: typeof v === 'object' && v !== null ? (v.category || 'Other') : 'Other',
+              code: typeof v === 'object' && v !== null ? (v.code || '') : ''
+            };
+          });
+        }
+      }
+      
+      const formattedPrompt: SavedPrompt = {
+        id: data.id,
+        title: data.title || 'Untitled Prompt',
+        date: new Date(data.created_at || '').toLocaleString(),
+        promptText: data.prompt_text || '',
+        masterCommand: data.master_command || '',
+        primaryToggle: data.primary_toggle,
+        secondaryToggle: data.secondary_toggle,
+        variables: processedVariables,
+        tags: (data.tags as unknown as Array<{category: string, subcategory: string}>) || []
+      };
+      
+      setPrompt(formattedPrompt);
+      setIsOwner(user && data.user_id === user.id);
+      
+      // Generate JSON view for the prompt if it has variables
+      if (formattedPrompt.variables && formattedPrompt.variables.length > 0) {
+        const jsonObj = {
+          prompt: formattedPrompt.promptText,
+          variables: formattedPrompt.variables.reduce((acc: any, v: Variable) => {
+            if (v.name && v.value) {
+              acc[v.name] = v.value;
+            }
+            return acc;
+          }, {}),
+          masterCommand: formattedPrompt.masterCommand
+        };
+        setJsonView(JSON.stringify(jsonObj, null, 2));
+      }
+      
+    } catch (error: any) {
+      console.error("Error fetching prompt:", error.message);
+      toast({
+        title: "Error fetching prompt",
+        description: error.message,
+        variant: "destructive",
+      });
+      navigate("/x-panel");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    const fetchPrompt = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('prompts')
-          .select('*')
-          .eq('id', id)
-          .single();
+  const handleCopyContent = (content: string) => {
+    navigator.clipboard.writeText(content);
+    toast({
+      title: "Copied to clipboard",
+      description: "Content has been copied to your clipboard.",
+    });
+  };
 
-        if (error) throw error;
-
-        if (data) {
-          const prompt: SavedPrompt = {
-            id: data.id,
-            title: data.title || 'Untitled Prompt',
-            prompt: data.prompt_text || '',
-            promptText: data.prompt_text || '',
-            created_at: data.created_at || '',
-            updated_at: data.updated_at || '',
-            user_id: data.user_id || '',
-            date: new Date(data.created_at || '').toLocaleString(),
-            masterCommand: data.master_command || '',
-            primaryToggle: data.primary_toggle,
-            secondaryToggle: data.secondary_toggle,
-            variables: data.variables as unknown as Variable[] || [],
-            tags: data.tags as unknown as PromptTag[] || []
-          };
-
-          setSelectedPrompt(prompt);
-
-          // Safely handle variables
-          if (data.variables) {
-            const promptVars = Array.isArray(data.variables) 
-              ? data.variables as unknown as Variable[]
-              : jsonToVariables(data.variables as Json);
-            setVariables(promptVars);
-          }
-
-          // Safely handle tags
-          if (data.tags && Array.isArray(data.tags)) {
-            const promptTags = data.tags.map(tag => {
-              if (typeof tag === 'object' && tag !== null) {
-                return {
-                  id: typeof tag.id === 'string' ? tag.id : '',
-                  name: typeof tag.name === 'string' ? tag.name : '',
-                  category: typeof tag.category === 'string' ? tag.category : '',
-                  subcategory: typeof tag.subcategory === 'string' ? tag.subcategory : '',
-                  color: typeof tag.color === 'string' ? tag.color : ''
-                } as PromptTag;
-              }
-              return {
-                id: '',
-                name: '',
-                category: '',
-                subcategory: '',
-                color: ''
-              } as PromptTag;
-            });
-            setTags(promptTags);
-          }
-
-          // Fetch user info
-          await fetchUser(data.user_id);
-        }
-      } catch (error) {
-        console.error('Error fetching prompt:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load the prompt.',
-          variant: 'destructive'
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchPrompt();
+  const handleShareViaEmail = async () => {
+    if (!shareEmail || !prompt) return;
+    
+    setIsSharing(true);
+    
+    try {
+      // This would be integrated with an email service
+      // For now, we'll just simulate the process
+      
+      toast({
+        title: "Prompt shared",
+        description: `An invitation has been sent to ${shareEmail}`,
+      });
+      
+      setShareEmail("");
+    } catch (error: any) {
+      console.error("Error sharing prompt:", error.message);
+      toast({
+        title: "Error sharing prompt",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSharing(false);
     }
-  }, [id, toast]);
+  };
 
-  const handleCopyToClipboard = () => {
-    if (selectedPrompt) {
-      navigator.clipboard.writeText(selectedPrompt.prompt).then(() => {
-        toast({
-          title: 'Copied!',
-          description: 'Prompt copied to clipboard.',
-        });
-      }).catch(err => {
-        console.error('Could not copy prompt: ', err);
-        toast({
-          title: 'Error',
-          description: 'Failed to copy prompt to clipboard.',
-          variant: 'destructive'
-        });
+  const getPlainText = (text: string) => {
+    return text ? text.replace(/<[^>]*>/g, '') : '';
+  };
+
+  const handlePrimaryToggle = (id: string) => {
+    setSelectedPrimary(selectedPrimary === id ? null : id);
+  };
+
+  const handleSecondaryToggle = (id: string) => {
+    setSelectedSecondary(selectedSecondary === id ? null : id);
+  };
+
+  const handleCopyPrompt = () => {
+    if (prompt) {
+      // Use our new utility to get clean plain text without HTML or placeholders
+      const textToCopy = createPlainTextPrompt(finalPrompt, variables.filter(v => v && v.isRelevant === true));
+      handleCopyContent(textToCopy);
+    }
+  };
+
+  const handleSavePrompt = async () => {
+    if (!prompt) return;
+    
+    try {
+      // Ensure variables is properly formatted before saving
+      const safeVariables = Array.isArray(variables) ? variables : [];
+      // Convert variables array to JSON format expected by Supabase
+      const variablesJson = variablesToJson(safeVariables);
+      
+      const { error } = await supabase
+        .from('prompts')
+        .update({
+          prompt_text: finalPrompt,
+          master_command: masterCommand,
+          variables: variablesJson,
+          primary_toggle: selectedPrimary,
+          secondary_toggle: selectedSecondary,
+        })
+        .eq('id', prompt.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Prompt saved",
+        description: "Your changes have been saved successfully.",
+      });
+    } catch (error: any) {
+      console.error("Error saving prompt:", error.message);
+      toast({
+        title: "Error saving prompt",
+        description: error.message,
+        variant: "destructive",
       });
     }
   };
 
-  const handleTagClick = (tag: PromptTag) => {
-    // Implement tag click logic here
-    console.log('Tag clicked:', tag);
+  const handleRegenerate = () => {
+    toast({
+      title: "Regenerate feature",
+      description: "This feature is not yet implemented in the Prompt View.",
+    });
   };
 
-  if (loading) {
+  const handleOpenEditPrompt = () => {
+    setEditingPrompt(finalPrompt);
+    setShowEditPromptSheet(true);
+  };
+
+  const handleSaveEditedPrompt = () => {
+    setFinalPrompt(editingPrompt);
+    setShowEditPromptSheet(false);
+  };
+
+  const handleAdaptPrompt = () => {
+    handleRegenerate();
+  };
+
+  const getProcessedPrompt = () => {
+    if (!finalPrompt) return "";
+    // Ensure we're only using variables that are actually in the array
+    const safeVariables = Array.isArray(variables) ? variables.filter(v => v && v.isRelevant === true) : [];
+    return convertPlaceholdersToSpans(finalPrompt, safeVariables);
+  };
+
+  const handleVariableValueChange = (variableId: string, newValue: string) => {
+    if (!Array.isArray(variables)) {
+      console.error("Variables is not an array:", variables);
+      return;
+    }
+    
+    setVariables(prevVars => 
+      prevVars.map(v => 
+        v.id === variableId ? { ...v, value: newValue } : v
+      )
+    );
+  };
+
+  const handleCreateVariable = (selectedText: string) => {
+    // In this view we're just displaying, not creating new variables
+    toast({
+      title: "Create variable",
+      description: "Creating new variables is not enabled in the Prompt View.",
+    });
+  };
+
+  const handleRefreshJson = async () => {
+    setIsLoadingJson(true);
+    try {
+      // Create a new structure with latest values
+      const updatedJsonView = {
+        prompt: finalPrompt,
+        variables: variables.reduce((acc: any, v: Variable) => {
+          if (v.name && v.value) {
+            acc[v.name] = v.value;
+          }
+          return acc;
+        }, {}),
+        masterCommand: masterCommand
+      };
+      setJsonView(JSON.stringify(updatedJsonView, null, 2));
+      
+      toast({
+        title: "JSON Updated",
+        description: "JSON view has been refreshed with latest changes",
+      });
+    } catch (error: any) {
+      console.error("Error refreshing JSON:", error);
+      toast({
+        title: "Error refreshing JSON",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingJson(false);
+    }
+  };
+
+  if (isLoading) {
     return (
-      <Layout>
-        <div className="flex justify-center items-center h-full">
-          <Spinner />
-        </div>
-      </Layout>
+      <div className="min-h-screen flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div>
+      </div>
     );
   }
 
-  if (!selectedPrompt) {
+  if (!prompt) {
     return (
-      <Layout>
-        <div className="flex justify-center items-center h-full text-lg">
-          Prompt not found.
+      <div className="min-h-screen flex justify-center items-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-4">Prompt not found</h2>
+          <Button variant="default" onClick={() => navigate("/x-panel")}>
+            Go to X Panel
+          </Button>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="container mx-auto mt-8">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <div className="bg-white shadow-md rounded-lg p-6">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">{selectedPrompt.title}</h1>
-              <div className="text-gray-500 text-sm flex items-center mt-1">
-                <Clock className="mr-1 h-4 w-4" />
-                Created {formatDistanceToNow(new Date(selectedPrompt.created_at), {
-                  addSuffix: true,
-                })}
-                {selectedPrompt.updated_at !== selectedPrompt.created_at && (
+    <div className="min-h-screen bg-background">
+      <XPanelButton />
+      <div className="container mx-auto py-4 px-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/x-panel")}
+              className="hover:bg-gray-100"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-3xl font-bold">{getPlainText(prompt.title)}</h1>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {isOwner ? (
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Lock className="h-4 w-4 mr-1" />
+                <span>You own this prompt</span>
+              </div>
+            ) : (
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Globe className="h-4 w-4 mr-1" />
+                <span>Shared with you</span>
+              </div>
+            )}
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="default">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Share Prompt</DialogTitle>
+                </DialogHeader>
+                <div className="py-4">
+                  <Label htmlFor="email" className="mb-2 block">
+                    Enter email address to share this prompt
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="email"
+                      placeholder="friend@example.com"
+                      type="email"
+                      value={shareEmail}
+                      onChange={(e) => setShareEmail(e.target.value)}
+                    />
+                    <Button 
+                      onClick={handleShareViaEmail} 
+                      disabled={!shareEmail || isSharing}
+                    >
+                      {isSharing ? "Sending..." : "Share"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Recipients will need an account to view this prompt
+                  </p>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+        
+        <div className="mb-4">
+          <div className="flex flex-wrap gap-2 mb-4">
+            {prompt.tags && prompt.tags.map((tag, index) => (
+              <div key={index} className="bg-accent/10 text-xs rounded-full px-2.5 py-1 flex items-center gap-1">
+                <span className="font-medium">{tag.category}</span>
+                {tag.subcategory && (
                   <>
-                    <span className="mx-2">•</span>
-                    Updated {formatDistanceToNow(new Date(selectedPrompt.updated_at), {
-                      addSuffix: true,
-                    })}
+                    <span>•</span>
+                    <span>{tag.subcategory}</span>
                   </>
                 )}
               </div>
-            </div>
-            <Button variant="outline" size="icon" onClick={handleCopyToClipboard}>
-              <Copy className="h-4 w-4" />
-            </Button>
+            ))}
           </div>
-
-          <Separator className="my-4" />
-
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">Author</h2>
-            <div className="flex items-center">
-              <Avatar className="mr-2">
-                <AvatarImage src={user?.avatar_url || ''} alt={user?.username || 'Unknown User'} />
-                <AvatarFallback>{user?.username?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
-              </Avatar>
-              <div className="text-gray-600">{user?.username || 'Unknown User'}</div>
-            </div>
-          </div>
-
-          <Separator className="my-4" />
-
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">Tags</h2>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <Badge
-                  key={tag.id}
-                  variant="secondary"
-                  onClick={() => handleTagClick(tag)}
-                  className="cursor-pointer"
-                >
-                  {tag.name}
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          <Separator className="my-4" />
-
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">Prompt</h2>
-            <div className="prose max-w-none">
-              {showFullPrompt ? (
-                <p className="text-gray-800 whitespace-pre-line">{selectedPrompt.prompt}</p>
-              ) : (
-                <p className="text-gray-800 whitespace-pre-line overflow-hidden max-h-40 relative">
-                  {selectedPrompt.prompt.substring(0, 500)}
-                  {selectedPrompt.prompt.length > 500 && (
-                    <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-white dark:from-gray-100 flex justify-center items-end">
-                      <Button variant="link" size="sm" onClick={() => setShowFullPrompt(true)}>
-                        Show More <ChevronDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </p>
-              )}
-              {selectedPrompt.prompt.length > 500 && showFullPrompt && (
-                <div className="flex justify-center mt-2">
-                  <Button variant="link" size="sm" onClick={() => setShowFullPrompt(false)}>
-                    Show Less <ChevronUp className="ml-2 h-4 w-4" />
+          
+          <p className="text-sm text-muted-foreground">Created: {prompt.date}</p>
+        </div>
+        
+        <Tabs defaultValue="prompt" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="prompt">Prompt Editor</TabsTrigger>
+            <TabsTrigger value="json">JSON View</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="prompt" className="mt-4">
+            {Array.isArray(variables) ? (
+              <StepThreeContent
+                masterCommand={masterCommand}
+                setMasterCommand={setMasterCommand}
+                selectedPrimary={selectedPrimary}
+                selectedSecondary={selectedSecondary}
+                handlePrimaryToggle={handlePrimaryToggle}
+                handleSecondaryToggle={handleSecondaryToggle}
+                finalPrompt={finalPrompt}
+                setFinalPrompt={setFinalPrompt}
+                variables={variables}
+                setVariables={setVariables}
+                handleCopyPrompt={handleCopyPrompt}
+                handleSavePrompt={handleSavePrompt}
+                handleRegenerate={handleRegenerate}
+                editingPrompt={editingPrompt}
+                setEditingPrompt={setEditingPrompt}
+                showEditPromptSheet={showEditPromptSheet}
+                setShowEditPromptSheet={setShowEditPromptSheet}
+                handleOpenEditPrompt={handleOpenEditPrompt}
+                handleSaveEditedPrompt={handleSaveEditedPrompt}
+                handleAdaptPrompt={handleAdaptPrompt}
+                getProcessedPrompt={getProcessedPrompt}
+                handleVariableValueChange={handleVariableValueChange}
+                selectedText={selectedText}
+                setSelectedText={setSelectedText}
+                onCreateVariable={handleCreateVariable}
+                showJson={false}
+                setShowJson={() => {}}
+              />
+            ) : (
+              <div className="p-4 bg-yellow-50 rounded-md border border-yellow-200">
+                <p>Unable to display prompt editor: Variables data is not in the expected format.</p>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="json" className="mt-4">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">JSON Structure</h3>
+                  <Button 
+                    onClick={handleRefreshJson} 
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-2"
+                    disabled={isLoadingJson}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isLoadingJson ? 'animate-spin' : ''}`} />
+                    {isLoadingJson ? 'Refreshing...' : 'Refresh JSON'}
                   </Button>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
+                <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto max-w-full">
+                  <pre className="whitespace-pre-wrap break-words text-sm">
+                    {jsonView}
+                  </pre>
+                </div>
+                <div className="mt-4">
+                  <Button onClick={() => handleCopyContent(jsonView)}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy JSON
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
-    </Layout>
+    </div>
   );
 };
+
+export default PromptView;

@@ -33,8 +33,6 @@ export const useModelSelector = (selectedModel: AIModel | null, onSelect: (model
           name: "GPT-4.1",
           provider: "OpenAI",
           description: "The latest GPT-4.1 model from OpenAI",
-          contextLength: 128000,
-          capabilities: ["Text generation", "Advanced reasoning"],
           strengths: ["Advanced reasoning", "State-of-the-art performance", "Better context handling"],
           limitations: ["Experimental model", "May produce unexpected results"],
           updated_at: new Date().toISOString()
@@ -138,7 +136,7 @@ export const useModelSelector = (selectedModel: AIModel | null, onSelect: (model
     setIsTransitioning,
     isAnimating,
     setIsAnimating,
-    handleDialogOpen: setOpen,
+    handleDialogOpen,
     lastUpdate,
     isLoading: loading || isInitializingModels
   };

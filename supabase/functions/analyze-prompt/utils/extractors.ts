@@ -60,23 +60,17 @@ export const extractVariables = (analysisText: string, originalPrompt: string) =
   try {
     const parsedResponse = JSON.parse(analysisText);
     if (parsedResponse && Array.isArray(parsedResponse.variables)) {
-      // Limit to maximum 8 variables and ensure technical terms are properly formatted
+      // Limit to maximum 8 variables
       const variables = parsedResponse.variables
         .slice(0, 8)
         .map(v => ({
           ...v,
           value: v.value || "",
-          isRelevant: null,
-          technicalTerms: Array.isArray(v.technicalTerms) ? v.technicalTerms.map(term => ({
-            term: term.term || "",
-            explanation: term.explanation || "",
-            example: term.example || ""
-          })) : []
+          isRelevant: null
         }));
       
       console.log("Successfully extracted variables:", {
         count: variables.length,
-        withTechnicalTerms: variables.filter(v => v.technicalTerms && v.technicalTerms.length > 0).length,
         categories: variables.reduce((acc: Record<string, number>, v) => {
           acc[v.category] = (acc[v.category] || 0) + 1;
           return acc;

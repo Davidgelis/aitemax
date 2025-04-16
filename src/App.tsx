@@ -13,7 +13,7 @@ import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Analytics from "./pages/Analytics";
 import XPanel from "./pages/XPanel";
-import { PromptView } from "./pages/PromptView";
+import PromptView from "./pages/PromptView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

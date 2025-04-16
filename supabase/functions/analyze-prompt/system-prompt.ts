@@ -1,5 +1,6 @@
 
 export const createSystemPrompt = (primaryToggle: string | null, secondaryToggle: string | null) => {
+  // Base system prompt with improved question generation and template awareness
   const basePrompt = `You are an expert AI prompt analyst that specializes in analyzing user prompts using the Aitema X Framework. Your task is to generate focused, non-technical questions and essential variables based on the framework's pillars.
 
 You MUST ALWAYS return a JSON object with this exact structure:
@@ -17,14 +18,7 @@ You MUST ALWAYS return a JSON object with this exact structure:
       "id": "v1",
       "name": "VariableName",
       "value": "",
-      "category": "Content|Style|Technical|Custom",
-      "technicalTerms": [
-        {
-          "term": "Technical term that needs explanation",
-          "explanation": "Simple 2-3 sentence explanation for non-technical users",
-          "example": "A practical example showing how to find or use this value"
-        }
-      ]
+      "category": "Content|Style|Technical|Custom"
     }
   ],
   "masterCommand": "A clear, concise summary of what needs to be done",
@@ -42,10 +36,7 @@ Guidelines for Variables:
 1. Create 1-8 variables total, only what's truly needed
 2. Focus on customizable elements that affect multiple parts
 3. Make variables reusable and clear
-4. For technical terms, ALWAYS provide:
-   - A clear, simple explanation (2-3 sentences)
-   - A practical example showing how to find or use the value
-   - Focus on helping non-technical users understand
+4. Avoid duplicating context from questions
 
 Remember:
 - Questions must have unique IDs (q1, q2, etc)
@@ -54,6 +45,7 @@ Remember:
 - Never leave any field empty or null
 - Questions must align with framework pillars`;
 
+  // Add context from toggles if present
   if (primaryToggle) {
     basePrompt += `\n\nPrimary focus: ${primaryToggle}`;
   }
