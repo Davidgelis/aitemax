@@ -1,9 +1,9 @@
+
 import { Input } from "@/components/ui/input";
 import { Variable } from "../types";
 import { useEffect, useCallback, useState } from "react";
-import { Trash2, HelpCircle } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface VariablesSectionProps {
   variables: Variable[];
@@ -109,30 +109,6 @@ export const VariablesSection = ({
                     document.dispatchEvent(customEvent);
                   }}
                 />
-                {variable.technicalTerms && variable.technicalTerms.length > 0 && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button className="absolute right-20 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-[#33fea6]/20">
-                          <HelpCircle className="h-4 w-4 text-[#33fea6]" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-[300px]">
-                        <div className="space-y-2">
-                          {variable.technicalTerms.map((term, idx) => (
-                            <div key={idx} className="space-y-1">
-                              <p className="font-medium">{term.term}</p>
-                              <p className="text-sm text-muted-foreground">{term.explanation}</p>
-                              {term.example && (
-                                <p className="text-xs italic">Example: {term.example}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
                 <div className="absolute right-12 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
                   {(variable.value || "").length}/{maxCharacterLimit}
                 </div>
