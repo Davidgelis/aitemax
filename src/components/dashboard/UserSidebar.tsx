@@ -11,7 +11,6 @@ import { getTextLines } from "@/lib/utils";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/AuthContext";
-import { getAvatarByValue } from "@/config/avatarConfig";
 
 const ADMIN_USER_ID = "8b40d73f-fffb-411f-9044-480773968d58";
 
@@ -178,7 +177,7 @@ export const UserSidebar = ({
           <div className="flex items-center gap-3">
             {userProfile?.avatar_url ? (
               <Avatar className="w-10 h-10 border-2 border-[#33fea6]">
-                <AvatarImage src={getAvatarByValue(userProfile.avatar_url).src} alt="User avatar" />
+                <AvatarImage src={getAvatarSrc()} alt="User avatar" />
               </Avatar>
             ) : (
               <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
