@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useCallback } from "react";
-import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag, TechnicalTerm } from "@/components/dashboard/types";
+import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
-import { defaultVariables, mockQuestions, sampleFinalPrompt } from "@/components/dashboard/constants";
+import { defaultVariables, mockQuestions } from "@/components/dashboard/constants";
 import { supabase } from "@/integrations/supabase/client";
 import { usePromptDrafts } from "@/hooks/usePromptDrafts";
 import { Json } from "@/integrations/supabase/types";
@@ -94,14 +94,25 @@ export const usePromptState = (user?: any) => {
   const [isLoadingPrompts, setIsLoadingPrompts] = useState<boolean>(false);
   const [isLoadingDrafts, setIsLoadingDrafts] = useState<boolean>(false);
   
-  // Use the usePromptDrafts hook to manage drafts
+  // Use the usePromptDrafts hook to manage drafts - Fixed call to match parameters needed
   const { 
     drafts, 
     saveDraft, 
     loadSelectedDraft, 
-    handleDeleteDraft,
-    isLoading: isDraftsLoading 
-  } = usePromptDrafts(user);
+    deleteDraft: handleDeleteDraft,
+    isLoadingDrafts: isDraftsLoading,
+    currentDraftId: draftId,
+    isDirty: draftIsDirty,
+    isSaving: draftIsSaving
+  } = usePromptDrafts(
+    promptText,
+    masterCommand,
+    variables,
+    primaryToggle,
+    secondaryToggle,
+    currentStep,
+    user
+  );
 
   // Fetch saved prompts from the database
   const fetchSavedPrompts = async () => {
@@ -219,21 +230,25 @@ export const usePromptState = (user?: any) => {
   // Duplicate a prompt
   const handleDuplicatePrompt = async (promptId: string) => {
     // Implementation here
+    console.log("Duplicating prompt:", promptId);
   };
 
   // Rename a prompt
   const handleRenamePrompt = async (promptId: string, newTitle: string) => {
     // Implementation here
+    console.log("Renaming prompt:", promptId, "to", newTitle);
   };
 
   // Delete a prompt
   const handleDeletePrompt = async (promptId: string) => {
     // Implementation here
+    console.log("Deleting prompt:", promptId);
   };
 
   // Save a prompt
   const handleSavePrompt = async () => {
     // Implementation here
+    console.log("Saving prompt");
   };
 
   return {
@@ -363,7 +378,7 @@ export const usePromptState = (user?: any) => {
     isLoadingDrafts: isDraftsLoading,
     drafts,
     saveDraft,
-    loadSelectedDraft: loadSelectedDraft,
+    loadSelectedDraft,
     handleDeleteDraft
   };
 };

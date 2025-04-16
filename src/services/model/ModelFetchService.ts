@@ -1,107 +1,88 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { AIModel } from '@/components/dashboard/types';
-
-const mapDbModelsToAIModels = (dbModels: any[]): AIModel[] => {
-  return dbModels.map(model => ({
-    id: model.id,
-    name: model.name,
-    provider: model.provider,
-    description: model.description || '',
-    contextLength: model.context_length || 4000, // Default
-    capabilities: model.capabilities || [],
-    strengths: model.strengths || [],
-    limitations: model.limitations || [],
-    updated_at: model.updated_at,
-    created_at: model.created_at,
-    is_deleted: model.is_deleted
-  }));
-};
+import { supabase } from '@/integrations/supabase/client';
 
 export class ModelFetchService {
-  static async fetchModels(): Promise<AIModel[]> {
+  /**
+   * Get all AI models
+   * @returns Array of AI models
+   */
+  async getAllModels(): Promise<AIModel[]> {
     try {
       const { data, error } = await supabase
-        .from('models')
+        .from('ai_models')
         .select('*')
-        .eq('is_deleted', false);
-
-      if (error) {
-        console.error('Error fetching models:', error);
-        return [];
-      }
-
-      if (!data) {
-        console.warn('No models found.');
-        return [];
-      }
-
-      return mapDbModelsToAIModels(data);
-    } catch (error) {
-      console.error('Unexpected error fetching models:', error);
-      return [];
-    }
-  }
-
-  static async getProviders(): Promise<string[]> {
-    try {
-      const { data, error } = await supabase
-        .from('models')
-        .select('provider')
-        .eq('is_deleted', false);
-
-      if (error) {
-        console.error('Error fetching providers:', error);
-        return [];
-      }
-
-      if (!data) {
-        console.warn('No providers found.');
-        return [];
-      }
-
-      const providers = [...new Set(data.map(item => item.provider))];
-      return providers;
-    } catch (error) {
-      console.error('Unexpected error fetching providers:', error);
-      return [];
-    }
-  }
-
-  static async fetchModelById(id: string): Promise<AIModel> {
-    try {
-      const { data, error } = await supabase
-        .from('models')
-        .select('*')
-        .eq('id', id)
         .eq('is_deleted', false)
-        .single();
+        .order('name', { ascending: true });
 
-      if (error) {
-        console.error(`Error fetching model with id ${id}:`, error);
-        throw error;
-      }
-
-      if (!data) {
-        console.warn(`Model with id ${id} not found.`);
-        return null as any;
-      }
-
-      return {
-        id: data.id,
-        name: data.name,
-        provider: data.provider,
-        description: data.description || '',
-        contextLength: data.context_length || 4000,
-        capabilities: data.capabilities || [],
-        strengths: data.strengths || [],
-        limitations: data.limitations || [],
-        updated_at: data.updated_at,
-        created_at: data.created_at,
-        is_deleted: data.is_deleted
-      };
+      if (error) throw new Error(error.message);
+      return data as AIModel[];
     } catch (error) {
-      console.error(`Unexpected error fetching model with id ${id}:`, error);
+      console.error('Error fetching all models:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get AI models by provider
+   * @param provider The provider name
+   * @returns Models from the specified provider
+   */
+  async getModelsByProvider(provider: string): Promise<AIModel[]> {
+    try {
+      const { data, error } = await supabase
+        .from('ai_models')
+        .select('*')
+        .eq('provider', provider)
+        .eq('is_deleted', false)
+        .order('name', { ascending: true });
+
+      if (error) throw new Error(error.message);
+      return data as AIModel[];
+    } catch (error) {
+      console.error(`Error fetching models by provider ${provider}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search AI models by name
+   * @param query The search query
+   * @returns Models matching the search criteria
+   */
+  async searchModelsByName(query: string): Promise<AIModel[]> {
+    try {
+      const { data, error } = await supabase
+        .from('ai_models')
+        .select('*')
+        .ilike('name', `%${query}%`)
+        .eq('is_deleted', false)
+        .order('name', { ascending: true });
+
+      if (error) throw new Error(error.message);
+      return data as AIModel[];
+    } catch (error) {
+      console.error(`Error searching models by name "${query}":`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get deleted AI models
+   * @returns Soft-deleted models
+   */
+  async getDeletedModels(): Promise<AIModel[]> {
+    try {
+      const { data, error } = await supabase
+        .from('ai_models')
+        .select('*')
+        .eq('is_deleted', true)
+        .order('name', { ascending: true });
+
+      if (error) throw new Error(error.message);
+      return data as AIModel[];
+    } catch (error) {
+      console.error('Error fetching deleted models:', error);
       throw error;
     }
   }

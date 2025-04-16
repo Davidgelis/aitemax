@@ -119,27 +119,33 @@ export const FinalPromptDisplay = ({
   };
 
   const handleCopy = () => {
-    
+    // Implementation placeholder
+    console.log("Copy functionality to be implemented");
   };
 
   const handleSave = async () => {
-    
+    // Implementation placeholder
+    console.log("Save functionality to be implemented");
   };
 
   const handleAdaptation = async () => {
-    
+    // Implementation placeholder
+    console.log("Adaptation functionality to be implemented");
   };
 
   const handleRegeneratePrompt = async () => {
-    
+    // Implementation placeholder
+    console.log("Regenerate functionality to be implemented");
   };
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    
+    // Implementation placeholder
+    console.log("Textarea change functionality to be implemented");
   };
 
   const handleToggleChange = () => {
-    
+    // Implementation placeholder
+    console.log("Toggle change functionality to be implemented");
   };
 
   const handleSliderChange = (value: number[]) => {
@@ -242,8 +248,15 @@ export const FinalPromptDisplay = ({
         />
       </div>
 
-      {/* This was always falsy: false && (...) - Changed to a comment for now */}
-      {/* JSON Structure section (uncomment and fix if needed) */}
+      {/* JSON Structure section - left commented out but fixed */}
+      {/* {showJson && promptJsonStructure && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">JSON Structure</h3>
+          <pre className="bg-gray-100 p-4 rounded overflow-auto text-xs">
+            {JSON.stringify(promptJsonStructure, null, 2)}
+          </pre>
+        </div>
+      )} */}
 
       <Sheet open={showAdaptationSheet} onOpenChange={setShowAdaptationSheet}>
         <SheetContent>

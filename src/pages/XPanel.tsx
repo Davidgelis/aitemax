@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
@@ -7,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { SavedPrompt, PromptTag } from '@/components/dashboard/types';
+import { SavedPrompt, PromptTag, Variable } from '@/components/dashboard/types';
 import { supabase } from '@/integrations/supabase/client';
+import { Json } from '@/integrations/supabase/types';
 
 const XPanel = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,13 +54,24 @@ const XPanel = () => {
         // Ensure tags is always an array of PromptTag
         let promptTags: PromptTag[] = [];
         if (Array.isArray(data.tags)) {
-          promptTags = data.tags.map(tag => ({
-            id: tag.id || '',
-            name: tag.name || '',
-            color: tag.color || '',
-            category: tag.category || '',
-            subcategory: tag.subcategory || ''
-          }));
+          promptTags = data.tags.map(tag => {
+            if (typeof tag === 'object' && tag !== null) {
+              return {
+                id: typeof tag.id === 'string' ? tag.id : '',
+                name: typeof tag.name === 'string' ? tag.name : '',
+                color: typeof tag.color === 'string' ? tag.color : '',
+                category: typeof tag.category === 'string' ? tag.category : '',
+                subcategory: typeof tag.subcategory === 'string' ? tag.subcategory : ''
+              } as PromptTag;
+            }
+            return {
+              id: '',
+              name: '',
+              color: '',
+              category: '',
+              subcategory: ''
+            } as PromptTag;
+          });
         } else if (data.tags) {
           console.warn("Tags are not in the expected array format:", data.tags);
         }
@@ -75,8 +88,8 @@ const XPanel = () => {
           masterCommand: data.master_command || '',
           primaryToggle: data.primary_toggle || '',
           secondaryToggle: data.secondary_toggle || '',
-          variables: data.variables,
-          tags: promptTags as PromptTag[]
+          variables: data.variables as unknown as Variable[] || [],
+          tags: promptTags
         };
 
         setPrompt(formattedPrompt);
@@ -113,7 +126,6 @@ const XPanel = () => {
           master_command: masterCommand,
           primary_toggle: primaryToggle,
           secondary_toggle: secondaryToggle,
-          // tags: tags // Save tags if needed
         })
         .eq('id', id);
 
@@ -202,7 +214,7 @@ const XPanel = () => {
             {tags && tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {tags.map((tag) => (
-                  <Badge key={tag.id}>{tag.name}</Badge>
+                  <Badge key={tag.id || Math.random().toString()}>{tag.name}</Badge>
                 ))}
               </div>
             )}

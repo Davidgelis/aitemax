@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Json } from '@/integrations/supabase/types';
 import { Layout } from '@/components/Layout';
 import { useToast } from '@/hooks/use-toast';
-import { SavedPrompt, variablesToJson, jsonToVariables, Variable, PromptTag } from '@/components/dashboard/types';
+import { SavedPrompt, Variable, jsonToVariables, PromptTag } from '@/components/dashboard/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Spinner } from '@/components/dashboard/Spinner';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,6 @@ import {
   ArrowLeft,
   Edit
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -92,20 +92,30 @@ export const PromptView = () => {
           if (data.variables) {
             const promptVars = Array.isArray(data.variables) 
               ? data.variables as unknown as Variable[]
-              : jsonToVariables(data.variables as unknown as Record<string, any>);
+              : jsonToVariables(data.variables as Json);
             setVariables(promptVars);
           }
 
           // Safely handle tags
-          if (data.tags) {
-            const promptTags = Array.isArray(data.tags) 
-              ? data.tags.map(tag => ({
+          if (data.tags && Array.isArray(data.tags)) {
+            const promptTags = data.tags.map(tag => {
+              if (typeof tag === 'object' && tag !== null) {
+                return {
                   id: typeof tag.id === 'string' ? tag.id : '',
                   name: typeof tag.name === 'string' ? tag.name : '',
                   category: typeof tag.category === 'string' ? tag.category : '',
                   subcategory: typeof tag.subcategory === 'string' ? tag.subcategory : '',
-                })) as PromptTag[]
-              : [];
+                  color: typeof tag.color === 'string' ? tag.color : ''
+                } as PromptTag;
+              }
+              return {
+                id: '',
+                name: '',
+                category: '',
+                subcategory: '',
+                color: ''
+              } as PromptTag;
+            });
             setTags(promptTags);
           }
 

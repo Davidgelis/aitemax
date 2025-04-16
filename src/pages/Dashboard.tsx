@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { AIModel } from "@/components/dashboard/types";
+import { AIModel, SavedPrompt } from "@/components/dashboard/types";
 import { UserSidebar } from "@/components/dashboard/UserSidebar";
 import { StepController } from "@/components/dashboard/StepController";
 import { usePromptState } from "@/hooks/usePromptState";
@@ -74,7 +74,7 @@ const Dashboard = () => {
         promptState.savedPrompts.map(p => ({id: p.id, title: p.title})));
     }
     
-    if (promptState.drafts.length > 0) {
+    if (promptState.drafts && promptState.drafts.length > 0) {
       console.log(`User has ${promptState.drafts.length} draft prompts`,
         promptState.drafts.map(d => ({id: d.id, title: d.title})));
     }
@@ -149,7 +149,7 @@ const Dashboard = () => {
           !promptState.isViewingSavedPrompt && 
           promptState.currentStep === 2 &&
           promptState.isDirty) {
-        promptState.saveDraft();
+        promptState.saveDraft(true);
       }
     };
 
@@ -293,6 +293,15 @@ const Dashboard = () => {
     }
   }, [promptState]);
 
+  // Adapter functions to convert between parameter types
+  const handleDeletePromptAdapter = (prompt: SavedPrompt) => {
+    promptState.handleDeletePrompt(prompt.id);
+  };
+
+  const handleDuplicatePromptAdapter = (prompt: SavedPrompt) => {
+    promptState.handleDuplicatePrompt(prompt.id);
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -372,8 +381,8 @@ const Dashboard = () => {
           setSearchTerm={promptState.setSearchTerm}
           isLoadingPrompts={promptState.isLoadingPrompts}
           handleNewPrompt={promptState.handleNewPrompt}
-          handleDeletePrompt={promptState.handleDeletePrompt}
-          handleDuplicatePrompt={promptState.handleDuplicatePrompt}
+          handleDeletePrompt={handleDeletePromptAdapter}
+          handleDuplicatePrompt={handleDuplicatePromptAdapter}
           handleRenamePrompt={promptState.handleRenamePrompt}
           loadSavedPrompt={promptState.loadSavedPrompt}
           drafts={promptState.drafts}

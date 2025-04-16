@@ -1,78 +1,57 @@
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/AuthContext";
-import { UserRound, LogOut } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-const Navbar = () => {
-  const {
-    user,
-    signOut
-  } = useAuth();
-  const [username, setUsername] = useState("");
-  useEffect(() => {
-    const fetchUsername = async () => {
-      if (user) {
-        const {
-          data: profile
-        } = await supabase.from("profiles").select("username").eq("id", user.id).single();
-        if (profile?.username) {
-          setUsername(profile.username);
-        }
-      }
-    };
-    fetchUsername();
-  }, [user]);
-  const handleSignOut = async () => {
-    await signOut();
-  };
-  return <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 backdrop-blur-md bg-white/0">
-      {/* Left side - Logo and navigation */}
-      <div className="flex items-center gap-8">
-        <div className="flex items-center gap-4">
-          <img alt="Aitema X Logo" src="/lovable-uploads/504bee69-5086-451b-b981-747da6c72bc9.png" className="h-[50px] w-auto" />
-        </div>
-        
-        <div className="flex items-center gap-6">
-          <Link to="/dashboard" className="text-[#041524] hover:text-[#33fea6] transition-colors">
-            Dashboard
-          </Link>
-          <Link to="/x-panel" className="text-[#041524] hover:text-[#33fea6] transition-colors">
-            X Panel
-          </Link>
-          <span className="text-[#041524] cursor-not-allowed opacity-70">
-            Support
-          </span>
-        </div>
-      </div>
 
-      {/* Right side - Auth button or user dropdown */}
-      <div>
-        {user ? <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2 text-[#041524] hover:text-[#33fea6]">
-                <UserRound className="h-4 w-4" />
-                <span>{username || "User"}</span>
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
+
+const Navbar = () => {
+  const { session, signOut } = useAuth();
+  
+  return (
+    <nav className="bg-white dark:bg-gray-800 shadow-sm border-b">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex">
+            <div className="flex-shrink-0 flex items-center">
+              <Link to="/" className="text-xl font-bold text-gray-800 dark:text-white">
+                Aitema
+              </Link>
+            </div>
+            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <Link to="/dashboard" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                Dashboard
+              </Link>
+              {session && (
+                <>
+                  <Link to="/profile" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                    Profile
+                  </Link>
+                  <Link to="/analytics" className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                    Analytics
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="hidden sm:ml-6 sm:flex sm:items-center">
+            {session ? (
+              <Button 
+                variant="ghost" 
+                onClick={() => signOut()}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                Sign Out
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-white">
-              <DropdownMenuItem asChild>
-                <Link to="/profile" className="cursor-pointer">
-                  Profile
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer flex items-center gap-2">
-                <LogOut className="h-4 w-4" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu> : <Link to="/auth">
-            <Button variant="outline" className="border-[#041524] text-[#041524]">
-              Login / Sign up
-            </Button>
-          </Link>}
+            ) : (
+              <Link to="/auth">
+                <Button variant="outline">Sign In</Button>
+              </Link>
+            )}
+          </div>
+        </div>
       </div>
-    </nav>;
+    </nav>
+  );
 };
+
 export default Navbar;
