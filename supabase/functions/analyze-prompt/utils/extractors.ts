@@ -1,7 +1,7 @@
 
-// Functions for extracting data from AI analysis response
-
 export const extractQuestions = (analysisText: string, originalPrompt: string) => {
+  console.log("Extracting questions from analysis text");
+  
   try {
     // Try to parse as JSON first
     const parsedResponse = JSON.parse(analysisText);
@@ -34,6 +34,8 @@ export const extractQuestions = (analysisText: string, originalPrompt: string) =
 };
 
 export const extractVariables = (analysisText: string, originalPrompt: string) => {
+  console.log("Extracting variables from analysis text");
+  
   try {
     // Try to parse as JSON first
     const parsedResponse = JSON.parse(analysisText);

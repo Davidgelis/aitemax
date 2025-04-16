@@ -1,9 +1,16 @@
 
-// Functions for validating questions and variables
-
 export function validateQuestionVariablePairs(questions: any[], variables: any[]): boolean {
+  // Log initial validation attempt
+  console.log("Starting validation of questions and variables", {
+    questionCount: questions?.length || 0,
+    variableCount: variables?.length || 0
+  });
+
   if (!Array.isArray(questions) || !Array.isArray(variables)) {
-    console.error("Invalid input: questions and variables must be arrays");
+    console.error("Invalid input: questions and variables must be arrays", {
+      questions: typeof questions,
+      variables: typeof variables
+    });
     return false;
   }
 
@@ -36,6 +43,22 @@ export function validateQuestionVariablePairs(questions: any[], variables: any[]
     console.error("Duplicate variable IDs found");
     return false;
   }
+
+  // Ensure minimum required questions and variables
+  if (questions.length === 0) {
+    console.error("No questions provided");
+    return false;
+  }
+
+  if (variables.length === 0) {
+    console.error("No variables provided");
+    return false;
+  }
+
+  console.log("Validation successful", {
+    questions: questions.length,
+    variables: variables.length
+  });
 
   return true;
 }
