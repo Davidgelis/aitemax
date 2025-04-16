@@ -1,14 +1,41 @@
+
 import IndexLogo from "@/components/IndexLogo";
 import PromptInput from "@/components/PromptInput";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { KeyboardEvent } from "react";
+import { KeyboardEvent, useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { getAvatarByValue } from "@/config/avatarConfig";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [avatarUrl, setAvatarUrl] = useState("avatar1");
+  const [username, setUsername] = useState("");
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("username, avatar_url")
+          .eq("id", user.id)
+          .single();
+        
+        if (profile) {
+          if (profile.username) {
+            setUsername(profile.username);
+          }
+          if (profile.avatar_url) {
+            setAvatarUrl(profile.avatar_url);
+          }
+        }
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user]);
 
   const handlePromptSubmit = (prompt: string) => {
     if (prompt.trim()) {
@@ -50,12 +77,12 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full overflow-hidden bg-white flex items-center justify-center">
               <img 
-                src={getAvatarByValue(user.avatar_url || "avatar1").src}
+                src={getAvatarByValue(avatarUrl).src}
                 alt="User Avatar"
                 className="w-full h-full object-contain p-1"
               />
             </div>
-            <span className="text-[#041524]">{user.email}</span>
+            <span className="text-[#041524]">{username || user.email}</span>
           </div>
         )}
       </nav>
