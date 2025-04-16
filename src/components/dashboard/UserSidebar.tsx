@@ -11,8 +11,7 @@ import { getTextLines } from "@/lib/utils";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/AuthContext";
-
-const ADMIN_USER_ID = "8b40d73f-fffb-411f-9044-480773968d58";
+import { getAvatarByValue } from "@/config/avatarConfig";
 
 interface UserSidebarProps {
   user: any;
@@ -66,7 +65,7 @@ export const UserSidebar = ({
   const [retryCount, setRetryCount] = useState(0);
   const { refreshSession } = useAuth();
 
-  const isAdmin = user?.id === ADMIN_USER_ID;
+  const isAdmin = user?.id === "8b40d73f-fffb-411f-9044-480773968d58";
   
   // Helper function to ensure we're displaying plain text
   const getPlainText = (text: string) => {
@@ -152,22 +151,6 @@ export const UserSidebar = ({
     ? filteredPrompts
     : [...drafts, ...savedPrompts];
 
-  // Function to get avatar image source based on avatar_url
-  const getAvatarSrc = () => {
-    if (!userProfile?.avatar_url) return '';
-    
-    // Map avatar_url to the actual image source
-    const avatarMap: Record<string, string> = {
-      "avatar1": "/lovable-uploads/9e9dab89-7884-4529-8d21-4635694140a0.png",
-      "avatar2": "/lovable-uploads/599e8307-b1eb-411f-ac99-f096310d8073.png",
-      "avatar3": "/lovable-uploads/6880916c-ef0f-41df-bba8-bae4076a3355.png",
-      "avatar4": "/lovable-uploads/57623e13-ceba-4029-a7cc-a0317bcecff5.png",
-      "avatar5": "/lovable-uploads/6bc3d174-c5ec-4312-adb8-2c7834ab72e0.png"
-    };
-    
-    return avatarMap[userProfile.avatar_url] || '';
-  };
-
   return (
     <Sidebar side="right">
       <SidebarTrigger className="fixed right-4 top-2 z-50 bg-white/80 backdrop-blur-sm hover:bg-white/90 shadow-md" />
@@ -177,7 +160,7 @@ export const UserSidebar = ({
           <div className="flex items-center gap-3">
             {userProfile?.avatar_url ? (
               <Avatar className="w-10 h-10 border-2 border-[#33fea6]">
-                <AvatarImage src={getAvatarSrc()} alt="User avatar" />
+                <AvatarImage src={getAvatarByValue(userProfile.avatar_url).src} alt="User avatar" />
               </Avatar>
             ) : (
               <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
