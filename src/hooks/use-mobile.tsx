@@ -1,24 +1,9 @@
+import { useMediaQuery } from "./use-media-query";
 
-import * as React from "react"
+// Re-export for backward compatibility
+export { useMediaQuery };
 
-const MOBILE_BREAKPOINT = 768
-
-export function useMediaQuery(query: string) {
-  const [matches, setMatches] = React.useState<boolean | undefined>(undefined)
-
-  React.useEffect(() => {
-    const mql = window.matchMedia(query)
-    const onChange = () => {
-      setMatches(mql.matches)
-    }
-    mql.addEventListener("change", onChange)
-    setMatches(mql.matches)
-    return () => mql.removeEventListener("change", onChange)
-  }, [query])
-
-  return !!matches
-}
-
+// Keep the existing useIsMobile implementation but use the new hook internally
 export function useIsMobile() {
-  return useMediaQuery(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+  return useMediaQuery(`(max-width: 767px)`);
 }
