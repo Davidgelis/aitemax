@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Variable } from "../types";
 import { useEffect, useCallback, useState } from "react";
@@ -60,6 +59,31 @@ export const VariablesSection = ({
       onDeleteVariable(variableId);
     }
     setVariableToDelete(null);
+  };
+
+  const renderTechnicalTerms = (variable: Variable) => {
+    if (!variable.technicalTerms || variable.technicalTerms.length === 0) return null;
+    
+    return (
+      <div className="ml-4 mt-2 space-x-2">
+        {variable.technicalTerms.map((term, index) => (
+          <HoverCard key={index}>
+            <HoverCardTrigger asChild>
+              <button className="inline-flex items-center gap-1 text-xs bg-accent/10 px-2 py-1 rounded-full cursor-help">
+                <HelpCircle className="h-3 w-3 text-blue-500" />
+                <span className="font-medium">{term.term}</span>
+              </button>
+            </HoverCardTrigger>
+            <HoverCardContent side="bottom" className="max-w-[300px]">
+              <div className="space-y-2">
+                <p className="font-medium">{term.explanation}</p>
+                <p className="text-sm text-muted-foreground">{term.example}</p>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
+        ))}
+      </div>
+    );
   };
 
   // Filter only relevant variables
