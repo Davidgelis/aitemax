@@ -11,6 +11,8 @@ export interface UploadedImage {
 export interface PromptTag {
   id: string;
   name: string;
+  category?: string;
+  subcategory?: string;
 }
 
 export interface PromptJsonStructure {
@@ -23,6 +25,7 @@ export interface PromptJsonStructure {
   secondaryToggle: string | null;
   tags: PromptTag[];
   title?: string;
+  summary?: string;
 }
 
 export interface SavedPrompt {
@@ -82,6 +85,9 @@ export interface Toggle {
   name: string;
   description: string;
   category: "primary" | "secondary";
+  label: string;
+  definition: string;
+  prompt?: string;
 }
 
 // Utility functions for JSON conversion
@@ -93,5 +99,5 @@ export const jsonToVariables = (json: Json): Variable[] => {
   if (!json || !Array.isArray(json)) {
     return [];
   }
-  return json as Variable[];
+  return json as unknown as Variable[];
 };

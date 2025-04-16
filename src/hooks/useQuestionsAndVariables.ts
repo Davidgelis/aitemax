@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -96,7 +95,7 @@ export const useQuestionsAndVariables = (
         // Update the prompt with new saved variables
         const { error: updateError } = await supabase
           .from('prompts')
-          .update({ saved_variables: updatedSavedVariables })
+          .update({ saved_variables: updatedSavedVariables as unknown as Json })
           .eq('id', promptId)
           .eq('user_id', user.id);
 
@@ -193,13 +192,14 @@ export const useQuestionsAndVariables = (
               value: v.value, 
               isRelevant: v.isRelevant,
               category: v.category,
-              code: v.code
+              code: v.code,
+              technicalTerms: v.technicalTerms
             }
       );
 
       supabase
         .from('prompts')
-        .update({ saved_variables: variablesToSave })
+        .update({ saved_variables: variablesToSave as unknown as Json })
         .eq('id', promptId)
         .eq('user_id', user.id)
         .then(({ error }) => {
