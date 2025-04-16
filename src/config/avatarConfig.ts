@@ -27,8 +27,8 @@ export const avatarOptions = [
   {
     id: "avatar5",
     value: "avatar5",
-    src: "/lovable-uploads/639cc7b7-dd3d-45b5-bc30-cae328cde09b.png",
-    alt: "Dark teal X logo"
+    src: "/lovable-uploads/48045a3f-c89c-44f1-9f22-6c442f6aadef.png",
+    alt: "Green X circular logo"
   }
 ];
 
