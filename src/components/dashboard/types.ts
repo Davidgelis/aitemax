@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 
 export interface AIModel {
@@ -41,6 +42,7 @@ export interface Question {
   isRelevant: boolean | null;
   category?: string; // Task, Persona, Conditions, Instructions categories
   prefillSource?: string;
+  technicalTerms?: TechnicalTerm[];
 }
 
 export interface Toggle {
@@ -92,12 +94,20 @@ export const variablesToJson = (variables: Variable[]): Record<string, any> => {
   const result: Record<string, any> = {};
   variables.forEach(variable => {
     if (variable && variable.id) {
+      // Convert technicalTerms to simple objects that match the Json type
+      const simplifiedTechnicalTerms = variable.technicalTerms?.map(term => ({
+        term: term.term,
+        explanation: term.explanation,
+        example: term.example
+      }));
+      
       result[variable.id] = {
         name: variable.name,
         value: variable.value,
         isRelevant: variable.isRelevant,
         category: variable.category,
-        code: variable.code
+        code: variable.code,
+        technicalTerms: simplifiedTechnicalTerms
       };
     }
   });
@@ -119,26 +129,15 @@ export const jsonToVariables = (json: Json | Record<string, any> | null): Variab
         value: varData.value || '',
         isRelevant: varData.isRelevant === undefined ? null : varData.isRelevant,
         category: varData.category || 'Other',
-        code: varData.code || ''
+        code: varData.code || '',
+        technicalTerms: varData.technicalTerms ? varData.technicalTerms.map((term: any) => ({
+          term: term.term || '',
+          explanation: term.explanation || '',
+          example: term.example || ''
+        })) : undefined
       });
     }
   });
   
   return variables;
 };
-
-interface TechnicalTerm {
-  term: string;
-  explanation: string;
-  example: string;
-}
-
-export interface Question {
-  id: string;
-  text: string;
-  answer: string;
-  isRelevant: boolean | null;
-  category?: string;
-  prefillSource?: string;
-  technicalTerms?: TechnicalTerm[];
-}

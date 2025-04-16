@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
@@ -21,6 +22,42 @@ const detectTechnicalTerms = (variableName: string, context: string) => {
       term: "Formula",
       explanation: "An equation that performs calculations on spreadsheet data",
       example: "=SUM(A1:A10) adds numbers in cells A1 through A10"
+    },
+    {
+      pattern: /function/i,
+      term: "Function",
+      explanation: "A predefined formula that performs specific calculations",
+      example: "VLOOKUP searches for a value and returns related data"
+    },
+    {
+      pattern: /cell/i,
+      term: "Cell",
+      explanation: "The intersection of a row and column in a spreadsheet",
+      example: "B3 refers to the cell in column B, row 3"
+    },
+    {
+      pattern: /pivot/i,
+      term: "Pivot Table",
+      explanation: "A data summarization tool to analyze large datasets",
+      example: "A pivot table can show sales totals by region and product"
+    },
+    {
+      pattern: /sql/i,
+      term: "SQL",
+      explanation: "Structured Query Language used to manage databases",
+      example: "SELECT * FROM users WHERE age > 18"
+    },
+    {
+      pattern: /api/i,
+      term: "API",
+      explanation: "Application Programming Interface for software communication",
+      example: "Using the Weather API to get forecast data"
+    },
+    {
+      pattern: /json/i,
+      term: "JSON",
+      explanation: "JavaScript Object Notation, a data interchange format",
+      example: '{"name": "John", "age": 30}'
     },
     // Add more patterns as needed
   ];
@@ -158,7 +195,7 @@ serve(async (req) => {
 
     try {
       const completion = await openai.chat.completions.create({
-        model: model || "gpt-4",
+        model: model || "gpt-4o-mini",
         messages: messages,
         temperature: 0.7,
       });
@@ -188,6 +225,15 @@ serve(async (req) => {
       if (!variables || variables.length === 0) {
         variables = processVariables(promptText, content);
       }
+
+      // Process technical terms for each variable
+      variables = variables.map(variable => {
+        const technicalTerms = detectTechnicalTerms(variable.name, promptText);
+        return {
+          ...variable,
+          technicalTerms: technicalTerms.length > 0 ? technicalTerms : undefined
+        };
+      });
 
       // Log the extracted data
       console.log("Extracted questions:", questions.length);

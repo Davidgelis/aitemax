@@ -1,8 +1,9 @@
 
-import { Plus, Trash } from "lucide-react";
+import { Plus, Trash, HelpCircle } from "lucide-react";
 import { Variable } from "./types";
 import { RefObject, useState, useEffect } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { filterCategoryVariables } from "./constants";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -177,15 +178,38 @@ export const VariableList = ({
                   {index + 1}
                 </div>
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Input
-                    type="text"
-                    placeholder="Variable name"
-                    value={variableNames[variable.id] || ""}
-                    onChange={(e) => handleNameChange(variable.id, e.target.value)}
-                    className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
-                    autoComplete="off"
-                    aria-label={`Name for variable ${index + 1}`}
-                  />
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="Variable name"
+                      value={variableNames[variable.id] || ""}
+                      onChange={(e) => handleNameChange(variable.id, e.target.value)}
+                      className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
+                      autoComplete="off"
+                      aria-label={`Name for variable ${index + 1}`}
+                    />
+                    
+                    {variable.technicalTerms && variable.technicalTerms.length > 0 && (
+                      <HoverCard>
+                        <HoverCardTrigger asChild>
+                          <button className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-[#33fea6]/20">
+                            <HelpCircle className="h-4 w-4 text-[#545454]" />
+                          </button>
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-80">
+                          <div className="space-y-2">
+                            {variable.technicalTerms.map((term, idx) => (
+                              <div key={idx} className="space-y-1">
+                                <h4 className="text-sm font-semibold">{term.term}</h4>
+                                <p className="text-sm text-muted-foreground">{term.explanation}</p>
+                                <p className="text-xs text-muted-foreground italic">Example: {term.example}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+                    )}
+                  </div>
                   <div className="relative">
                     <Input
                       type="text"

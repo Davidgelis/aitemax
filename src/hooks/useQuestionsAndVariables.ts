@@ -1,6 +1,5 @@
-
 import { useState, useEffect, useCallback } from "react";
-import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag } from "@/components/dashboard/types";
+import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag, TechnicalTerm } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { defaultVariables, mockQuestions, sampleFinalPrompt } from "@/components/dashboard/constants";
 import { supabase } from "@/integrations/supabase/client";
@@ -135,12 +134,16 @@ export const useQuestionsAndVariables = (
           value: v.value, 
           isRelevant: v.isRelevant,
           category: v.category,
-          code: v.code
+          code: v.code,
+          technicalTerms: v.technicalTerms
         }));
 
       supabase
         .from('prompts')
-        .update({ saved_variables: filteredVariables })
+        .update({ 
+          // Convert to JSON-compatible format before saving
+          saved_variables: filteredVariables as unknown as Json
+        })
         .eq('id', promptId)
         .eq('user_id', user.id)
         .then(({ error }) => {
@@ -193,13 +196,17 @@ export const useQuestionsAndVariables = (
               value: v.value, 
               isRelevant: v.isRelevant,
               category: v.category,
-              code: v.code
+              code: v.code,
+              technicalTerms: v.technicalTerms
             }
       );
 
       supabase
         .from('prompts')
-        .update({ saved_variables: variablesToSave })
+        .update({ 
+          // Convert to JSON-compatible format before saving
+          saved_variables: variablesToSave as unknown as Json 
+        })
         .eq('id', promptId)
         .eq('user_id', user.id)
         .then(({ error }) => {
@@ -254,14 +261,6 @@ export const useQuestionsAndVariables = (
     };
   };
 
-  /**
-   * Enhanced prompt with GPT, now with standardized parameter order to match usePromptAnalysis.ts
-   * @param promptToEnhance The original prompt text to enhance
-   * @param primaryToggle Selected primary toggle
-   * @param secondaryToggle Selected secondary toggle
-   * @param setFinalPrompt Callback to set the final prompt
-   * @param selectedTemplate The selected template to use
-   */
   const enhancePromptWithGPT = async (
     promptToEnhance: string, 
     primaryToggle: string | null, 
