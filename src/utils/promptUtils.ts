@@ -178,3 +178,27 @@ export const createPlainTextPrompt = (prompt: string, variables: any[]): string 
   // Remove any HTML tags that might be present
   return stripHtml(plainText);
 };
+
+/**
+ * Strips HTML tags from a string safely
+ */
+export const stripHtml = (html: string): string => {
+  if (!html) return '';
+  
+  try {
+    // Create a temporary element to safely strip HTML
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+  } catch (error) {
+    // Fallback to regex-based stripping if DOM approach fails
+    return html.replace(/<[^>]*>?/gm, '');
+  }
+};
+
+/**
+ * Escapes special characters in a string for safe regex usage
+ */
+export const escapeRegExp = (str: string): string => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};

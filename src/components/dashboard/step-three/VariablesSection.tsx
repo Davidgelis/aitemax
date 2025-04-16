@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Variable } from "../types";
 import { useEffect, useCallback, useState } from "react";
@@ -17,18 +16,27 @@ export const VariablesSection = ({
   onDeleteVariable
 }: VariablesSectionProps) => {
   const [variableToDelete, setVariableToDelete] = useState<string | null>(null);
-  const maxCharacterLimit = 100; // Set character limit to 100
+  const maxCharacterLimit = 100;
   
   // Optimize variable value changes
   const handleInputChange = useCallback((variableId: string, newValue: string) => {
-    console.log("Variable section changing value:", variableId, newValue);
-    
-    try {
-      if (typeof handleVariableValueChange === 'function') {
-        handleVariableValueChange(variableId, newValue);
+    if (newValue.length <= maxCharacterLimit) {
+      try {
+        if (typeof handleVariableValueChange === 'function') {
+          handleVariableValueChange(variableId, newValue);
+          
+          // Dispatch a custom event when value changes from this component
+          const customEvent = new CustomEvent('variable-value-changed', {
+            detail: {
+              variableId,
+              newValue
+            }
+          });
+          document.dispatchEvent(customEvent);
+        }
+      } catch (error) {
+        console.error("Error changing variable value:", error);
       }
-    } catch (error) {
-      console.error("Error changing variable value:", error);
     }
   }, [handleVariableValueChange]);
   
@@ -46,20 +54,13 @@ export const VariablesSection = ({
       }
     };
 
-    // Use a custom event for better control instead of the global input event
+    // Use a custom event for better control
     document.addEventListener('variable-value-changed', handleVariableSync as EventListener);
     
     return () => {
       document.removeEventListener('variable-value-changed', handleVariableSync as EventListener);
     };
   }, []);
-
-  const handleDelete = (variableId: string) => {
-    if (onDeleteVariable) {
-      onDeleteVariable(variableId);
-    }
-    setVariableToDelete(null);
-  };
 
   // Filter only relevant variables
   const relevantVariables = variables.filter(v => v.isRelevant === true);
@@ -87,27 +88,12 @@ export const VariablesSection = ({
               <div className="flex items-center w-full relative">
                 <Input 
                   value={variable.value || ""}
-                  onChange={(e) => {
-                    // Limit input to maxCharacterLimit characters
-                    if (e.target.value.length <= maxCharacterLimit) {
-                      handleInputChange(variable.id, e.target.value);
-                    }
-                  }}
+                  onChange={(e) => handleInputChange(variable.id, e.target.value)}
                   className="h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16"
                   data-variable-id={variable.id}
                   data-source="variables-section"
                   placeholder="Type here..."
                   maxLength={maxCharacterLimit}
-                  onInput={(e) => {
-                    // Dispatch a custom event when value changes from this component
-                    const customEvent = new CustomEvent('variable-value-changed', {
-                      detail: {
-                        variableId: variable.id,
-                        newValue: e.currentTarget.value
-                      }
-                    });
-                    document.dispatchEvent(customEvent);
-                  }}
                 />
                 <div className="absolute right-12 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
                   {(variable.value || "").length}/{maxCharacterLimit}

@@ -6,11 +6,13 @@ import { useState, useEffect } from "react";
 interface ToggleSectionProps {
   refreshJson?: () => void;
   isRefreshing?: boolean;
+  showRefreshButton?: boolean;
 }
 
 export const ToggleSection = ({
   refreshJson,
-  isRefreshing = false
+  isRefreshing = false,
+  showRefreshButton = false
 }: ToggleSectionProps) => {
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   
@@ -36,7 +38,7 @@ export const ToggleSection = ({
 
   return (
     <div className="flex items-center gap-2 mb-3">
-      {refreshJson && (
+      {showRefreshButton && refreshJson && (
         <Button 
           onClick={handleRefresh}
           variant="ghost" 
