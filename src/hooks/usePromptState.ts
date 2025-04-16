@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag, TechnicalTerm } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -507,3 +508,6 @@ export const usePromptState = () => {
     isModifying,
     setIsModifying,
     isTransforming,
+    setIsTransforming
+  };
+};
