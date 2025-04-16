@@ -313,7 +313,7 @@ const XPanel = () => {
                     <span className="bg-aurora-gradient bg-aurora animate-aurora bg-clip-text text-transparent" style={{
                     backgroundSize: "400% 400%"
                   }}>
-                      X Panel
+                      Panel
                     </span>
                   </h1>
                 </div>
