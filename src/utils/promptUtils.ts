@@ -1,3 +1,26 @@
+import { Variable } from "@/components/dashboard/types";
+
+// Add the new function to convert placeholders to an editable format
+export const convertPlaceholdersToEditableFormat = (
+  prompt: string, 
+  variables: Variable[]
+): string => {
+  if (!prompt) return "";
+
+  let editablePrompt = prompt;
+
+  // Replace variable placeholders with their actual values for editing
+  variables.filter(v => v.isRelevant).forEach(variable => {
+    const placeholder = `{{value::${variable.id}}}`; 
+    const value = variable.value || "";
+
+    // Use a regex with word boundaries to prevent partial matches
+    const regex = new RegExp(`\\${placeholder}`, 'g');
+    editablePrompt = editablePrompt.replace(regex, value);
+  });
+
+  return editablePrompt;
+};
 
 /**
  * Replaces a variable placeholder in the prompt with a new placeholder,
