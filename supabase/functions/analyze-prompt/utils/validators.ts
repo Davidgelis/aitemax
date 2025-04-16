@@ -16,7 +16,7 @@ export function validateQuestionVariablePairs(questions: any[], variables: any[]
 
   // Validate questions format
   for (const question of questions) {
-    if (!question.id || !question.text) {
+    if (!question.id || !question.text || !question.category) {
       console.error("Invalid question format:", question);
       return false;
     }
@@ -24,34 +24,20 @@ export function validateQuestionVariablePairs(questions: any[], variables: any[]
 
   // Validate variables format
   for (const variable of variables) {
-    if (!variable.id || !variable.name) {
+    if (!variable.id || !variable.name || !variable.category) {
       console.error("Invalid variable format:", variable);
       return false;
     }
   }
 
-  // Check for duplicate IDs
-  const questionIds = new Set(questions.map(q => q.id));
-  const variableIds = new Set(variables.map(v => v.id));
-  
-  if (questionIds.size !== questions.length) {
-    console.error("Duplicate question IDs found");
-    return false;
-  }
-  
-  if (variableIds.size !== variables.length) {
-    console.error("Duplicate variable IDs found");
-    return false;
-  }
-
   // Ensure minimum required questions and variables
-  if (questions.length === 0) {
-    console.error("No questions provided");
+  if (questions.length < 2) {
+    console.error("Not enough questions provided (minimum 2)");
     return false;
   }
 
-  if (variables.length === 0) {
-    console.error("No variables provided");
+  if (variables.length < 1) {
+    console.error("Not enough variables provided (minimum 1)");
     return false;
   }
 
