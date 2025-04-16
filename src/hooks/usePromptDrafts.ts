@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useState, useRef } from "react";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +34,7 @@ export const usePromptDrafts = (
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveAttempts, setSaveAttempts] = useState(0);
+  const [deletedDraftIds, setDeletedDraftIds] = useState<Set<string>>(new Set());
   const maxRetries = 3;
   const { sessionExpiresAt } = useAuth();
   
@@ -101,15 +103,21 @@ export const usePromptDrafts = (
         .from('prompt_drafts')
         .select('*')
         .eq('user_id', user.id)
+        .eq('is_deleted', false) // Only fetch non-deleted drafts
         .order('updated_at', { ascending: false });
       
       if (error) throw error;
       
       if (data) {
-        // Filter out duplicates and saved prompts
+        // Filter out duplicates, saved prompts, and manually tracked deleted drafts
         const uniqueDrafts = new Map();
         
         data.forEach(draft => {
+          // Skip if this draft has been manually marked as deleted
+          if (draft.id && deletedDraftIds.has(draft.id)) {
+            return;
+          }
+          
           // Skip if this is a saved prompt
           const isAlreadySaved = savedPrompts?.some(saved => 
             saved.prompt_text?.trim() === draft.prompt_text?.trim()
@@ -148,7 +156,7 @@ export const usePromptDrafts = (
     } finally {
       setIsLoadingDrafts(false);
     }
-  }, [user, toast]);
+  }, [user, toast, deletedDraftIds]);
 
   const saveDraft = useCallback(async (force = false) => {
     // Don't save drafts if:
@@ -183,6 +191,7 @@ export const usePromptDrafts = (
           .select('id')
           .eq('user_id', user.id)
           .eq('title', title)
+          .eq('is_deleted', false) // Only check non-deleted drafts
           .limit(1);
           
         if (searchError) throw searchError;
@@ -220,6 +229,7 @@ export const usePromptDrafts = (
         secondary_toggle: selectedSecondary,
         variables: variablesToJson(variables),
         current_step: currentStep,
+        is_deleted: false // Explicitly mark as not deleted
       };
 
       if (draftId) {
@@ -323,6 +333,7 @@ export const usePromptDrafts = (
         .from('prompt_drafts')
         .select('*')
         .eq('user_id', user.id)
+        .eq('is_deleted', false) // Only get non-deleted drafts
         .order('updated_at', { ascending: false })
         .limit(1);
 
@@ -382,9 +393,10 @@ export const usePromptDrafts = (
 
     try {
       if (currentDraftId) {
+        // Update the is_deleted flag instead of actually deleting
         const { error } = await supabase
           .from('prompt_drafts')
-          .delete()
+          .update({ is_deleted: true })
           .eq('id', currentDraftId);
 
         if (error) throw error;
@@ -401,16 +413,24 @@ export const usePromptDrafts = (
   }, [user, currentDraftId]);
 
   const deleteDraft = useCallback(async (draftId: string) => {
-    if (!user) return;
+    if (!user || !draftId) return;
 
     try {
-      // Delete from database
+      console.log(`Deleting draft with ID: ${draftId}`);
+      
+      // Add to local tracking of deleted drafts
+      setDeletedDraftIds(prev => new Set([...prev, draftId]));
+      
+      // Update in database - mark as deleted instead of removing completely
       const { error } = await supabase
         .from('prompt_drafts')
-        .delete()
+        .update({ is_deleted: true })
         .eq('id', draftId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error when deleting draft:', error);
+        throw error;
+      }
 
       // Remove from local state
       setDrafts(prevDrafts => prevDrafts.filter(draft => draft.id !== draftId));
@@ -430,6 +450,9 @@ export const usePromptDrafts = (
         }
       }
       
+      // For debugging
+      console.log(`Draft ${draftId} marked as deleted and removed from UI`);
+      
       toast({
         title: "Success",
         description: "Draft deleted successfully",
@@ -438,28 +461,39 @@ export const usePromptDrafts = (
       console.error('Error deleting draft:', error);
       toast({
         title: "Error",
-        description: "Failed to delete draft",
+        description: "Failed to delete draft: " + (error?.message || "Unknown error"),
         variant: "destructive",
       });
     }
   }, [user, toast, currentDraftId]);
 
   const loadSelectedDraft = useCallback((draft: PromptDraft) => {
-    if (draft.id) {
-      setCurrentDraftId(draft.id);
-      
-      // Update local storage with the selected draft
-      localStorage.setItem('promptDraft', JSON.stringify({
-        id: draft.id,
-        promptText: draft.promptText,
-        masterCommand: draft.masterCommand,
-        variables: draft.variables,
-        selectedPrimary: draft.primaryToggle,
-        secondaryToggle: draft.secondaryToggle,
-        currentStep: draft.currentStep,
-        timestamp: new Date().toISOString()
-      }));
+    if (!draft.id) return null;
+    
+    // Check if this draft is already deleted (should not happen in UI but as a safeguard)
+    if (deletedDraftIds.has(draft.id)) {
+      console.warn(`Attempted to load draft ${draft.id} that was marked as deleted`);
+      toast({
+        title: "Warning",
+        description: "This draft has been deleted",
+        variant: "destructive",
+      });
+      return null;
     }
+    
+    setCurrentDraftId(draft.id);
+    
+    // Update local storage with the selected draft
+    localStorage.setItem('promptDraft', JSON.stringify({
+      id: draft.id,
+      promptText: draft.promptText,
+      masterCommand: draft.masterCommand,
+      variables: draft.variables,
+      selectedPrimary: draft.primaryToggle,
+      secondaryToggle: draft.secondaryToggle,
+      currentStep: draft.currentStep,
+      timestamp: new Date().toISOString()
+    }));
     
     // Reset dirty state when loading a draft
     setIsDirty(false);
@@ -472,7 +506,7 @@ export const usePromptDrafts = (
       secondaryToggle: draft.secondaryToggle,
       currentStep: draft.currentStep
     };
-  }, []);
+  }, [deletedDraftIds, toast]);
   
   // Check for session expiration to save drafts
   useEffect(() => {

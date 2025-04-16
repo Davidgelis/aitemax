@@ -51,7 +51,7 @@ const Navbar = () => {
           Dashboard
         </Link>
         <Link to="/x-panel" className="text-[#041524] hover:text-[#33fea6] transition-colors">
-          X Panel
+          Panel
         </Link>
         <span className="text-[#041524] cursor-not-allowed opacity-70">
           Support
