@@ -1,12 +1,7 @@
-
 import { useState, useEffect, useCallback } from "react";
-import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag } from "@/components/dashboard/types";
+import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
-import { defaultVariables, mockQuestions, sampleFinalPrompt } from "@/components/dashboard/constants";
 import { supabase } from "@/integrations/supabase/client";
-import { usePromptDrafts } from "@/hooks/usePromptDrafts";
-import { Json } from "@/integrations/supabase/types";
-import { useLocation } from "react-router-dom";
 
 export const useQuestionsAndVariables = (
   questions: Question[],
@@ -44,118 +39,6 @@ export const useQuestionsAndVariables = (
     );
   };
 
-  const addVariable = useCallback(async () => {
-    const newVariableId = `v-${Date.now()}`;
-    const newCode = `VAR_${variables.length + 1}`;
-
-    // Create new variable locally
-    setVariables((current: Variable[]) => [
-      ...current,
-      {
-        id: newVariableId,
-        name: '',
-        value: '',
-        isRelevant: null,
-        category: 'Custom',
-        code: newCode
-      }
-    ]);
-
-    // If a prompt is currently being viewed/edited, automatically save to that prompt
-    if (user && promptId) {
-      try {
-        // Fetch current prompt to get existing saved variables
-        const { data: promptData, error: fetchError } = await supabase
-          .from('prompts')
-          .select('saved_variables')
-          .eq('id', promptId)
-          .eq('user_id', user.id)
-          .single();
-
-        if (fetchError) {
-          console.error("Error fetching prompt:", fetchError);
-          return;
-        }
-
-        // Prepare updated saved variables
-        const currentSavedVariables = Array.isArray(promptData.saved_variables) 
-          ? promptData.saved_variables 
-          : [];
-          
-        const newVariable = {
-          id: newVariableId,
-          name: '',
-          value: '',
-          isRelevant: null,
-          category: 'Custom',
-          code: newCode
-        };
-
-        const updatedSavedVariables = [...currentSavedVariables, newVariable];
-
-        // Update the prompt with new saved variables
-        const { error: updateError } = await supabase
-          .from('prompts')
-          .update({ saved_variables: updatedSavedVariables })
-          .eq('id', promptId)
-          .eq('user_id', user.id);
-
-        if (updateError) {
-          console.error("Error saving variable to prompt:", updateError);
-        } else {
-          toast({
-            title: "Variable Added",
-            description: "Variable automatically saved to this prompt",
-          });
-        }
-      } catch (error) {
-        console.error("Unexpected error saving variable:", error);
-      }
-    }
-  }, [variables, user, promptId, toast]);
-
-  const removeVariable = useCallback((id: string = variableToDelete || "") => {
-    const varId = id || variableToDelete;
-    if (!varId) return;
-    
-    console.log(`Removing variable ${varId}`);
-    setVariables(variables.filter((v) => v.id !== varId));
-    
-    if (id === variableToDelete) {
-      setVariableToDelete(null);
-    }
-
-    // If a prompt is currently being viewed/edited, remove from saved variables
-    if (user && promptId) {
-      const filteredVariables = variables
-        .filter((v) => v.id !== varId)
-        .map(v => ({ 
-          id: v.id, 
-          name: v.name, 
-          value: v.value, 
-          isRelevant: v.isRelevant,
-          category: v.category,
-          code: v.code
-        }));
-
-      supabase
-        .from('prompts')
-        .update({ saved_variables: filteredVariables })
-        .eq('id', promptId)
-        .eq('user_id', user.id)
-        .then(({ error }) => {
-          if (error) {
-            console.error("Error removing variable from prompt:", error);
-          } else {
-            toast({
-              title: "Variable Removed",
-              description: "Variable removed from this prompt",
-            });
-          }
-        });
-    }
-  }, [variables, variableToDelete, setVariables, setVariableToDelete, user, promptId, toast]);
-
   const handleVariableChange = (
     variableId: string,
     field: keyof Variable,
@@ -181,33 +64,6 @@ export const useQuestionsAndVariables = (
     
     // Update the state
     setVariables(updatedVariables);
-
-    // If a prompt is currently being viewed/edited, save changes to saved_variables
-    if (user && promptId) {
-      const variablesToSave = variables.map(v => 
-        v.id === variableId 
-          ? { ...v, [field]: value } 
-          : { 
-              id: v.id, 
-              name: v.name, 
-              value: v.value, 
-              isRelevant: v.isRelevant,
-              category: v.category,
-              code: v.code
-            }
-      );
-
-      supabase
-        .from('prompts')
-        .update({ saved_variables: variablesToSave })
-        .eq('id', promptId)
-        .eq('user_id', user.id)
-        .then(({ error }) => {
-          if (error) {
-            console.error("Error saving variable changes:", error);
-          }
-        });
-    }
   };
 
   const handleVariableRelevance = (variableId: string, isRelevant: boolean) => {
@@ -223,6 +79,36 @@ export const useQuestionsAndVariables = (
       })
     );
   };
+
+  const addVariable = useCallback(() => {
+    const newVariableId = `v-${Date.now()}`;
+    setVariables((current: Variable[]) => {
+      const newCode = `VAR_${current.length + 1}`;
+      return [
+        ...current,
+        {
+          id: newVariableId,
+          name: '',
+          value: '',
+          isRelevant: null,
+          category: 'Custom',
+          code: newCode // This will be used internally for matching in step 3
+        }
+      ];
+    });
+  }, [setVariables]);
+
+  const removeVariable = useCallback((id: string = variableToDelete || "") => {
+    const varId = id || variableToDelete;
+    if (!varId) return;
+    
+    console.log(`Removing variable ${varId}`);
+    setVariables(variables.filter((v) => v.id !== varId));
+    
+    if (id === variableToDelete) {
+      setVariableToDelete(null);
+    }
+  }, [variables, variableToDelete, setVariables, setVariableToDelete]);
 
   const canProceedToStep3 = (): boolean => {
     return true;

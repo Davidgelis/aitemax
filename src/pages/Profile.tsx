@@ -10,38 +10,37 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import MasterPanel from "@/components/dashboard/MasterPanel";
-import { ChangeEmailForm } from "@/components/profile/ChangeEmailForm";
 
 const avatarOptions = [
   {
     id: "avatar1",
     value: "avatar1",
-    src: "/lovable-uploads/81bf9d23-884d-4fe1-a313-f83ecbae91b9.png", 
-    alt: "Black X logo"
+    src: "/lovable-uploads/9e9dab89-7884-4529-8d21-4635694140a0.png", 
+    alt: "Intersecting circles"
   },
   {
     id: "avatar2",
     value: "avatar2", 
-    src: "/lovable-uploads/9566fd2a-2d4e-4151-be4f-4e52d41f7059.png",
-    alt: "Neon green X logo"
+    src: "/lovable-uploads/599e8307-b1eb-411f-ac99-f096310d8073.png",
+    alt: "Green diagonal line"
   },
   {
     id: "avatar3",
     value: "avatar3",
-    src: "/lovable-uploads/0a666744-3cc6-4992-9404-88905dd43af7.png",
-    alt: "Light green X logo"
+    src: "/lovable-uploads/6880916c-ef0f-41df-bba8-bae4076a3355.png",
+    alt: "Teal diagonal line"
   },
   {
     id: "avatar4",
     value: "avatar4",
-    src: "/lovable-uploads/043de14b-af42-4fc7-ab94-6c028258b383.png",
-    alt: "Dark green X logo"
+    src: "/lovable-uploads/57623e13-ceba-4029-a7cc-a0317bcecff5.png",
+    alt: "Teal circle"
   },
   {
     id: "avatar5",
     value: "avatar5",
-    src: "/lovable-uploads/c75651f9-1428-4740-87f7-98817d4c49d8.png",
-    alt: "Gradient X logo"
+    src: "/lovable-uploads/6bc3d174-c5ec-4312-adb8-2c7834ab72e0.png",
+    alt: "Dark blue circle"
   }
 ];
 
@@ -183,7 +182,7 @@ const Profile = () => {
               <img 
                 src={getSelectedAvatarSrc()} 
                 alt="Selected Avatar" 
-                className="w-full h-full object-contain p-2"
+                className="w-full h-full object-contain"
               />
             </div>
             <div>
@@ -270,13 +269,6 @@ const Profile = () => {
                 <Lock className="h-4 w-4" />
                 Change Password
               </Button>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h2 className="text-lg font-medium mb-4 text-[#545454]">Change Email</h2>
-              <ChangeEmailForm currentEmail={email} />
             </div>
 
             {isMasterUser && (

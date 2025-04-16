@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -168,9 +169,28 @@ export const StepThreeContent = ({
     }
   }, [promptOperations, toast]);
 
+  // Improved handleRefreshJson function to use the latest finalPrompt
+  const handleRefreshJson = useCallback(() => {
+    if (isRefreshingJson) return;
+    
+    setIsRefreshingJson(true);
+    toast({
+      title: "Refreshing JSON",
+      description: "Updating JSON structure with current content...",
+    });
+    
+    // Force re-render of the JSON view with latest content
+    setTimeout(() => {
+      setRenderTrigger(prev => prev + 1);
+    }, 100);
+  }, [toast, isRefreshingJson]);
+
   return (
     <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
-      <ToggleSection />
+      <ToggleSection 
+        refreshJson={handleRefreshJson}
+        isRefreshing={isRefreshingJson}
+      />
 
       <FinalPromptDisplay 
         finalPrompt={finalPrompt || ""}

@@ -125,20 +125,24 @@ export const usePromptState = (user: any) => {
   };
 
   const fetchSavedPrompts = useCallback(async () => {
-    if (!user || isFetchingPrompts) return;
+    if (!user) return;
+    
+    // If already fetching, don't start another fetch
+    if (isFetchingPrompts) return;
     
     setIsLoadingPrompts(true);
     setFetchPromptError(null);
     setIsFetchingPrompts(true);
     
     try {
+      console.log("Fetching prompts for user:", user.id);
       // Add exponential backoff with retry
       const fetchWithRetry = async (retries = 0): Promise<any> => {
         try {
           const { data, error } = await supabase
             .from('prompts')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('user_id', user.id) // Ensure we're only getting prompts for this user
             .order('created_at', { ascending: false });
           
           if (error) {
