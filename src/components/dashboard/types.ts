@@ -21,7 +21,7 @@ export interface Question {
   category: string;
   answer: string;
   isRelevant: boolean;
-  technicalTerms?: TechnicalTerm[]; // Adding this to support QuestionList component
+  technicalTerms?: TechnicalTerm[]; // Added to support QuestionList component
 }
 
 export interface UploadedImage {
@@ -45,25 +45,25 @@ export interface AIModel {
   };
   isRecommended?: boolean;
   lastUpdated?: string;
-  strengths?: string[]; // Adding to support ModelTooltip and related components
-  limitations?: string[]; // Adding to support ModelTooltip and related components
-  updated_at?: string; // Adding to support useModelSelector
-  is_deleted?: boolean; // Adding to support model services
-  created_at?: string; // Adding to support model services
+  strengths?: string[]; // Added to support ModelTooltip and related components
+  limitations?: string[]; // Added to support ModelTooltip and related components
+  updated_at?: string; // Added to support useModelSelector
+  is_deleted?: boolean; // Added to support model services
+  created_at?: string; // Added to support model services
 }
 
 export interface Toggle {
   id: string;
   label: string;
   definition: string;
-  prompt: string; // Adding to support constants.ts usage
+  prompt: string; // Added to support constants.ts usage
 }
 
 export interface SavedPrompt {
   id: string;
   title: string;
   prompt: string;
-  promptText?: string; // Adding for backward compatibility
+  promptText?: string; // Added for backward compatibility
   created_at: string;
   updated_at: string;
   user_id: string;
@@ -73,8 +73,8 @@ export interface SavedPrompt {
   primaryToggle?: string | null;
   secondaryToggle?: string | null;
   tags?: PromptTag[];
-  date?: string; // Adding to support existing code
-  jsonStructure?: PromptJsonStructure; // Adding to support usePromptState
+  date?: string; // Added to support existing code
+  jsonStructure?: PromptJsonStructure; // Added to support usePromptState
 }
 
 export interface PromptJsonStructure {
@@ -84,16 +84,16 @@ export interface PromptJsonStructure {
   enhancedPrompt: string;
   selectedPrimary: string | null;
   selectedSecondary: string | null;
-  title?: string; // Adding to support FinalPromptDisplay
-  summary?: string; // Adding to support FinalPromptDisplay
+  title?: string; // Added to support FinalPromptDisplay
+  summary?: string; // Added to support FinalPromptDisplay
 }
 
 export interface PromptTag {
   id: string;
   name: string;
   color?: string;
-  category?: string; // Adding to support XPanel and PromptView
-  subcategory?: string; // Adding to support XPanel and PromptView
+  category?: string; // Added to support XPanel and PromptView
+  subcategory?: string; // Added to support XPanel and PromptView
 }
 
 // Helper functions for variable conversion
@@ -136,18 +136,19 @@ export const jsonToVariables = (json: Record<string, any> | null | any): Variabl
       };
     }
 
-    // Safely access properties 
-    const name = typeof value.name === 'string' ? value.name : '';
-    const val = typeof value.value === 'string' ? value.value : '';
-    const category = typeof value.category === 'string' ? value.category : '';
-    const isRelevant = typeof value.isRelevant === 'boolean' ? value.isRelevant : true;
-    const code = value.code;
-    const technicalTerms = Array.isArray(value.technicalTerms) ? value.technicalTerms : [];
+    // Safely access properties with proper type checking
+    const val = value as Record<string, any>;
+    const name = typeof val.name === 'string' ? val.name : '';
+    const valStr = typeof val.value === 'string' ? val.value : '';
+    const category = typeof val.category === 'string' ? val.category : '';
+    const isRelevant = typeof val.isRelevant === 'boolean' ? val.isRelevant : true;
+    const code = val.code;
+    const technicalTerms = Array.isArray(val.technicalTerms) ? val.technicalTerms : [];
 
     return {
       id,
       name,
-      value: val,
+      value: valStr,
       category,
       isRelevant,
       code,

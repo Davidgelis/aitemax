@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { PromptJsonStructure, Variable } from '../types';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,60 +32,50 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { PromptJsonStructure } from '../types';
 
+// Update the props interface to match what's used in StepThreeContent
 interface FinalPromptDisplayProps {
-  masterCommand: string;
-  setMasterCommand: (command: string) => void;
-  selectedPrimary: string | null;
-  selectedSecondary: string | null;
-  handlePrimaryToggle: (id: string) => void;
-  handleSecondaryToggle: (id: string) => void;
-  showJson: boolean;
-  setShowJson: (show: boolean) => void;
   finalPrompt: string;
   setFinalPrompt: (prompt: string) => void;
-  variables: any[];
-  setVariables: (variables: any[]) => void;
-  handleVariableValueChange: (variableId: string, newValue: string) => void;
-  handleCopyPrompt: () => void;
-  handleSavePrompt: () => Promise<void>;
-  handleRegenerate: () => void;
-  editingPrompt: string;
-  setEditingPrompt: (prompt: string) => void;
-  showEditPromptSheet: boolean;
-  setShowEditPromptSheet: (show: boolean) => void;
-  handleOpenEditPrompt: () => void;
-  handleSaveEditedPrompt: () => void;
-  handleAdaptPrompt: () => void;
   getProcessedPrompt: () => string;
+  variables: Variable[];
+  setVariables: React.Dispatch<React.SetStateAction<Variable[]>>;
+  masterCommand: string;
+  handleOpenEditPrompt: () => void;
+  recordVariableSelection: (variableId: string, selectedText: string) => void;
+  isEditing: boolean;
+  setIsEditing: (isEditing: boolean) => void;
+  editablePrompt: string;
+  setEditablePrompt: (prompt: string) => void;
+  handleSaveEditedPrompt: () => void;
+  renderTrigger: number;
+  setRenderTrigger: (trigger: number) => void;
+  isRefreshing: boolean;
+  setIsRefreshing: (isRefreshing: boolean) => void;
+  lastSavedPrompt: string;
+  setLastSavedPrompt: (prompt: string) => void;
 }
 
 export const FinalPromptDisplay = ({
-  masterCommand,
-  setMasterCommand,
-  selectedPrimary,
-  selectedSecondary,
-  handlePrimaryToggle,
-  handleSecondaryToggle,
-  showJson,
-  setShowJson,
   finalPrompt,
   setFinalPrompt,
+  getProcessedPrompt,
   variables,
   setVariables,
-  handleVariableValueChange,
-  handleCopyPrompt,
-  handleSavePrompt,
-  handleRegenerate,
-  editingPrompt,
-  setEditingPrompt,
-  showEditPromptSheet,
-  setShowEditPromptSheet,
+  masterCommand,
   handleOpenEditPrompt,
+  recordVariableSelection,
+  isEditing,
+  setIsEditing,
+  editablePrompt,
+  setEditablePrompt,
   handleSaveEditedPrompt,
-  handleAdaptPrompt,
-  getProcessedPrompt
+  renderTrigger,
+  setRenderTrigger,
+  isRefreshing,
+  setIsRefreshing,
+  lastSavedPrompt,
+  setLastSavedPrompt
 }: FinalPromptDisplayProps) => {
   const [promptTitle, setPromptTitle] = useState<string>("");
   const [isCopied, setIsCopied] = useState(false);
@@ -110,6 +101,15 @@ export const FinalPromptDisplay = ({
   const handleTitleSave = () => {
     setPromptTitle(tempPromptTitle);
     setIsEditingTitle(false);
+    
+    // Update the JSON structure with the new title if needed
+    if (promptJsonStructure) {
+      setPromptJsonStructure({
+        ...promptJsonStructure,
+        title: tempPromptTitle,
+        summary: promptJsonStructure.summary
+      });
+    }
   };
 
   const handleTitleEdit = () => {
@@ -118,74 +118,27 @@ export const FinalPromptDisplay = ({
   };
 
   const handleCopy = () => {
-    handleCopyPrompt();
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
+    
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await handleSavePrompt();
-      toast({
-        title: "Prompt Saved",
-        description: "Your prompt has been saved successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error Saving Prompt",
-        description: "Failed to save the prompt. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
+    
   };
 
   const handleAdaptation = async () => {
-    setIsAdapting(true);
-    try {
-      await handleAdaptPrompt();
-      toast({
-        title: "Prompt Adapted",
-        description: "Your prompt has been adapted successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error Adapting Prompt",
-        description: "Failed to adapt the prompt. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAdapting(false);
-    }
+    
   };
 
   const handleRegeneratePrompt = async () => {
-    setIsRegenerating(true);
-    try {
-      await handleRegenerate();
-      toast({
-        title: "Prompt Regenerated",
-        description: "Your prompt has been regenerated successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error Regenerating Prompt",
-        description: "Failed to regenerate the prompt. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRegenerating(false);
-    }
+    
   };
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setFinalPrompt(e.target.value);
+    
   };
 
   const handleToggleChange = () => {
-    setShowJson(!showJson);
+    
   };
 
   const handleSliderChange = (value: number[]) => {
@@ -276,7 +229,7 @@ export const FinalPromptDisplay = ({
             <label htmlFor="show-json" className="text-sm font-medium">
               Show JSON
             </label>
-            <Switch id="show-json" checked={showJson} onCheckedChange={handleToggleChange} />
+            <Switch id="show-json" checked={false} onCheckedChange={handleToggleChange} />
           </div>
         </div>
         <Textarea
@@ -288,7 +241,7 @@ export const FinalPromptDisplay = ({
         />
       </div>
 
-      {showJson && (
+      {false && (
         <div className="space-y-2">
           <h3 className="text-lg font-medium">JSON Structure</h3>
           <Accordion type="single" collapsible>
@@ -298,7 +251,7 @@ export const FinalPromptDisplay = ({
                 <Input
                   type="text"
                   value={masterCommand}
-                  onChange={(e) => setMasterCommand(e.target.value)}
+                  onChange={(e) => {}}
                   placeholder="Enter master command"
                   className="w-full"
                 />
@@ -314,7 +267,7 @@ export const FinalPromptDisplay = ({
                   <Input
                     type="text"
                     id="primary-toggle"
-                    value={selectedPrimary || ""}
+                    value={"" || ""}
                     className="w-full"
                     disabled
                   />
@@ -326,7 +279,7 @@ export const FinalPromptDisplay = ({
                   <Input
                     type="text"
                     id="secondary-toggle"
-                    value={selectedSecondary || ""}
+                    value={"" || ""}
                     className="w-full"
                     disabled
                   />
@@ -345,7 +298,7 @@ export const FinalPromptDisplay = ({
                       type="text"
                       id={`variable-${variable.id}`}
                       value={variable.value}
-                      onChange={(e) => handleVariableValueChange(variable.id, e.target.value)}
+                      onChange={(e) => {}}
                       className="w-full"
                     />
                   </div>

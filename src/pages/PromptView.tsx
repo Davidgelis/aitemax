@@ -1,258 +1,269 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Copy, Edit, Trash2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { SavedPrompt, Variable, PromptTag } from '@/components/dashboard/types';
-import { variablesToJson, jsonToVariables } from '@/components/dashboard/types';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Json } from '@/integrations/supabase/types';
+import { Layout } from '@/components/Layout';
+import { useToast } from '@/hooks/use-toast';
+import { SavedPrompt, variablesToJson, jsonToVariables, Variable, PromptTag } from '@/components/dashboard/types';
+import { formatDistanceToNow } from 'date-fns';
+import { Spinner } from '@/components/dashboard/Spinner';
+import { Button } from '@/components/ui/button';
+import {
+  Copy,
+  Clock,
+  Tag,
+  X,
+  ChevronDown,
+  ChevronUp,
+  ArrowLeft,
+  Edit
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
-const PromptView = () => {
+export const PromptView = () => {
   const { id } = useParams<{ id: string }>();
+  const [selectedPrompt, setSelectedPrompt] = useState<SavedPrompt | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [variables, setVariables] = useState<Variable[]>([]);
+  const [tags, setTags] = useState<PromptTag[]>([]);
+  const [showFullPrompt, setShowFullPrompt] = useState(false);
+  const [user, setUser] = useState<{ id: string; username: string; avatar_url: string } | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [promptData, setPromptData] = useState<SavedPrompt | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [variables, setVariables] = useState<Variable[]>([]);
-  const [tags, setTags] = useState<PromptTag[]>([]);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-  const fetchPrompt = useCallback(async () => {
-    if (!id) {
-      setError("Invalid prompt ID");
-      setLoading(false);
-      return;
-    }
-
+  const fetchUser = async (userId: string) => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
-        .from('prompts')
-        .select('*')
-        .eq('id', id)
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .eq('id', userId)
         .single();
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw error;
 
-      if (!data) {
-        throw new Error("Prompt not found");
+      if (data) {
+        setUser({
+          id: data.id,
+          username: data.username || 'Unknown User',
+          avatar_url: data.avatar_url || ''
+        });
       }
-
-      setPromptData({
-        id: data.id,
-        title: data.title,
-        prompt: data.prompt_text,
-        promptText: data.prompt_text,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        user_id: data.user_id,
-        date: new Date(data.created_at).toLocaleString(),
-        masterCommand: data.master_command,
-        primaryToggle: data.primary_toggle,
-        secondaryToggle: data.secondary_toggle,
-        variables: data.variables,
-        tags: data.tags
-      });
-      
-      if (data.variables) {
-        // Handle either array or record format
-        if (Array.isArray(data.variables)) {
-          setVariables(data.variables as Variable[]);
-        } else {
-          setVariables(jsonToVariables(data.variables as Record<string, any>));
-        }
-      } else {
-        setVariables([]);
-      }
-
-      // Ensure tags are correctly assigned
-      if (data.tags && Array.isArray(data.tags)) {
-        setTags(data.tags as PromptTag[]);
-      } else {
-        setTags([]);
-      }
-
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      setUser({ id: userId, username: 'Unknown User', avatar_url: '' });
     }
-  }, [id]);
+  };
 
   useEffect(() => {
-    fetchPrompt();
-  }, [fetchPrompt]);
+    const fetchPrompt = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('prompts')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          const prompt: SavedPrompt = {
+            id: data.id,
+            title: data.title || 'Untitled Prompt',
+            prompt: data.prompt_text || '',
+            promptText: data.prompt_text || '',
+            created_at: data.created_at || '',
+            updated_at: data.updated_at || '',
+            user_id: data.user_id || '',
+            date: new Date(data.created_at || '').toLocaleString(),
+            masterCommand: data.master_command || '',
+            primaryToggle: data.primary_toggle,
+            secondaryToggle: data.secondary_toggle,
+            variables: data.variables as unknown as Variable[] || [],
+            tags: data.tags as unknown as PromptTag[] || []
+          };
+
+          setSelectedPrompt(prompt);
+
+          // Safely handle variables
+          if (data.variables) {
+            const promptVars = Array.isArray(data.variables) 
+              ? data.variables as unknown as Variable[]
+              : jsonToVariables(data.variables as unknown as Record<string, any>);
+            setVariables(promptVars);
+          }
+
+          // Safely handle tags
+          if (data.tags) {
+            const promptTags = Array.isArray(data.tags) 
+              ? data.tags.map(tag => ({
+                  id: typeof tag.id === 'string' ? tag.id : '',
+                  name: typeof tag.name === 'string' ? tag.name : '',
+                  category: typeof tag.category === 'string' ? tag.category : '',
+                  subcategory: typeof tag.subcategory === 'string' ? tag.subcategory : '',
+                })) as PromptTag[]
+              : [];
+            setTags(promptTags);
+          }
+
+          // Fetch user info
+          await fetchUser(data.user_id);
+        }
+      } catch (error) {
+        console.error('Error fetching prompt:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load the prompt.',
+          variant: 'destructive'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchPrompt();
+    }
+  }, [id, toast]);
 
   const handleCopyToClipboard = () => {
-    if (promptData) {
-      navigator.clipboard.writeText(promptData.promptText);
-      toast({
-        title: "Copied to clipboard",
-        description: "The prompt text has been copied to your clipboard.",
+    if (selectedPrompt) {
+      navigator.clipboard.writeText(selectedPrompt.prompt).then(() => {
+        toast({
+          title: 'Copied!',
+          description: 'Prompt copied to clipboard.',
+        });
+      }).catch(err => {
+        console.error('Could not copy prompt: ', err);
+        toast({
+          title: 'Error',
+          description: 'Failed to copy prompt to clipboard.',
+          variant: 'destructive'
+        });
       });
     }
   };
 
-  const handleDeletePrompt = async () => {
-    try {
-      setLoading(true);
-      const { error } = await supabase
-        .from('prompts')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      toast({
-        title: "Prompt Deleted",
-        description: "The prompt has been successfully deleted.",
-      });
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.message);
-      toast({
-        title: "Error",
-        description: `Failed to delete prompt: ${err.message}`,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-      setIsDeleteDialogOpen(false);
-    }
+  const handleTagClick = (tag: PromptTag) => {
+    // Implement tag click logic here
+    console.log('Tag clicked:', tag);
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <Layout>
+        <div className="flex justify-center items-center h-full">
+          <Spinner />
+        </div>
+      </Layout>
+    );
   }
 
-  if (error) {
-    return <div>Error: {error}</div>;
+  if (!selectedPrompt) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center h-full text-lg">
+          Prompt not found.
+        </div>
+      </Layout>
+    );
   }
-
-  if (!promptData) {
-    return <div>Prompt not found</div>;
-  }
-
-  // Fix the PromptTag[] assignment
-  const sampleTags: PromptTag[] = [
-    { id: '1', name: 'Development', category: 'Development', subcategory: 'Web' },
-    { id: '2', name: 'Design', category: 'Design', subcategory: 'UI/UX' },
-  ];
 
   return (
-    <div className="container mx-auto mt-8">
-      <Card className="w-full max-w-3xl mx-auto">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">{promptData.title}</CardTitle>
-          <CardDescription>
-            Created on {promptData.date}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="flex items-center space-x-2">
-            {sampleTags.map((tag) => (
-              <Badge key={tag.id} variant="secondary">
-                {tag.category}: {tag.subcategory}
-              </Badge>
-            ))}
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Prompt Text</h3>
-            <Textarea
-              readOnly
-              className="w-full bg-gray-100 border-gray-300 rounded-md p-2 resize-none"
-              value={promptData.promptText || ''}
-              rows={4}
-            />
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Master Command</h3>
-            <Input
-              readOnly
-              className="w-full bg-gray-100 border-gray-300 rounded-md p-2"
-              value={promptData.masterCommand || ''}
-            />
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Variables</h3>
-            {variables.length > 0 ? (
-              <ul className="list-disc list-inside">
-                {variables.map((variable) => (
-                  <li key={variable.id}>
-                    {variable.name}: {variable.value}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-500">No variables available for this prompt.</p>
-            )}
-          </div>
-
-          <div className="flex justify-between items-center mt-4">
+    <Layout>
+      <div className="container mx-auto mt-8">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+        <div className="bg-white shadow-md rounded-lg p-6">
+          <div className="flex justify-between items-start mb-4">
             <div>
-              <Button variant="outline" onClick={() => navigate('/dashboard')}>
-                Back to Dashboard
-              </Button>
+              <h1 className="text-2xl font-bold text-gray-800">{selectedPrompt.title}</h1>
+              <div className="text-gray-500 text-sm flex items-center mt-1">
+                <Clock className="mr-1 h-4 w-4" />
+                Created {formatDistanceToNow(new Date(selectedPrompt.created_at), {
+                  addSuffix: true,
+                })}
+                {selectedPrompt.updated_at !== selectedPrompt.created_at && (
+                  <>
+                    <span className="mx-2">•</span>
+                    Updated {formatDistanceToNow(new Date(selectedPrompt.updated_at), {
+                      addSuffix: true,
+                    })}
+                  </>
+                )}
+              </div>
             </div>
-            <div className="space-x-2">
-              <Button variant="secondary" onClick={handleCopyToClipboard}>
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Prompt
-              </Button>
-              <Button onClick={() => navigate(`/edit-prompt/${id}`)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete this prompt from our servers.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeletePrompt}>
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+            <Button variant="outline" size="icon" onClick={handleCopyToClipboard}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <Separator className="my-4" />
+
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">Author</h2>
+            <div className="flex items-center">
+              <Avatar className="mr-2">
+                <AvatarImage src={user?.avatar_url || ''} alt={user?.username || 'Unknown User'} />
+                <AvatarFallback>{user?.username?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+              </Avatar>
+              <div className="text-gray-600">{user?.username || 'Unknown User'}</div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+
+          <Separator className="my-4" />
+
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">Tags</h2>
+            <div className="flex flex-wrap gap-2">
+              {tags.map((tag) => (
+                <Badge
+                  key={tag.id}
+                  variant="secondary"
+                  onClick={() => handleTagClick(tag)}
+                  className="cursor-pointer"
+                >
+                  {tag.name}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <Separator className="my-4" />
+
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">Prompt</h2>
+            <div className="prose max-w-none">
+              {showFullPrompt ? (
+                <p className="text-gray-800 whitespace-pre-line">{selectedPrompt.prompt}</p>
+              ) : (
+                <p className="text-gray-800 whitespace-pre-line overflow-hidden max-h-40 relative">
+                  {selectedPrompt.prompt.substring(0, 500)}
+                  {selectedPrompt.prompt.length > 500 && (
+                    <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-white dark:from-gray-100 flex justify-center items-end">
+                      <Button variant="link" size="sm" onClick={() => setShowFullPrompt(true)}>
+                        Show More <ChevronDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </p>
+              )}
+              {selectedPrompt.prompt.length > 500 && showFullPrompt && (
+                <div className="flex justify-center mt-2">
+                  <Button variant="link" size="sm" onClick={() => setShowFullPrompt(false)}>
+                    Show Less <ChevronUp className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
   );
 };
-
-export default PromptView;
