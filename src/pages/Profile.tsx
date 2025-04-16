@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import MasterPanel from "@/components/dashboard/MasterPanel";
+import { ChangeEmailForm } from "@/components/profile/ChangeEmailForm";
 
 const avatarOptions = [
   {
@@ -269,6 +270,13 @@ const Profile = () => {
                 <Lock className="h-4 w-4" />
                 Change Password
               </Button>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h2 className="text-lg font-medium mb-4 text-[#545454]">Change Email</h2>
+              <ChangeEmailForm currentEmail={email} />
             </div>
 
             {isMasterUser && (
