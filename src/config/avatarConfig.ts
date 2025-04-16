@@ -39,4 +39,3 @@ export const getAvatarBySrc = (src: string) => {
 export const getAvatarByValue = (value: string) => {
   return avatarOptions.find(avatar => avatar.value === value) || avatarOptions[0];
 };
-
