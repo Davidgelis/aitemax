@@ -1,4 +1,3 @@
-
 import IndexLogo from "@/components/IndexLogo";
 import PromptInput from "@/components/PromptInput";
 import { useNavigate } from "react-router-dom";
