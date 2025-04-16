@@ -1,94 +1,109 @@
+import { supabase } from '@/integrations/supabase/client';
+import { AIModel } from '@/components/dashboard/types';
 
-import { supabase } from "@/integrations/supabase/client";
-import { AIModel } from "@/components/dashboard/types";
+const transformDatabaseModelToAIModel = (dbModel: any): AIModel => {
+  return {
+    id: dbModel.id,
+    name: dbModel.name,
+    provider: dbModel.provider,
+    description: dbModel.description || '',
+    contextLength: dbModel.context_length || 4000, // Set default values for required properties
+    capabilities: dbModel.capabilities || [],
+    strengths: dbModel.strengths || [],
+    limitations: dbModel.limitations || [],
+    updated_at: dbModel.updated_at,
+    created_at: dbModel.created_at,
+    is_deleted: dbModel.is_deleted
+  };
+};
 
 export const ModelCrudService = {
-  async addModel(model: Partial<AIModel>): Promise<AIModel | null> {
+  async createModel(model: Omit<AIModel, 'id'>): Promise<AIModel | null> {
     try {
-      console.log('Adding new model:', model);
       const { data, error } = await supabase
-        .from('ai_models')
-        .insert({
-          name: model.name,
-          provider: model.provider
-        })
-        .select();
-      
+        .from('models')
+        .insert([
+          {
+            name: model.name,
+            provider: model.provider,
+            description: model.description,
+            context_length: model.contextLength,
+            capabilities: model.capabilities,
+            pricing: model.pricing,
+            strengths: model.strengths,
+            limitations: model.limitations,
+            is_recommended: model.isRecommended,
+            updated_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single();
+
       if (error) {
-        console.error('Error adding model:', error);
-        throw error;
+        console.error('Error creating model:', error);
+        return null;
       }
-      
-      console.log('Model added successfully:', data[0]);
-      return data[0] as AIModel;
+
+      return transformDatabaseModelToAIModel(data);
     } catch (error) {
-      console.error('Exception in addModel:', error);
-      throw error;
+      console.error('Unexpected error creating model:', error);
+      return null;
     }
   },
-  
-  async updateModel(id: string, model: Partial<AIModel>): Promise<boolean> {
+
+  async updateModel(id: string, updates: Partial<AIModel>): Promise<AIModel | null> {
     try {
-      console.log(`Updating model with ID ${id}:`, model);
-      const { error } = await supabase
-        .from('ai_models')
+      const { data, error } = await supabase
+        .from('models')
         .update({
-          name: model.name,
-          provider: model.provider
+          name: updates.name,
+          provider: updates.provider,
+          description: updates.description,
+          context_length: updates.contextLength,
+          capabilities: updates.capabilities,
+          pricing: updates.pricing,
+          strengths: updates.strengths,
+          limitations: updates.limitations,
+          is_recommended: updates.isRecommended,
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', id);
-      
+        .eq('id', id)
+        .select()
+        .single();
+
       if (error) {
         console.error('Error updating model:', error);
-        throw error;
+        return null;
       }
-      
-      console.log(`Model ${id} updated successfully`);
-      return true;
+
+      if (!data) {
+        console.log(`Model with ID ${id} not found.`);
+        return null;
+      }
+
+      return transformDatabaseModelToAIModel(data);
     } catch (error) {
-      console.error('Exception in updateModel:', error);
-      throw error;
+      console.error('Unexpected error updating model:', error);
+      return null;
     }
   },
-  
+
   async deleteModel(id: string): Promise<boolean> {
     try {
-      console.log(`ModelService: Starting deletion for model ID: ${id}`);
-      
-      // Mark the model as deleted in the database using a dedicated column
-      // This ensures the edge function won't recreate it
-      const { error: markError } = await supabase
-        .from('ai_models')
-        .update({ 
-          updated_at: new Date().toISOString(),
-          is_deleted: true 
-        })
-        .eq('id', id);
-        
-      if (markError) {
-        console.error('Error marking model as deleted:', markError);
-        return false;
-      }
-      
-      // Now perform the actual deletion
       const { error } = await supabase
-        .from('ai_models')
-        .delete()
-        .match({ id });
-      
+        .from('models')
+        .update({ is_deleted: true, updated_at: new Date().toISOString() })
+        .eq('id', id);
+
       if (error) {
         console.error('Error deleting model:', error);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        console.error('Error details:', error.details);
         return false;
       }
-      
-      console.log(`ModelService: Successfully deleted model ${id}`);
+
       return true;
     } catch (error) {
-      console.error('Exception in deleteModel:', error);
+      console.error('Unexpected error deleting model:', error);
       return false;
     }
-  }
+  },
 };

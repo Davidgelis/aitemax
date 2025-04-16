@@ -1,143 +1,107 @@
+import { supabase } from '@/integrations/supabase/client';
+import { AIModel } from '@/components/dashboard/types';
 
-import { supabase } from "@/integrations/supabase/client";
-import { AIModel } from "@/components/dashboard/types";
-import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
+const mapDbModelsToAIModels = (dbModels: any[]): AIModel[] => {
+  return dbModels.map(model => ({
+    id: model.id,
+    name: model.name,
+    provider: model.provider,
+    description: model.description || '',
+    contextLength: model.context_length || 4000, // Default
+    capabilities: model.capabilities || [],
+    strengths: model.strengths || [],
+    limitations: model.limitations || [],
+    updated_at: model.updated_at,
+    created_at: model.created_at,
+    is_deleted: model.is_deleted
+  }));
+};
 
-export const ModelFetchService = {
-  async fetchModels(): Promise<AIModel[]> {
+export class ModelFetchService {
+  static async fetchModels(): Promise<AIModel[]> {
     try {
-      console.log('Fetching AI models from database...');
       const { data, error } = await supabase
-        .from('ai_models')
+        .from('models')
         .select('*')
-        .is('is_deleted', null)  // Only fetch models that are not marked as deleted
-        .order('provider')
-        .order('name');
-      
+        .eq('is_deleted', false);
+
       if (error) {
         console.error('Error fetching models:', error);
-        throw error;
+        return [];
       }
-      
-      // Check if we have models
-      if (!data || data.length === 0) {
-        console.log('No models found in database, attempting to trigger initial update...');
-        await this.triggerModelUpdate();
-        
-        // Try fetching again after update
-        const retryResult = await supabase
-          .from('ai_models')
-          .select('*')
-          .is('is_deleted', null)  // Also filter here
-          .order('provider')
-          .order('name');
-          
-        if (retryResult.error) {
-          console.error('Error in retry fetch:', retryResult.error);
-          return [];
-        }
-        
-        console.log(`Fetched ${retryResult.data?.length || 0} models after update`);
-        return retryResult.data as AIModel[] || [];
+
+      if (!data) {
+        console.warn('No models found.');
+        return [];
       }
-      
-      console.log(`Fetched ${data.length} models from database`);
-      return data as AIModel[];
+
+      return mapDbModelsToAIModels(data);
     } catch (error) {
-      console.error('Exception in fetchModels:', error);
-      throw error;
+      console.error('Unexpected error fetching models:', error);
+      return [];
     }
-  },
-  
-  async getModelById(id: string): Promise<AIModel | null> {
-    try {
-      console.log(`Fetching model with ID: ${id}`);
-      const { data, error } = await supabase
-        .from('ai_models')
-        .select('*')
-        .eq('id', id)
-        .is('is_deleted', null)  // Only get models that are not deleted
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Error fetching model by id:', error);
-        return null;
-      }
-      
-      return data as AIModel;
-    } catch (error) {
-      console.error('Exception in getModelById:', error);
-      return null;
-    }
-  },
-  
-  async triggerModelUpdate(forceUpdate = true): Promise<boolean> {
-    try {
-      console.log(`Triggering AI model update. Force update: ${forceUpdate}`);
-      const response = await supabase.functions.invoke('update-ai-models', {
-        method: 'POST',
-        headers: {
-          'X-Force-Update': forceUpdate ? 'true' : 'false'
-        }
-      });
-      
-      if (response.error) {
-        console.error('Error from edge function:', response.error);
-        throw response.error;
-      }
-      
-      console.log('Model update response:', response.data);
-      return response.data.success;
-    } catch (error) {
-      console.error('Error triggering model update:', error);
-      return false;
-    }
-  },
-  
-  async getProviders(): Promise<string[]> {
+  }
+
+  static async getProviders(): Promise<string[]> {
     try {
       const { data, error } = await supabase
-        .from('ai_models')
+        .from('models')
         .select('provider')
-        .is('is_deleted', null)  // Only include non-deleted models
-        .order('provider');
-      
+        .eq('is_deleted', false);
+
       if (error) {
         console.error('Error fetching providers:', error);
         return [];
       }
-      
-      // Extract unique providers
-      const providers = new Set(data.map(item => item.provider || 'Unknown').filter(Boolean));
-      return Array.from(providers);
+
+      if (!data) {
+        console.warn('No providers found.');
+        return [];
+      }
+
+      const providers = [...new Set(data.map(item => item.provider))];
+      return providers;
     } catch (error) {
-      console.error('Exception in getProviders:', error);
+      console.error('Unexpected error fetching providers:', error);
       return [];
     }
-  },
-  
-  async getModelCountByProvider(): Promise<Record<string, number>> {
+  }
+
+  static async fetchModelById(id: string): Promise<AIModel> {
     try {
       const { data, error } = await supabase
-        .from('ai_models')
-        .select('provider')
-        .is('is_deleted', null);  // Only count non-deleted models
-      
+        .from('models')
+        .select('*')
+        .eq('id', id)
+        .eq('is_deleted', false)
+        .single();
+
       if (error) {
-        console.error('Error fetching model counts:', error);
-        return {};
+        console.error(`Error fetching model with id ${id}:`, error);
+        throw error;
       }
-      
-      const counts: Record<string, number> = {};
-      data.forEach(model => {
-        const provider = model.provider || 'Unknown';
-        counts[provider] = (counts[provider] || 0) + 1;
-      });
-      
-      return counts;
+
+      if (!data) {
+        console.warn(`Model with id ${id} not found.`);
+        return null as any;
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        provider: data.provider,
+        description: data.description || '',
+        contextLength: data.context_length || 4000,
+        capabilities: data.capabilities || [],
+        strengths: data.strengths || [],
+        limitations: data.limitations || [],
+        updated_at: data.updated_at,
+        created_at: data.created_at,
+        is_deleted: data.is_deleted
+      };
     } catch (error) {
-      console.error('Exception in getModelCountByProvider:', error);
-      return {};
+      console.error(`Unexpected error fetching model with id ${id}:`, error);
+      throw error;
     }
   }
-};
+}

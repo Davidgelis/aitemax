@@ -48,6 +48,8 @@ export interface AIModel {
   strengths?: string[]; // Adding to support ModelTooltip and related components
   limitations?: string[]; // Adding to support ModelTooltip and related components
   updated_at?: string; // Adding to support useModelSelector
+  is_deleted?: boolean; // Adding to support model services
+  created_at?: string; // Adding to support model services
 }
 
 export interface Toggle {
@@ -83,6 +85,7 @@ export interface PromptJsonStructure {
   selectedPrimary: string | null;
   selectedSecondary: string | null;
   title?: string; // Adding to support FinalPromptDisplay
+  summary?: string; // Adding to support FinalPromptDisplay
 }
 
 export interface PromptTag {
@@ -133,14 +136,22 @@ export const jsonToVariables = (json: Record<string, any> | null | any): Variabl
       };
     }
 
+    // Safely access properties 
+    const name = typeof value.name === 'string' ? value.name : '';
+    const val = typeof value.value === 'string' ? value.value : '';
+    const category = typeof value.category === 'string' ? value.category : '';
+    const isRelevant = typeof value.isRelevant === 'boolean' ? value.isRelevant : true;
+    const code = value.code;
+    const technicalTerms = Array.isArray(value.technicalTerms) ? value.technicalTerms : [];
+
     return {
       id,
-      name: value.name || '',
-      value: value.value || '',
-      category: value.category || '',
-      isRelevant: value.isRelevant !== undefined ? value.isRelevant : true,
-      code: value.code,
-      technicalTerms: value.technicalTerms || []
+      name,
+      value: val,
+      category,
+      isRelevant,
+      code,
+      technicalTerms
     };
   });
 };
