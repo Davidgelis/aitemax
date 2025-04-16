@@ -362,3 +362,4 @@ const generateDefaultVariables = (originalPrompt: string) => {
   
   return variables;
 };
+

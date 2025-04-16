@@ -1,4 +1,6 @@
 
+// Functions for validating questions and variables
+
 export function validateQuestionVariablePairs(questions: any[], variables: any[]): boolean {
   // Extract variable names and convert to lowercase for comparison
   const variableNames = variables.map(v => v.name.toLowerCase());
@@ -84,3 +86,4 @@ export function validateQuestionVariablePairs(questions: any[], variables: any[]
   
   return true;
 }
+
