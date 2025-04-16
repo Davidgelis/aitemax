@@ -133,6 +133,55 @@ export function generateContextQuestionsForPrompt(promptText: string): any[] {
 export function generateContextualVariablesForPrompt(promptText: string): any[] {
   const promptContext = promptText.toLowerCase();
   
+  // Define common technical terms lookup
+  const technicalTermsLookup = {
+    range: {
+      term: "Range",
+      explanation: "A selection of cells in a spreadsheet, like A1:B10. It defines which cells to work with.",
+      example: "A2:F10 selects all cells from A2 to F10"
+    },
+    formula: {
+      term: "Formula",
+      explanation: "A calculation that performs operations on spreadsheet values. Starts with =",
+      example: "=SUM(A1:A10) adds up all numbers in cells A1 through A10"
+    },
+    api: {
+      term: "API",
+      explanation: "A way for different software systems to communicate and share data.",
+      example: "Like ordering food through a delivery app's interface"
+    },
+    database: {
+      term: "Database",
+      explanation: "A system for storing and organizing information digitally.",
+      example: "Like a digital filing cabinet for your app's data"
+    },
+    function: {
+      term: "Function",
+      explanation: "A reusable piece of code that performs a specific task.",
+      example: "Like a recipe that takes ingredients and produces a dish"
+    },
+    variable: {
+      term: "Variable",
+      explanation: "A container that stores a value that can change.",
+      example: "Like a labeled box where you can put different items"
+    }
+  };
+
+  // Helper function to add technical terms to variables
+  const addTechnicalTerms = (variable: any) => {
+    const terms = [];
+    for (const [term, info] of Object.entries(technicalTermsLookup)) {
+      if (variable.name.toLowerCase().includes(term) || 
+          (variable.description && variable.description.toLowerCase().includes(term))) {
+        terms.push(info);
+      }
+    }
+    if (terms.length > 0) {
+      variable.technicalTerms = terms;
+    }
+    return variable;
+  };
+
   // For Google Sheets related prompts
   if (promptContext.includes('google sheet') || promptContext.includes('spreadsheet') || promptContext.includes('excel')) {
     return [
@@ -144,7 +193,21 @@ export function generateContextualVariablesForPrompt(promptText: string): any[] 
       { id: "v6", name: "FormattingStyle", value: "", isRelevant: null, category: "Instructions" },
       { id: "v7", name: "ValidationRules", value: "", isRelevant: null, category: "Instructions" },
       { id: "v8", name: "BackupFrequency", value: "", isRelevant: null, category: "Conditions" },
-    ];
+    ].map(addTechnicalTerms);
+  }
+
+  // For code-related prompts
+  if (promptContext.includes('code') || promptContext.includes('programming') || promptContext.includes('develop')) {
+    return [
+      { id: "v1", name: "CodeFunction", value: "", isRelevant: null, category: "Task" },
+      { id: "v2", name: "Language", value: "", isRelevant: null, category: "Task" },
+      { id: "v3", name: "DeveloperLevel", value: "", isRelevant: null, category: "Persona" },
+      { id: "v4", name: "MaintainerProfile", value: "", isRelevant: null, category: "Persona" },
+      { id: "v5", name: "PerformanceNeeds", value: "", isRelevant: null, category: "Conditions" },
+      { id: "v6", name: "Dependencies", value: "", isRelevant: null, category: "Conditions" },
+      { id: "v7", name: "CodingStyle", value: "", isRelevant: null, category: "Instructions" },
+      { id: "v8", name: "TestingApproach", value: "", isRelevant: null, category: "Instructions" },
+    ].map(addTechnicalTerms);
   }
   
   // For email-related prompts
@@ -172,20 +235,6 @@ export function generateContextualVariablesForPrompt(promptText: string): any[] 
       { id: "v6", name: "PublishPlatform", value: "", isRelevant: null, category: "Conditions" },
       { id: "v7", name: "ContentStructure", value: "", isRelevant: null, category: "Instructions" },
       { id: "v8", name: "SEORequirements", value: "", isRelevant: null, category: "Instructions" },
-    ];
-  }
-  
-  // For code-related prompts
-  if (promptContext.includes("code") || promptContext.includes("programming") || promptContext.includes("develop")) {
-    return [
-      { id: "v1", name: "CodeFunction", value: "", isRelevant: null, category: "Task" },
-      { id: "v2", name: "Language", value: "", isRelevant: null, category: "Task" },
-      { id: "v3", name: "DeveloperLevel", value: "", isRelevant: null, category: "Persona" },
-      { id: "v4", name: "MaintainerProfile", value: "", isRelevant: null, category: "Persona" },
-      { id: "v5", name: "PerformanceNeeds", value: "", isRelevant: null, category: "Conditions" },
-      { id: "v6", name: "Dependencies", value: "", isRelevant: null, category: "Conditions" },
-      { id: "v7", name: "CodingStyle", value: "", isRelevant: null, category: "Instructions" },
-      { id: "v8", name: "TestingApproach", value: "", isRelevant: null, category: "Instructions" },
     ];
   }
   
