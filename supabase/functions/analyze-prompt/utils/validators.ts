@@ -1,87 +1,86 @@
 
 export function validateQuestionVariablePairs(questions: any[], variables: any[]): boolean {
-  // Improved logging with pillar tracking
-  console.log("Starting validation of questions and variables", {
-    questionCount: questions?.length || 0,
-    variableCount: variables?.length || 0,
-    pillars: questions?.reduce((acc: Record<string, number>, q: any) => {
-      acc[q.category] = (acc[q.category] || 0) + 1;
-      return acc;
-    }, {})
-  });
-
-  if (!Array.isArray(questions) || !Array.isArray(variables)) {
-    console.error("Invalid input: questions and variables must be arrays", {
-      questions: typeof questions,
-      variables: typeof variables
-    });
-    return false;
-  }
-
-  // Validate questions format and pillar alignment
-  for (const question of questions) {
-    if (!question.id || !question.text || !question.category) {
-      console.error("Invalid question format:", question);
-      return false;
-    }
-
-    // Validate pillar categories
-    if (!["Task", "Persona", "Conditions", "Instructions"].includes(question.category)) {
-      console.error("Invalid question category (must match framework pillars):", question.category);
-      return false;
-    }
-  }
-
-  // Check pillar distribution
-  const pillarCounts = questions.reduce((acc: Record<string, number>, q: any) => {
-    acc[q.category] = (acc[q.category] || 0) + 1;
-    return acc;
-  }, {});
-
-  // Log pillar distribution
-  console.log("Questions per pillar:", pillarCounts);
-
-  // Ensure no pillar has more than 4 questions
-  for (const [pillar, count] of Object.entries(pillarCounts)) {
-    if (count > 4) {
-      console.error(`Too many questions (${count}) for pillar: ${pillar}`);
-      return false;
-    }
-  }
-
-  // Validate variables format and count
-  if (variables.length > 8) {
-    console.error("Too many variables provided (maximum 8)");
-    return false;
-  }
-
-  for (const variable of variables) {
-    if (!variable.id || !variable.name || !variable.category) {
-      console.error("Invalid variable format:", variable);
-      return false;
-    }
-  }
-
-  // Check for duplicate context between questions and variables
-  const questionTexts = questions.map(q => q.text.toLowerCase());
+  // Extract variable names and convert to lowercase for comparison
   const variableNames = variables.map(v => v.name.toLowerCase());
-
-  for (const vName of variableNames) {
-    for (const qText of questionTexts) {
-      if (qText.includes(vName) || vName.includes(qText)) {
-        console.warn("Potential duplicate context between question and variable:", {
-          questionText: qText,
-          variableName: vName
-        });
+  
+  // Check each question to ensure it's not directly asking for a variable value
+  // and follows user-friendly guidelines
+  for (const question of questions) {
+    const questionLower = question.text.toLowerCase();
+    
+    // Check if question directly asks for any variable
+    for (const varName of variableNames) {
+      const varNameWords = varName.split(/(?=[A-Z])|_|\s/).map(w => w.toLowerCase());
+      
+      // Common question patterns that directly ask for variables
+      const directPatterns = [
+        `what ${varNameWords.join(' ')}`,
+        `which ${varNameWords.join(' ')}`,
+        `specify ${varNameWords.join(' ')}`,
+        `select ${varNameWords.join(' ')}`,
+        `choose ${varNameWords.join(' ')}`,
+        `define ${varNameWords.join(' ')}`
+      ];
+      
+      if (directPatterns.some(pattern => questionLower.includes(pattern))) {
+        console.warn(`Question "${question.text}" directly asks for variable "${varName}"`);
+        return false;
       }
     }
+    
+    // Validate question follows user-friendly guidelines
+    const hasExample = question.text.includes('(') && question.text.includes(')');
+    
+    // Define common technical terms that need explanation
+    const technicalTerms = {
+      api: "Application Programming Interface",
+      sdk: "Software Development Kit",
+      oauth: "Open Authentication",
+      jwt: "JSON Web Token",
+      sql: "Structured Query Language",
+      regex: "Regular Expression",
+      kubernetes: "Container Orchestration System",
+      docker: "Container Platform"
+    };
+    
+    // Check for technical terms and ensure they have explanations
+    const foundTechnicalTerms = Object.entries(technicalTerms).reduce((terms: any[], [term, fullName]) => {
+      if (questionLower.includes(term)) {
+        terms.push({
+          term,
+          explanation: `${fullName} - A technical tool that helps with ${term === 'api' ? 'connecting different software systems' : 
+            term === 'sdk' ? 'building software applications' :
+            term === 'oauth' ? 'secure login systems' :
+            term === 'jwt' ? 'secure data transfer' :
+            term === 'sql' ? 'managing database information' :
+            term === 'regex' ? 'finding patterns in text' :
+            term === 'kubernetes' ? 'managing large applications' :
+            term === 'docker' ? 'packaging applications' : 'technical operations'}`,
+          example: `For example: ${
+            term === 'api' ? 'connecting to a weather service to get today\'s forecast' :
+            term === 'sdk' ? 'tools that help create mobile apps' :
+            term === 'oauth' ? 'logging in with your Google account' :
+            term === 'jwt' ? 'securely remembering who you are while using an app' :
+            term === 'sql' ? 'finding all orders from the last month' :
+            term === 'regex' ? 'checking if an email address is valid' :
+            term === 'kubernetes' ? 'running a website that can handle millions of users' :
+            term === 'docker' ? 'making sure an app works the same on any computer' : ''
+          }`
+        });
+      }
+      return terms;
+    }, []);
+    
+    if (foundTechnicalTerms.length > 0) {
+      question.technicalTerms = foundTechnicalTerms;
+    }
+    
+    // If technical jargon is present but no example is provided
+    if (foundTechnicalTerms.length > 0 && !hasExample) {
+      console.warn(`Question "${question.text}" contains technical terms without examples`);
+      return false;
+    }
   }
-
-  console.log("Validation successful", {
-    questions: questions.length,
-    variables: variables.length,
-    pillarsUsed: Object.keys(pillarCounts).length
-  });
-
+  
   return true;
 }

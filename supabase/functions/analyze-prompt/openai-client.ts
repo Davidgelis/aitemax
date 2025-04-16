@@ -1,8 +1,9 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { OpenAI } from "https://esm.sh/openai@4.26.0";
+// OpenAI API client for prompt analysis
 
+/**
+ * Sends a prompt for analysis to OpenAI API
+ */
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -19,40 +20,48 @@ export async function analyzePromptWithAI(
     console.error("Missing API key");
     throw new Error("OpenAI API key is required");
   }
-
+  
   const messages = [
-    { 
-      role: 'system', 
-      content: `You are an expert prompt analyzer. Your task is to analyze prompts and identify key questions and variables. You must return a valid JSON object containing:
-      {
-        "questions": [{"id": "string", "text": "string", "answer": "string", "category": "string"}],
-        "variables": [{"id": "string", "name": "string", "value": "string", "category": "string"}],
-        "masterCommand": "string",
-        "enhancedPrompt": "string"
-      }
-      
-      Guidelines:
-      - Each question must have a unique ID
-      - Each question must help gather missing context
-      - Each variable must capture a key customizable element
-      - Keep answers and values concise and specific
-      - Do not reference images/websites directly in answers
-      - ALWAYS include at least 2 relevant questions
-      - ALWAYS include at least 1 relevant variable
-      
-      ${systemMessage}`
-    }
+    { role: 'system', content: systemMessage }
   ];
-
-  // Add user message with any context
+  
+  // If we have an image, create a message with content parts
   if (imageBase64) {
-    console.log("Image provided for analysis - adding to message array");
+    console.log("Image provided for analysis - adding to OpenAI API request with gpt-4.1");
+    
+    // Extract image context instructions if present in additionalContext
+    let imageInstructionsText = "";
+    const imageContextMatch = additionalContext.match(/SPECIFIC IMAGE ANALYSIS INSTRUCTIONS: (.*?)(\n\n|$)/s);
+    if (imageContextMatch && imageContextMatch[1]) {
+      imageInstructionsText = `\n\nFOCUS SPECIFICALLY ON THESE USER INSTRUCTIONS: ${imageContextMatch[1].trim()}`;
+      console.log("Found specific image analysis instructions:", imageInstructionsText);
+    }
+    
     messages.push({
       role: 'user',
       content: [
         {
           type: "text",
-          text: `Analyze this prompt: "${promptText}" ${additionalContext}`
+          text: `Analyze this prompt for generating questions and variables: "${promptText}" 
+          
+First, DEEPLY ANALYZE the intent behind this prompt to understand what the user is trying to accomplish.
+
+Then, provide a DETAILED description of the image (2-3 paragraphs). Do not just refer to "the image" - instead, thoroughly describe the content, elements, layout, colors, text, and any relevant features visible. Be specific and concrete about what you see.${imageInstructionsText}
+
+Then generate focused questions and variables with pre-filled values based on what you directly observe in the image that's MOST RELEVANT to the prompt.
+
+IMPORTANT: After analyzing the image, identify what ADDITIONAL context is still needed from the user that is NOT visible in the image and create questions to gather that missing information. For example, if the image shows lighting but doesn't indicate purpose, ask questions about the intended use.
+
+CRITICAL: All extracted information must be evaluated with the specific objective of constructing an AI-TOOL-READY PROMPT. Every piece of context must serve the end goal: generating a final prompt optimized for use with existing AI tools. This means focusing on details, parameters, and instructions that will result in an effective prompt that works well with AI systems.
+
+SPLIT YOUR QUESTIONS INTO:
+1. Questions answerable directly from the image (pre-fill these with DETAILED descriptions of what you observe, not just references to "the image")
+2. Questions that need user input (leave these blank)
+
+IMPORTANT FORMATTING REQUIREMENTS:
+- Question answers must contain DETAILED DESCRIPTIONS (one full paragraph of 3-5 sentences) not just references to content
+- Variable values must be concise (1-4 words maximum)
+${additionalContext}`
         },
         {
           type: "image_url",
@@ -63,79 +72,107 @@ export async function analyzePromptWithAI(
       ]
     });
   } else {
+    // No image, just use a simple text message with additional context
+    console.log("No image provided - using text-only OpenAI API request");
+    console.log("Additional context provided:", additionalContext ? "Yes" : "No");
+    
+    // Enhance user prompt with more specific instructions for intent analysis and content extraction
+    let messageText = `Analyze this prompt for generating questions and variables: "${promptText}"
+
+FIRST, DEEPLY ANALYZE the main intent behind this prompt. What is the user trying to accomplish? Is it content creation, image generation, research, marketing, coding, or something else?
+
+CRITICAL: All extracted information must be evaluated with the specific objective of constructing an AI-TOOL-READY PROMPT. Every piece of context must serve the end goal: generating a final prompt optimized for use with existing AI tools. This means focusing on details, parameters, and instructions that will result in an effective prompt that works well with AI systems.`;
+    
+    if (additionalContext.includes("WEBSITE CONTEXT")) {
+      messageText += `
+
+${additionalContext}
+
+When creating and pre-filling questions:
+1. FOCUS ON THE ORIGINAL PROMPT'S INTENT - the website content should enhance, not replace it
+2. Create questions that relate to the original prompt's purpose, not about the website itself
+3. If the prompt is about creating something (like a landing page), questions should be about that creation process
+4. Use the website content to provide detailed answers that support the original prompt's goals
+5. Extract 1-2 full sentences of detailed information from the website for question answers
+6. Include concrete facts, quotes or examples from the website that support the original prompt's purpose
+7. If the user asked to extract specific information (like "best practices"), focus on those items as they relate to the original prompt
+8. Remember: website content is supplementary research material for enhancing the original prompt, not the primary subject
+9. CLEARLY IDENTIFY what additional context is still needed from the user that is NOT present in the website content
+10. Create additional questions to gather the missing context from the user (leave these blank)
+11. ENSURE all extracted information is optimized for creating an AI-tool-ready prompt
+12. DO NOT simply refer to "the website content" - INSTEAD, provide DETAILED DESCRIPTIONS and SPECIFIC QUOTES from the content
+13. Question answers must contain 3-5 sentences of detailed, specific information from the website
+14. Variable values must be derived from website content but limited to 1-4 words`;
+    } else if (additionalContext.includes("SMART CONTEXT DATA")) {
+      messageText += `
+
+${additionalContext}
+
+When creating and pre-filling questions from Smart Context:
+1. FOCUS ON THE ORIGINAL PROMPT'S INTENT - the smart context should enhance, not replace it
+2. Create questions that relate to the original prompt's purpose, leveraging the smart context information
+3. Use the smart context to provide detailed answers that support the original prompt's goals
+4. Extract 1-2 full sentences of detailed information from the smart context for question answers
+5. Include specific terminology, concepts, or examples from the smart context when relevant
+6. CLEARLY IDENTIFY what additional context is still needed from the user that is NOT present in the smart context
+7. Create additional questions to gather the missing context from the user (leave these blank)
+8. ENSURE all extracted information is optimized for creating an AI-tool-ready prompt
+9. DO NOT simply refer to "the provided context" - INSTEAD, provide DETAILED DESCRIPTIONS and SPECIFIC QUOTES from the smart context
+10. Question answers must contain DETAILED DESCRIPTIONS (one full paragraph of 3-5 sentences)
+11. Variable values must remain concise (1-4 words maximum)
+12. NEVER say "According to the provided context" or similar phrases - instead, directly incorporate the information`;
+    } else {
+      messageText += ` ${additionalContext}`;
+    }
+    
     messages.push({
       role: 'user',
-      content: `Analyze this prompt: "${promptText}" ${additionalContext}`
+      content: messageText
     });
   }
-
+  
   try {
-    console.log("Calling OpenAI API with prompt text length:", promptText.length);
+    console.log("Calling OpenAI API with gpt-4.1 for prompt analysis...");
     
-    const openai = new OpenAI({ apiKey });
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages,
-      temperature: 0.7,
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1', // Changed from gpt-4o to gpt-4.1
+        messages,
+        temperature: 0.7,
+      }),
     });
-
-    if (!response.choices || !response.choices[0] || !response.choices[0].message) {
-      console.error("Invalid response from OpenAI API:", response);
+    
+    if (!response.ok) {
+      let errorMessage = `OpenAI API responded with status ${response.status}`;
+      try {
+        const errorData = await response.text();
+        console.error("OpenAI API error:", errorData);
+        errorMessage += `: ${errorData}`;
+      } catch (parseError) {
+        console.error("Failed to parse error response:", parseError);
+      }
+      
+      throw new Error(errorMessage);
+    }
+    
+    const data = await response.json();
+    
+    if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error("Invalid response from OpenAI API:", data);
       throw new Error("Invalid response format from OpenAI API");
     }
-
-    const content = response.choices[0].message.content;
-    console.log("Raw OpenAI response:", content);
-
-    // Try to parse the response as JSON
-    try {
-      const parsedContent = JSON.parse(content);
-      
-      // Validate response structure
-      if (!parsedContent.questions || !Array.isArray(parsedContent.questions)) {
-        console.error("Missing or invalid questions array in response");
-        throw new Error("Invalid response format - missing questions");
-      }
-
-      if (!parsedContent.variables || !Array.isArray(parsedContent.variables)) {
-        console.error("Missing or invalid variables array in response");
-        throw new Error("Invalid response format - missing variables");
-      }
-
-      // Ensure we have at least some questions and variables
-      if (parsedContent.questions.length === 0) {
-        parsedContent.questions = [{
-          id: "q1",
-          text: "What is the main purpose of this prompt?",
-          answer: "",
-          category: "Purpose"
-        }];
-      }
-
-      if (parsedContent.variables.length === 0) {
-        parsedContent.variables = [{
-          id: "v1",
-          name: "Output Format",
-          value: "",
-          category: "Configuration"
-        }];
-      }
-
-      console.log("Successfully parsed and validated response:", {
-        questionCount: parsedContent.questions.length,
-        variableCount: parsedContent.variables.length
-      });
-
-      return {
-        content: parsedContent,
-        usage: response.usage
-      };
-
-    } catch (parseError) {
-      console.error("Failed to parse OpenAI response as JSON:", parseError);
-      throw new Error("Failed to parse OpenAI response as JSON");
-    }
-
+    
+    console.log("Successfully analyzed prompt with gpt-4.1");
+    
+    return {
+      content: data.choices[0].message.content,
+      usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+    };
   } catch (error) {
     console.error("Error calling OpenAI API:", error);
     throw error;

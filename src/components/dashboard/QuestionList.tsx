@@ -1,4 +1,3 @@
-
 import { X, FileText, Edit } from "lucide-react";
 import { Question } from "./types";
 import { RefObject, useState } from "react";
@@ -45,9 +44,6 @@ export const QuestionList = ({
 
   // Function to clean question text - removing prefixes and asterisks
   const cleanQuestionText = (text: string): string => {
-    // Add null check to prevent error when text is undefined
-    if (!text) return "";
-    
     // Remove category prefixes with asterisks like "**Task**:" or "Task:"
     return text.replace(/^\s*(\*\*)?(?:Task|Persona|Conditions|Instructions)(\*\*)?\s*:\s*/i, '')
       // Also remove any remaining asterisks
