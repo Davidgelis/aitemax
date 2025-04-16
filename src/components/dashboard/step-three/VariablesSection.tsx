@@ -62,6 +62,13 @@ export const VariablesSection = ({
     };
   }, []);
 
+  const handleDelete = (variableId: string) => {
+    if (onDeleteVariable) {
+      onDeleteVariable(variableId);
+      setVariableToDelete(null);
+    }
+  };
+
   // Filter only relevant variables
   const relevantVariables = variables.filter(v => v.isRelevant === true);
 

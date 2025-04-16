@@ -168,6 +168,7 @@ export type Database = {
           is_private: boolean | null
           json_structure: Json | null
           master_command: string | null
+          original_prompt_text: string | null
           primary_toggle: string | null
           prompt_text: string | null
           saved_variables: Json | null
@@ -186,6 +187,7 @@ export type Database = {
           is_private?: boolean | null
           json_structure?: Json | null
           master_command?: string | null
+          original_prompt_text?: string | null
           primary_toggle?: string | null
           prompt_text?: string | null
           saved_variables?: Json | null
@@ -204,6 +206,7 @@ export type Database = {
           is_private?: boolean | null
           json_structure?: Json | null
           master_command?: string | null
+          original_prompt_text?: string | null
           primary_toggle?: string | null
           prompt_text?: string | null
           saved_variables?: Json | null

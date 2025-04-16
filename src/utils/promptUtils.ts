@@ -1,3 +1,4 @@
+
 /**
  * Replaces a variable placeholder in the prompt with a new placeholder,
  * ensuring that the replacement is done correctly by escaping special
@@ -52,30 +53,7 @@ export const convertEditedContentToPlaceholders = (
 };
 
 /**
- * Converts the final prompt to an editable format by replacing variable
- * placeholders with visually distinct non-editable elements.
- */
-export const convertPlaceholdersToEditableFormat = (
-  finalPrompt: string,
-  variables: any[]
-): string => {
-  let processedPrompt = finalPrompt;
-
-  // Replace {{value::id}} with visually distinct non-editable elements
-  processedPrompt = processedPrompt.replace(
-    /{{([^:}]*)::([\w-]+)}}/g,
-    (match, value, variableId) => {
-      const variable = variables.find(v => v.id === variableId);
-      const displayValue = variable ? variable.value : value;
-      return `<span contentEditable="false" class="non-editable-variable" data-variable-id="${variableId}">${displayValue}</span>`;
-    }
-  );
-
-  return processedPrompt;
-};
-
-/**
- * Converts standardized variable placeholders to HTML spans for display.
+ * Converts placeholders to HTML spans for display.
  * This function takes the final prompt and replaces the {{value::id}} placeholders
  * with HTML spans that highlight the variable.
  */
@@ -99,9 +77,24 @@ export const convertPlaceholdersToSpans = (
 };
 
 /**
+ * Strips HTML tags from a string safely
+ */
+export const stripHtml = (html: string): string => {
+  if (!html) return '';
+  
+  try {
+    // Create a temporary element to safely strip HTML
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+  } catch (error) {
+    // Fallback to regex-based stripping if DOM approach fails
+    return html.replace(/<[^>]*>?/gm, '');
+  }
+};
+
+/**
  * Generates a standardized variable placeholder string.
- * @param variableId The ID of the variable.
- * @returns A string in the format {{value::variableId}}.
  */
 export const toVariablePlaceholder = (variableId: string): string => {
   return `{{value::${variableId}}}`;
@@ -141,23 +134,6 @@ export const generateCleanTextFromHtml = (html: string, variables: any[]): strin
 };
 
 /**
- * Strips HTML tags from a string
- */
-export const stripHtml = (html: string): string => {
-  if (!html) return '';
-  
-  try {
-    // Create a temporary element to safely strip HTML
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    return temp.textContent || temp.innerText || '';
-  } catch (error) {
-    // Fallback to regex-based stripping if DOM approach fails
-    return html.replace(/<[^>]*>?/gm, '');
-  }
-};
-
-/**
  * Creates a clean, plain text version of the prompt with variables replaced by their values.
  * This is suitable for copying to clipboard without any HTML tags or variable placeholders.
  */
@@ -177,28 +153,4 @@ export const createPlainTextPrompt = (prompt: string, variables: any[]): string 
   
   // Remove any HTML tags that might be present
   return stripHtml(plainText);
-};
-
-/**
- * Strips HTML tags from a string safely
- */
-export const stripHtml = (html: string): string => {
-  if (!html) return '';
-  
-  try {
-    // Create a temporary element to safely strip HTML
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    return temp.textContent || temp.innerText || '';
-  } catch (error) {
-    // Fallback to regex-based stripping if DOM approach fails
-    return html.replace(/<[^>]*>?/gm, '');
-  }
-};
-
-/**
- * Escapes special characters in a string for safe regex usage
- */
-export const escapeRegExp = (str: string): string => {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
