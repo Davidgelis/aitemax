@@ -88,7 +88,7 @@ export const usePromptDrafts = (
     
     setIsLoadingDrafts(true);
     try {
-      // First, get all saved prompts for this user
+      // First, get all saved prompts for this user to filter out duplicates
       const { data: savedPrompts, error: savedPromptsError } = await supabase
         .from('prompts')
         .select('prompt_text')
@@ -104,7 +104,14 @@ export const usePromptDrafts = (
         .eq('is_deleted', false)
         .order('updated_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        // Check for auth errors specifically
+        if (error.message?.includes('JWT') || error.message?.includes('token')) {
+          console.log('Auth error detected in fetchDrafts');
+          throw new Error('Auth token expired');
+        }
+        throw error;
+      }
       
       if (data) {
         // Filter out duplicates and saved prompts
@@ -125,7 +132,7 @@ export const usePromptDrafts = (
           }
         });
         
-        const formattedDrafts: PromptDraft[] = Array.from(uniqueDrafts.values()).map(draft => ({
+        const formattedDrafts = Array.from(uniqueDrafts.values()).map(draft => ({
           id: draft.id,
           title: draft.title || 'Untitled Draft',
           promptText: draft.prompt_text || '',
