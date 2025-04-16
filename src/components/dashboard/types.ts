@@ -18,13 +18,10 @@ export interface UploadedImage {
   context?: string;
 }
 
-export interface Question {
-  id: string;
-  text: string;
-  answer: string;
-  isRelevant: boolean | null;
-  category?: string; // Task, Persona, Conditions, Instructions categories
-  prefillSource?: string;
+export interface TechnicalTerm {
+  term: string;
+  explanation: string;
+  example: string;
 }
 
 export interface Variable {
@@ -34,6 +31,16 @@ export interface Variable {
   isRelevant: boolean | null;
   category?: string; // Task, Persona, Conditions, Instructions categories
   code?: string;
+  technicalTerms?: TechnicalTerm[];
+}
+
+export interface Question {
+  id: string;
+  text: string;
+  answer: string;
+  isRelevant: boolean | null;
+  category?: string; // Task, Persona, Conditions, Instructions categories
+  prefillSource?: string;
 }
 
 export interface Toggle {

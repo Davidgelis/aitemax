@@ -2,7 +2,8 @@
 import { Input } from "@/components/ui/input";
 import { Variable } from "../types";
 import { useEffect, useCallback, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, HelpCircle } from "lucide-react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface VariablesSectionProps {
@@ -112,6 +113,27 @@ export const VariablesSection = ({
                 <div className="absolute right-12 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
                   {(variable.value || "").length}/{maxCharacterLimit}
                 </div>
+
+                {variable.technicalTerms && variable.technicalTerms.length > 0 && (
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <button className="p-2 rounded-full hover:bg-[#33fea6]/20 ml-1">
+                        <HelpCircle className="h-4 w-4 text-[#545454]" />
+                      </button>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-80">
+                      <div className="space-y-2">
+                        {variable.technicalTerms.map((term, idx) => (
+                          <div key={idx} className="space-y-1">
+                            <h4 className="text-sm font-semibold">{term.term}</h4>
+                            <p className="text-sm text-muted-foreground">{term.explanation}</p>
+                            <p className="text-xs text-muted-foreground italic">Example: {term.example}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
+                )}
                 
                 {onDeleteVariable && (
                   <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
