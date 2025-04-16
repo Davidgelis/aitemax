@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
@@ -10,6 +9,8 @@ import { HelpCircle, ImageUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "./ImageUploader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 interface StepOneContentProps {
   promptText: string;
@@ -48,6 +49,8 @@ export const StepOneContent = ({
   onSmartContext = () => {},
   setPreventStepChange = () => {}
 }: StepOneContentProps) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
@@ -81,6 +84,17 @@ export const StepOneContent = ({
   };
 
   const handleAnalyzeWithContext = () => {
+    // If user is not authenticated, save current prompt and redirect to auth
+    if (!user) {
+      // Save current prompt text to session storage
+      if (promptText.trim()) {
+        sessionStorage.setItem("redirectedPrompt", promptText);
+        sessionStorage.setItem("stayOnStepOne", "true");
+      }
+      navigate("/auth?returnUrl=/dashboard");
+      return;
+    }
+
     console.log("StepOneContent: Analyzing with GPT-4.1:", {
       promptText,
       uploadedImages: uploadedImages.length,
