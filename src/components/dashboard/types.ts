@@ -1,8 +1,11 @@
+
 import { Json } from "@/integrations/supabase/types";
 
 export interface UploadedImage {
+  id: string;
   url: string;
   file: File;
+  context?: string;
 }
 
 export interface PromptTag {
@@ -19,6 +22,7 @@ export interface PromptJsonStructure {
   primaryToggle: string | null;
   secondaryToggle: string | null;
   tags: PromptTag[];
+  title?: string;
 }
 
 export interface SavedPrompt {
@@ -28,6 +32,14 @@ export interface SavedPrompt {
   prompt_json: PromptJsonStructure;
   user_id: string;
   tags: PromptTag[];
+  // Additional properties needed by the app
+  date?: string;
+  promptText?: string;
+  masterCommand?: string;
+  primaryToggle?: string | null;
+  secondaryToggle?: string | null;
+  variables?: Variable[];
+  jsonStructure?: PromptJsonStructure;
 }
 
 export interface Question {
@@ -39,7 +51,6 @@ export interface Question {
   technicalTerms?: TechnicalTerm[];
 }
 
-// Add TechnicalTerm interface
 export interface TechnicalTerm {
   term: string;
   explanation: string;
@@ -53,13 +64,34 @@ export interface Variable {
   isRelevant: boolean | null;
   category: string;
   code?: string;
-  technicalTerms?: TechnicalTerm[]; // Add this field
+  technicalTerms?: TechnicalTerm[];
 }
 
 export interface AIModel {
+  id: string;
   name: string;
   provider: string;
   description: string;
   strengths: string[];
   limitations: string[];
+  updated_at?: string;
 }
+
+export interface Toggle {
+  id: string;
+  name: string;
+  description: string;
+  category: "primary" | "secondary";
+}
+
+// Utility functions for JSON conversion
+export const variablesToJson = (variables: Variable[]): Json => {
+  return variables as unknown as Json;
+};
+
+export const jsonToVariables = (json: Json): Variable[] => {
+  if (!json || !Array.isArray(json)) {
+    return [];
+  }
+  return json as Variable[];
+};
