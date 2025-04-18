@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable, SavedPrompt, variablesToJson, jsonToVariables, PromptJsonStructure, PromptTag } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -63,7 +64,7 @@ export const usePromptState = (user: any) => {
     const draftData = loadSelectedDraft(draft);
     
     // Only load if not for step 1
-    if (draftData.currentStep && draftData.currentStep > 1) {
+    if (draftData && draftData.currentStep && draftData.currentStep > 1) {
       if (draftData.promptText) setPromptText(draftData.promptText);
       if (draftData.masterCommand) setMasterCommand(draftData.masterCommand);
       if (draftData.variables) setVariables(draftData.variables);

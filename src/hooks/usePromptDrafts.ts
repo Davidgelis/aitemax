@@ -96,7 +96,15 @@ export const usePromptDrafts = (
         .select('prompt_text')
         .eq('user_id', user.id);
       
-      if (savedPromptsError) throw savedPromptsError;
+      if (savedPromptsError) {
+        // Check for auth errors specifically
+        if (savedPromptsError.message?.includes('JWT') || 
+            savedPromptsError.message?.includes('token')) {
+          console.log('Auth error detected in fetchDrafts');
+          throw new Error('Auth token expired');
+        }
+        throw savedPromptsError;
+      }
       
       // Get all drafts
       const { data, error } = await supabase
@@ -106,7 +114,15 @@ export const usePromptDrafts = (
         .eq('is_deleted', false) // Only fetch non-deleted drafts
         .order('updated_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        // Check for auth errors specifically
+        if (error.message?.includes('JWT') || 
+            error.message?.includes('token')) {
+          console.log('Auth error detected in fetchDrafts');
+          throw new Error('Auth token expired');
+        }
+        throw error;
+      }
       
       if (data) {
         // Filter out duplicates, saved prompts, and manually tracked deleted drafts
