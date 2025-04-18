@@ -1,4 +1,3 @@
-
 import IndexLogo from "@/components/IndexLogo";
 import PromptInput from "@/components/PromptInput";
 import { useNavigate } from "react-router-dom";
@@ -75,7 +74,7 @@ const Index = () => {
       <nav className="w-full flex justify-end mb-8">
         {user && (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-white flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-white flex items-center justify-center shadow-none">
               <img 
                 src={getAvatarByValue(avatarUrl).src}
                 alt="User Avatar"

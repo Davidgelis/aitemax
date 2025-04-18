@@ -63,7 +63,7 @@ const Navbar = () => {
       {user ? <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center gap-2 text-[#041524] hover:text-[#33fea6]">
-            <div className="w-6 h-6 rounded-full overflow-hidden bg-white flex items-center justify-center">
+            <div className="w-6 h-6 rounded-full overflow-hidden bg-white flex items-center justify-center shadow-none">
               <img 
                 src={getAvatarByValue(avatarUrl).src} 
                 alt="User Avatar"
