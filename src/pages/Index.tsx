@@ -6,12 +6,17 @@ import { KeyboardEvent, useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { getAvatarByValue } from "@/config/avatarConfig";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from '@/context/LanguageContext';
+import { indexTranslations } from '@/translations/index';
 
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState("avatar1");
   const [username, setUsername] = useState("");
+  const { currentLanguage } = useLanguage();
+  
+  const t = indexTranslations[currentLanguage as keyof typeof indexTranslations] || indexTranslations.en;
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -103,14 +108,14 @@ const Index = () => {
               backgroundClip: "text"
             }}
           >
-            Aitema X is humanity's unyielding vote in prompt engineering, a testament to our irreplaceable creativity.
+            {t.subtitle}
           </p>
         </div>
 
         <div className="w-full max-w-4xl animate-fade-in mt-10" style={{ animationDelay: "0.4s" }}>
           <PromptInput
             onSubmit={handlePromptSubmit}
-            placeholder="Input your prompt to Aitema X..."
+            placeholder={t.promptPlaceholder}
             className="w-full"
             onKeyDown={handleKeyDown}
             hideFormatting={true} // Hide formatting tools
