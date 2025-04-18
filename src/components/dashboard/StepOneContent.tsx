@@ -144,6 +144,24 @@ export const StepOneContent = ({
     }
   };
 
+  // Helper function to get translated toggle label
+  const getToggleLabel = (toggleId: string) => {
+    // Map toggle IDs to their translation keys
+    const toggleMap: {[key: string]: string} = {
+      'video': 'videoCreation',
+      'image': 'imageCreating',
+      'coding': 'coding',
+      'copilot': 'copilot',
+      'token': 'tokenSaver',
+      'strict': 'strictResponse',
+      'creative': 'creative',
+      'reasoning': 'complexReasoning'
+    };
+    
+    const translationKey = toggleMap[toggleId];
+    return translationKey ? t.toggles[translationKey as keyof typeof t.toggles] : toggleId;
+  };
+
   return (
     <div className="border rounded-xl p-6 bg-card">
       <div className="mb-4 flex justify-between items-center">
@@ -201,7 +219,7 @@ export const StepOneContent = ({
             data-variant="primary"
           >
             <div className="text-[#545454] text-sm">
-              {toggle.label}
+              {getToggleLabel(toggle.id)}
             </div>
             <div className="flex items-center space-x-2">
               <Switch 
@@ -237,7 +255,7 @@ export const StepOneContent = ({
             data-variant="secondary"
           >
             <div className="text-[#545454] text-sm">
-              {toggle.label}
+              {getToggleLabel(toggle.id)}
             </div>
             <div className="flex items-center space-x-2">
               <Switch 
@@ -278,6 +296,7 @@ export const StepOneContent = ({
           dialogOpen={dialogOpen}
           setDialogOpen={setDialogOpen}
           maxLength={maxCharacterLimit}
+          placeholder={t.prompts.promptPlaceholder}
         />
       </div>
 
