@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -7,6 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAvatarByValue } from "@/config/avatarConfig";
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 const Navbar = () => {
   const {
@@ -59,7 +59,8 @@ const Navbar = () => {
       </div>
     </div>
 
-    <div>
+    <div className="flex items-center gap-4">
+      <LanguageSelector />
       {user ? <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="flex items-center gap-2 text-[#041524] hover:text-[#33fea6]">

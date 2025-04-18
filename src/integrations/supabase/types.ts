@@ -50,6 +50,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           id: string
+          preferred_language: string
           updated_at: string
           username: string | null
         }
@@ -57,6 +58,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id: string
+          preferred_language?: string
           updated_at?: string
           username?: string | null
         }
@@ -64,6 +66,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           id?: string
+          preferred_language?: string
           updated_at?: string
           username?: string | null
         }
@@ -216,6 +219,33 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           variables?: Json | null
+        }
+        Relationships: []
+      }
+      supported_languages: {
+        Row: {
+          display_order: number
+          flag_emoji: string | null
+          id: string
+          is_active: boolean
+          name: string
+          native_name: string
+        }
+        Insert: {
+          display_order: number
+          flag_emoji?: string | null
+          id: string
+          is_active?: boolean
+          name: string
+          native_name: string
+        }
+        Update: {
+          display_order?: number
+          flag_emoji?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          native_name?: string
         }
         Relationships: []
       }

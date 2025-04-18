@@ -1,79 +1,44 @@
-
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/context/AuthContext";
-import { ModelProvider } from "@/context/ModelContext";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import Auth from "./pages/Auth";
-import Profile from "./pages/Profile";
-import Analytics from "./pages/Analytics";
-import XPanel from "./pages/XPanel";
-import PromptView from "./pages/PromptView";
-import NotFound from "./pages/NotFound";
+import React from 'react';
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Navigate,
+} from 'react-router-dom';
+import Dashboard from './pages/Dashboard';
+import Auth from './pages/Auth';
+import Profile from './pages/Profile';
+import Navbar from './components/Navbar';
+import { AuthProvider } from './context/AuthContext';
+import { QueryClient, QueryClientProvider } from 'react-query';
+import XPanel from './pages/XPanel';
+import ResetPassword from './pages/ResetPassword';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ModelProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Index />
-                </ProtectedRoute>
-              } />
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/auth" element={
-                <ProtectedRoute>
-                  <Auth />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } />
-              <Route path="/analytics" element={
-                <ProtectedRoute>
-                  <Analytics />
-                </ProtectedRoute>
-              } />
-              <Route path="/x-panel" element={
-                <ProtectedRoute>
-                  <XPanel />
-                </ProtectedRoute>
-              } />
-              <Route path="/prompt/:id" element={
-                <ProtectedRoute>
-                  <PromptView />
-                </ProtectedRoute>
-              } />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={
-                <ProtectedRoute>
-                  <NotFound />
-                </ProtectedRoute>
-              } />
-            </Routes>
-          </BrowserRouter>
-        </ModelProvider>
+        <LanguageProvider>
+          <Router>
+            <Navbar />
+            <div className="pt-[80px]">
+              <Routes>
+                <Route path="/" element={<Navigate to="/dashboard" />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/x-panel" element={<XPanel />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+              </Routes>
+            </div>
+          </Router>
+        </LanguageProvider>
       </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </QueryClientProvider>
+  );
+}
 
 export default App;
