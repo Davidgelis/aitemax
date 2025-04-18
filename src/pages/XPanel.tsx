@@ -23,6 +23,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { XTemplateCard } from "@/components/x-templates/XTemplateCard";
 import { TemplateEditor } from "@/components/x-templates/TemplateEditor";
 import { XTemplatesList } from "@/components/x-templates/XTemplatesList";
+import { useLanguage } from '@/context/LanguageContext';
+import { xpanelTranslations } from '@/translations/xpanel';
 
 const XPanel = () => {
   const navigate = useNavigate();
@@ -45,6 +47,8 @@ const XPanel = () => {
   const [shareEmail, setShareEmail] = useState("");
   const [sharingPromptId, setSharingPromptId] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
+  const { currentLanguage } = useLanguage();
+  const t = xpanelTranslations[currentLanguage as keyof typeof xpanelTranslations] || xpanelTranslations.en;
 
   // Add state for prompt to delete
   const [promptToDelete, setPromptToDelete] = useState<string | null>(null);
@@ -313,20 +317,20 @@ const XPanel = () => {
                     <span className="bg-aurora-gradient bg-aurora animate-aurora bg-clip-text text-transparent" style={{
                     backgroundSize: "400% 400%"
                   }}>
-                      Panel
+                      {t.title}
                     </span>
                   </h1>
                 </div>
                 <Button variant="aurora" onClick={() => navigate("/dashboard")}>
-                  Create New Prompt
+                  {t.createNewPrompt}
                 </Button>
               </div>
 
               {/* Tabs Navigation */}
               <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
                 <TabsList className="grid grid-cols-2 w-full max-w-md mx-auto">
-                  <TabsTrigger value="prompts">Saved Prompts</TabsTrigger>
-                  <TabsTrigger value="templates">X Templates</TabsTrigger>
+                  <TabsTrigger value="prompts">{t.tabs.savedPrompts}</TabsTrigger>
+                  <TabsTrigger value="templates">{t.tabs.xTemplates}</TabsTrigger>
                 </TabsList>
               </Tabs>
 
@@ -335,7 +339,7 @@ const XPanel = () => {
                 <div className="mb-8 flex flex-col sm:flex-row gap-4">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input className="pl-9" placeholder="Search prompts..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                    <Input className="pl-9" placeholder={t.search.searchPrompts} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                   </div>
                   <div className="flex gap-2">
                     <DropdownMenu>
@@ -349,13 +353,13 @@ const XPanel = () => {
                             </DropdownMenuTrigger>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Filter by category</p>
+                            <p>{t.search.filterByCategory}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                       <DropdownMenuContent align="end" className="w-56">
                         <DropdownMenuItem onClick={clearFilters}>
-                          Show all
+                          {t.search.showAll}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {categories.map(category => (
@@ -376,13 +380,13 @@ const XPanel = () => {
                             </DropdownMenuTrigger>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Filter by subcategory</p>
+                            <p>{t.search.filterBySubcategory}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                       <DropdownMenuContent align="end" className="w-56">
                         <DropdownMenuItem onClick={clearFilters}>
-                          Show all
+                          {t.search.showAll}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {subcategories.map(subcategory => (
@@ -394,7 +398,7 @@ const XPanel = () => {
                     </DropdownMenu>
                     {(selectedCategory || selectedSubcategory || searchTerm) && (
                       <Button variant="ghost" onClick={clearFilters}>
-                        Clear filters
+                        {t.search.clearFilters}
                       </Button>
                     )}
                   </div>
@@ -408,12 +412,12 @@ const XPanel = () => {
             {activeTab === "templates" && (
               <div>
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-medium">Your System Message Templates</h2>
+                  <h2 className="text-xl font-medium">{t.templates.yourSystemMessageTemplates}</h2>
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="template">
                         <Plus className="w-4 h-4 mr-2" />
-                        Create Template
+                        {t.templates.createTemplate}
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -439,7 +443,7 @@ const XPanel = () => {
                         key={prompt.id} 
                         className="group hover:scale-[1.01] transition-all overflow-hidden bg-white border-[1.5px] border-[#64bf95] shadow-md relative"
                       >
-                        {/* Share Button in Top Right Corner - Now part of the card flow */}
+                        {/* Share Button in Top Right Corner */}
                         <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Popover>
                             <PopoverTrigger asChild>
@@ -449,14 +453,14 @@ const XPanel = () => {
                             </PopoverTrigger>
                             <PopoverContent className="w-80 p-4 bg-white border border-gray-200 shadow-md">
                               <div className="space-y-4">
-                                <h4 className="font-medium text-sm">Share "{getPlainText(prompt.title)}"</h4>
+                                <h4 className="font-medium text-sm">{t.promptActions.share.sharePrompt} "{getPlainText(prompt.title)}"</h4>
                                 <div className="space-y-2">
                                   <Label htmlFor={`share-email-${prompt.id}`}>
-                                    Email address
+                                    {t.promptActions.share.emailAddress}
                                   </Label>
                                   <Input 
                                     id={`share-email-${prompt.id}`} 
-                                    placeholder="colleague@example.com" 
+                                    placeholder={t.promptActions.share.emailPlaceholder} 
                                     type="email" 
                                     value={sharingPromptId === prompt.id ? shareEmail : ""} 
                                     onChange={e => {
@@ -470,7 +474,7 @@ const XPanel = () => {
                                   onClick={handleSharePrompt} 
                                   disabled={!shareEmail || isSharing || sharingPromptId !== prompt.id}
                                 >
-                                  {isSharing && sharingPromptId === prompt.id ? "Sharing..." : "Share"}
+                                  {isSharing && sharingPromptId === prompt.id ? t.promptActions.share.sharing : t.promptActions.share.share}
                                 </Button>
                               </div>
                             </PopoverContent>
@@ -517,22 +521,22 @@ const XPanel = () => {
                                         </AlertDialogTrigger>
                                         <AlertDialogContent className="bg-white border p-6">
                                           <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete prompt?</AlertDialogTitle>
+                                            <AlertDialogTitle>{t.promptActions.deleteConfirmation.title}</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                              Are you sure you want to delete this prompt? This action cannot be undone.
+                                              {t.promptActions.deleteConfirmation.description}
                                             </AlertDialogDescription>
                                           </AlertDialogHeader>
                                           <AlertDialogFooter className="mt-4">
-                                            <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">Cancel</AlertDialogCancel>
+                                            <AlertDialogCancel className="border-[#8E9196] text-[#8E9196]">{t.promptActions.deleteConfirmation.cancel}</AlertDialogCancel>
                                             <AlertDialogAction className="bg-[#ea384c] hover:bg-[#ea384c]/90" onClick={() => handleDeletePrompt(prompt.id)}>
-                                              Delete
+                                              {t.promptActions.deleteConfirmation.delete}
                                             </AlertDialogAction>
                                           </AlertDialogFooter>
                                         </AlertDialogContent>
                                       </AlertDialog>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>Delete prompt</p>
+                                      <p>{t.promptActions.delete}</p>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
@@ -542,11 +546,11 @@ const XPanel = () => {
                             <div className="mt-4 flex justify-between">
                               <Button variant="outline" size="sm" onClick={() => handleCopyPrompt(prompt.promptText)}>
                                 <Copy className="h-4 w-4 mr-2" />
-                                Copy
+                                {t.promptActions.copy}
                               </Button>
                               <Button variant="outline" size="sm" onClick={() => handlePreviewPrompt(prompt.id)}>
                                 <Eye className="h-4 w-4 mr-2" />
-                                Open
+                                {t.promptActions.open}
                               </Button>
                             </div>
                           </div>
@@ -556,13 +560,13 @@ const XPanel = () => {
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <h3 className="text-xl font-medium mb-2">No prompts found</h3>
+                    <h3 className="text-xl font-medium mb-2">{t.emptyState.noPromptsFound}</h3>
                     <p className="text-muted-foreground mb-6">
-                      {searchTerm || selectedCategory || selectedSubcategory ? "Try adjusting your search or filters" : "You haven't created any prompts yet"}
+                      {searchTerm || selectedCategory || selectedSubcategory ? t.emptyState.tryAdjusting : t.emptyState.noPromptsYet}
                     </p>
                     {!searchTerm && !selectedCategory && !selectedSubcategory && (
                       <Button variant="aurora" onClick={() => navigate("/dashboard")}>
-                        Create Your First Prompt
+                        {t.emptyState.createFirstPrompt}
                       </Button>
                     )}
                   </div>
@@ -632,20 +636,20 @@ const XPanel = () => {
             <div className="p-4 border-b">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input className="pl-9" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                <Input className="pl-9" placeholder={t.search.searchPrompts} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
               </div>
             </div>
             <div className="px-4 py-2 border-b bg-muted/20">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-muted-foreground">Saved Prompts</span>
+                <span className="text-sm font-medium text-muted-foreground">{t.sidebar.savedPrompts}</span>
               </div>
             </div>
             <div className="overflow-auto">
               {isLoading ? (
                 <div className="p-4 text-center">
                   <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                  <span className="text-sm text-muted-foreground">Loading...</span>
+                  <span className="text-sm text-muted-foreground">{t.sidebar.loading}</span>
                 </div>
               ) : filteredPrompts.length > 0 ? (
                 filteredPrompts.map(item => (
@@ -674,7 +678,7 @@ const XPanel = () => {
                 ))
               ) : (
                 <div className="p-4 text-center text-muted-foreground">
-                  <p className="text-sm">No prompts found</p>
+                  <p className="text-sm">{t.sidebar.noPromptsFound}</p>
                 </div>
               )}
             </div>
