@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   BrowserRouter as Router,
@@ -10,7 +11,7 @@ import Auth from './pages/Auth';
 import Profile from './pages/Profile';
 import Navbar from './components/Navbar';
 import { AuthProvider } from './context/AuthContext';
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import XPanel from './pages/XPanel';
 import ResetPassword from './pages/ResetPassword';
 import { LanguageProvider } from '@/context/LanguageContext';
