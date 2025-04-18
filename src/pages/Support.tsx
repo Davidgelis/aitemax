@@ -1,6 +1,7 @@
 
 import React from 'react';
 import Navbar from '@/components/Navbar';
+import { Button } from "@/components/ui/button";
 
 const Support = () => {
   return (
@@ -43,5 +44,3 @@ const Support = () => {
 };
 
 export default Support;
-
-import { Button } from "@/components/ui/button";
