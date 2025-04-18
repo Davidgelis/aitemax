@@ -29,8 +29,17 @@ export const StepIndicator = ({
     }
   };
 
-  const getStepAriaLabel = (step: number) => {
-    return t.steps[`step${step}AriaLabel` as keyof typeof t.steps] || `${t.steps.step} ${step}`;
+  const getStepAriaLabel = (step: number): string => {
+    switch (step) {
+      case 1:
+        return t.steps.step1AriaLabel;
+      case 2:
+        return t.steps.step2AriaLabel;
+      case 3:
+        return t.steps.step3AriaLabel;
+      default:
+        return `${t.steps.step} ${step}`;
+    }
   };
 
   return (
