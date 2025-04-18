@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { FileText } from "lucide-react";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface TemplateSelectorProps {
   className?: string;
@@ -17,7 +18,7 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <Select
           value={currentTemplate?.id}
           onValueChange={(value) => selectTemplate(value)}
@@ -38,15 +39,23 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
           </SelectContent>
         </Select>
 
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => navigate("/x-panel")}
-          className="ml-2"
-        >
-          <FileText className="w-4 h-4 mr-2" />
-          Manage Templates
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => navigate("/x-panel")}
+                className="hover:text-[#33fea6] hover:border-[#33fea6]"
+              >
+                <FileText className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Manage templates</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {currentTemplate && (
