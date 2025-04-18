@@ -327,6 +327,9 @@ const Dashboard = () => {
               selectedModel={selectedModel} 
               setSelectedModel={setSelectedModel}
               promptState={promptState}
+              sessionTimer={sessionTimer}
+              refreshSession={refreshSession}
+              isSessionAboutToExpire={isSessionAboutToExpire}
             />
           </div>
         </main>

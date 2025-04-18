@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect } from "react";
 import { StepHeader } from "./steps/StepHeader";
 import { SessionInfo } from "./steps/SessionInfo";
@@ -22,6 +23,9 @@ interface StepControllerProps {
   setSelectedModel: (model: AIModel | null) => void;
   isInitializingModels?: boolean;
   promptState: any;
+  sessionTimer?: string;
+  refreshSession?: () => void;
+  isSessionAboutToExpire?: () => boolean;
 }
 
 export const StepController = ({ 
@@ -29,7 +33,10 @@ export const StepController = ({
   selectedModel,
   setSelectedModel,
   isInitializingModels = false,
-  promptState
+  promptState,
+  sessionTimer,
+  refreshSession,
+  isSessionAboutToExpire
 }: StepControllerProps) => {
   
   const questionsContainerRef = useRef<HTMLDivElement>(null);
@@ -55,7 +62,9 @@ export const StepController = ({
     fetchSavedPrompts, handleNewPrompt, handleSavePrompt,
     handleDeletePrompt, handleDuplicatePrompt, handleRenamePrompt,
     loadSavedPrompt, isViewingSavedPrompt, setIsViewingSavedPrompt,
-    saveDraft
+    saveDraft,
+    isDirty,
+    isSaving
   } = promptState;
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
@@ -412,13 +421,13 @@ export const StepController = ({
       {user && promptState.currentStep === 2 && (
         <div className="fixed top-0 right-0 left-0 z-50 bg-background/90 backdrop-blur-sm border-b p-2 flex justify-between items-center">
           <DraftStatus 
-            isDirty={promptState.isDirty}
-            isSaving={promptState.isSaving}
-            onSaveDraft={handleSaveDraft}
+            isDirty={isDirty}
+            isSaving={isSaving}
+            onSaveDraft={saveDraft}
           />
           
           <div className="flex items-center gap-3">
-            {sessionTimer && (
+            {sessionTimer && refreshSession && isSessionAboutToExpire && (
               <SessionInfo 
                 sessionTimer={sessionTimer}
                 refreshSession={refreshSession}
