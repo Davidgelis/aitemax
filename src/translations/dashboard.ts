@@ -1,778 +1,95 @@
-
 export const dashboardTranslations = {
   en: {
-    backToDashboard: "Back to Dashboard",
-    userActions: {
+    prompts: {
       newPrompt: "New Prompt",
-      searchPrompts: "Search prompts...",
-      savedPrompts: "Saved Prompts",
-      drafts: "Drafts",
-      unsavedChanges: "Unsaved changes",
-      saving: "Saving...",
-      allChangesSaved: "All changes saved",
-      saveDraft: "Save draft",
-      session: "Session",
-      refreshSession: "Refresh session",
-      signIn: "Sign in",
-      signOut: "Sign out",
-      profile: "Profile",
-      analytics: "Analytics"
-    },
-
-    steps: {
-      step1: "Step 1",
-      step2: "Step 2",
-      step3: "Step 3",
-      next: "Next",
-      back: "Back",
-      skip: "Skip",
-      finish: "Finish",
-      promptPlaceholder: "Enter your prompt...",
+      savePrompt: "Save Prompt",
+      renamePrompt: "Rename Prompt",
+      duplicatePrompt: "Duplicate Prompt",
+      deletePrompt: "Delete Prompt",
+      analyzing: "Analyzing...",
       analyze: "Analyze",
-      clear: "Clear",
-      analyzing: "Analyzing with GPT-4.1...",
-      questionsToAnswer: "Answer the following questions and complete the variables to improve your final prompt accuracy. Fill in only what applies and mark or remove the irrelevant ones.",
-      continueButtonInfo: "Please make sure to fill out everything before continuing.",
-      continue: "Continue",
-      variables: "Variables",
-      questions: "Questions",
-      imageSmartScan: "Image Smart Scan (GPT-4.1)",
+    },
+    userActions: {
+      unsavedChanges: "Unsaved Changes",
+      saving: "Saving",
+      allChangesSaved: "All Changes Saved",
+      session: "Session",
+      refreshSession: "Refresh Session",
+      saveDraft: "Save Draft",
+    },
+    steps: {
+      imageSmartScan: "Image Smart Scan",
       uploadedImages: "Uploaded Images",
       smartContextAdded: "Smart Context Added",
-      promptTextPlaceholder: "Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'",
-      step1Label: "Step 1",
-      step2Label: "Step 2",
-      step3Label: "Step 3",
-      step1AriaLabel: "Go to step 1",
-      step2AriaLabel: "Go to step 2",
-      step3AriaLabel: "Go to step 3",
-      step: "Step",
-      
-      // Adding new translation keys for toggles and sections
-      toggleSections: {
-        createVariable: "Create Variable/s",
-        editPrompt: "Edit Prompt",
-        variableCount: "Create Variable",
-        finalPromptTitle: "Final Prompt",
-        jsonLoadingTitle: "Generating JSON structure...",
-        jsonLoadingSubtitle: "This may take a moment",
-        jsonError: "Error generating JSON:",
-        tryAgain: "Try Again",
-        exitVariableMode: "Exit variable creation mode",
-        createVariableMode: "Create variable",
-        cancelCreation: "Cancel variable creation"
-      },
-      
-      variableActions: {
-        deleted: "Variable has been removed",
-        limitReached: "You can create up to 15 variables",
-        created: "Variable created",
-        selectionError: "Could not select text. Try selecting a simpler text segment.",
-        selectionAdded: "Selection added",
-        noSelection: "Please select at least one text segment first"
-      },
-      
-      promptActions: {
-        saveChanges: "Save Changes",
-        cancel: "Cancel",
-        changesSaved: "Your prompt has been updated successfully."
-      }
+      promptTextPlaceholder: "Enter your prompt here...",
     },
-
-    prompts: {
-      enterPrompt: "Enter your prompt...",
-      analyze: "Analyze",
-      clear: "Clear",
-      promptPlaceholder: "Start typing your prompt here...",
-      noPrompts: "No prompts found",
-      loading: "Loading prompts...",
-      error: "Error loading prompts",
-      retry: "Retry",
-      refreshPage: "Refresh Page",
-      sessionExpired: "Session may have expired. Try refreshing the page.",
-      duplicate: "Duplicate",
-      delete: "Delete",
-      edit: "Edit",
-      untitledDraft: "Untitled Draft",
-      recentlyEdited: "Recently edited",
-      deletePromptTitle: "Delete prompt?",
-      deletePromptDescription: "Are you sure you want to delete this prompt? This action cannot be undone.",
-      deleteDraftTitle: "Delete draft?",
-      deleteDraftDescription: "Are you sure you want to delete this draft? This action cannot be undone.",
-      cancel: "Cancel"
+    sidebar: {
+      savedPrompts: "Saved Prompts",
+      drafts: "Drafts",
+      newPrompt: "New Prompt",
+      searchPrompts: "Search Prompts...",
     },
-    finalPrompt: {
-      copyPrompt: "Copy Prompt",
-      savePrompt: "Save Prompt",
-      editPrompt: "Edit Prompt"
-    },
-    toggles: {
-      learnMore: "Learn more about",
-      primary: {
-        videoCreation: "Video Creation",
-        imageCreating: "Image Creating",
-        coding: "Coding",
-        copilot: "Copilot"
-      },
-      secondary: {
-        tokenSaver: "Token Saver",
-        strictResponse: "Strict Response",
-        creative: "Creative",
-        complexReasoning: "Complex Reasoning"
-      }
-    },
-    webScan: {
-      title: "Web Smart Scan",
-      description: "Use website content to enhance your original prompt",
-      urlLabel: "Website URL",
-      urlPlaceholder: "https://example.com",
-      instructionsLabel: "What specific information do you want from this website?",
-      instructionsPlaceholder: "E.g., 'Extract best practices for landing pages' or 'Find information about pricing models'",
-      infoTip: "Be specific about what information you want extracted to enhance your prompt.",
-      updateContext: "Update Context",
-      useAsContext: "Use as Context"
-    },
-    smartContext: {
-      title: "Smart Context",
-      description: "Use specific context to enhance your original prompt",
-      contextLabel: "What specific context do you want to add?",
-      contextPlaceholder: "E.g., 'This is for a technical audience' or 'The tone should be professional'",
-      usageInstructionsLabel: "How to use it as context and what part of data should be extracted",
-      usageInstructionsPlaceholder: "Explain how this context should be used and specify if all the data should be considered or only certain parts should be extracted.",
-      infoTip: "Be specific about what context you want to add to enhance your prompt.",
-      updateContext: "Update Context",
-      useAsContext: "Use as Context"
-    },
-    auth: {
-      signInRequired: "Please sign in to save and view your prompts",
-      signInButton: "Sign in"
-    },
-    errors: {
-      urlRequired: "Please provide a website URL.",
-      contextRequired: "Please provide specific context to enhance your prompt.",
-      unsavedChanges: "You have unsaved changes that will be lost.",
-      variableUpdate: "An error occurred while trying to update the variable",
-      promptSave: "Could not save edited prompt. Please try again."
-    }
   },
-  
-  zh: {
-    backToDashboard: "返回控制面板",
-    userActions: {
-      newPrompt: "新提示",
-      searchPrompts: "搜索提示...",
-      savedPrompts: "保存的提示",
-      drafts: "草稿",
-      unsavedChanges: "未保存的更改",
-      saving: "保存中...",
-      allChangesSaved: "所有更改已保存",
-      saveDraft: "保存草稿",
-      session: "会话",
-      refreshSession: "刷新会话",
-      signIn: "登录",
-      signOut: "登出",
-      profile: "个人资料",
-      analytics: "分析"
-    },
-    
-    steps: {
-      step1: "步骤 1",
-      step2: "步骤 2",
-      step3: "步骤 3",
-      next: "下一步",
-      back: "返回",
-      skip: "跳过",
-      finish: "完成",
-      promptPlaceholder: "输入您的提示...",
-      analyze: "分析",
-      clear: "清除",
-      analyzing: "使用GPT-4.1分析中...",
-      questionsToAnswer: "回答以下问题并完成变量以提高您的最终提示准确性。只填写适用的部分，标记或删除不相关的部分。",
-      continueButtonInfo: "请确保在继续之前填写完所有内容。",
-      continue: "继续",
-      variables: "变量",
-      questions: "问题",
-      imageSmartScan: "图像智能扫描 (GPT-4.1)",
-      uploadedImages: "已上传图片",
-      smartContextAdded: "已添加智能上下文",
-      promptTextPlaceholder: "开始输入您的提示。例如：'创建客户入职电子邮件模板'或'编写生成代码文档的提示'",
-      step1Label: "步骤 1",
-      step2Label: "步骤 2",
-      step3Label: "步骤 3",
-      step1AriaLabel: "转到步骤 1",
-      step2AriaLabel: "转到步骤 2",
-      step3AriaLabel: "转到步骤 3",
-      step: "步骤",
-      
-      toggleSections: {
-        createVariable: "创建变量",
-        editPrompt: "编辑提示",
-        variableCount: "创建变量",
-        finalPromptTitle: "最终提示",
-        jsonLoadingTitle: "正在生成JSON结构...",
-        jsonLoadingSubtitle: "请稍候",
-        jsonError: "生成JSON时出错：",
-        tryAgain: "重试",
-        exitVariableMode: "退出变量创建模式",
-        createVariableMode: "创建变量",
-        cancelCreation: "取消创建"
-      },
-      
-      variableActions: {
-        deleted: "变量已删除",
-        limitReached: "最多可以创建15个变量",
-        created: "变量已创建",
-        selectionError: "无法选择文本。请尝试选择更简单的文本段落。",
-        selectionAdded: "已添加选择",
-        noSelection: "请先选择至少一个文本段落"
-      },
-      
-      promptActions: {
-        saveChanges: "保存更改",
-        cancel: "取消",
-        changesSaved: "您的提示已成功更新。"
-      }
-    },
-
-    prompts: {
-      enterPrompt: "输入您的提示...",
-      analyze: "分析",
-      clear: "清除",
-      promptPlaceholder: "在此开始输入您的提示...",
-      noPrompts: "未找到提示",
-      loading: "加载提示中...",
-      error: "加载提示错误",
-      retry: "重试",
-      refreshPage: "刷新页面",
-      sessionExpired: "会话可能已过期。请尝试刷新页面。",
-      duplicate: "复制",
-      delete: "删除",
-      edit: "编辑",
-      untitledDraft: "无标题草稿",
-      recentlyEdited: "最近编辑",
-      deletePromptTitle: "删除提示？",
-      deletePromptDescription: "您确定要删除此提示吗？此操作无法撤销。",
-      deleteDraftTitle: "删除草稿？",
-      deleteDraftDescription: "您确定要删除此草稿吗？此操作无法撤销。",
-      cancel: "取消"
-    },
-    finalPrompt: {
-      copyPrompt: "复制提示",
-      savePrompt: "保存提示",
-      editPrompt: "编辑提示"
-    },
-    toggles: {
-      learnMore: "了解更多关于",
-      primary: {
-        videoCreation: "视频创作",
-        imageCreating: "图像创建",
-        coding: "编程",
-        copilot: "副驾驶"
-      },
-      secondary: {
-        tokenSaver: "令牌节省",
-        strictResponse: "严格回应",
-        creative: "创意",
-        complexReasoning: "复杂推理"
-      }
-    },
-    webScan: {
-      title: "网页智能扫描",
-      description: "使用网站内容增强您的提示",
-      urlLabel: "网站网址",
-      urlPlaceholder: "https://example.com",
-      instructionsLabel: "您想从这个网站获取什么具体信息？",
-      instructionsPlaceholder: "例如：'提取着陆页最佳实践'或'查找定价模型信息'",
-      infoTip: "请具体说明您想要提取哪些信息来增强您的提示。",
-      updateContext: "更新上下文",
-      useAsContext: "用作上下文"
-    },
-    smartContext: {
-      title: "智能上下文",
-      description: "使用特定上下文增强您的提示",
-      contextLabel: "您想添加什么具体上下文？",
-      contextPlaceholder: "例如：'这是面向技术受众的'或'语气应该专业'",
-      usageInstructionsLabel: "如何使用上下文以及应提取哪些数据",
-      usageInstructionsPlaceholder: "解释如何使用此上下文，并指定是否应考虑所有数据或仅提取特定部分。",
-      infoTip: "请具体说明您想添加什么上下文来增强您的提示。",
-      updateContext: "更新上下文",
-      useAsContext: "用作上下文"
-    },
-    auth: {
-      signInRequired: "请登录以保存和查看您的提示",
-      signInButton: "登录"
-    },
-    errors: {
-      urlRequired: "请提供网站URL。",
-      contextRequired: "请提供具体上下文以增强您的提示。",
-      unsavedChanges: "您有未保存的更改将丢失。",
-      variableUpdate: "更新变量时发生错误",
-      promptSave: "无法保存编辑的提示。请重试。"
-    }
-  },
-
   es: {
-    backToDashboard: "Volver al Panel",
-    userActions: {
+    prompts: {
       newPrompt: "Nuevo Prompt",
-      searchPrompts: "Buscar prompts...",
+      savePrompt: "Guardar Prompt",
+      renamePrompt: "Renombrar Prompt",
+      duplicatePrompt: "Duplicar Prompt",
+      deletePrompt: "Eliminar Prompt",
+      analyzing: "Analizando...",
+      analyze: "Analizar",
+    },
+    userActions: {
+      unsavedChanges: "Cambios No Guardados",
+      saving: "Guardando",
+      allChangesSaved: "Todos Los Cambios Guardados",
+      session: "Sesión",
+      refreshSession: "Refrescar Sesión",
+      saveDraft: "Guardar Borrador",
+    },
+    steps: {
+      imageSmartScan: "Análisis Inteligente de Imagen",
+      uploadedImages: "Imágenes Subidas",
+      smartContextAdded: "Contexto Inteligente Añadido",
+      promptTextPlaceholder: "Introduce tu prompt aquí...",
+    },
+     sidebar: {
       savedPrompts: "Prompts Guardados",
       drafts: "Borradores",
-      unsavedChanges: "Cambios sin guardar",
-      saving: "Guardando...",
-      allChangesSaved: "Todos los cambios guardados",
-      saveDraft: "Guardar borrador",
-      session: "Sesión",
-      refreshSession: "Actualizar sesión",
-      signIn: "Iniciar sesión",
-      signOut: "Cerrar sesión",
-      profile: "Perfil",
-      analytics: "Analítica"
+      newPrompt: "Nuevo Prompt",
+      searchPrompts: "Buscar Prompts...",
     },
-    
-    steps: {
-      step1: "Paso 1",
-      step2: "Paso 2",
-      step3: "Paso 3",
-      next: "Siguiente",
-      back: "Atrás",
-      skip: "Omitir",
-      finish: "Finalizar",
-      promptPlaceholder: "Ingrese su prompt...",
-      analyze: "Analizar",
-      clear: "Limpiar",
-      analyzing: "Analizando con GPT-4.1...",
-      questionsToAnswer: "Responda las siguientes preguntas y complete las variables para mejorar la precisión de su prompt final. Complete solo lo que corresponda y marque o elimine los elementos irrelevantes.",
-      continueButtonInfo: "Asegúrese de completar todo antes de continuar.",
-      continue: "Continuar",
-      variables: "Variables",
-      questions: "Preguntas",
-      imageSmartScan: "Escaneo Inteligente de Imágenes (GPT-4.1)",
-      uploadedImages: "Imágenes Cargadas",
-      smartContextAdded: "Contexto Inteligente Añadido",
-      promptTextPlaceholder: "Comience escribiendo su prompt. Por ejemplo: 'Crear una plantilla de correo electrónico para incorporación de clientes' o 'Escribir un prompt para generar documentación de código'",
-      step1Label: "Paso 1",
-      step2Label: "Paso 2",
-      step3Label: "Paso 3",
-      step1AriaLabel: "Ir al paso 1",
-      step2AriaLabel: "Ir al paso 2",
-      step3AriaLabel: "Ir al paso 3",
-      step: "Paso",
-      
-      toggleSections: {
-        createVariable: "Crear Variable(s)",
-        editPrompt: "Editar Prompt",
-        variableCount: "Crear Variable",
-        finalPromptTitle: "Prompt Final",
-        jsonLoadingTitle: "Generando estructura JSON...",
-        jsonLoadingSubtitle: "Esto puede tomar un momento",
-        jsonError: "Error generando JSON:",
-        tryAgain: "Intentar de nuevo",
-        exitVariableMode: "Salir del modo de creación de variables",
-        createVariableMode: "Crear variable",
-        cancelCreation: "Cancelar creación"
-      },
-      
-      variableActions: {
-        deleted: "La variable ha sido eliminada",
-        limitReached: "Puede crear hasta 15 variables",
-        created: "Variable creada",
-        selectionError: "No se pudo seleccionar el texto. Intente seleccionar un segmento de texto más simple.",
-        selectionAdded: "Selección agregada",
-        noSelection: "Por favor seleccione al menos un segmento de texto primero"
-      },
-      
-      promptActions: {
-        saveChanges: "Guardar Cambios",
-        cancel: "Cancelar",
-        changesSaved: "Su prompt ha sido actualizado exitosamente."
-      }
-    },
-
-    prompts: {
-      enterPrompt: "Ingrese su prompt...",
-      analyze: "Analizar",
-      clear: "Limpiar",
-      promptPlaceholder: "Comience a escribir su prompt aquí...",
-      noPrompts: "No se encontraron prompts",
-      loading: "Cargando prompts...",
-      error: "Error al cargar prompts",
-      retry: "Reintentar",
-      refreshPage: "Actualizar Página",
-      sessionExpired: "La sesión puede haber expirado. Intente actualizar la página.",
-      duplicate: "Duplicar",
-      delete: "Borrar",
-      edit: "Editar",
-      untitledDraft: "Borrador sin título",
-      recentlyEdited: "Editado recientemente",
-      deletePromptTitle: "¿Borrar prompt?",
-      deletePromptDescription: "¿Está seguro de que desea eliminar este prompt? Esta acción no se puede deshacer.",
-      deleteDraftTitle: "¿Eliminar borrador?",
-      deleteDraftDescription: "¿Está seguro de que desea eliminar este borrador? Esta acción no se puede deshacer.",
-      cancel: "Cancelar"
-    },
-    finalPrompt: {
-      copyPrompt: "Copiar Prompt",
-      savePrompt: "Guardar Prompt",
-      editPrompt: "Editar Prompt"
-    },
-    toggles: {
-      learnMore: "Más información sobre",
-      primary: {
-        videoCreation: "Creación de Video",
-        imageCreating: "Creación de Imágenes",
-        coding: "Programación",
-        copilot: "Copiloto"
-      },
-      secondary: {
-        tokenSaver: "Ahorro de Tokens",
-        strictResponse: "Respuesta Estricta",
-        creative: "Creativo",
-        complexReasoning: "Razonamiento Complejo"
-      }
-    },
-    webScan: {
-      title: "Escaneo Web Inteligente",
-      description: "Use el contenido del sitio web para mejorar su prompt",
-      urlLabel: "URL del sitio web",
-      urlPlaceholder: "https://ejemplo.com",
-      instructionsLabel: "¿Qué información específica desea de este sitio web?",
-      instructionsPlaceholder: "Por ejemplo: 'Extraer mejores prácticas para páginas de destino' o 'Encontrar información sobre modelos de precios'",
-      infoTip: "Sea específico sobre qué información desea extraer para mejorar su prompt.",
-      updateContext: "Actualizar Contexto",
-      useAsContext: "Usar como Contexto"
-    },
-    smartContext: {
-      title: "Contexto Inteligente",
-      description: "Use contexto específico para mejorar su prompt",
-      contextLabel: "¿Qué contexto específico desea agregar?",
-      contextPlaceholder: "Por ejemplo: 'Esto es para una audiencia técnica' o 'El tono debe ser profesional'",
-      usageInstructionsLabel: "Cómo usar como contexto y qué parte de los datos debe extraerse",
-      usageInstructionsPlaceholder: "Explique cómo se debe usar este contexto y especifique si se deben considerar todos los datos o solo ciertas partes.",
-      infoTip: "Sea específico sobre qué contexto desea agregar para mejorar su prompt.",
-      updateContext: "Actualizar Contexto",
-      useAsContext: "Usar como Contexto"
-    },
-    auth: {
-      signInRequired: "Inicie sesión para guardar y ver sus prompts",
-      signInButton: "Iniciar sesión"
-    },
-    errors: {
-      urlRequired: "Por favor proporcione una URL del sitio web.",
-      contextRequired: "Por favor proporcione un contexto específico para mejorar su prompt.",
-      unsavedChanges: "Tiene cambios sin guardar que se perderán.",
-      variableUpdate: "Ocurrió un error al intentar actualizar la variable",
-      promptSave: "No se pudo guardar el prompt editado. Por favor, inténtelo de nuevo."
-    }
   },
-
-  fr: {
-    backToDashboard: "Retour au Tableau de Bord",
-    userActions: {
-      newPrompt: "Nouveau Prompt",
-      searchPrompts: "Rechercher des prompts...",
-      savedPrompts: "Prompts Enregistrés",
-      drafts: "Brouillons",
-      unsavedChanges: "Changements non sauvegardés",
-      saving: "Sauvegarde...",
-      allChangesSaved: "Tous les changements sont sauvegardés",
-      saveDraft: "Sauvegarder le brouillon",
-      session: "Session",
-      refreshSession: "Actualiser la session",
-      signIn: "Se connecter",
-      signOut: "Se déconnecter",
-      profile: "Profil",
-      analytics: "Analytique"
-    },
-    
-    steps: {
-      step1: "Étape 1",
-      step2: "Étape 2",
-      step3: "Étape 3",
-      next: "Suivant",
-      back: "Retour",
-      skip: "Passer",
-      finish: "Terminer",
-      promptPlaceholder: "Entrez votre prompt...",
-      analyze: "Analyser",
-      clear: "Effacer",
-      analyzing: "Analyse avec GPT-4.1...",
-      questionsToAnswer: "Répondez aux questions suivantes et complétez les variables pour améliorer la précision de votre prompt final. Remplissez uniquement ce qui s'applique et marquez ou supprimez les éléments non pertinents.",
-      continueButtonInfo: "Veuillez vous assurer de tout remplir avant de continuer.",
-      continue: "Continuer",
-      variables: "Variables",
-      questions: "Questions",
-      imageSmartScan: "Analyse Intelligente d'Images (GPT-4.1)",
-      uploadedImages: "Images Téléchargées",
-      smartContextAdded: "Contexte Intelligent Ajouté",
-      promptTextPlaceholder: "Commencez à taper votre prompt. Par exemple: 'Créer un modèle d'e-mail pour l'intégration des clients' ou 'Écrire un prompt pour générer de la documentation de code'",
-      step1Label: "Étape 1",
-      step2Label: "Étape 2",
-      step3Label: "Étape 3",
-      step1AriaLabel: "Aller à l'étape 1",
-      step2AriaLabel: "Aller à l'étape 2",
-      step3AriaLabel: "Aller à l'étape 3",
-      step: "Étape",
-      
-      toggleSections: {
-        createVariable: "Créer Variable(s)",
-        editPrompt: "Modifier Prompt",
-        variableCount: "Créer Variable",
-        finalPromptTitle: "Prompt Final",
-        jsonLoadingTitle: "Génération de la structure JSON...",
-        jsonLoadingSubtitle: "Cela peut prendre un moment",
-        jsonError: "Erreur de génération JSON :",
-        tryAgain: "Réessayer",
-        exitVariableMode: "Quitter le mode création de variables",
-        createVariableMode: "Créer variable",
-        cancelCreation: "Annuler la création"
-      },
-      
-      variableActions: {
-        deleted: "La variable a été supprimée",
-        limitReached: "Vous pouvez créer jusqu'à 15 variables",
-        created: "Variable créée",
-        selectionError: "Impossible de sélectionner le texte. Essayez de sélectionner un segment de texte plus simple.",
-        selectionAdded: "Sélection ajoutée",
-        noSelection: "Veuillez d'abord sélectionner au moins un segment de texte"
-      },
-      
-      promptActions: {
-        saveChanges: "Enregistrer les Modifications",
-        cancel: "Annuler",
-        changesSaved: "Votre prompt a été mis à jour avec succès."
-      }
-    },
-
-    prompts: {
-      enterPrompt: "Entrez votre prompt...",
-      analyze: "Analyser",
-      clear: "Effacer",
-      promptPlaceholder: "Commencez à écrire votre prompt ici...",
-      noPrompts: "Aucun prompt trouvé",
-      loading: "Chargement des prompts...",
-      error: "Erreur lors du chargement des prompts",
-      retry: "Réessayer",
-      refreshPage: "Actualiser la page",
-      sessionExpired: "La session a peut-être expiré. Essayez d'actualiser la page.",
-      duplicate: "Dupliquer",
-      delete: "Supprimer",
-      edit: "Modifier",
-      untitledDraft: "Brouillon sans titre",
-      recentlyEdited: "Récemment modifié",
-      deletePromptTitle: "Supprimer le prompt ?",
-      deletePromptDescription: "Êtes-vous sûr de vouloir supprimer ce prompt ? Cette action ne peut pas être annulée.",
-      deleteDraftTitle: "Supprimer le brouillon ?",
-      deleteDraftDescription: "Êtes-vous sûr de vouloir supprimer ce brouillon ? Cette action ne peut pas être annulée.",
-      cancel: "Annuler"
-    },
-    finalPrompt: {
-      copyPrompt: "Copier le Prompt",
-      savePrompt: "Enregistrer le Prompt",
-      editPrompt: "Modifier le Prompt"
-    },
-    toggles: {
-      learnMore: "En savoir plus sur",
-      primary: {
-        videoCreation: "Création Vidéo",
-        imageCreating: "Création d'Images",
-        coding: "Programmation",
-        copilot: "Copilote"
-      },
-      secondary: {
-        tokenSaver: "Économiseur de Jetons",
-        strictResponse: "Réponse Stricte",
-        creative: "Créatif",
-        complexReasoning: "Raisonnement Complexe"
-      }
-    },
-    webScan: {
-      title: "Analyse Web Intelligente",
-      description: "Utilisez le contenu du site web pour améliorer votre prompt",
-      urlLabel: "URL du site web",
-      urlPlaceholder: "https://exemple.com",
-      instructionsLabel: "Quelles informations spécifiques souhaitez-vous de ce site web ?",
-      instructionsPlaceholder: "Par exemple : 'Extraire les meilleures pratiques pour les pages d'atterrissage' ou 'Trouver des informations sur les modèles de tarification'",
-      infoTip: "Soyez précis sur les informations que vous souhaitez extraire pour améliorer votre prompt.",
-      updateContext: "Mettre à jour le Contexte",
-      useAsContext: "Utiliser comme Contexte"
-    },
-    smartContext: {
-      title: "Contexte Intelligent",
-      description: "Utilisez un contexte spécifique pour améliorer votre prompt",
-      contextLabel: "Quel contexte spécifique souhaitez-vous ajouter ?",
-      contextPlaceholder: "Par exemple : 'Ceci est pour un public technique' ou 'Le ton doit être professionnel'",
-      usageInstructionsLabel: "Comment utiliser comme contexte et quelle partie des données doit être extraite",
-      usageInstructionsPlaceholder: "Expliquez comment ce contexte doit être utilisé et précisez si toutes les données doivent être considérées ou seulement certaines parties.",
-      infoTip: "Soyez précis sur le contexte que vous souhaitez ajouter pour améliorer votre prompt.",
-      updateContext: "Mettre à jour le Contexte",
-      useAsContext: "Utiliser comme Contexte"
-    },
-    auth: {
-      signInRequired: "Veuillez vous connecter pour sauvegarder et voir vos prompts",
-      signInButton: "Se connecter"
-    },
-    errors: {
-      urlRequired: "Veuillez fournir une URL de site web.",
-      contextRequired: "Veuillez fournir un contexte spécifique pour améliorer votre prompt.",
-      unsavedChanges: "Vous avez des modifications non sauvegardées qui seront perdues.",
-      variableUpdate: "Une erreur s'est produite lors de la mise à jour de la variable",
-      promptSave: "Impossible de sauvegarder le prompt modifié. Veuillez réessayer."
-    }
-  },
-
   de: {
-    backToDashboard: "Zurück zum Dashboard",
-    userActions: {
+    prompts: {
       newPrompt: "Neuer Prompt",
-      searchPrompts: "Prompts suchen...",
-      savedPrompts: "Gespeicherte Prompts",
-      drafts: "Entwürfe",
+      savePrompt: "Prompt Speichern",
+      renamePrompt: "Prompt Umbenennen",
+      duplicatePrompt: "Prompt Duplizieren",
+      deletePrompt: "Prompt Löschen",
+      analyzing: "Analysiere...",
+      analyze: "Analysieren",
+    },
+    userActions: {
       unsavedChanges: "Ungespeicherte Änderungen",
-      saving: "Speichern...",
+      saving: "Speichern",
       allChangesSaved: "Alle Änderungen gespeichert",
-      saveDraft: "Entwurf speichern",
       session: "Sitzung",
       refreshSession: "Sitzung aktualisieren",
-      signIn: "Anmelden",
-      signOut: "Abmelden",
-      profile: "Profil",
-      analytics: "Analytik"
+      saveDraft: "Entwurf speichern",
     },
-    
     steps: {
-      step1: "Schritt 1",
-      step2: "Schritt 2",
-      step3: "Schritt 3",
-      next: "Weiter",
-      back: "Zurück",
-      skip: "Überspringen",
-      finish: "Fertig",
-      promptPlaceholder: "Geben Sie Ihren Prompt ein...",
-      analyze: "Analysieren",
-      clear: "Löschen",
-      analyzing: "Analyse mit GPT-4.1...",
-      questionsToAnswer: "Beantworten Sie die folgenden Fragen und vervollständigen Sie die Variablen, um die Genauigkeit Ihres endgültigen Prompts zu verbessern. Füllen Sie nur aus, was zutrifft, und markieren oder entfernen Sie irrelevante Elemente.",
-      continueButtonInfo: "Bitte stellen Sie sicher, dass Sie alles ausgefüllt haben, bevor Sie fortfahren.",
-      continue: "Fortfahren",
-      variables: "Variablen",
-      questions: "Fragen",
-      imageSmartScan: "Intelligenter Bildscan (GPT-4.1)",
+      imageSmartScan: "Intelligente Bildanalyse",
       uploadedImages: "Hochgeladene Bilder",
-      smartContextAdded: "Intelligenter Kontext hinzugefügt",
-      promptTextPlaceholder: "Beginnen Sie mit der Eingabe Ihres Prompts. Zum Beispiel: 'Erstellen Sie eine E-Mail-Vorlage für Kunden-Onboarding' oder 'Schreiben Sie einen Prompt zur Generierung von Code-Dokumentation'",
-      step1Label: "Schritt 1",
-      step2Label: "Schritt 2",
-      step3Label: "Schritt 3",
-      step1AriaLabel: "Zu Schritt 1 gehen",
-      step2AriaLabel: "Zu Schritt 2 gehen",
-      step3AriaLabel: "Zu Schritt 3 gehen",
-      step: "Schritt",
-      
-      toggleSections: {
-        createVariable: "Variable(n) erstellen",
-        editPrompt: "Prompt bearbeiten",
-        variableCount: "Variable erstellen",
-        finalPromptTitle: "Finaler Prompt",
-        jsonLoadingTitle: "JSON-Struktur wird generiert...",
-        jsonLoadingSubtitle: "Dies kann einen Moment dauern",
-        jsonError: "Fehler bei der JSON-Generierung:",
-        tryAgain: "Erneut versuchen",
-        exitVariableMode: "Variablenerstellungsmodus verlassen",
-        createVariableMode: "Variable erstellen",
-        cancelCreation: "Erstellung abbrechen"
-      },
-      
-      variableActions: {
-        deleted: "Die Variable wurde entfernt",
-        limitReached: "Sie können bis zu 15 Variablen erstellen",
-        created: "Variable erstellt",
-        selectionError: "Text konnte nicht ausgewählt werden. Versuchen Sie, ein einfacheres Textsegment auszuwählen.",
-        selectionAdded: "Auswahl hinzugefügt",
-        noSelection: "Bitte wählen Sie zuerst mindestens ein Textsegment aus"
-      },
-      
-      promptActions: {
-        saveChanges: "Änderungen speichern",
-        cancel: "Abbrechen",
-        changesSaved: "Ihr Prompt wurde erfolgreich aktualisiert."
-      }
+      smartContextAdded: "Intelligenter Kontext Hinzugefügt",
+      promptTextPlaceholder: "Gib hier deinen Prompt ein...",
     },
-
-    prompts: {
-      enterPrompt: "Geben Sie Ihren Prompt ein...",
-      analyze: "Analysieren",
-      clear: "Löschen",
-      promptPlaceholder: "Beginnen Sie hier mit der Eingabe Ihres Prompts...",
-      noPrompts: "Keine Prompts gefunden",
-      loading: "Prompts werden geladen...",
-      error: "Fehler beim Laden der Prompts",
-      retry: "Wiederholen",
-      refreshPage: "Seite aktualisieren",
-      sessionExpired: "Die Sitzung ist möglicherweise abgelaufen. Versuchen Sie, die Seite zu aktualisieren.",
-      duplicate: "Duplizieren",
-      delete: "Löschen",
-      edit: "Bearbeiten",
-      untitledDraft: "Unbenannter Entwurf",
-      recentlyEdited: "Kürzlich bearbeitet",
-      deletePromptTitle: "Prompt löschen?",
-      deletePromptDescription: "Möchten Sie diesen Prompt wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
-      deleteDraftTitle: "Entwurf löschen?",
-      deleteDraftDescription: "Möchten Sie diesen Entwurf wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
-      cancel: "Abbrechen"
+    sidebar: {
+      savedPrompts: "Gespeicherte Prompts",
+      drafts: "Entwürfe",
+      newPrompt: "Neuer Prompt",
+      searchPrompts: "Prompts suchen...",
     },
-    finalPrompt: {
-      copyPrompt: "Prompt kopieren",
-      savePrompt: "Prompt speichern",
-      editPrompt: "Prompt bearbeiten"
-    },
-    toggles: {
-      learnMore: "Mehr Informationen zu",
-      primary: {
-        videoCreation: "Videoerstellung",
-        imageCreating: "Bilderstellung",
-        coding: "Programmierung",
-        copilot: "Copilot"
-      },
-      secondary: {
-        tokenSaver: "Token-Sparer",
-        strictResponse: "Strikte Antwort",
-        creative: "Kreativ",
-        complexReasoning: "Komplexes Denken"
-      }
-    },
-    webScan: {
-      title: "Web Smart Scan",
-      description: "Nutzen Sie Website-Inhalte zur Verbesserung Ihres Prompts",
-      urlLabel: "Website-URL",
-      urlPlaceholder: "https://beispiel.de",
-      instructionsLabel: "Welche spezifischen Informationen möchten Sie von dieser Website?",
-      instructionsPlaceholder: "Z.B.: 'Beste Praktiken für Landingpages extrahieren' oder 'Informationen über Preismodelle finden'",
-      infoTip: "Seien Sie präzise darüber, welche Informationen Sie zur Verbesserung Ihres Prompts extrahieren möchten.",
-      updateContext: "Kontext Aktualisieren",
-      useAsContext: "Als Kontext Verwenden"
-    },
-    smartContext: {
-      title: "Intelligenter Kontext",
-      description: "Verwenden Sie spezifischen Kontext zur Verbesserung Ihres Prompts",
-      contextLabel: "Welchen spezifischen Kontext möchten Sie hinzufügen?",
-      contextPlaceholder: "Z.B.: 'Dies ist für ein technisches Publikum' oder 'Der Ton sollte professionell sein'",
-      usageInstructionsLabel: "Wie als Kontext verwenden und welcher Teil der Daten soll extrahiert werden",
-      usageInstructionsPlaceholder: "Erklären Sie, wie dieser Kontext verwendet werden soll und geben Sie an, ob alle Daten berücksichtigt werden sollen oder nur bestimmte Teile.",
-      infoTip: "Seien Sie präzise darüber, welchen Kontext Sie zur Verbesserung Ihres Prompts hinzufügen möchten.",
-      updateContext: "Kontext Aktualisieren",
-      useAsContext: "Als Kontext Verwenden"
-    },
-    auth: {
-      signInRequired: "Bitte melden Sie sich an, um Ihre Prompts zu speichern und anzuzeigen",
-      signInButton: "Anmelden"
-    },
-    errors: {
-      urlRequired: "Bitte geben Sie eine Website-URL an.",
-      contextRequired: "Bitte geben Sie einen spezifischen Kontext zur Verbesserung Ihres Prompts an.",
-      unsavedChanges: "Sie haben ungespeicherte Änderungen, die verloren gehen.",
-      variableUpdate: "Beim Aktualisieren der Variable ist ein Fehler aufgetreten",
-      promptSave: "Der bearbeitete Prompt konnte nicht gespeichert werden. Bitte versuchen Sie es erneut."
-    }
-  }
+  },
 };
