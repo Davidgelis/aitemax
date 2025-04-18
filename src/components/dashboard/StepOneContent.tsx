@@ -1,15 +1,16 @@
-
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
 import { SmartContext } from "@/components/dashboard/SmartContext";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { AIModel, UploadedImage } from "./types";
 import { Switch } from "@/components/ui/switch";
-import { HelpCircle, ImageUp } from "lucide-react";
+import { ImageUp, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "./ImageUploader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/context/AuthContext";
 
 interface StepOneContentProps {
   promptText: string;
@@ -52,7 +53,28 @@ export const StepOneContent = ({
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const maxCharacterLimit = 3000; // Set the character limit to 3000
+  const maxCharacterLimit = 3000;
+
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  const handleAnalyzeWithAuth = () => {
+    if (!user) {
+      // Store current prompt in sessionStorage before redirecting
+      if (promptText.trim()) {
+        sessionStorage.setItem("redirectedPrompt", promptText);
+        // Add a flag to indicate we want to stay on step 1
+        sessionStorage.setItem("stayOnStepOne", "true");
+      }
+      
+      // Redirect to auth page with return URL to dashboard
+      navigate("/auth?returnUrl=/dashboard");
+      return;
+    }
+
+    // If user is authenticated, proceed with analysis
+    handleAnalyzeWithContext();
+  };
 
   const handleImagesChange = (images: UploadedImage[]) => {
     setUploadedImages(images);
@@ -256,7 +278,7 @@ export const StepOneContent = ({
 
       <div className="flex justify-end mt-8">
         <Button
-          onClick={handleAnalyzeWithContext}
+          onClick={handleAnalyzeWithAuth}
           disabled={isLoading || !promptText.trim()}
           variant="aurora"
           className="ml-2"
