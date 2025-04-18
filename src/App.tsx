@@ -11,6 +11,7 @@ import Profile from './pages/Profile';
 import Index from './pages/Index';
 import XPanel from './pages/XPanel';
 import ResetPassword from './pages/ResetPassword';
+import Support from './pages/Support';
 import { AuthProvider } from './context/AuthContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from '@/context/LanguageContext';
@@ -31,6 +32,7 @@ function App() {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/support" element={<Support />} />
               </Routes>
             </div>
           </Router>
