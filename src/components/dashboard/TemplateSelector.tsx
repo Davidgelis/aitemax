@@ -5,7 +5,7 @@ import { PillarType } from "@/components/x-templates/XTemplateCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { FileTemplate } from "lucide-react";
+import { FileText } from "lucide-react";  // Changed from FileTemplate to FileText
 
 interface TemplateSelectorProps {
   className?: string;
@@ -40,7 +40,7 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
           onClick={() => navigate("/x-panel")}
           className="ml-2"
         >
-          <FileTemplate className="w-4 h-4 mr-2" />
+          <FileText className="w-4 h-4 mr-2" />  // Changed from FileTemplate to FileText
           Manage Templates
         </Button>
       </div>
