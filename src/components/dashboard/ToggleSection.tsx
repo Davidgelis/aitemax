@@ -4,8 +4,6 @@ import { Toggle } from "./types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpCircle, Info } from "lucide-react";
 import { useState } from "react";
-import { useLanguage } from "@/context/LanguageContext";
-import { dashboardTranslations } from "@/translations/dashboard";
 
 interface ToggleSectionProps {
   toggles: Toggle[];
@@ -24,9 +22,6 @@ export const ToggleSection = ({
   tooltipText,
   className = ""
 }: ToggleSectionProps) => {
-  const { currentLanguage } = useLanguage();
-  const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
-  
   // Function to determine the border class based on selected state and variant
   const getBorderClass = (isSelected: boolean, itemVariant: string) => {
     if (!isSelected) return "border";
@@ -48,31 +43,10 @@ export const ToggleSection = ({
   const containerClass = "flex flex-wrap gap-2 " + className;
   const isAurora = variant === "aurora";
 
-  // Helper function to get translated toggle label
-  const getToggleLabel = (toggleId: string, originalLabel: string) => {
-    // Map toggle IDs to their translation keys
-    const toggleMap: {[key: string]: string} = {
-      'video': 'videoCreation',
-      'image': 'imageCreating',
-      'coding': 'coding',
-      'copilot': 'copilot',
-      'token': 'tokenSaver',
-      'strict': 'strictResponse',
-      'creative': 'creative',
-      'reasoning': 'complexReasoning'
-    };
-    
-    const translationKey = toggleMap[toggleId];
-    return translationKey && t.toggles ? 
-           t.toggles[translationKey as keyof typeof t.toggles] : 
-           originalLabel;
-  };
-
   return (
     <div className={containerClass}>
       {toggles.map((item) => {
         const isSelected = selectedToggle === item.id;
-        const translatedLabel = getToggleLabel(item.id, item.label);
         
         return (
           <div 
@@ -83,7 +57,7 @@ export const ToggleSection = ({
             {/* For Aurora variant, keep text in a single line */}
             {isAurora ? (
               <div className="flex items-center justify-between w-full">
-                <span className="text-sm text-text whitespace-nowrap mr-4">{translatedLabel}</span>
+                <span className="text-sm text-text whitespace-nowrap mr-4">{item.label}</span>
                 <div className="flex items-center ml-auto">
                   <Switch 
                     id={item.id}
@@ -99,7 +73,7 @@ export const ToggleSection = ({
                         <TooltipTrigger asChild>
                           <button 
                             className="text-card-foreground hover:text-[#64bf95] transition-colors ml-2 tooltip-trigger"
-                            aria-label={`Learn more about ${translatedLabel}`}
+                            aria-label={`Learn more about ${item.label}`}
                           >
                             <HelpCircle 
                               size={18} 
@@ -119,7 +93,7 @@ export const ToggleSection = ({
               /* For primary and secondary variants, position toggle at the right side */
               <div className="flex items-center justify-between w-full">
                 <span className="text-sm text-text flex flex-col items-start">
-                  {translatedLabel.split(" ").map((word, index) => (
+                  {item.label.split(" ").map((word, index) => (
                     <span key={index} className="leading-tight">{word}</span>
                   ))}
                 </span>
@@ -138,7 +112,7 @@ export const ToggleSection = ({
                         <TooltipTrigger asChild>
                           <button 
                             className="text-card-foreground tooltip-trigger ml-2"
-                            aria-label={`Learn more about ${translatedLabel}`}
+                            aria-label={`Learn more about ${item.label}`}
                           >
                             <HelpCircle 
                               size={18} 

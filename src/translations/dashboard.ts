@@ -1,4 +1,3 @@
-
 export const dashboardTranslations = {
   en: {
     backToDashboard: "Back to Dashboard",
@@ -39,7 +38,7 @@ export const dashboardTranslations = {
       enterPrompt: "Enter your prompt...",
       analyze: "Analyze",
       clear: "Clear",
-      promptPlaceholder: "Start typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'",
+      promptPlaceholder: "Start typing your prompt here...",
       noPrompts: "No prompts found",
       loading: "Loading prompts..."
     },
@@ -47,16 +46,6 @@ export const dashboardTranslations = {
       copyPrompt: "Copy Prompt",
       savePrompt: "Save Prompt",
       editPrompt: "Edit Prompt"
-    },
-    toggles: {
-      videoCreation: "Video Creation",
-      imageCreating: "Image Creating",
-      coding: "Coding",
-      copilot: "Copilot",
-      tokenSaver: "Token Saver",
-      strictResponse: "Strict Response",
-      creative: "Creative",
-      complexReasoning: "Complex Reasoning"
     }
   },
   zh: {
@@ -98,7 +87,7 @@ export const dashboardTranslations = {
       enterPrompt: "输入您的提示...",
       analyze: "分析",
       clear: "清除",
-      promptPlaceholder: "开始输入您的提示。例如：'创建客户入职电子邮件模板'或'编写用于生成代码文档的提示'",
+      promptPlaceholder: "在此开始输入您的提示...",
       noPrompts: "未找到提示",
       loading: "加载提示中..."
     },
@@ -106,16 +95,6 @@ export const dashboardTranslations = {
       copyPrompt: "复制提示",
       savePrompt: "保存提示",
       editPrompt: "编辑提示"
-    },
-    toggles: {
-      videoCreation: "视频创作",
-      imageCreating: "图像创建",
-      coding: "编程",
-      copilot: "副驾驶",
-      tokenSaver: "令牌节省器",
-      strictResponse: "严格响应",
-      creative: "创意",
-      complexReasoning: "复杂推理"
     }
   },
   es: {
@@ -157,7 +136,7 @@ export const dashboardTranslations = {
       enterPrompt: "Ingrese su prompt...",
       analyze: "Analizar",
       clear: "Limpiar",
-      promptPlaceholder: "Comience a escribir su prompt. Por ejemplo: 'Crear una plantilla de correo electrónico para la incorporación de clientes' o 'Escribir un prompt para generar documentación de código'",
+      promptPlaceholder: "Comience a escribir su prompt aquí...",
       noPrompts: "No se encontraron prompts",
       loading: "Cargando prompts..."
     },
@@ -165,16 +144,6 @@ export const dashboardTranslations = {
       copyPrompt: "Copiar Prompt",
       savePrompt: "Guardar Prompt",
       editPrompt: "Editar Prompt"
-    },
-    toggles: {
-      videoCreation: "Creación de Video",
-      imageCreating: "Creación de Imágenes",
-      coding: "Codificación",
-      copilot: "Copiloto",
-      tokenSaver: "Ahorrador de Tokens",
-      strictResponse: "Respuesta Estricta",
-      creative: "Creativo",
-      complexReasoning: "Razonamiento Complejo"
     }
   },
   fr: {
@@ -216,7 +185,7 @@ export const dashboardTranslations = {
       enterPrompt: "Entrez votre prompt...",
       analyze: "Analyser",
       clear: "Effacer",
-      promptPlaceholder: "Commencez à écrire votre prompt. Par exemple: 'Créer un modèle d'e-mail pour l'intégration des clients' ou 'Écrire un prompt pour générer une documentation de code'",
+      promptPlaceholder: "Commencez à écrire votre prompt ici...",
       noPrompts: "Aucun prompt trouvé",
       loading: "Chargement des prompts..."
     },
@@ -224,16 +193,6 @@ export const dashboardTranslations = {
       copyPrompt: "Copier le Prompt",
       savePrompt: "Enregistrer le Prompt",
       editPrompt: "Modifier le Prompt"
-    },
-    toggles: {
-      videoCreation: "Création de Vidéo",
-      imageCreating: "Création d'Images",
-      coding: "Codage",
-      copilot: "Copilote",
-      tokenSaver: "Économiseur de Tokens",
-      strictResponse: "Réponse Stricte",
-      creative: "Créatif",
-      complexReasoning: "Raisonnement Complexe"
     }
   },
   de: {
@@ -275,7 +234,7 @@ export const dashboardTranslations = {
       enterPrompt: "Geben Sie Ihren Prompt ein...",
       analyze: "Analysieren",
       clear: "Löschen",
-      promptPlaceholder: "Beginnen Sie hier mit der Eingabe Ihres Prompts. Zum Beispiel: 'Erstellen Sie eine E-Mail-Vorlage für Kunden-Onboarding' oder 'Schreiben Sie einen Prompt zur Generierung von Code-Dokumentation'",
+      promptPlaceholder: "Beginnen Sie hier mit der Eingabe Ihres Prompts...",
       noPrompts: "Keine Prompts gefunden",
       loading: "Prompts werden geladen..."
     },
@@ -283,16 +242,6 @@ export const dashboardTranslations = {
       copyPrompt: "Prompt kopieren",
       savePrompt: "Prompt speichern",
       editPrompt: "Prompt bearbeiten"
-    },
-    toggles: {
-      videoCreation: "Videoerstellung",
-      imageCreating: "Bilderstellung",
-      coding: "Programmierung",
-      copilot: "Copilot",
-      tokenSaver: "Token-Sparer",
-      strictResponse: "Strikte Antwort",
-      creative: "Kreativ",
-      complexReasoning: "Komplexes Denken"
     }
   }
 };
