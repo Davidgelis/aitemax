@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
@@ -14,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
+import { ToggleSection } from "./ToggleSection";
 
 interface StepOneContentProps {
   promptText: string;
@@ -128,7 +128,6 @@ export const StepOneContent = ({
     setDialogOpen(true);
   };
 
-  // Handle dialog state for the image uploader
   const handleDialogOpenChange = (open: boolean) => {
     setDialogOpen(open);
     
@@ -143,6 +142,18 @@ export const StepOneContent = ({
       }, 300);
     }
   };
+
+  // Map primary toggles to add translations
+  const translatedPrimaryToggles = primaryToggles.map(toggle => ({
+    ...toggle,
+    label: t.toggles.primary[toggle.id as keyof typeof t.toggles.primary] || toggle.label
+  }));
+
+  // Map secondary toggles to add translations
+  const translatedSecondaryToggles = secondaryToggles.map(toggle => ({
+    ...toggle,
+    label: t.toggles.secondary[toggle.id as keyof typeof t.toggles.secondary] || toggle.label
+  }));
 
   return (
     <div className="border rounded-xl p-6 bg-card">
@@ -194,7 +205,7 @@ export const StepOneContent = ({
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {primaryToggles.map(toggle => (
+        {translatedPrimaryToggles.map(toggle => (
           <div 
             key={toggle.id}
             className="border rounded-lg p-3 flex justify-between items-center"
@@ -230,7 +241,7 @@ export const StepOneContent = ({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {secondaryToggles.map(toggle => (
+        {translatedSecondaryToggles.map(toggle => (
           <div 
             key={toggle.id}
             className="border rounded-lg p-3 flex justify-between items-center"
@@ -278,6 +289,7 @@ export const StepOneContent = ({
           dialogOpen={dialogOpen}
           setDialogOpen={setDialogOpen}
           maxLength={maxCharacterLimit}
+          placeholder={t.steps.promptTextPlaceholder}
         />
       </div>
 

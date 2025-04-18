@@ -1,3 +1,4 @@
+
 export const dashboardTranslations = {
   en: {
     backToDashboard: "Back to Dashboard",
@@ -32,7 +33,8 @@ export const dashboardTranslations = {
       questions: "Questions",
       imageSmartScan: "Image Smart Scan (GPT-4.1)",
       uploadedImages: "Uploaded Images",
-      smartContextAdded: "Smart Context Added"
+      smartContextAdded: "Smart Context Added",
+      promptTextPlaceholder: "Start by typing your prompt. For example: 'Create an email template for customer onboarding' or 'Write a prompt for generating code documentation'"
     },
     prompts: {
       enterPrompt: "Enter your prompt...",
@@ -46,6 +48,20 @@ export const dashboardTranslations = {
       copyPrompt: "Copy Prompt",
       savePrompt: "Save Prompt",
       editPrompt: "Edit Prompt"
+    },
+    toggles: {
+      primary: {
+        videoCreation: "Video Creation",
+        imageCreating: "Image Creating",
+        coding: "Coding",
+        copilot: "Copilot"
+      },
+      secondary: {
+        tokenSaver: "Token Saver",
+        strictResponse: "Strict Response",
+        creative: "Creative",
+        complexReasoning: "Complex Reasoning"
+      }
     }
   },
   zh: {
@@ -81,7 +97,8 @@ export const dashboardTranslations = {
       questions: "问题",
       imageSmartScan: "图像智能扫描 (GPT-4.1)",
       uploadedImages: "已上传图片",
-      smartContextAdded: "已添加智能上下文"
+      smartContextAdded: "已添加智能上下文",
+      promptTextPlaceholder: "开始输入您的提示。例如：'创建客户入职电子邮件模板'或'编写生成代码文档的提示'"
     },
     prompts: {
       enterPrompt: "输入您的提示...",
@@ -95,6 +112,20 @@ export const dashboardTranslations = {
       copyPrompt: "复制提示",
       savePrompt: "保存提示",
       editPrompt: "编辑提示"
+    },
+    toggles: {
+      primary: {
+        videoCreation: "视频创作",
+        imageCreating: "图像创建",
+        coding: "编程",
+        copilot: "副驾驶"
+      },
+      secondary: {
+        tokenSaver: "令牌节省",
+        strictResponse: "严格回应",
+        creative: "创意",
+        complexReasoning: "复杂推理"
+      }
     }
   },
   es: {
@@ -130,7 +161,8 @@ export const dashboardTranslations = {
       questions: "Preguntas",
       imageSmartScan: "Escaneo Inteligente de Imágenes (GPT-4.1)",
       uploadedImages: "Imágenes Cargadas",
-      smartContextAdded: "Contexto Inteligente Añadido"
+      smartContextAdded: "Contexto Inteligente Añadido",
+      promptTextPlaceholder: "Comience escribiendo su prompt. Por ejemplo: 'Crear una plantilla de correo electrónico para incorporación de clientes' o 'Escribir un prompt para generar documentación de código'"
     },
     prompts: {
       enterPrompt: "Ingrese su prompt...",
@@ -144,6 +176,20 @@ export const dashboardTranslations = {
       copyPrompt: "Copiar Prompt",
       savePrompt: "Guardar Prompt",
       editPrompt: "Editar Prompt"
+    },
+    toggles: {
+      primary: {
+        videoCreation: "Creación de Video",
+        imageCreating: "Creación de Imágenes",
+        coding: "Programación",
+        copilot: "Copiloto"
+      },
+      secondary: {
+        tokenSaver: "Ahorro de Tokens",
+        strictResponse: "Respuesta Estricta",
+        creative: "Creativo",
+        complexReasoning: "Razonamiento Complejo"
+      }
     }
   },
   fr: {
@@ -179,7 +225,8 @@ export const dashboardTranslations = {
       questions: "Questions",
       imageSmartScan: "Analyse Intelligente d'Images (GPT-4.1)",
       uploadedImages: "Images Téléchargées",
-      smartContextAdded: "Contexte Intelligent Ajouté"
+      smartContextAdded: "Contexte Intelligent Ajouté",
+      promptTextPlaceholder: "Commencez à taper votre prompt. Par exemple: 'Créer un modèle d'e-mail pour l'intégration des clients' ou 'Écrire un prompt pour générer de la documentation de code'"
     },
     prompts: {
       enterPrompt: "Entrez votre prompt...",
@@ -193,6 +240,20 @@ export const dashboardTranslations = {
       copyPrompt: "Copier le Prompt",
       savePrompt: "Enregistrer le Prompt",
       editPrompt: "Modifier le Prompt"
+    },
+    toggles: {
+      primary: {
+        videoCreation: "Création Vidéo",
+        imageCreating: "Création d'Images",
+        coding: "Programmation",
+        copilot: "Copilote"
+      },
+      secondary: {
+        tokenSaver: "Économiseur de Jetons",
+        strictResponse: "Réponse Stricte",
+        creative: "Créatif",
+        complexReasoning: "Raisonnement Complexe"
+      }
     }
   },
   de: {
@@ -228,7 +289,8 @@ export const dashboardTranslations = {
       questions: "Fragen",
       imageSmartScan: "Intelligenter Bildscan (GPT-4.1)",
       uploadedImages: "Hochgeladene Bilder",
-      smartContextAdded: "Intelligenter Kontext hinzugefügt"
+      smartContextAdded: "Intelligenter Kontext hinzugefügt",
+      promptTextPlaceholder: "Beginnen Sie mit der Eingabe Ihres Prompts. Zum Beispiel: 'Erstellen Sie eine E-Mail-Vorlage für Kunden-Onboarding' oder 'Schreiben Sie einen Prompt zur Generierung von Code-Dokumentation'"
     },
     prompts: {
       enterPrompt: "Geben Sie Ihren Prompt ein...",
@@ -242,6 +304,20 @@ export const dashboardTranslations = {
       copyPrompt: "Prompt kopieren",
       savePrompt: "Prompt speichern",
       editPrompt: "Prompt bearbeiten"
+    },
+    toggles: {
+      primary: {
+        videoCreation: "Videoerstellung",
+        imageCreating: "Bilderstellung",
+        coding: "Programmierung",
+        copilot: "Copilot"
+      },
+      secondary: {
+        tokenSaver: "Token-Sparer",
+        strictResponse: "Strikte Antwort",
+        creative: "Kreativ",
+        complexReasoning: "Komplexes Denken"
+      }
     }
   }
 };

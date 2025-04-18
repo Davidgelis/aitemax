@@ -4,6 +4,8 @@ import { Toggle } from "./types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpCircle, Info } from "lucide-react";
 import { useState } from "react";
+import { useLanguage } from '@/context/LanguageContext';
+import { dashboardTranslations } from '@/translations/dashboard';
 
 interface ToggleSectionProps {
   toggles: Toggle[];
@@ -22,6 +24,9 @@ export const ToggleSection = ({
   tooltipText,
   className = ""
 }: ToggleSectionProps) => {
+  const { currentLanguage } = useLanguage();
+  const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
+  
   // Function to determine the border class based on selected state and variant
   const getBorderClass = (isSelected: boolean, itemVariant: string) => {
     if (!isSelected) return "border";
@@ -40,12 +45,28 @@ export const ToggleSection = ({
     return "#64bf95"; // Default to primary color for aurora
   };
 
+  // Apply translations to toggle labels if they're in the primary or secondary category
+  const translatedToggles = toggles.map(toggle => {
+    let translatedLabel = toggle.label;
+    
+    if (variant === "primary" && t.toggles?.primary?.[toggle.id as keyof typeof t.toggles.primary]) {
+      translatedLabel = t.toggles.primary[toggle.id as keyof typeof t.toggles.primary];
+    } else if (variant === "secondary" && t.toggles?.secondary?.[toggle.id as keyof typeof t.toggles.secondary]) {
+      translatedLabel = t.toggles.secondary[toggle.id as keyof typeof t.toggles.secondary];
+    }
+    
+    return {
+      ...toggle,
+      label: translatedLabel
+    };
+  });
+
   const containerClass = "flex flex-wrap gap-2 " + className;
   const isAurora = variant === "aurora";
 
   return (
     <div className={containerClass}>
-      {toggles.map((item) => {
+      {translatedToggles.map((item) => {
         const isSelected = selectedToggle === item.id;
         
         return (
