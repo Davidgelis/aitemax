@@ -1,3 +1,4 @@
+
 export const dashboardTranslations = {
   en: {
     backToDashboard: "Back to Dashboard",
@@ -770,4 +771,8 @@ export const dashboardTranslations = {
       urlRequired: "Bitte geben Sie eine Website-URL an.",
       contextRequired: "Bitte geben Sie einen spezifischen Kontext zur Verbesserung Ihres Prompts an.",
       unsavedChanges: "Sie haben ungespeicherte Änderungen, die verloren gehen.",
-      variableUpdate: "Beim Aktualisieren der Variable ist
+      variableUpdate: "Beim Aktualisieren der Variable ist ein Fehler aufgetreten",
+      promptSave: "Der bearbeitete Prompt konnte nicht gespeichert werden. Bitte versuchen Sie es erneut."
+    }
+  }
+};
