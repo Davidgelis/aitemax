@@ -58,7 +58,7 @@ export const dashboardTranslations = {
       },
       secondary: {
         tokenSaver: "Token Saver",
-        strictResponse: "Strict Response",
+        strictResponse: "Strict Response", 
         creative: "Creative",
         complexReasoning: "Complex Reasoning"
       }
