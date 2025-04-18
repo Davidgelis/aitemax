@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { TemplateEditor } from "./TemplateEditor";
 import { useToast } from "@/hooks/use-toast";
 import { deleteTemplate } from "./XTemplatesList";
+import { PROTECTED_TEMPLATE_IDS } from "@/components/dashboard/constants";
 
 export interface PillarType {
   id: string;
@@ -37,10 +37,9 @@ interface XTemplateCardProps {
 export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTemplateCardProps) => {
   const { toast } = useToast();
   const [showActions, setShowActions] = useState(false);
-  const isSystemDefault = template.id === "default";
-
-  // Display "Aitema X Framework" if the template is the default Four-Pillar Framework
-  const displayName = template.id === "default" ? "Aitema X Framework" : template.name;
+  
+  // Update the check to use PROTECTED_TEMPLATE_IDS
+  const isProtected = PROTECTED_TEMPLATE_IDS.includes(template.id);
 
   const handleDelete = () => {
     // Delete the template using the global event
@@ -75,7 +74,7 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
       <CardContent className="p-6">
         <div className="flex flex-col h-full">
           <div className="mb-3">
-            <h3 className="font-semibold text-lg mb-1 line-clamp-1">{displayName}</h3>
+            <h3 className="font-semibold text-lg mb-1 line-clamp-1">{template.name}</h3>
             <p className="text-sm text-muted-foreground">{template.createdAt}</p>
           </div>
           
@@ -112,7 +111,7 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
               )}
             </div>
             
-            {!isSystemDefault && (
+            {!isProtected && (
               <div className="flex gap-1">
                 <Dialog>
                   <DialogTrigger asChild>
