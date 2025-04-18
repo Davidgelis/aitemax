@@ -8,12 +8,14 @@ interface ToggleSectionProps {
   refreshJson?: () => void;
   isRefreshing?: boolean;
   showRefreshButton?: boolean;
+  template?: any; // Add template prop
 }
 
 export const ToggleSection = ({
   refreshJson,
   isRefreshing = false,
-  showRefreshButton = false
+  showRefreshButton = false,
+  template
 }: ToggleSectionProps) => {
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const { currentLanguage } = useLanguage();
@@ -53,6 +55,11 @@ export const ToggleSection = ({
           <RefreshCw className={`h-3.5 w-3.5 text-accent ${isRefreshing ? 'animate-spin' : ''}`} />
           <span className="sr-only">{t.steps.toggleSections.tryAgain}</span>
         </Button>
+      )}
+      {template && (
+        <div className="text-sm text-muted-foreground">
+          Using template: {template.name}
+        </div>
       )}
     </div>
   );
