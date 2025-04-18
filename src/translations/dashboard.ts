@@ -1,4 +1,3 @@
-
 export const dashboardTranslations = {
   en: {
     backToDashboard: "Back to Dashboard",
@@ -12,7 +11,11 @@ export const dashboardTranslations = {
       allChangesSaved: "All changes saved",
       saveDraft: "Save draft",
       session: "Session",
-      refreshSession: "Refresh session"
+      refreshSession: "Refresh session",
+      signIn: "Sign in",
+      signOut: "Sign out",
+      profile: "Profile",
+      analytics: "Analytics"
     },
     steps: {
       step1: "Step 1",
@@ -42,7 +45,21 @@ export const dashboardTranslations = {
       clear: "Clear",
       promptPlaceholder: "Start typing your prompt here...",
       noPrompts: "No prompts found",
-      loading: "Loading prompts..."
+      loading: "Loading prompts...",
+      error: "Error loading prompts",
+      retry: "Retry",
+      refreshPage: "Refresh Page",
+      sessionExpired: "Session may have expired. Try refreshing the page.",
+      duplicate: "Duplicate",
+      delete: "Delete",
+      edit: "Edit",
+      untitledDraft: "Untitled Draft",
+      recentlyEdited: "Recently edited",
+      deletePromptTitle: "Delete prompt?",
+      deletePromptDescription: "Are you sure you want to delete this prompt? This action cannot be undone.",
+      deleteDraftTitle: "Delete draft?",
+      deleteDraftDescription: "Are you sure you want to delete this draft? This action cannot be undone.",
+      cancel: "Cancel"
     },
     finalPrompt: {
       copyPrompt: "Copy Prompt",
@@ -58,10 +75,43 @@ export const dashboardTranslations = {
       },
       secondary: {
         tokenSaver: "Token Saver",
-        strictResponse: "Strict Response", 
+        strictResponse: "Strict Response",
         creative: "Creative",
         complexReasoning: "Complex Reasoning"
       }
+    },
+    webScan: {
+      title: "Web Smart Scan",
+      description: "Use website content to enhance your original prompt",
+      urlLabel: "Website URL",
+      urlPlaceholder: "https://example.com",
+      instructionsLabel: "What specific information do you want from this website?",
+      instructionsPlaceholder: "E.g., 'Extract best practices for landing pages' or 'Find information about pricing models'",
+      infoTip: "Be specific about what information you want extracted to enhance your prompt.",
+      updateContext: "Update Context",
+      useAsContext: "Use as Context"
+    },
+    smartContext: {
+      title: "Smart Context",
+      description: "Use specific context to enhance your original prompt",
+      contextLabel: "What specific context do you want to add?",
+      contextPlaceholder: "E.g., 'This is for a technical audience' or 'The tone should be professional'",
+      usageInstructionsLabel: "How to use it as context and what part of data should be extracted",
+      usageInstructionsPlaceholder: "Explain how this context should be used and specify if all the data should be considered or only certain parts should be extracted.",
+      infoTip: "Be specific about what context you want to add to enhance your prompt.",
+      updateContext: "Update Context",
+      useAsContext: "Use as Context"
+    },
+    auth: {
+      signInRequired: "Please sign in to save and view your prompts",
+      signInButton: "Sign in"
+    },
+    errors: {
+      urlRequired: "Please provide a website URL.",
+      contextRequired: "Please provide specific context to enhance your prompt.",
+      unsavedChanges: "You have unsaved changes that will be lost.",
+      variableUpdate: "An error occurred while trying to update the variable",
+      promptSave: "Could not save edited prompt. Please try again."
     }
   },
   zh: {
@@ -76,7 +126,11 @@ export const dashboardTranslations = {
       allChangesSaved: "所有更改已保存",
       saveDraft: "保存草稿",
       session: "会话",
-      refreshSession: "刷新会话"
+      refreshSession: "刷新会话",
+      signIn: "登录",
+      signOut: "登出",
+      profile: "个人资料",
+      analytics: "分析"
     },
     steps: {
       step1: "步骤 1",
@@ -106,7 +160,21 @@ export const dashboardTranslations = {
       clear: "清除",
       promptPlaceholder: "在此开始输入您的提示...",
       noPrompts: "未找到提示",
-      loading: "加载提示中..."
+      loading: "加载提示中...",
+      error: "加载提示错误",
+      retry: "重试",
+      refreshPage: "刷新页面",
+      sessionExpired: "会话可能已过期。请尝试刷新页面。",
+      duplicate: "复制",
+      delete: "删除",
+      edit: "编辑",
+      untitledDraft: "无标题草稿",
+      recentlyEdited: "最近编辑",
+      deletePromptTitle: "删除提示？",
+      deletePromptDescription: "您确定要删除此提示吗？此操作无法撤销。",
+      deleteDraftTitle: "删除草稿？",
+      deleteDraftDescription: "您确定要删除此草稿吗？此操作无法撤销。",
+      cancel: "取消"
     },
     finalPrompt: {
       copyPrompt: "复制提示",
@@ -126,6 +194,39 @@ export const dashboardTranslations = {
         creative: "创意",
         complexReasoning: "复杂推理"
       }
+    },
+    webScan: {
+      title: "网页智能扫描",
+      description: "使用网站内容增强您的提示",
+      urlLabel: "网站网址",
+      urlPlaceholder: "https://example.com",
+      instructionsLabel: "您想从这个网站获取什么具体信息？",
+      instructionsPlaceholder: "例如：'提取着陆页最佳实践'或'查找定价模型信息'",
+      infoTip: "请具体说明您想要提取哪些信息来增强您的提示。",
+      updateContext: "更新上下文",
+      useAsContext: "用作上下文"
+    },
+    smartContext: {
+      title: "智能上下文",
+      description: "使用特定上下文增强您的提示",
+      contextLabel: "您想添加什么具体上下文？",
+      contextPlaceholder: "例如：'这是面向技术受众的'或'语气应该专业'",
+      usageInstructionsLabel: "如何使用上下文以及应提取哪些数据",
+      usageInstructionsPlaceholder: "解释如何使用此上下文，并指定是否应考虑所有数据或仅提取特定部分。",
+      infoTip: "请具体说明您想添加什么上下文来增强您的提示。",
+      updateContext: "更新上下文",
+      useAsContext: "用作上下文"
+    },
+    auth: {
+      signInRequired: "请登录以保存和查看您的提示",
+      signInButton: "登录"
+    },
+    errors: {
+      urlRequired: "请提供网站URL。",
+      contextRequired: "请提供具体上下文以增强您的提示。",
+      unsavedChanges: "您有未保存的更改将丢失。",
+      variableUpdate: "更新变量时发生错误",
+      promptSave: "无法保存编辑的提示。请重试。"
     }
   },
   es: {
@@ -140,7 +241,11 @@ export const dashboardTranslations = {
       allChangesSaved: "Todos los cambios guardados",
       saveDraft: "Guardar borrador",
       session: "Sesión",
-      refreshSession: "Actualizar sesión"
+      refreshSession: "Actualizar sesión",
+      signIn: "Iniciar sesión",
+      signOut: "Cerrar sesión",
+      profile: "Perfil",
+      analytics: "Analítica"
     },
     steps: {
       step1: "Paso 1",
@@ -170,7 +275,21 @@ export const dashboardTranslations = {
       clear: "Limpiar",
       promptPlaceholder: "Comience a escribir su prompt aquí...",
       noPrompts: "No se encontraron prompts",
-      loading: "Cargando prompts..."
+      loading: "Cargando prompts...",
+      error: "Error al cargar prompts",
+      retry: "Reintentar",
+      refreshPage: "Actualizar Página",
+      sessionExpired: "La sesión puede haber expirado. Intente actualizar la página.",
+      duplicate: "Duplicar",
+      delete: "Borrar",
+      edit: "Editar",
+      untitledDraft: "Borrador sin título",
+      recentlyEdited: "Editado recientemente",
+      deletePromptTitle: "¿Borrar prompt?",
+      deletePromptDescription: "¿Está seguro de que desea eliminar este prompt? Esta acción no se puede deshacer.",
+      deleteDraftTitle: "¿Eliminar borrador?",
+      deleteDraftDescription: "¿Está seguro de que desea eliminar este borrador? Esta acción no se puede deshacer.",
+      cancel: "Cancelar"
     },
     finalPrompt: {
       copyPrompt: "Copiar Prompt",
@@ -190,6 +309,39 @@ export const dashboardTranslations = {
         creative: "Creativo",
         complexReasoning: "Razonamiento Complejo"
       }
+    },
+    webScan: {
+      title: "Escaneo Web Inteligente",
+      description: "Use el contenido del sitio web para mejorar su prompt",
+      urlLabel: "URL del sitio web",
+      urlPlaceholder: "https://ejemplo.com",
+      instructionsLabel: "¿Qué información específica desea de este sitio web?",
+      instructionsPlaceholder: "Por ejemplo: 'Extraer mejores prácticas para páginas de destino' o 'Encontrar información sobre modelos de precios'",
+      infoTip: "Sea específico sobre qué información desea extraer para mejorar su prompt.",
+      updateContext: "Actualizar Contexto",
+      useAsContext: "Usar como Contexto"
+    },
+    smartContext: {
+      title: "Contexto Inteligente",
+      description: "Use contexto específico para mejorar su prompt",
+      contextLabel: "¿Qué contexto específico desea agregar?",
+      contextPlaceholder: "Por ejemplo: 'Esto es para una audiencia técnica' o 'El tono debe ser profesional'",
+      usageInstructionsLabel: "Cómo usar como contexto y qué parte de los datos debe extraerse",
+      usageInstructionsPlaceholder: "Explique cómo se debe usar este contexto y especifique si se deben considerar todos los datos o solo ciertas partes.",
+      infoTip: "Sea específico sobre qué contexto desea agregar para mejorar su prompt.",
+      updateContext: "Actualizar Contexto",
+      useAsContext: "Usar como Contexto"
+    },
+    auth: {
+      signInRequired: "Inicie sesión para guardar y ver sus prompts",
+      signInButton: "Iniciar sesión"
+    },
+    errors: {
+      urlRequired: "Por favor proporcione una URL del sitio web.",
+      contextRequired: "Por favor proporcione un contexto específico para mejorar su prompt.",
+      unsavedChanges: "Tiene cambios sin guardar que se perderán.",
+      variableUpdate: "Ocurrió un error al intentar actualizar la variable",
+      promptSave: "No se pudo guardar el prompt editado. Por favor, inténtelo de nuevo."
     }
   },
   fr: {
@@ -204,7 +356,11 @@ export const dashboardTranslations = {
       allChangesSaved: "Tous les changements sont sauvegardés",
       saveDraft: "Sauvegarder le brouillon",
       session: "Session",
-      refreshSession: "Actualiser la session"
+      refreshSession: "Actualiser la session",
+      signIn: "Se connecter",
+      signOut: "Se déconnecter",
+      profile: "Profil",
+      analytics: "Analytique"
     },
     steps: {
       step1: "Étape 1",
@@ -234,7 +390,21 @@ export const dashboardTranslations = {
       clear: "Effacer",
       promptPlaceholder: "Commencez à écrire votre prompt ici...",
       noPrompts: "Aucun prompt trouvé",
-      loading: "Chargement des prompts..."
+      loading: "Chargement des prompts...",
+      error: "Erreur lors du chargement des prompts",
+      retry: "Réessayer",
+      refreshPage: "Actualiser la page",
+      sessionExpired: "La session a peut-être expiré. Essayez d'actualiser la page.",
+      duplicate: "Dupliquer",
+      delete: "Supprimer",
+      edit: "Modifier",
+      untitledDraft: "Brouillon sans titre",
+      recentlyEdited: "Récemment modifié",
+      deletePromptTitle: "Supprimer le prompt ?",
+      deletePromptDescription: "Êtes-vous sûr de vouloir supprimer ce prompt ? Cette action ne peut pas être annulée.",
+      deleteDraftTitle: "Supprimer le brouillon ?",
+      deleteDraftDescription: "Êtes-vous sûr de vouloir supprimer ce brouillon ? Cette action ne peut pas être annulée.",
+      cancel: "Annuler"
     },
     finalPrompt: {
       copyPrompt: "Copier le Prompt",
@@ -254,6 +424,39 @@ export const dashboardTranslations = {
         creative: "Créatif",
         complexReasoning: "Raisonnement Complexe"
       }
+    },
+    webScan: {
+      title: "Analyse Web Intelligente",
+      description: "Utilisez le contenu du site web pour améliorer votre prompt",
+      urlLabel: "URL du site web",
+      urlPlaceholder: "https://exemple.com",
+      instructionsLabel: "Quelles informations spécifiques souhaitez-vous de ce site web ?",
+      instructionsPlaceholder: "Par exemple : 'Extraire les meilleures pratiques pour les pages d'atterrissage' ou 'Trouver des informations sur les modèles de tarification'",
+      infoTip: "Soyez précis sur les informations que vous souhaitez extraire pour améliorer votre prompt.",
+      updateContext: "Mettre à jour le Contexte",
+      useAsContext: "Utiliser comme Contexte"
+    },
+    smartContext: {
+      title: "Contexte Intelligent",
+      description: "Utilisez un contexte spécifique pour améliorer votre prompt",
+      contextLabel: "Quel contexte spécifique souhaitez-vous ajouter ?",
+      contextPlaceholder: "Par exemple : 'Ceci est pour un public technique' ou 'Le ton doit être professionnel'",
+      usageInstructionsLabel: "Comment utiliser comme contexte et quelle partie des données doit être extraite",
+      usageInstructionsPlaceholder: "Expliquez comment ce contexte doit être utilisé et précisez si toutes les données doivent être considérées ou seulement certaines parties.",
+      infoTip: "Soyez précis sur le contexte que vous souhaitez ajouter pour améliorer votre prompt.",
+      updateContext: "Mettre à jour le Contexte",
+      useAsContext: "Utiliser comme Contexte"
+    },
+    auth: {
+      signInRequired: "Veuillez vous connecter pour sauvegarder et voir vos prompts",
+      signInButton: "Se connecter"
+    },
+    errors: {
+      urlRequired: "Veuillez fournir une URL de site web.",
+      contextRequired: "Veuillez fournir un contexte spécifique pour améliorer votre prompt.",
+      unsavedChanges: "Vous avez des modifications non sauvegardées qui seront perdues.",
+      variableUpdate: "Une erreur s'est produite lors de la mise à jour de la variable",
+      promptSave: "Impossible de sauvegarder le prompt modifié. Veuillez réessayer."
     }
   },
   de: {
@@ -268,7 +471,11 @@ export const dashboardTranslations = {
       allChangesSaved: "Alle Änderungen gespeichert",
       saveDraft: "Entwurf speichern",
       session: "Sitzung",
-      refreshSession: "Sitzung aktualisieren"
+      refreshSession: "Sitzung aktualisieren",
+      signIn: "Anmelden",
+      signOut: "Abmelden",
+      profile: "Profil",
+      analytics: "Analytik"
     },
     steps: {
       step1: "Schritt 1",
@@ -298,7 +505,21 @@ export const dashboardTranslations = {
       clear: "Löschen",
       promptPlaceholder: "Beginnen Sie hier mit der Eingabe Ihres Prompts...",
       noPrompts: "Keine Prompts gefunden",
-      loading: "Prompts werden geladen..."
+      loading: "Prompts werden geladen...",
+      error: "Fehler beim Laden der Prompts",
+      retry: "Wiederholen",
+      refreshPage: "Seite aktualisieren",
+      sessionExpired: "Die Sitzung ist möglicherweise abgelaufen. Versuchen Sie, die Seite zu aktualisieren.",
+      duplicate: "Duplizieren",
+      delete: "Löschen",
+      edit: "Bearbeiten",
+      untitledDraft: "Unbenannter Entwurf",
+      recentlyEdited: "Kürzlich bearbeitet",
+      deletePromptTitle: "Prompt löschen?",
+      deletePromptDescription: "Möchten Sie diesen Prompt wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+      deleteDraftTitle: "Entwurf löschen?",
+      deleteDraftDescription: "Möchten Sie diesen Entwurf wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+      cancel: "Abbrechen"
     },
     finalPrompt: {
       copyPrompt: "Prompt kopieren",
@@ -318,6 +539,39 @@ export const dashboardTranslations = {
         creative: "Kreativ",
         complexReasoning: "Komplexes Denken"
       }
+    },
+    webScan: {
+      title: "Web Smart Scan",
+      description: "Nutzen Sie Website-Inhalte zur Verbesserung Ihres Prompts",
+      urlLabel: "Website-URL",
+      urlPlaceholder: "https://beispiel.de",
+      instructionsLabel: "Welche spezifischen Informationen möchten Sie von dieser Website?",
+      instructionsPlaceholder: "Z.B.: 'Beste Praktiken für Landingpages extrahieren' oder 'Informationen über Preismodelle finden'",
+      infoTip: "Seien Sie präzise darüber, welche Informationen Sie zur Verbesserung Ihres Prompts extrahieren möchten.",
+      updateContext: "Kontext Aktualisieren",
+      useAsContext: "Als Kontext Verwenden"
+    },
+    smartContext: {
+      title: "Intelligenter Kontext",
+      description: "Verwenden Sie spezifischen Kontext zur Verbesserung Ihres Prompts",
+      contextLabel: "Welchen spezifischen Kontext möchten Sie hinzufügen?",
+      contextPlaceholder: "Z.B.: 'Dies ist für ein technisches Publikum' oder 'Der Ton sollte professionell sein'",
+      usageInstructionsLabel: "Wie als Kontext verwenden und welcher Teil der Daten soll extrahiert werden",
+      usageInstructionsPlaceholder: "Erklären Sie, wie dieser Kontext verwendet werden soll und geben Sie an, ob alle Daten berücksichtigt werden sollen oder nur bestimmte Teile.",
+      infoTip: "Seien Sie präzise darüber, welchen Kontext Sie zur Verbesserung Ihres Prompts hinzufügen möchten.",
+      updateContext: "Kontext Aktualisieren",
+      useAsContext: "Als Kontext Verwenden"
+    },
+    auth: {
+      signInRequired: "Bitte melden Sie sich an, um Ihre Prompts zu speichern und anzuzeigen",
+      signInButton: "Anmelden"
+    },
+    errors: {
+      urlRequired: "Bitte geben Sie eine Website-URL an.",
+      contextRequired: "Bitte geben Sie einen spezifischen Kontext zur Verbesserung Ihres Prompts an.",
+      unsavedChanges: "Sie haben ungespeicherte Änderungen, die verloren gehen.",
+      variableUpdate: "Beim Aktualisieren der Variable ist ein Fehler aufgetreten",
+      promptSave: "Der bearbeitete Prompt konnte nicht gespeichert werden. Bitte versuchen Sie es erneut."
     }
   }
 };
