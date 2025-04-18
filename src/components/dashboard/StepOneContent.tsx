@@ -143,18 +143,6 @@ export const StepOneContent = ({
     }
   };
 
-  // Map primary toggles to add translations
-  const translatedPrimaryToggles = primaryToggles.map(toggle => ({
-    ...toggle,
-    label: t.toggles.primary[toggle.id as keyof typeof t.toggles.primary] || toggle.label
-  }));
-
-  // Map secondary toggles to add translations
-  const translatedSecondaryToggles = secondaryToggles.map(toggle => ({
-    ...toggle,
-    label: t.toggles.secondary[toggle.id as keyof typeof t.toggles.secondary] || toggle.label
-  }));
-
   return (
     <div className="border rounded-xl p-6 bg-card">
       <div className="mb-4 flex justify-between items-center">
@@ -205,14 +193,14 @@ export const StepOneContent = ({
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {translatedPrimaryToggles.map(toggle => (
+        {primaryToggles.map(toggle => (
           <div 
             key={toggle.id}
             className="border rounded-lg p-3 flex justify-between items-center"
             data-variant="primary"
           >
             <div className="text-[#545454] text-sm">
-              {toggle.label}
+              {t.toggles.primary[toggle.id as keyof typeof t.toggles.primary] || toggle.label}
             </div>
             <div className="flex items-center space-x-2">
               <Switch 
@@ -225,7 +213,7 @@ export const StepOneContent = ({
                   <TooltipTrigger asChild>
                     <button 
                       className="tooltip-trigger text-[#545454] opacity-70 hover:opacity-100"
-                      aria-label={`Learn more about ${toggle.label}`}
+                      aria-label={`${t.toggles.learnMore} ${t.toggles.primary[toggle.id as keyof typeof t.toggles.primary] || toggle.label}`}
                     >
                       <HelpCircle className="h-4 w-4 tooltip-icon" />
                     </button>
@@ -241,14 +229,14 @@ export const StepOneContent = ({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {translatedSecondaryToggles.map(toggle => (
+        {secondaryToggles.map(toggle => (
           <div 
             key={toggle.id}
             className="border rounded-lg p-3 flex justify-between items-center"
             data-variant="secondary"
           >
             <div className="text-[#545454] text-sm">
-              {toggle.label}
+              {t.toggles.secondary[toggle.id as keyof typeof t.toggles.secondary] || toggle.label}
             </div>
             <div className="flex items-center space-x-2">
               <Switch 
@@ -261,7 +249,7 @@ export const StepOneContent = ({
                   <TooltipTrigger asChild>
                     <button 
                       className="tooltip-trigger text-[#545454] opacity-70 hover:opacity-100"
-                      aria-label={`Learn more about ${toggle.label}`}
+                      aria-label={`${t.toggles.learnMore} ${t.toggles.secondary[toggle.id as keyof typeof t.toggles.secondary] || toggle.label}`}
                     >
                       <HelpCircle className="h-4 w-4 tooltip-icon" />
                     </button>

@@ -106,6 +106,7 @@ export const dashboardTranslations = {
       editPrompt: "Edit Prompt"
     },
     toggles: {
+      learnMore: "Learn more about",
       primary: {
         videoCreation: "Video Creation",
         imageCreating: "Image Creating",
@@ -260,6 +261,7 @@ export const dashboardTranslations = {
       editPrompt: "编辑提示"
     },
     toggles: {
+      learnMore: "了解更多关于",
       primary: {
         videoCreation: "视频创作",
         imageCreating: "图像创建",
@@ -414,6 +416,7 @@ export const dashboardTranslations = {
       editPrompt: "Editar Prompt"
     },
     toggles: {
+      learnMore: "Más información sobre",
       primary: {
         videoCreation: "Creación de Video",
         imageCreating: "Creación de Imágenes",
@@ -568,6 +571,7 @@ export const dashboardTranslations = {
       editPrompt: "Modifier le Prompt"
     },
     toggles: {
+      learnMore: "En savoir plus sur",
       primary: {
         videoCreation: "Création Vidéo",
         imageCreating: "Création d'Images",
@@ -722,6 +726,7 @@ export const dashboardTranslations = {
       editPrompt: "Prompt bearbeiten"
     },
     toggles: {
+      learnMore: "Mehr Informationen zu",
       primary: {
         videoCreation: "Videoerstellung",
         imageCreating: "Bilderstellung",
@@ -765,8 +770,4 @@ export const dashboardTranslations = {
       urlRequired: "Bitte geben Sie eine Website-URL an.",
       contextRequired: "Bitte geben Sie einen spezifischen Kontext zur Verbesserung Ihres Prompts an.",
       unsavedChanges: "Sie haben ungespeicherte Änderungen, die verloren gehen.",
-      variableUpdate: "Beim Aktualisieren der Variable ist ein Fehler aufgetreten",
-      promptSave: "Der bearbeitete Prompt konnte nicht gespeichert werden. Bitte versuchen Sie es erneut."
-    }
-  }
-};
+      variableUpdate: "Beim Aktualisieren der Variable ist
