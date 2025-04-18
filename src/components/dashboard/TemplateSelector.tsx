@@ -5,14 +5,14 @@ import { PillarType } from "@/components/x-templates/XTemplateCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { FileText } from "lucide-react";  // Changed from FileTemplate to FileText
+import { FileText } from "lucide-react";
 
 interface TemplateSelectorProps {
   className?: string;
 }
 
 export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
-  const { currentTemplate, selectTemplate } = useTemplateManagement();
+  const { currentTemplate, selectTemplate, templates } = useTemplateManagement();
   const navigate = useNavigate();
 
   return (
@@ -26,11 +26,15 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
             <SelectValue placeholder="Select a template" />
           </SelectTrigger>
           <SelectContent>
-            {currentTemplate && (
-              <SelectItem value={currentTemplate.id}>
-                {currentTemplate.name}
+            {templates?.map((template) => (
+              <SelectItem 
+                key={template.id} 
+                value={template.id}
+                className="hover:bg-white hover:text-[#33fea6] transition-colors"
+              >
+                {template.name}
               </SelectItem>
-            )}
+            ))}
           </SelectContent>
         </Select>
 
@@ -40,23 +44,21 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
           onClick={() => navigate("/x-panel")}
           className="ml-2"
         >
-          <FileText className="w-4 h-4 mr-2" />  // Changed from FileTemplate to FileText
+          <FileText className="w-4 h-4 mr-2" />
           Manage Templates
         </Button>
       </div>
 
       {currentTemplate && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="flex items-center gap-2 flex-wrap">
           {currentTemplate.pillars.map((pillar: PillarType) => (
-            <div 
+            <Badge 
               key={pillar.id}
-              className="border rounded-lg p-4 bg-card"
+              variant="outline" 
+              className="bg-[#64bf95]/10 text-xs"
             >
-              <h3 className="font-medium text-sm mb-2">{pillar.title}</h3>
-              <Badge variant="outline" className="bg-[#64bf95]/10">
-                {pillar.title}
-              </Badge>
-            </div>
+              {pillar.title}
+            </Badge>
           ))}
         </div>
       )}
