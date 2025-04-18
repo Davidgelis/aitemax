@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -102,6 +103,37 @@ export function useTemplateManagement() {
         // Try to get the template from the window object
         const windowTemplate = window.__selectedTemplate;
         let validWindowTemplate = validateTemplate(windowTemplate);
+        
+        // Fetch all templates from Supabase
+        const { data: templateData, error: templatesError } = await supabase
+          .from('x_templates')
+          .select('*');
+          
+        if (templatesError) {
+          console.error("Error fetching templates:", templatesError);
+        } else if (templateData && templateData.length > 0) {
+          // Convert database templates to TemplateType array
+          const formattedTemplates: TemplateType[] = templateData.map(template => ({
+            id: template.id,
+            name: template.name,
+            role: template.role,
+            pillars: Array.isArray(template.pillars) ? (template.pillars as any[] as PillarType[]) : [],
+            temperature: template.temperature,
+            characterLimit: template.character_limit,
+            isDefault: template.is_default,
+            createdAt: new Date(template.created_at).toLocaleDateString()
+          }));
+          
+          // Add default template if it doesn't exist
+          if (!formattedTemplates.some(t => t.id === DEFAULT_TEMPLATE.id)) {
+            formattedTemplates.unshift(DEFAULT_TEMPLATE);
+          }
+          
+          setTemplates(formattedTemplates);
+        } else {
+          // If no templates found, use just the default template
+          setTemplates([DEFAULT_TEMPLATE]);
+        }
         
         // If window has a valid template and it matches the stored ID, use it
         if (validWindowTemplate && windowTemplate && windowTemplate.id === storedTemplateId) {
@@ -268,6 +300,7 @@ export function useTemplateManagement() {
 
   return {
     currentTemplate,
+    templates,
     isLoading,
     selectTemplate,
     getCurrentTemplate,
