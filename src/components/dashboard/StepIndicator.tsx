@@ -1,76 +1,57 @@
 
+import { useLanguage } from "@/context/LanguageContext";
+import { dashboardTranslations } from "@/translations/dashboard";
+
 interface StepIndicatorProps {
   currentStep: number;
   onStepChange: (step: number) => void;
-  isViewingSavedPrompt?: boolean; // Add this new prop
+  isViewingSavedPrompt?: boolean;
 }
 
-export const StepIndicator = ({ currentStep, onStepChange, isViewingSavedPrompt = false }: StepIndicatorProps) => {
+export const StepIndicator = ({ 
+  currentStep, 
+  onStepChange,
+  isViewingSavedPrompt = false
+}: StepIndicatorProps) => {
+  const { currentLanguage } = useLanguage();
+  const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
+
   return (
-    <div className="flex flex-col items-center gap-4 mt-8 mb-4">
-      {/* Numeric buttons for testing */}
-      <div className="flex justify-center gap-4 mb-2">
-        {[1, 2, 3].map((step) => (
-          <button
-            key={step}
-            onClick={() => !isViewingSavedPrompt || step === 3 ? onStepChange(step) : null}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 
-              ${currentStep === step 
-                ? 'bg-aurora animate-aurora text-white' 
-                : isViewingSavedPrompt && step !== 3
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-card border text-card-foreground hover:bg-primary/20'
-              }`}
-            aria-label={`Jump to step ${step}`}
-            disabled={isViewingSavedPrompt && step !== 3}
-          >
-            {step}
-          </button>
-        ))}
-      </div>
-      
-      {/* Original dots */}
-      <div className="flex justify-center gap-6">
+    <div className="mt-8 flex justify-center">
+      <div className="flex items-center space-x-2 bg-[#f8f9fa] px-4 py-2 rounded-full">
         <button
-          onClick={() => !isViewingSavedPrompt ? onStepChange(1) : null}
-          className={`w-4 h-4 rounded-full transition-all duration-300 ${
-            !isViewingSavedPrompt ? 'hover:scale-125 hover:shadow-[0_0_10px_rgba(51,254,166,0.175)]' : ''
-          } relative ${
-            currentStep === 1 
-              ? 'bg-primary' 
-              : isViewingSavedPrompt 
-                ? 'bg-gray-300 cursor-not-allowed' 
-                : 'bg-border hover:bg-primary/50'
+          onClick={() => onStepChange(1)}
+          className={`rounded-full flex items-center justify-center w-8 h-8 text-sm font-medium ${
+            currentStep === 1
+              ? "bg-[#33fea6] text-black"
+              : "text-[#545454] hover:bg-[#e5e7eb]"
           }`}
-          aria-label="Go to step 1"
-          disabled={isViewingSavedPrompt}
+          aria-disabled={isViewingSavedPrompt}
         >
-          <span className="absolute inset-0 m-auto w-1 h-1 bg-white rounded-full"></span>
+          1
         </button>
+        <div className="h-[2px] w-4 bg-[#e5e7eb]"></div>
         <button
-          onClick={() => !isViewingSavedPrompt ? onStepChange(2) : null}
-          className={`w-4 h-4 rounded-full transition-all duration-300 ${
-            !isViewingSavedPrompt ? 'hover:scale-125 hover:shadow-[0_0_10px_rgba(51,254,166,0.175)]' : ''
-          } relative ${
-            currentStep === 2 
-              ? 'bg-primary' 
-              : isViewingSavedPrompt 
-                ? 'bg-gray-300 cursor-not-allowed' 
-                : 'bg-border hover:bg-primary/50'
+          onClick={() => onStepChange(2)}
+          className={`rounded-full flex items-center justify-center w-8 h-8 text-sm font-medium ${
+            currentStep === 2
+              ? "bg-[#33fea6] text-black"
+              : "text-[#545454] hover:bg-[#e5e7eb]"
           }`}
-          aria-label="Go to step 2"
-          disabled={isViewingSavedPrompt}
+          aria-disabled={isViewingSavedPrompt}
         >
-          <span className="absolute inset-0 m-auto w-1 h-1 bg-white rounded-full"></span>
+          2
         </button>
+        <div className="h-[2px] w-4 bg-[#e5e7eb]"></div>
         <button
           onClick={() => onStepChange(3)}
-          className={`w-4 h-4 rounded-full transition-all duration-300 hover:scale-125 hover:shadow-[0_0_10px_rgba(51,254,166,0.175)] relative ${
-            currentStep === 3 ? 'bg-primary' : 'bg-border hover:bg-primary/50'
+          className={`rounded-full flex items-center justify-center w-8 h-8 text-sm font-medium ${
+            currentStep === 3
+              ? "bg-[#33fea6] text-black"
+              : "text-[#545454] hover:bg-[#e5e7eb]"
           }`}
-          aria-label="Go to step 3"
         >
-          <span className="absolute inset-0 m-auto w-1 h-1 bg-white rounded-full"></span>
+          3
         </button>
       </div>
     </div>

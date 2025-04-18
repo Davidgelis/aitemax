@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { StepHeader } from "./steps/StepHeader";
 import { SessionInfo } from "./steps/SessionInfo";
@@ -16,6 +15,8 @@ import { usePromptOperations } from "@/hooks/usePromptOperations";
 import { AIModel, UploadedImage } from "@/components/dashboard/types";
 import { primaryToggles, secondaryToggles } from "./constants";
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
+import { useLanguage } from "@/context/LanguageContext";
+import { dashboardTranslations } from "@/translations/dashboard";
 
 interface StepControllerProps {
   user: any;
@@ -44,6 +45,8 @@ export const StepController = ({
   
   const { toast } = useToast();
   const { currentTemplate, getCurrentTemplate, isLoading: isLoadingTemplate } = useTemplateManagement();
+  const { currentLanguage } = useLanguage();
+  const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
   
   const {
     promptText, setPromptText,
@@ -393,7 +396,7 @@ export const StepController = ({
             showJson={showJson}
             setShowJson={setShowJson}
             finalPrompt={finalPrompt}
-            setFinalPrompt={setFinalPrompt} // Pass the setFinalPrompt function explicitly
+            setFinalPrompt={setFinalPrompt}
             variables={variables}
             setVariables={setVariables}
             handleVariableValueChange={handleVariableValueChange}

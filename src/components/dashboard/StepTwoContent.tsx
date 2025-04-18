@@ -4,6 +4,8 @@ import { RefObject } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
 import { Info } from "lucide-react";
+import { useLanguage } from '@/context/LanguageContext';
+import { dashboardTranslations } from '@/translations/dashboard';
 
 interface StepTwoContentProps {
   questions: Question[];
@@ -40,10 +42,13 @@ export const StepTwoContent = ({
   variablesContainerRef,
   originalPrompt
 }: StepTwoContentProps) => {
+  const { currentLanguage } = useLanguage();
+  const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
+  
   return (
     <div className="border rounded-xl p-6 bg-card">
       <div className="mb-6">
-        <p className="text-[#545454] mb-4">Answer the following questions and complete the variables to improve your final prompt accuracy. Fill in only what applies and mark or remove the irrelevant ones.</p>
+        <p className="text-[#545454] mb-4">{t.steps.questionsToAnswer}</p>
         
         <QuestionList 
           questions={questions} 
@@ -71,13 +76,13 @@ export const StepTwoContent = ({
       <div className="flex flex-col items-end gap-2">
         <div className="flex items-center text-sm text-[#545454] gap-1 italic">
           <Info size={14} />
-          <span>Please make sure to fill out everything before continuing.</span>
+          <span>{t.steps.continueButtonInfo}</span>
         </div>
         <button 
           onClick={onContinue} 
           className="aurora-button"
         >
-          Continue
+          {t.steps.continue}
         </button>
       </div>
     </div>

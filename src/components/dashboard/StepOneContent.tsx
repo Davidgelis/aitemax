@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
@@ -11,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { ImageUploader } from "./ImageUploader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from '@/context/LanguageContext';
+import { dashboardTranslations } from '@/translations/dashboard';
 
 interface StepOneContentProps {
   promptText: string;
@@ -57,6 +60,8 @@ export const StepOneContent = ({
 
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { currentLanguage } = useLanguage();
+  const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
   
   const handleAnalyzeWithAuth = () => {
     if (!user) {
@@ -158,7 +163,7 @@ export const StepOneContent = ({
                 className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
                 title="Upload and analyze images with GPT-4.1"
               >
-                <span className="truncate ml-1">Image Smart Scan (GPT-4.1)</span>
+                <span className="truncate ml-1">{t.steps.imageSmartScan}</span>
                 <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
               </button>
             </div>
@@ -168,7 +173,7 @@ export const StepOneContent = ({
 
       {uploadedImages.length > 0 && (
         <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
-          <h3 className="text-sm font-medium text-[#545454] mb-2">Uploaded Images</h3>
+          <h3 className="text-sm font-medium text-[#545454] mb-2">{t.steps.uploadedImages}</h3>
           <ImageUploader
             images={uploadedImages}
             onImagesChange={handleImagesChange}
@@ -180,7 +185,7 @@ export const StepOneContent = ({
 
       {smartContext && smartContext.context && (
         <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
-          <h3 className="text-sm font-medium text-[#545454] mb-2">Smart Context Added</h3>
+          <h3 className="text-sm font-medium text-[#545454] mb-2">{t.steps.smartContextAdded}</h3>
           <p className="text-xs text-[#545454] italic truncate">
             {smartContext.context.substring(0, 100)}
             {smartContext.context.length > 100 ? "..." : ""}
@@ -283,7 +288,7 @@ export const StepOneContent = ({
           variant="aurora"
           className="ml-2"
         >
-          {isLoading ? "Analyzing with GPT-4.1..." : "Analyze with GPT-4.1"}
+          {isLoading ? t.steps.analyzing : t.prompts.analyze}
         </Button>
       </div>
     </div>

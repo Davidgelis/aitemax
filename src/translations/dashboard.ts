@@ -1,4 +1,3 @@
-
 export const dashboardTranslations = {
   en: {
     backToDashboard: "Back to Dashboard",
@@ -21,7 +20,19 @@ export const dashboardTranslations = {
       next: "Next",
       back: "Back",
       skip: "Skip",
-      finish: "Finish"
+      finish: "Finish",
+      promptPlaceholder: "Enter your prompt...",
+      analyze: "Analyze",
+      clear: "Clear",
+      analyzing: "Analyzing with GPT-4.1...",
+      questionsToAnswer: "Answer the following questions and complete the variables to improve your final prompt accuracy. Fill in only what applies and mark or remove the irrelevant ones.",
+      continueButtonInfo: "Please make sure to fill out everything before continuing.",
+      continue: "Continue",
+      variables: "Variables",
+      questions: "Questions",
+      imageSmartScan: "Image Smart Scan (GPT-4.1)",
+      uploadedImages: "Uploaded Images",
+      smartContextAdded: "Smart Context Added"
     },
     prompts: {
       enterPrompt: "Enter your prompt...",
@@ -30,6 +41,11 @@ export const dashboardTranslations = {
       promptPlaceholder: "Start typing your prompt here...",
       noPrompts: "No prompts found",
       loading: "Loading prompts..."
+    },
+    finalPrompt: {
+      copyPrompt: "Copy Prompt",
+      savePrompt: "Save Prompt",
+      editPrompt: "Edit Prompt"
     }
   },
   zh: {
@@ -53,7 +69,19 @@ export const dashboardTranslations = {
       next: "下一步",
       back: "返回",
       skip: "跳过",
-      finish: "完成"
+      finish: "完成",
+      promptPlaceholder: "输入您的提示...",
+      analyze: "分析",
+      clear: "清除",
+      analyzing: "使用GPT-4.1分析中...",
+      questionsToAnswer: "回答以下问题并完成变量以提高您的最终提示准确性。只填写适用的部分，标记或删除不相关的部分。",
+      continueButtonInfo: "请确保在继续之前填写完所有内容。",
+      continue: "继续",
+      variables: "变量",
+      questions: "问题",
+      imageSmartScan: "图像智能扫描 (GPT-4.1)",
+      uploadedImages: "已上传图片",
+      smartContextAdded: "已添加智能上下文"
     },
     prompts: {
       enterPrompt: "输入您的提示...",
@@ -62,6 +90,11 @@ export const dashboardTranslations = {
       promptPlaceholder: "在此开始输入您的提示...",
       noPrompts: "未找到提示",
       loading: "加载提示中..."
+    },
+    finalPrompt: {
+      copyPrompt: "复制提示",
+      savePrompt: "保存提示",
+      editPrompt: "编辑提示"
     }
   },
   es: {
@@ -85,7 +118,19 @@ export const dashboardTranslations = {
       next: "Siguiente",
       back: "Atrás",
       skip: "Omitir",
-      finish: "Finalizar"
+      finish: "Finalizar",
+      promptPlaceholder: "Ingrese su prompt...",
+      analyze: "Analizar",
+      clear: "Limpiar",
+      analyzing: "Analizando con GPT-4.1...",
+      questionsToAnswer: "Responda las siguientes preguntas y complete las variables para mejorar la precisión de su prompt final. Complete solo lo que corresponda y marque o elimine los elementos irrelevantes.",
+      continueButtonInfo: "Asegúrese de completar todo antes de continuar.",
+      continue: "Continuar",
+      variables: "Variables",
+      questions: "Preguntas",
+      imageSmartScan: "Escaneo Inteligente de Imágenes (GPT-4.1)",
+      uploadedImages: "Imágenes Cargadas",
+      smartContextAdded: "Contexto Inteligente Añadido"
     },
     prompts: {
       enterPrompt: "Ingrese su prompt...",
@@ -94,6 +139,11 @@ export const dashboardTranslations = {
       promptPlaceholder: "Comience a escribir su prompt aquí...",
       noPrompts: "No se encontraron prompts",
       loading: "Cargando prompts..."
+    },
+    finalPrompt: {
+      copyPrompt: "Copiar Prompt",
+      savePrompt: "Guardar Prompt",
+      editPrompt: "Editar Prompt"
     }
   },
   fr: {
@@ -117,7 +167,19 @@ export const dashboardTranslations = {
       next: "Suivant",
       back: "Retour",
       skip: "Passer",
-      finish: "Terminer"
+      finish: "Terminer",
+      promptPlaceholder: "Entrez votre prompt...",
+      analyze: "Analyser",
+      clear: "Effacer",
+      analyzing: "Analyse avec GPT-4.1...",
+      questionsToAnswer: "Répondez aux questions suivantes et complétez les variables pour améliorer la précision de votre prompt final. Remplissez uniquement ce qui s'applique et marquez ou supprimez les éléments non pertinents.",
+      continueButtonInfo: "Veuillez vous assurer de tout remplir avant de continuer.",
+      continue: "Continuer",
+      variables: "Variables",
+      questions: "Questions",
+      imageSmartScan: "Analyse Intelligente d'Images (GPT-4.1)",
+      uploadedImages: "Images Téléchargées",
+      smartContextAdded: "Contexte Intelligent Ajouté"
     },
     prompts: {
       enterPrompt: "Entrez votre prompt...",
@@ -126,6 +188,11 @@ export const dashboardTranslations = {
       promptPlaceholder: "Commencez à écrire votre prompt ici...",
       noPrompts: "Aucun prompt trouvé",
       loading: "Chargement des prompts..."
+    },
+    finalPrompt: {
+      copyPrompt: "Copier le Prompt",
+      savePrompt: "Enregistrer le Prompt",
+      editPrompt: "Modifier le Prompt"
     }
   },
   de: {
@@ -149,7 +216,19 @@ export const dashboardTranslations = {
       next: "Weiter",
       back: "Zurück",
       skip: "Überspringen",
-      finish: "Fertig"
+      finish: "Fertig",
+      promptPlaceholder: "Geben Sie Ihren Prompt ein...",
+      analyze: "Analysieren",
+      clear: "Löschen",
+      analyzing: "Analyse mit GPT-4.1...",
+      questionsToAnswer: "Beantworten Sie die folgenden Fragen und vervollständigen Sie die Variablen, um die Genauigkeit Ihres endgültigen Prompts zu verbessern. Füllen Sie nur aus, was zutrifft, und markieren oder entfernen Sie irrelevante Elemente.",
+      continueButtonInfo: "Bitte stellen Sie sicher, dass Sie alles ausgefüllt haben, bevor Sie fortfahren.",
+      continue: "Fortfahren",
+      variables: "Variablen",
+      questions: "Fragen",
+      imageSmartScan: "Intelligenter Bildscan (GPT-4.1)",
+      uploadedImages: "Hochgeladene Bilder",
+      smartContextAdded: "Intelligenter Kontext hinzugefügt"
     },
     prompts: {
       enterPrompt: "Geben Sie Ihren Prompt ein...",
@@ -158,6 +237,11 @@ export const dashboardTranslations = {
       promptPlaceholder: "Beginnen Sie hier mit der Eingabe Ihres Prompts...",
       noPrompts: "Keine Prompts gefunden",
       loading: "Prompts werden geladen..."
+    },
+    finalPrompt: {
+      copyPrompt: "Prompt kopieren",
+      savePrompt: "Prompt speichern",
+      editPrompt: "Prompt bearbeiten"
     }
   }
 };
