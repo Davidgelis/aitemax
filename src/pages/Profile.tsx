@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import MasterPanel from "@/components/dashboard/MasterPanel";
 import { ChangeEmailForm } from "@/components/profile/ChangeEmailForm";
 import { avatarOptions } from "@/config/avatarConfig";
+import { useLanguage } from '@/context/LanguageContext';
+import { profileTranslations } from '@/translations/profile';
 
 const Profile = () => {
   const [username, setUsername] = useState("");
@@ -21,6 +23,8 @@ const Profile = () => {
   const [isMasterUser, setIsMasterUser] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { currentLanguage } = useLanguage();
+  const t = profileTranslations[currentLanguage as keyof typeof profileTranslations] || profileTranslations.en;
 
   useEffect(() => {
     const getProfile = async () => {
@@ -141,7 +145,7 @@ const Profile = () => {
           onClick={() => navigate(-1)}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Dashboard
+          {t.back}
         </Button>
 
         <div className="bg-white rounded-xl border border-gray-300 p-6 shadow-sm">
@@ -154,7 +158,7 @@ const Profile = () => {
               />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-[#545454]">{username || "User Profile"}</h1>
+              <h1 className="text-2xl font-semibold text-[#545454]">{username || t.profile}</h1>
               <p className="text-[#545454]">{email}</p>
             </div>
           </div>
@@ -163,7 +167,7 @@ const Profile = () => {
 
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-medium mb-4 text-[#545454]">Avatar Selection</h2>
+              <h2 className="text-lg font-medium mb-4 text-[#545454]">{t.avatarSelection}</h2>
               <RadioGroup 
                 value={avatarType} 
                 onValueChange={setAvatarType}
@@ -198,11 +202,11 @@ const Profile = () => {
             <Separator className="my-6" />
 
             <div>
-              <h2 className="text-lg font-medium mb-4 text-[#545454]">Profile Information</h2>
+              <h2 className="text-lg font-medium mb-4 text-[#545454]">{t.profileInfo}</h2>
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <label htmlFor="username" className="text-sm font-medium text-[#545454]">
-                    Username
+                    {t.username}
                   </label>
                   <Input
                     id="username"
@@ -213,7 +217,7 @@ const Profile = () => {
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium text-[#545454]">
-                    Email
+                    {t.email}
                   </label>
                   <Input
                     id="email"
@@ -228,21 +232,21 @@ const Profile = () => {
             <Separator />
 
             <div>
-              <h2 className="text-lg font-medium mb-4 text-[#545454]">Security</h2>
+              <h2 className="text-lg font-medium mb-4 text-[#545454]">{t.security}</h2>
               <Button 
                 variant="outline" 
                 className="flex items-center gap-2 border-gray-300 text-[#545454]"
                 onClick={handleChangePassword}
               >
                 <Lock className="h-4 w-4" />
-                Change Password
+                {t.changePassword}
               </Button>
             </div>
 
             <Separator />
 
             <div>
-              <h2 className="text-lg font-medium mb-4 text-[#545454]">Change Email</h2>
+              <h2 className="text-lg font-medium mb-4 text-[#545454]">{t.changeEmail}</h2>
               <ChangeEmailForm currentEmail={email} />
             </div>
 
@@ -250,14 +254,14 @@ const Profile = () => {
               <>
                 <Separator />
                 <div>
-                  <h2 className="text-lg font-medium mb-4 text-[#545454]">Administrator</h2>
+                  <h2 className="text-lg font-medium mb-4 text-[#545454]">{t.administrator}</h2>
                   <Button 
                     variant="outline" 
                     className="flex items-center gap-2 border-gray-300 text-[#545454]"
                     onClick={() => setShowMasterPanel(!showMasterPanel)}
                   >
                     <Workflow className="h-4 w-4" />
-                    {showMasterPanel ? "Hide Master Panel" : "Show Master Panel"}
+                    {showMasterPanel ? t.hidePanel : t.showPanel}
                   </Button>
                 </div>
               </>
@@ -269,7 +273,7 @@ const Profile = () => {
                 disabled={loading}
                 className="bg-[#33fea6] hover:bg-[#33fea6]/90 text-black"
               >
-                {loading ? "Updating..." : "Save Changes"}
+                {loading ? t.saving : t.saveChanges}
               </Button>
             </div>
           </div>

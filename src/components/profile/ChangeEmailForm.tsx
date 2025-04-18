@@ -4,12 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from '@/context/LanguageContext';
+import { profileTranslations } from '@/translations/profile';
 
 export const ChangeEmailForm = ({ currentEmail }: { currentEmail: string }) => {
   const [newEmail, setNewEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { currentLanguage } = useLanguage();
+  const t = profileTranslations[currentLanguage as keyof typeof profileTranslations] || profileTranslations.en;
 
   const handleEmailChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,7 +21,7 @@ export const ChangeEmailForm = ({ currentEmail }: { currentEmail: string }) => {
     if (!newEmail || !password) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: t.errors.requiredFields,
         variant: "destructive",
       });
       return;
@@ -26,7 +30,7 @@ export const ChangeEmailForm = ({ currentEmail }: { currentEmail: string }) => {
     if (newEmail === currentEmail) {
       toast({
         title: "Error",
-        description: "New email must be different from current email",
+        description: t.errors.sameEmail,
         variant: "destructive",
       });
       return;
@@ -35,7 +39,6 @@ export const ChangeEmailForm = ({ currentEmail }: { currentEmail: string }) => {
     try {
       setLoading(true);
 
-      // First verify the user's password
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: currentEmail,
         password,
@@ -43,7 +46,6 @@ export const ChangeEmailForm = ({ currentEmail }: { currentEmail: string }) => {
 
       if (signInError) throw signInError;
 
-      // If password is correct, update the email
       const { error: updateError } = await supabase.auth.updateUser({
         email: newEmail,
       });
@@ -52,17 +54,16 @@ export const ChangeEmailForm = ({ currentEmail }: { currentEmail: string }) => {
 
       toast({
         title: "Success",
-        description: "Please check your new email for a confirmation link",
+        description: t.success.emailUpdate,
       });
 
-      // Clear form
       setNewEmail("");
       setPassword("");
       
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to update email",
+        description: error.message || t.errors.emailUpdate,
         variant: "destructive",
       });
     } finally {
@@ -74,28 +75,28 @@ export const ChangeEmailForm = ({ currentEmail }: { currentEmail: string }) => {
     <form onSubmit={handleEmailChange} className="space-y-4">
       <div className="space-y-2">
         <label htmlFor="newEmail" className="text-sm font-medium text-[#545454]">
-          New Email
+          {t.newEmail}
         </label>
         <Input
           id="newEmail"
           type="email"
           value={newEmail}
           onChange={(e) => setNewEmail(e.target.value)}
-          placeholder="Enter new email"
+          placeholder={t.enterNewEmail}
           className="max-w-md border-gray-300 text-[#545454]"
         />
       </div>
       
       <div className="space-y-2">
         <label htmlFor="password" className="text-sm font-medium text-[#545454]">
-          Confirm Password
+          {t.confirmPassword}
         </label>
         <Input
           id="password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter your password"
+          placeholder={t.enterPassword}
           className="max-w-md border-gray-300 text-[#545454]"
         />
       </div>
@@ -105,7 +106,7 @@ export const ChangeEmailForm = ({ currentEmail }: { currentEmail: string }) => {
         disabled={loading}
         className="bg-[#33fea6] hover:bg-[#33fea6]/90 text-black"
       >
-        {loading ? "Updating..." : "Change Email"}
+        {loading ? t.updatingEmail : t.updateEmail}
       </Button>
     </form>
   );
