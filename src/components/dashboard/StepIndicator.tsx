@@ -25,7 +25,7 @@ export const StepIndicator = ({
       case 3:
         return t.steps.step3Label;
       default:
-        return step.toString();
+        return `${t.steps.step} ${step}`;
     }
   };
 

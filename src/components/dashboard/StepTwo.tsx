@@ -3,6 +3,8 @@ import { Question, Variable } from "./types";
 import { RefObject } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
+import { useLanguage } from "@/context/LanguageContext";
+import { dashboardTranslations } from "@/translations/dashboard";
 
 interface StepTwoProps {
   questions: Question[];
@@ -39,11 +41,14 @@ export const StepTwo = ({
   variablesContainerRef,
   originalPrompt
 }: StepTwoProps) => {
+  const { currentLanguage } = useLanguage();
+  const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
+
   return (
     <div className="border rounded-xl p-6 bg-card">
       <div className="mb-6">
         <p className="text-card-foreground mb-4">
-          Answer the following questions to enhance your prompt, mark them as relevant or not relevant
+          {t.steps.questionsToAnswer}
         </p>
         
         <QuestionList 
@@ -75,7 +80,7 @@ export const StepTwo = ({
           className={`aurora-button ${!canProceedToStep3 ? 'opacity-70 cursor-not-allowed' : ''}`}
           disabled={!canProceedToStep3}
         >
-          Continue
+          {t.steps.continue}
         </button>
       </div>
     </div>
