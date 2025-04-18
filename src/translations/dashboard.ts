@@ -32,19 +32,7 @@ export const dashboardTranslations = {
       questions: "Questions",
       imageSmartScan: "Image Smart Scan (GPT-4.1)",
       uploadedImages: "Uploaded Images",
-      smartContextAdded: "Smart Context Added",
-      primaryToggles: {
-        creativity: "Creativity Boost",
-        complexityReduction: "Complexity Reduction",
-        templateMode: "Template Mode",
-        contextEnhancement: "Context Enhancement"
-      },
-      secondaryToggles: {
-        multilingualMode: "Multilingual Mode",
-        jsonOutput: "JSON Output",
-        professionalTone: "Professional Tone",
-        technicalPrecision: "Technical Precision"
-      }
+      smartContextAdded: "Smart Context Added"
     },
     prompts: {
       enterPrompt: "Enter your prompt...",
@@ -93,19 +81,7 @@ export const dashboardTranslations = {
       questions: "问题",
       imageSmartScan: "图像智能扫描 (GPT-4.1)",
       uploadedImages: "已上传图片",
-      smartContextAdded: "已添加智能上下文",
-      primaryToggles: {
-        creativity: "创意提升",
-        complexityReduction: "复杂度降低",
-        templateMode: "模板模式",
-        contextEnhancement: "上下文增强"
-      },
-      secondaryToggles: {
-        multilingualMode: "多语言模式",
-        jsonOutput: "JSON输出",
-        professionalTone: "专业语气",
-        technicalPrecision: "技术精确性"
-      }
+      smartContextAdded: "已添加智能上下文"
     },
     prompts: {
       enterPrompt: "输入您的提示...",
@@ -154,19 +130,7 @@ export const dashboardTranslations = {
       questions: "Preguntas",
       imageSmartScan: "Escaneo Inteligente de Imágenes (GPT-4.1)",
       uploadedImages: "Imágenes Cargadas",
-      smartContextAdded: "Contexto Inteligente Añadido",
-      primaryToggles: {
-        creativity: "Impulso de Creatividad",
-        complexityReduction: "Reducción de Complejidad",
-        templateMode: "Modo de Plantilla",
-        contextEnhancement: "Mejora de Contexto"
-      },
-      secondaryToggles: {
-        multilingualMode: "Modo Multilingüe",
-        jsonOutput: "Salida JSON",
-        professionalTone: "Tono Profesional",
-        technicalPrecision: "Precisión Técnica"
-      }
+      smartContextAdded: "Contexto Inteligente Añadido"
     },
     prompts: {
       enterPrompt: "Ingrese su prompt...",
@@ -215,19 +179,7 @@ export const dashboardTranslations = {
       questions: "Questions",
       imageSmartScan: "Analyse Intelligente d'Images (GPT-4.1)",
       uploadedImages: "Images Téléchargées",
-      smartContextAdded: "Contexte Intelligent Ajouté",
-      primaryToggles: {
-        creativity: "Boost de Créativité",
-        complexityReduction: "Réduction de Complexité",
-        templateMode: "Mode Modèle",
-        contextEnhancement: "Amélioration du Contexte"
-      },
-      secondaryToggles: {
-        multilingualMode: "Mode Multilingue",
-        jsonOutput: "Sortie JSON",
-        professionalTone: "Ton Professionnel",
-        technicalPrecision: "Précision Technique"
-      }
+      smartContextAdded: "Contexte Intelligent Ajouté"
     },
     prompts: {
       enterPrompt: "Entrez votre prompt...",
@@ -276,19 +228,7 @@ export const dashboardTranslations = {
       questions: "Fragen",
       imageSmartScan: "Intelligenter Bildscan (GPT-4.1)",
       uploadedImages: "Hochgeladene Bilder",
-      smartContextAdded: "Intelligenter Kontext hinzugefügt",
-      primaryToggles: {
-        creativity: "Kreativitäts-Boost",
-        complexityReduction: "Komplexitätsreduktion",
-        templateMode: "Vorlagenmodus",
-        contextEnhancement: "Kontexterweiterung"
-      },
-      secondaryToggles: {
-        multilingualMode: "Mehrsprachiger Modus",
-        jsonOutput: "JSON-Ausgabe",
-        professionalTone: "Professioneller Ton",
-        technicalPrecision: "Technische Präzision"
-      }
+      smartContextAdded: "Intelligenter Kontext hinzugefügt"
     },
     prompts: {
       enterPrompt: "Geben Sie Ihren Prompt ein...",
