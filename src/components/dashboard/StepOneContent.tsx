@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
@@ -201,7 +200,7 @@ export const StepOneContent = ({
             data-variant="primary"
           >
             <div className="text-[#545454] text-sm">
-              {toggle.label}
+              {t.steps.primaryToggles[toggle.id as keyof typeof t.steps.primaryToggles]}
             </div>
             <div className="flex items-center space-x-2">
               <Switch 
@@ -237,7 +236,7 @@ export const StepOneContent = ({
             data-variant="secondary"
           >
             <div className="text-[#545454] text-sm">
-              {toggle.label}
+              {t.steps.secondaryToggles[toggle.id as keyof typeof t.steps.secondaryToggles]}
             </div>
             <div className="flex items-center space-x-2">
               <Switch 
