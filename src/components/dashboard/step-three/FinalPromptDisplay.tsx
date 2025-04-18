@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { v4 as uuidv4 } from "uuid";
 import { replaceVariableInPrompt, convertEditedContentToPlaceholders, convertPlaceholdersToEditableFormat, convertPlaceholdersToSpans, toVariablePlaceholder, stripHtml } from "@/utils/promptUtils";
+import { useLanguage } from "@/context/LanguageContext";
+import { dashboardTranslations } from "@/translations/dashboard";
 interface FinalPromptDisplayProps {
   finalPrompt: string;
   updateFinalPrompt: (newPrompt: string) => void;
@@ -61,6 +63,8 @@ export const FinalPromptDisplay = ({
   const editableContentRef = useRef<HTMLDivElement>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [currentPromptHash, setCurrentPromptHash] = useState<string>("");
+  const { currentLanguage } = useLanguage();
+  const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
   const {
     toast
   } = useToast();
@@ -307,13 +311,13 @@ export const FinalPromptDisplay = ({
 
       // Show a toast to indicate the selection was added
       toast({
-        title: "Selection added",
+        title: t.steps.variableActions.selectionAdded,
         description: `Added "${selText.substring(0, 20)}${selText.length > 20 ? '...' : ''}" to multi-selection`
       });
     } catch (e) {
       console.error("Error highlighting multi-selection:", e);
       toast({
-        title: "Selection error",
+        title: t.steps.variableActions.selectionError,
         description: "Could not select text. Try selecting a simpler text segment.",
         variant: "destructive"
       });
@@ -325,7 +329,7 @@ export const FinalPromptDisplay = ({
   const createMultiSelectionVariable = () => {
     if (multiSelections.length === 0) {
       toast({
-        title: "No selections",
+        title: t.steps.variableActions.noSelection,
         description: "Please select at least one text segment first",
         variant: "destructive"
       });
@@ -333,7 +337,7 @@ export const FinalPromptDisplay = ({
     }
     if (relevantVariables.length >= 15) {
       toast({
-        title: "Variable limit reached",
+        title: t.steps.variableActions.limitReached,
         description: "You can create up to 15 variables",
         variant: "destructive"
       });
@@ -376,7 +380,7 @@ export const FinalPromptDisplay = ({
     // Update the prompt
     updateFinalPrompt(updatedPrompt);
     toast({
-      title: "Variable created",
+      title: t.steps.variableActions.created,
       description: `Created variable: ${variableName} from ${multiSelections.length} selections`
     });
 
@@ -423,7 +427,7 @@ export const FinalPromptDisplay = ({
       setIsMultiSelectMode(true);
       setMultiSelections([]);
       toast({
-        title: "Variable creation mode",
+        title: t.steps.toggleSections.createVariableMode,
         description: "Select text segments to create a variable"
       });
     }
@@ -447,7 +451,7 @@ export const FinalPromptDisplay = ({
     const updatedPrompt = finalPrompt.replace(new RegExp(varPlaceholder, 'g'), currentValue);
     updateFinalPrompt(updatedPrompt);
     toast({
-      title: "Variable removed",
+      title: t.steps.variableActions.deleted,
       description: "Variable has been removed"
     });
 
@@ -479,7 +483,7 @@ export const FinalPromptDisplay = ({
       setIsEditing(false);
       setEditablePrompt("");
       toast({
-        title: "Changes saved",
+        title: t.steps.promptActions.changesSaved,
         description: "Your prompt has been updated successfully."
       });
 
@@ -516,10 +520,10 @@ export const FinalPromptDisplay = ({
             setIsEditing(false);
             setEditablePrompt(""); // Clear the editable prompt on cancel
           }}>
-              Cancel
+              {t.steps.promptActions.cancel}
             </Button>
             <Button className="edit-action-button edit-save-button" onClick={handleSaveFromEditMode}>
-              Save Changes
+              {t.steps.promptActions.saveChanges}
             </Button>
           </div>
         </div>;
@@ -528,16 +532,16 @@ export const FinalPromptDisplay = ({
       if (isLoadingJson || isRefreshing) {
         return <div className="text-xs flex flex-col items-center justify-center h-full min-h-[200px]">
             <div className="animate-pulse flex flex-col items-center">
-              <div className="mb-2 text-accent">Generating JSON structure...</div>
-              <div className="text-xs text-muted-foreground">This may take a moment</div>
+              <div className="mb-2 text-accent">{t.steps.toggleSections.jsonLoadingTitle}</div>
+              <div className="text-xs text-muted-foreground">{t.steps.toggleSections.jsonLoadingSubtitle}</div>
             </div>
           </div>;
       }
       if (jsonError) {
         return <div className="flex flex-col items-center justify-center h-full min-h-[200px]">
-            <div className="text-xs text-destructive mb-2">Error generating JSON: {jsonError}</div>
+            <div className="text-xs text-destructive mb-2">{t.steps.toggleSections.jsonError} {jsonError}</div>
             <Button variant="outline" size="sm" onClick={() => convertPromptToJson(true)} className="mt-2">
-              Try Again
+              {t.steps.toggleSections.tryAgain}
             </Button>
           </div>;
       }
@@ -561,7 +565,7 @@ export const FinalPromptDisplay = ({
           {isCreatingVariable && multiSelections.length > 0 && <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-20 bg-white shadow-lg rounded-lg p-2 flex gap-2">
               <Button size="sm" variant="outline" className="h-8 p-2 hover:border-[#33fea6] hover:text-[#33fea6] hover:bg-white" onClick={createMultiSelectionVariable}>
                 <Check className="h-4 w-4 mr-1" />
-                Create Variable ({multiSelections.length})
+                {t.steps.toggleSections.variableCount} ({multiSelections.length})
               </Button>
               <Button size="sm" variant="outline" className="h-8 w-8 p-0 hover:border-[#33fea6] hover:text-[#33fea6] hover:bg-white" onClick={cancelVariableCreation}>
                 <X className="h-4 w-4" />
@@ -584,15 +588,15 @@ export const FinalPromptDisplay = ({
       <div className="absolute top-2 right-2 z-10 flex items-center space-x-4">
         {!isEditing && <>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-accent">Create Variable/s</span>
-              <button onClick={toggleVariableCreation} className={`p-2 rounded-full ${isCreatingVariable ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`} aria-label={isCreatingVariable ? "Exit variable creation mode" : "Create variable"}>
+              <span className="text-sm text-accent">{t.steps.toggleSections.createVariable}</span>
+              <button onClick={toggleVariableCreation} className={`p-2 rounded-full ${isCreatingVariable ? 'bg-[#33fea6] text-white' : 'bg-white/80 hover:bg-white hover:text-[#33fea6]'} transition-colors`} aria-label={isCreatingVariable ? t.steps.toggleSections.exitVariableMode : t.steps.toggleSections.createVariableMode}>
                 <PlusCircle className={`w-4 h-4 ${isCreatingVariable ? 'text-white' : 'text-accent hover:text-[#33fea6]'}`} />
               </button>
             </div>
             
             <div className="flex items-center gap-2">
-              <span className="text-sm text-accent">Edit Prompt</span>
-              <button onClick={() => setIsEditing(true)} className="p-2 rounded-full bg-white/80 hover:bg-white hover:text-[#33fea6] transition-colors" aria-label="Edit prompt text">
+              <span className="text-sm text-accent">{t.steps.toggleSections.editPrompt}</span>
+              <button onClick={() => setIsEditing(true)} className="p-2 rounded-full bg-white/80 hover:bg-white hover:text-[#33fea6] transition-colors" aria-label={t.steps.toggleSections.editPrompt}>
                 <Edit className="w-4 h-4 text-accent hover:text-[#33fea6]" />
               </button>
             </div>
@@ -604,7 +608,7 @@ export const FinalPromptDisplay = ({
     }} />
       
       <div className={`relative h-full p-6 ${isEditing ? 'editing-mode' : ''}`}>
-        <h3 className="text-lg text-accent font-medium mb-2">Final Prompt</h3>
+        <h3 className="text-lg text-accent font-medium mb-2">{t.steps.toggleSections.finalPromptTitle}</h3>
         
         <div className="h-[calc(100%-3rem)] overflow-auto prompt-content-container">
           {renderProcessedPrompt()}

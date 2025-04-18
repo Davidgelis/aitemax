@@ -17,6 +17,7 @@ export const dashboardTranslations = {
       profile: "Profile",
       analytics: "Analytics"
     },
+
     steps: {
       step1: "Step 1",
       step2: "Step 2",
@@ -45,7 +46,38 @@ export const dashboardTranslations = {
       step2AriaLabel: "Go to step 2",
       step3AriaLabel: "Go to step 3",
       step: "Step",
+      
+      // Adding new translation keys for toggles and sections
+      toggleSections: {
+        createVariable: "Create Variable/s",
+        editPrompt: "Edit Prompt",
+        variableCount: "Create Variable",
+        finalPromptTitle: "Final Prompt",
+        jsonLoadingTitle: "Generating JSON structure...",
+        jsonLoadingSubtitle: "This may take a moment",
+        jsonError: "Error generating JSON:",
+        tryAgain: "Try Again",
+        exitVariableMode: "Exit variable creation mode",
+        createVariableMode: "Create variable",
+        cancelCreation: "Cancel variable creation"
+      },
+      
+      variableActions: {
+        deleted: "Variable has been removed",
+        limitReached: "You can create up to 15 variables",
+        created: "Variable created",
+        selectionError: "Could not select text. Try selecting a simpler text segment.",
+        selectionAdded: "Selection added",
+        noSelection: "Please select at least one text segment first"
+      },
+      
+      promptActions: {
+        saveChanges: "Save Changes",
+        cancel: "Cancel",
+        changesSaved: "Your prompt has been updated successfully."
+      }
     },
+
     prompts: {
       enterPrompt: "Enter your prompt...",
       analyze: "Analyze",
@@ -121,6 +153,7 @@ export const dashboardTranslations = {
       promptSave: "Could not save edited prompt. Please try again."
     }
   },
+  
   zh: {
     backToDashboard: "返回控制面板",
     userActions: {
@@ -139,6 +172,7 @@ export const dashboardTranslations = {
       profile: "个人资料",
       analytics: "分析"
     },
+    
     steps: {
       step1: "步骤 1",
       step2: "步骤 2",
@@ -167,7 +201,37 @@ export const dashboardTranslations = {
       step2AriaLabel: "转到步骤 2",
       step3AriaLabel: "转到步骤 3",
       step: "步骤",
+      
+      toggleSections: {
+        createVariable: "创建变量",
+        editPrompt: "编辑提示",
+        variableCount: "创建变量",
+        finalPromptTitle: "最终提示",
+        jsonLoadingTitle: "正在生成JSON结构...",
+        jsonLoadingSubtitle: "请稍候",
+        jsonError: "生成JSON时出错：",
+        tryAgain: "重试",
+        exitVariableMode: "退出变量创建模式",
+        createVariableMode: "创建变量",
+        cancelCreation: "取消创建"
+      },
+      
+      variableActions: {
+        deleted: "变量已删除",
+        limitReached: "最多可以创建15个变量",
+        created: "变量已创建",
+        selectionError: "无法选择文本。请尝试选择更简单的文本段落。",
+        selectionAdded: "已添加选择",
+        noSelection: "请先选择至少一个文本段落"
+      },
+      
+      promptActions: {
+        saveChanges: "保存更改",
+        cancel: "取消",
+        changesSaved: "您的提示已成功更新。"
+      }
     },
+
     prompts: {
       enterPrompt: "输入您的提示...",
       analyze: "分析",
@@ -243,6 +307,7 @@ export const dashboardTranslations = {
       promptSave: "无法保存编辑的提示。请重试。"
     }
   },
+
   es: {
     backToDashboard: "Volver al Panel",
     userActions: {
@@ -261,6 +326,7 @@ export const dashboardTranslations = {
       profile: "Perfil",
       analytics: "Analítica"
     },
+    
     steps: {
       step1: "Paso 1",
       step2: "Paso 2",
@@ -289,7 +355,37 @@ export const dashboardTranslations = {
       step2AriaLabel: "Ir al paso 2",
       step3AriaLabel: "Ir al paso 3",
       step: "Paso",
+      
+      toggleSections: {
+        createVariable: "Crear Variable(s)",
+        editPrompt: "Editar Prompt",
+        variableCount: "Crear Variable",
+        finalPromptTitle: "Prompt Final",
+        jsonLoadingTitle: "Generando estructura JSON...",
+        jsonLoadingSubtitle: "Esto puede tomar un momento",
+        jsonError: "Error generando JSON:",
+        tryAgain: "Intentar de nuevo",
+        exitVariableMode: "Salir del modo de creación de variables",
+        createVariableMode: "Crear variable",
+        cancelCreation: "Cancelar creación"
+      },
+      
+      variableActions: {
+        deleted: "La variable ha sido eliminada",
+        limitReached: "Puede crear hasta 15 variables",
+        created: "Variable creada",
+        selectionError: "No se pudo seleccionar el texto. Intente seleccionar un segmento de texto más simple.",
+        selectionAdded: "Selección agregada",
+        noSelection: "Por favor seleccione al menos un segmento de texto primero"
+      },
+      
+      promptActions: {
+        saveChanges: "Guardar Cambios",
+        cancel: "Cancelar",
+        changesSaved: "Su prompt ha sido actualizado exitosamente."
+      }
     },
+
     prompts: {
       enterPrompt: "Ingrese su prompt...",
       analyze: "Analizar",
@@ -365,6 +461,7 @@ export const dashboardTranslations = {
       promptSave: "No se pudo guardar el prompt editado. Por favor, inténtelo de nuevo."
     }
   },
+
   fr: {
     backToDashboard: "Retour au Tableau de Bord",
     userActions: {
@@ -383,6 +480,7 @@ export const dashboardTranslations = {
       profile: "Profil",
       analytics: "Analytique"
     },
+    
     steps: {
       step1: "Étape 1",
       step2: "Étape 2",
@@ -411,7 +509,37 @@ export const dashboardTranslations = {
       step2AriaLabel: "Aller à l'étape 2",
       step3AriaLabel: "Aller à l'étape 3",
       step: "Étape",
+      
+      toggleSections: {
+        createVariable: "Créer Variable(s)",
+        editPrompt: "Modifier Prompt",
+        variableCount: "Créer Variable",
+        finalPromptTitle: "Prompt Final",
+        jsonLoadingTitle: "Génération de la structure JSON...",
+        jsonLoadingSubtitle: "Cela peut prendre un moment",
+        jsonError: "Erreur de génération JSON :",
+        tryAgain: "Réessayer",
+        exitVariableMode: "Quitter le mode création de variables",
+        createVariableMode: "Créer variable",
+        cancelCreation: "Annuler la création"
+      },
+      
+      variableActions: {
+        deleted: "La variable a été supprimée",
+        limitReached: "Vous pouvez créer jusqu'à 15 variables",
+        created: "Variable créée",
+        selectionError: "Impossible de sélectionner le texte. Essayez de sélectionner un segment de texte plus simple.",
+        selectionAdded: "Sélection ajoutée",
+        noSelection: "Veuillez d'abord sélectionner au moins un segment de texte"
+      },
+      
+      promptActions: {
+        saveChanges: "Enregistrer les Modifications",
+        cancel: "Annuler",
+        changesSaved: "Votre prompt a été mis à jour avec succès."
+      }
     },
+
     prompts: {
       enterPrompt: "Entrez votre prompt...",
       analyze: "Analyser",
@@ -487,6 +615,7 @@ export const dashboardTranslations = {
       promptSave: "Impossible de sauvegarder le prompt modifié. Veuillez réessayer."
     }
   },
+
   de: {
     backToDashboard: "Zurück zum Dashboard",
     userActions: {
@@ -505,6 +634,7 @@ export const dashboardTranslations = {
       profile: "Profil",
       analytics: "Analytik"
     },
+    
     steps: {
       step1: "Schritt 1",
       step2: "Schritt 2",
@@ -533,7 +663,37 @@ export const dashboardTranslations = {
       step2AriaLabel: "Zu Schritt 2 gehen",
       step3AriaLabel: "Zu Schritt 3 gehen",
       step: "Schritt",
+      
+      toggleSections: {
+        createVariable: "Variable(n) erstellen",
+        editPrompt: "Prompt bearbeiten",
+        variableCount: "Variable erstellen",
+        finalPromptTitle: "Finaler Prompt",
+        jsonLoadingTitle: "JSON-Struktur wird generiert...",
+        jsonLoadingSubtitle: "Dies kann einen Moment dauern",
+        jsonError: "Fehler bei der JSON-Generierung:",
+        tryAgain: "Erneut versuchen",
+        exitVariableMode: "Variablenerstellungsmodus verlassen",
+        createVariableMode: "Variable erstellen",
+        cancelCreation: "Erstellung abbrechen"
+      },
+      
+      variableActions: {
+        deleted: "Die Variable wurde entfernt",
+        limitReached: "Sie können bis zu 15 Variablen erstellen",
+        created: "Variable erstellt",
+        selectionError: "Text konnte nicht ausgewählt werden. Versuchen Sie, ein einfacheres Textsegment auszuwählen.",
+        selectionAdded: "Auswahl hinzugefügt",
+        noSelection: "Bitte wählen Sie zuerst mindestens ein Textsegment aus"
+      },
+      
+      promptActions: {
+        saveChanges: "Änderungen speichern",
+        cancel: "Abbrechen",
+        changesSaved: "Ihr Prompt wurde erfolgreich aktualisiert."
+      }
     },
+
     prompts: {
       enterPrompt: "Geben Sie Ihren Prompt ein...",
       analyze: "Analysieren",

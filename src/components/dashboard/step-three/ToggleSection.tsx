@@ -1,7 +1,8 @@
-
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { useLanguage } from "@/context/LanguageContext";
+import { dashboardTranslations } from "@/translations/dashboard";
 
 interface ToggleSectionProps {
   refreshJson?: () => void;
@@ -15,6 +16,8 @@ export const ToggleSection = ({
   showRefreshButton = false
 }: ToggleSectionProps) => {
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+  const { currentLanguage } = useLanguage();
+  const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
   
   // Handle refresh with debounce to prevent multiple clicks
   const handleRefresh = () => {
@@ -44,11 +47,11 @@ export const ToggleSection = ({
           variant="ghost" 
           size="xs"
           className="ml-1 p-1 h-6 w-6"
-          title="Refresh JSON with current prompt content"
+          title={t.steps.toggleSections.jsonLoadingTitle}
           disabled={isRefreshing || isButtonDisabled}
         >
           <RefreshCw className={`h-3.5 w-3.5 text-accent ${isRefreshing ? 'animate-spin' : ''}`} />
-          <span className="sr-only">Refresh JSON</span>
+          <span className="sr-only">{t.steps.toggleSections.tryAgain}</span>
         </Button>
       )}
     </div>
