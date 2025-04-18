@@ -1,4 +1,3 @@
-
 export const profileTranslations = {
   en: {
     back: "Back to Dashboard",
@@ -33,7 +32,9 @@ export const profileTranslations = {
       emailUpdate: "Failed to update email",
       requiredFields: "Please fill in all fields",
       sameEmail: "New email must be different from current email"
-    }
+    },
+    languagePreferences: "Language Preferences",
+    selectLanguage: "Select your preferred language",
   },
   zh: {
     back: "返回控制面板",
@@ -68,7 +69,9 @@ export const profileTranslations = {
       emailUpdate: "更新邮箱失败",
       requiredFields: "请填写所有字段",
       sameEmail: "新邮箱不能与当前邮箱相同"
-    }
+    },
+    languagePreferences: "语言偏好",
+    selectLanguage: "选择您的首选语言",
   },
   es: {
     back: "Volver al Panel",
@@ -103,7 +106,9 @@ export const profileTranslations = {
       emailUpdate: "Error al actualizar el correo",
       requiredFields: "Por favor complete todos los campos",
       sameEmail: "El nuevo correo debe ser diferente al actual"
-    }
+    },
+    languagePreferences: "Preferencias de idioma",
+    selectLanguage: "Seleccione su idioma preferido",
   },
   fr: {
     back: "Retour au Tableau de Bord",
@@ -138,7 +143,9 @@ export const profileTranslations = {
       emailUpdate: "Échec de la mise à jour de l'email",
       requiredFields: "Veuillez remplir tous les champs",
       sameEmail: "Le nouvel email doit être différent de l'actuel"
-    }
+    },
+    languagePreferences: "Préférences de langue",
+    selectLanguage: "Sélectionnez votre langue préférée",
   },
   de: {
     back: "Zurück zum Dashboard",
@@ -173,6 +180,8 @@ export const profileTranslations = {
       emailUpdate: "Fehler beim Aktualisieren der E-Mail",
       requiredFields: "Bitte füllen Sie alle Felder aus",
       sameEmail: "Die neue E-Mail muss sich von der aktuellen unterscheiden"
-    }
+    },
+    languagePreferences: "Spracheinstellungen",
+    selectLanguage: "Wählen Sie Ihre bevorzugte Sprache",
   }
 };

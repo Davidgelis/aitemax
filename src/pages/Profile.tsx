@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Lock, Workflow } from "lucide-react";
+import { ArrowLeft, Lock, Workflow, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -13,6 +13,13 @@ import { ChangeEmailForm } from "@/components/profile/ChangeEmailForm";
 import { avatarOptions } from "@/config/avatarConfig";
 import { useLanguage } from '@/context/LanguageContext';
 import { profileTranslations } from '@/translations/profile';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Profile = () => {
   const [username, setUsername] = useState("");
@@ -23,7 +30,7 @@ const Profile = () => {
   const [isMasterUser, setIsMasterUser] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { currentLanguage } = useLanguage();
+  const { languages, currentLanguage, setLanguage } = useLanguage();
   const t = profileTranslations[currentLanguage as keyof typeof profileTranslations] || profileTranslations.en;
 
   useEffect(() => {
