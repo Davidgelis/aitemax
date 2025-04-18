@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -308,7 +307,8 @@ serve(async (req) => {
       websiteData, 
       imageData,
       smartContextData,
-      inputTypes = {} // New field that tracks which input sources are available
+      inputTypes = {},
+      template = null  // Add template parameter
     } = await req.json();
     
     console.log(`Analyzing prompt with multiple input types`);
@@ -316,6 +316,15 @@ serve(async (req) => {
     console.log(`Primary toggle: ${primaryToggle || "None"}`);
     console.log(`Secondary toggle: ${secondaryToggle || "None"}`);
     
+    // Log template information if provided
+    if (template) {
+      console.log("Using template:", {
+        name: template.name,
+        pillarsCount: template.pillars?.length || 0
+      });
+      console.log("Template pillars:", template.pillars?.map(p => p.title).join(', '));
+    }
+
     // Log information about which input types are available
     console.log("Input types available:", {
       hasText: inputTypes.hasText === false ? false : true, // Default to true for backwards compatibility
@@ -490,7 +499,7 @@ Based on this combination, follow these guidelines:
     }
     
     // Create a system message with better context about our purpose
-    const systemMessage = createSystemPrompt(primaryToggle, secondaryToggle);
+    const systemMessage = createSystemPrompt(primaryToggle, secondaryToggle, template);
     
     // Get analysis from OpenAI with all context combined
     const analysisResult = await analyzePromptWithAI(
@@ -717,81 +726,4 @@ Based on this combination, follow these guidelines:
               prefillSource: "webscan"
             };
           }
-          if (q.text.toLowerCase().includes("tone") || q.text.toLowerCase().includes("style")) {
-            return {
-              ...q, 
-              answer: "The tone should match the website's professional presentation",
-              prefillSource: "webscan"
-            };
-          }
-          return q;
-        });
-      } else if (hasAdditionalContext && smartContextData && smartContextData.context) {
-        // Try to pre-fill based on smart context
-        contextQuestions = contextQuestions.map(q => {
-          if (q.text.toLowerCase().includes("context") || q.text.toLowerCase().includes("information")) {
-            const contextExcerpt = smartContextData.context.length > 100 ? 
-              smartContextData.context.substring(0, 100) + "..." : 
-              smartContextData.context;
-              
-            return {
-              ...q,
-              answer: `Based on the provided context: "${contextExcerpt}"`,
-              prefillSource: "smartcontext"
-            };
-          }
-          return q;
-        });
-      }
-      
-      // Generate variables with some pre-filling if we have context
-      let contextVariables = generateContextualVariablesForPrompt(promptText);
-      
-      if (hasAdditionalContext && websiteData && websiteData.url && websiteKeywords.length > 0) {
-        const topKeyword = websiteKeywords[0];
-        contextVariables = contextVariables.map(v => {
-          if (v.name.toLowerCase().includes("topic") || v.name.toLowerCase().includes("subject")) {
-            return {
-              ...v,
-              value: topKeyword,
-              prefillSource: "webscan"
-            };
-          }
-          return v;
-        });
-      }
-      
-      console.log(`Using ${contextQuestions.length} fallback questions due to extraction error`);
-      console.log(`Using ${contextVariables.length} fallback variables due to extraction error`);
-      
-      return new Response(JSON.stringify({
-        questions: contextQuestions,
-        variables: contextVariables,
-        masterCommand: `Analyze and enhance the prompt: "${promptText.substring(0, 100)}${promptText.length > 100 ? '...' : ''}"`,
-        enhancedPrompt: promptText,
-        error: extractionError.message,
-        usage: analysisResult.usage,
-        primaryToggle,
-        secondaryToggle,
-        hasAdditionalContext,
-        inputTypes
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-  } catch (error) {
-    console.error("Error in analyze-prompt function:", error);
-    
-    return new Response(JSON.stringify({ 
-      error: `Server error: ${error.message}`,
-      questions: [],
-      variables: [],
-      masterCommand: "",
-      enhancedPrompt: ""
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-});
+          if (q.text.toLowerCase().includes("tone") || q.text.toLowerCase().includes("

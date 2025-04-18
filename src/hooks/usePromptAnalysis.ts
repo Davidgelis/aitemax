@@ -2,6 +2,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
+import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 
 export const usePromptAnalysis = (
   promptText: string,
@@ -17,6 +18,7 @@ export const usePromptAnalysis = (
 ) => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState("");
+  const { getCurrentTemplate } = useTemplateManagement();
 
   const handleAnalyze = async (
     uploadedImages: any[] | null = null,
@@ -27,6 +29,9 @@ export const usePromptAnalysis = (
     setCurrentLoadingMessage("Analyzing your prompt with GPT-4.1...");
 
     try {
+      // Get the current template
+      const currentTemplate = getCurrentTemplate();
+
       // Add more robust input validation
       const inputTypes = {
         hasText: !!promptText,
@@ -57,7 +62,7 @@ export const usePromptAnalysis = (
           imageData: uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0 ? uploadedImages : null,
           smartContextData: smartContext || null,
           inputTypes,
-          model: "gpt-4.1" // Added model specification
+          template: currentTemplate  // Pass the template to the edge function
         },
       });
 

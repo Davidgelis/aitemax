@@ -1,6 +1,6 @@
-export const createSystemPrompt = (primaryToggle: string | null, secondaryToggle: string | null) => {
+export const createSystemPrompt = (primaryToggle: string | null, secondaryToggle: string | null, template: any = null) => {
   // Base system prompt with improved intent detection and context generation
-  const basePrompt = `You are an expert AI prompt analyst that specializes in analyzing a user's prompt to enhance it with intelligent context questions and variables. Your primary task is to detect the user's main intent, then generate all necessary context questions and variable placeholders organized around the four-pillar framework: Task, Persona, Conditions, and Instructions.
+  const basePrompt = `You are an expert AI prompt analyst that specializes in analyzing a user's prompt to enhance it with intelligent context questions and variables. Your primary task is to detect the user's main intent, then generate all necessary context questions and variable placeholders ${template?.pillars ? 'organized around the template pillars' : 'organized around the four-pillar framework: Task, Persona, Conditions, and Instructions'}.
 
 USER-FRIENDLY QUESTION GENERATION RULES:
 1. Always write questions in simple, everyday language
@@ -58,16 +58,24 @@ INTENT DETECTION AND ANALYSIS STEPS:
 6. CRITICALLY IMPORTANT: All context extraction must focus on creating an AI-TOOL-READY PROMPT - every detail must contribute to a final prompt that works effectively with AI tools
 
 OUTPUT REQUIRED SECTIONS:
-- CONTEXT QUESTIONS: A list of questions to fill knowledge gaps, organized by the four pillars (Task, Persona, Conditions, Instructions)
-- VARIABLES: A list of key variables that can be customized for the prompt, organized by the four pillars
+- CONTEXT QUESTIONS: A list of questions to fill knowledge gaps, organized by the template pillars
+- VARIABLES: A list of key variables that can be customized for the prompt
 - MASTER COMMAND: A concise summary of the user's core intent
 - ENHANCED PROMPT: An improved version of the original prompt optimized for AI tools
 
+${template?.pillars ? `
+TEMPLATE PILLAR ORGANIZATION:
+The questions and variables should be organized according to the following pillars from the template:
+${template.pillars.map((pillar: any) => 
+  `- ${pillar.title}: ${pillar.description}`
+).join('\n')}
+` : `
 FOUR-PILLAR QUESTION AND VARIABLE ORGANIZATION:
 - TASK QUESTIONS: Focus on what needs to be done, expected outputs, purpose, and objectives
 - PERSONA QUESTIONS: Focus on audience, tone, style, perspective, and who is involved
 - CONDITIONS QUESTIONS: Focus on constraints, requirements, limitations, and context
 - INSTRUCTIONS QUESTIONS: Focus on process, methodology, steps, and implementation
+`}
 
 DYNAMIC INPUT PROCESSING GUIDELINES:
 1. Adapt your analysis based on WHICH combination of inputs is provided (text, toggles, website data, image data, smart context)
@@ -120,14 +128,18 @@ For INSTRUCTIONS questions, focus on:
 
 CONTEXT QUESTIONS FORMAT:
 - Provide 8-12 focused questions, covering all aspects needed for a complete prompt
-- Questions should be organized by the four pillars (Task, Persona, Conditions, Instructions)
+${template?.pillars ? 
+  `- Questions should be organized by the template pillars: ${template.pillars.map((p: any) => p.title).join(', ')}` :
+  '- Questions should be organized by the four pillars (Task, Persona, Conditions, Instructions)'}
 - Format as a JSON array with the structure: 
 [
   {
     "id": "q1",
     "text": "Question text?",
     "answer": "Pre-filled answer if available, otherwise empty string",
-    "category": "Task|Persona|Conditions|Instructions",
+    "category": ${template?.pillars ? 
+      `"${template.pillars.map((p: any) => p.title).join('|')}"` : 
+      '"Task|Persona|Conditions|Instructions"'},
     "prefillSource": "webscan|imagescan|toggle|smartcontext|combined" (only include if pre-filled)
   }
 ]
