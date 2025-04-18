@@ -16,6 +16,23 @@ export const StepIndicator = ({
   const { currentLanguage } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
 
+  const getStepLabel = (step: number) => {
+    switch (step) {
+      case 1:
+        return t.steps.step1Label;
+      case 2:
+        return t.steps.step2Label;
+      case 3:
+        return t.steps.step3Label;
+      default:
+        return step.toString();
+    }
+  };
+
+  const getStepAriaLabel = (step: number) => {
+    return t.steps[`step${step}AriaLabel` as keyof typeof t.steps] || `${t.steps.step} ${step}`;
+  };
+
   return (
     <div className="mt-8 flex justify-center">
       <div className="flex items-center space-x-2 bg-[#f8f9fa] px-4 py-2 rounded-full">
@@ -26,7 +43,10 @@ export const StepIndicator = ({
               ? "bg-[#33fea6] text-black"
               : "text-[#545454] hover:bg-[#e5e7eb]"
           }`}
+          aria-label={getStepAriaLabel(1)}
+          aria-current={currentStep === 1 ? "step" : undefined}
           aria-disabled={isViewingSavedPrompt}
+          title={getStepLabel(1)}
         >
           1
         </button>
@@ -38,7 +58,10 @@ export const StepIndicator = ({
               ? "bg-[#33fea6] text-black"
               : "text-[#545454] hover:bg-[#e5e7eb]"
           }`}
+          aria-label={getStepAriaLabel(2)}
+          aria-current={currentStep === 2 ? "step" : undefined}
           aria-disabled={isViewingSavedPrompt}
+          title={getStepLabel(2)}
         >
           2
         </button>
@@ -50,6 +73,9 @@ export const StepIndicator = ({
               ? "bg-[#33fea6] text-black"
               : "text-[#545454] hover:bg-[#e5e7eb]"
           }`}
+          aria-label={getStepAriaLabel(3)}
+          aria-current={currentStep === 3 ? "step" : undefined}
+          title={getStepLabel(3)}
         >
           3
         </button>
