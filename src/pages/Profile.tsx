@@ -84,7 +84,7 @@ const Profile = () => {
       if (!user) {
         toast({
           title: "Error",
-          description: "User not authenticated",
+          description: t.errors.auth,
           variant: "destructive",
         });
         return;
@@ -94,7 +94,7 @@ const Profile = () => {
         .from("profiles")
         .update({ 
           username, 
-          avatar_url: avatarType 
+          avatar_url: avatarType,
         })
         .eq("id", user.id);
 
@@ -102,13 +102,13 @@ const Profile = () => {
 
       toast({
         title: "Success",
-        description: "Profile updated successfully",
+        description: t.success.profile,
       });
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({
         title: "Error",
-        description: "Failed to update profile",
+        description: t.errors.profile,
         variant: "destructive",
       });
     } finally {
@@ -141,6 +141,23 @@ const Profile = () => {
   const getSelectedAvatarSrc = () => {
     const selectedAvatar = avatarOptions.find(avatar => avatar.value === avatarType);
     return selectedAvatar?.src || avatarOptions[0].src;
+  };
+
+  const handleLanguageChange = async (value: string) => {
+    try {
+      await setLanguage(value);
+      toast({
+        title: "Success",
+        description: t.success.profile,
+      });
+    } catch (error) {
+      console.error("Error updating language:", error);
+      toast({
+        title: "Error",
+        description: t.errors.profile,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -236,7 +253,34 @@ const Profile = () => {
               </div>
             </div>
 
-            <Separator />
+            <Separator className="my-6" />
+
+            <div>
+              <h2 className="text-lg font-medium mb-4 text-[#545454]">{t.languagePreferences}</h2>
+              <div className="flex items-center gap-3 mb-4">
+                <Globe className="h-5 w-5 text-[#545454]" />
+                <Select
+                  value={currentLanguage}
+                  onValueChange={handleLanguageChange}
+                >
+                  <SelectTrigger className="w-[200px] border-gray-300">
+                    <SelectValue placeholder={t.selectLanguage} />
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    {languages.map((lang) => (
+                      <SelectItem key={lang.id} value={lang.id}>
+                        <span className="flex items-center gap-2">
+                          <span>{lang.flag_emoji}</span>
+                          <span>{lang.native_name}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Separator className="my-6" />
 
             <div>
               <h2 className="text-lg font-medium mb-4 text-[#545454]">{t.security}</h2>
@@ -250,7 +294,7 @@ const Profile = () => {
               </Button>
             </div>
 
-            <Separator />
+            <Separator className="my-6" />
 
             <div>
               <h2 className="text-lg font-medium mb-4 text-[#545454]">{t.changeEmail}</h2>
@@ -259,7 +303,7 @@ const Profile = () => {
 
             {isMasterUser && (
               <>
-                <Separator />
+                <Separator className="my-6" />
                 <div>
                   <h2 className="text-lg font-medium mb-4 text-[#545454]">{t.administrator}</h2>
                   <Button 
