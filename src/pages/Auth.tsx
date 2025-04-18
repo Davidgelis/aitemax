@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -9,6 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { useLanguage } from '@/context/LanguageContext';
+import { authTranslations } from '@/translations/auth';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -22,6 +23,8 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { currentLanguage } = useLanguage();
+  const t = authTranslations[currentLanguage as keyof typeof authTranslations] || authTranslations.en;
   
   useEffect(() => {
     if (session) {
@@ -56,14 +59,14 @@ const Auth = () => {
       } else {
         // Check username availability before signup
         if (!username) {
-          setUsernameError('Username is required');
+          setUsernameError(t.errors.usernameRequired);
           setLoading(false);
           return;
         }
 
         const isAvailable = await checkUsernameAvailability(username);
         if (!isAvailable) {
-          setUsernameError('Username is already taken');
+          setUsernameError(t.errors.usernameTaken);
           setLoading(false);
           return;
         }
@@ -106,14 +109,14 @@ const Auth = () => {
         </div>
         
         <h2 className="text-2xl font-semibold text-center mb-6 text-[#545454]">
-          {isLogin ? 'Login' : 'Sign Up'}
+          {isLogin ? t.login : t.signUp}
         </h2>
         
         <form onSubmit={handleAuth} className="space-y-4">
           <div>
             <Input
               type="email"
-              placeholder="Email"
+              placeholder={t.email}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -125,7 +128,7 @@ const Auth = () => {
             <div>
               <Input
                 type="text"
-                placeholder="Username"
+                placeholder={t.username}
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
@@ -143,7 +146,7 @@ const Auth = () => {
           <div>
             <Input
               type="password"
-              placeholder="Password"
+              placeholder={t.password}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -159,7 +162,7 @@ const Auth = () => {
                 onCheckedChange={(checked) => setRememberMe(checked === true)}
               />
               <Label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
-                Keep me signed in
+                {t.keepSignedIn}
               </Label>
             </div>
           )}
@@ -169,7 +172,7 @@ const Auth = () => {
             className="w-full aurora-button" 
             disabled={loading}
           >
-            {loading ? 'Processing...' : isLogin ? 'Login' : 'Sign Up'}
+            {loading ? t.processing : isLogin ? t.loginCta : t.signUpCta}
           </Button>
         </form>
         
@@ -182,7 +185,7 @@ const Auth = () => {
             }}
             className="text-sm text-[#545454] hover:underline"
           >
-            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Login"}
+            {isLogin ? t.switchToSignUp : t.switchToLogin}
           </button>
         </div>
       </div>
