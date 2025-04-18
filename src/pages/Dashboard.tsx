@@ -11,44 +11,8 @@ import XPanelButton from "@/components/dashboard/XPanelButton";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Save, RefreshCw, Clock } from "lucide-react";
-
-const fallbackModels = [
-  {
-    name: "GPT-4o",
-    provider: "OpenAI",
-    description: "OpenAI's most advanced multimodal model combining vision and language capabilities.",
-    strengths: ["Multimodal capabilities", "State-of-the-art performance", "Handles complex reasoning", "Faster processing than GPT-4"],
-    limitations: ["May produce convincing but incorrect information", "Limited knowledge cutoff", "Not specialized for specific domains"]
-  },
-  {
-    name: "Claude 3 Opus",
-    provider: "Anthropic",
-    description: "Anthropic's most capable model with excellent performance across reasoning, math, and coding tasks.",
-    strengths: ["Strong reasoning abilities", "Code generation", "Less tendency to hallucinate", "Good at following instructions"],
-    limitations: ["Higher latency than smaller models", "Less widely available than some competitors", "Limited context window"]
-  },
-  {
-    name: "Llama 3",
-    provider: "Meta",
-    description: "Meta's latest open-source large language model with improved reasoning and instruction following.",
-    strengths: ["Open-source architecture", "Strong performance for its size", "Active community development", "Multiple size variants"],
-    limitations: ["Smaller context window than some competitors", "Less training data than closed models", "Less training data than closed models", "May require more explicit prompting"]
-  },
-  {
-    name: "GPT-4o mini",
-    provider: "OpenAI",
-    description: "A smaller, faster, and more cost-effective version of GPT-4o.",
-    strengths: ["Faster response time", "Lower cost", "Good balance of performance and efficiency", "Multimodal capabilities"],
-    limitations: ["Less capable than full GPT-4o on complex tasks", "Reduced reasoning ability compared to larger models", "Limited context window"]
-  },
-  {
-    name: "Gemini 1.5 Pro",
-    provider: "Google",
-    description: "Google's advanced multimodal model with extended context window and improved reasoning.",
-    strengths: ["Very large context window", "Strong multimodal understanding", "Good reasoning capabilities", "Efficient processing"],
-    limitations: ["May struggle with certain specialized domains", "Potential for generating incorrect information", "Less tested than some alternatives"]
-  }
-];
+import { useLanguage } from '@/context/LanguageContext';
+import { dashboardTranslations } from '@/translations/dashboard';
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -293,6 +257,10 @@ const Dashboard = () => {
     }
   }, [promptState]);
 
+  const { currentLanguage } = useLanguage();
+  
+  const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
@@ -306,20 +274,20 @@ const Dashboard = () => {
                   {promptState.isDirty && (
                     <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 animate-pulse flex gap-1">
                       <AlertCircle className="h-3 w-3" />
-                      <span>Unsaved changes</span>
+                      <span>{t.userActions.unsavedChanges}</span>
                     </Badge>
                   )}
                   
                   {promptState.isSaving && (
                     <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex gap-1">
                       <RefreshCw className="h-3 w-3 animate-spin" />
-                      <span>Saving...</span>
+                      <span>{t.userActions.saving}</span>
                     </Badge>
                   )}
                   
                   {!promptState.isDirty && !promptState.isSaving && (
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex gap-1">
-                      <span>All changes saved</span>
+                      <span>{t.userActions.allChangesSaved}</span>
                     </Badge>
                   )}
                 </div>
@@ -329,12 +297,12 @@ const Dashboard = () => {
                     <div className="text-xs flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       <span className={isSessionAboutToExpire() ? "text-red-500" : "text-muted-foreground"}>
-                        Session: {sessionTimer}
+                        {t.userActions.session}: {sessionTimer}
                       </span>
                       <button 
                         onClick={refreshSession}
                         className="text-xs text-blue-500 hover:text-blue-700 transition-colors p-1 rounded hover:bg-blue-50"
-                        title="Refresh session"
+                        title={t.userActions.refreshSession}
                       >
                         <RefreshCw className="h-3 w-3" />
                       </button>
@@ -347,7 +315,7 @@ const Dashboard = () => {
                       className="text-xs flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded transition-colors"
                     >
                       <Save className="h-3 w-3" />
-                      Save draft
+                      {t.userActions.saveDraft}
                     </button>
                   )}
                 </div>
