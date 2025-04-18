@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
@@ -726,4 +727,41 @@ Based on this combination, follow these guidelines:
               prefillSource: "webscan"
             };
           }
-          if (q.text.toLowerCase().includes("tone") || q.text.toLowerCase().includes("
+          // Fix here: Complete the string parameters in includes(), instead of empty string
+          if (q.text.toLowerCase().includes("tone") || q.text.toLowerCase().includes("style")) {
+            return {
+              ...q,
+              answer: "The website tone appears to be professional and informative based on the content analysis.",
+              prefillSource: "webscan"
+            };
+          }
+          return q;
+        });
+      }
+      
+      // Generate some generic variables
+      const contextVariables = generateContextualVariablesForPrompt(promptText);
+      
+      return new Response(JSON.stringify({
+        questions: contextQuestions,
+        variables: contextVariables,
+        masterCommand: `Generate content based on: "${promptText}"`,
+        enhancedPrompt: promptText,
+        error: extractionError.message,
+        primaryToggle,
+        secondaryToggle,
+        hasAdditionalContext,
+        inputTypes
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  } catch (err) {
+    console.error("Error in analyze-prompt function:", err);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
