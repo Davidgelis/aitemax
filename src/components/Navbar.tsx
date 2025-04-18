@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { LayoutDashboard, LayoutPanel, HelpCircle } from "lucide-react";
+import { LayoutDashboard, LayoutPanelTop, HelpCircle } from "lucide-react";
 
 const Navbar = () => {
   const { user } = useAuth();
@@ -34,7 +34,7 @@ const Navbar = () => {
               to="/x-panel" 
               className="flex items-center space-x-2 text-gray-700 hover:text-[#33fea6] transition-colors"
             >
-              <LayoutPanel size={18} />
+              <LayoutPanelTop size={18} />
               <span>Panel</span>
             </Link>
             <Link 
