@@ -1,4 +1,5 @@
 import { Toggle, Variable } from "./types";
+import { TemplateType } from "@/components/x-templates/XTemplateCard";
 
 export const defaultVariables: Variable[] = [
   {
@@ -149,7 +150,7 @@ export const secondaryToggles: Toggle[] = [
 
 export const PROTECTED_TEMPLATE_IDS = ["default"];
 
-export const defaultTemplates: Template[] = [
+export const defaultTemplates: TemplateType[] = [
   {
     id: "default",
     name: "Aitema X Framework", 
