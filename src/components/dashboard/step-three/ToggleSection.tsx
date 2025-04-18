@@ -1,24 +1,25 @@
+
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { dashboardTranslations } from "@/translations/dashboard";
+import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 
 interface ToggleSectionProps {
   refreshJson?: () => void;
   isRefreshing?: boolean;
   showRefreshButton?: boolean;
-  template?: any; // Add template prop
 }
 
 export const ToggleSection = ({
   refreshJson,
   isRefreshing = false,
-  showRefreshButton = false,
-  template
+  showRefreshButton = false
 }: ToggleSectionProps) => {
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const { currentLanguage } = useLanguage();
+  const { currentTemplate } = useTemplateManagement();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
   
   // Handle refresh with debounce to prevent multiple clicks
@@ -56,9 +57,9 @@ export const ToggleSection = ({
           <span className="sr-only">{t.steps.toggleSections.tryAgain}</span>
         </Button>
       )}
-      {template && (
+      {currentTemplate && (
         <div className="text-sm text-muted-foreground">
-          Using template: {template.name}
+          Using template: {currentTemplate.name}
         </div>
       )}
     </div>

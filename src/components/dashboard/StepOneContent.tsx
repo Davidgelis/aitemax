@@ -1,19 +1,17 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
 import { WebScanner } from "@/components/dashboard/WebScanner";
 import { SmartContext } from "@/components/dashboard/SmartContext";
-import { primaryToggles, secondaryToggles } from "./constants";
+import { TemplateSelector } from "./TemplateSelector";
 import { AIModel, UploadedImage } from "./types";
-import { Switch } from "@/components/ui/switch";
-import { ImageUp, HelpCircle } from "lucide-react";
+import { ImageUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "./ImageUploader";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
-import { ToggleSection } from "./ToggleSection";
 
 interface StepOneContentProps {
   promptText: string;
@@ -192,76 +190,8 @@ export const StepOneContent = ({
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {primaryToggles.map(toggle => (
-          <div 
-            key={toggle.id}
-            className="border rounded-lg p-3 flex justify-between items-center"
-            data-variant="primary"
-          >
-            <div className="text-[#545454] text-sm">
-              {t.toggles.primary[toggle.id as keyof typeof t.toggles.primary] || toggle.label}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch 
-                checked={selectedPrimary === toggle.id}
-                onCheckedChange={() => handlePrimaryToggle(toggle.id)}
-                variant="primary"  
-              />
-              <TooltipProvider>
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <button 
-                      className="tooltip-trigger text-[#545454] opacity-70 hover:opacity-100"
-                      aria-label={`${t.toggles.learnMore} ${t.toggles.primary[toggle.id as keyof typeof t.toggles.primary] || toggle.label}`}
-                    >
-                      <HelpCircle className="h-4 w-4 tooltip-icon" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs text-xs">
-                    {toggle.definition}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {secondaryToggles.map(toggle => (
-          <div 
-            key={toggle.id}
-            className="border rounded-lg p-3 flex justify-between items-center"
-            data-variant="secondary"
-          >
-            <div className="text-[#545454] text-sm">
-              {t.toggles.secondary[toggle.id as keyof typeof t.toggles.secondary] || toggle.label}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch 
-                checked={selectedSecondary === toggle.id}
-                onCheckedChange={() => handleSecondaryToggle(toggle.id)}
-                variant="secondary"
-              />
-              <TooltipProvider>
-                <Tooltip delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <button 
-                      className="tooltip-trigger text-[#545454] opacity-70 hover:opacity-100"
-                      aria-label={`${t.toggles.learnMore} ${t.toggles.secondary[toggle.id as keyof typeof t.toggles.secondary] || toggle.label}`}
-                    >
-                      <HelpCircle className="h-4 w-4 tooltip-icon" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs text-xs">
-                    {toggle.definition}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
-        ))}
+      <div className="mb-6">
+        <TemplateSelector />
       </div>
 
       <div className="mb-6">

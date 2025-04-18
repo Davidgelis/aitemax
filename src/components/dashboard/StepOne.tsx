@@ -1,7 +1,7 @@
+
 import { PromptEditor } from "./PromptEditor";
 import { TemplateSelector } from "./TemplateSelector";
-import { TemplateType } from "../x-templates/XTemplateCard";
-import { useState, useEffect } from "react";
+import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 
 interface StepOneProps {
   promptText: string;
@@ -24,13 +24,8 @@ export const StepOne = ({
   onAnalyze,
   isLoading
 }: StepOneProps) => {
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType | null>(null);
+  const { currentTemplate } = useTemplateManagement();
   
-  // Initialize with the default template
-  useEffect(() => {
-    // This is handled by the TemplateSelector component now
-  }, []);
-
   return (
     <>
       <div className="mb-6">
@@ -44,7 +39,7 @@ export const StepOne = ({
         selectedPrimary={selectedPrimary}
         selectedSecondary={selectedSecondary}
         isLoading={isLoading}
-        maxLength={selectedTemplate?.characterLimit || 3000}
+        maxLength={currentTemplate?.characterLimit || 3000}
       />
     </>
   );

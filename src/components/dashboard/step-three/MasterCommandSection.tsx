@@ -1,5 +1,5 @@
 
-import { Textarea } from "@/components/ui/textarea";
+import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 
 interface MasterCommandSectionProps {
   masterCommand: string;
@@ -12,6 +12,16 @@ export const MasterCommandSection = ({
   setMasterCommand,
   handleRegenerate
 }: MasterCommandSectionProps) => {
-  // This component will be empty as we're removing both the input and button
-  return null;
+  const { currentTemplate } = useTemplateManagement();
+  
+  // This component will display template info instead of master command
+  return (
+    <div className="mb-4">
+      {currentTemplate && (
+        <div className="text-sm text-muted-foreground">
+          Template: {currentTemplate.name}
+        </div>
+      )}
+    </div>
+  );
 };
