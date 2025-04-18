@@ -24,7 +24,6 @@ export const dashboardTranslations = {
       smartContextAdded: "Smart Context Added",
       promptTextPlaceholder: "Enter your prompt here...",
       
-      // Adding missing step properties
       step1: "Step 1: Create Prompt",
       step2: "Step 2: Answer Questions",
       step3: "Step 3: Final Prompt",
@@ -49,6 +48,29 @@ export const dashboardTranslations = {
       toggleSections: {
         jsonLoadingTitle: "Reload JSON structure",
         tryAgain: "Try again",
+        jsonLoadingSubtitle: "Processing your prompt...",
+        jsonError: "Error generating JSON:",
+        createVariable: "Create Variable",
+        createVariableMode: "Select text segments to create a variable",
+        exitVariableMode: "Exit variable creation mode",
+        variableCount: "Create Variable",
+        editPrompt: "Edit Prompt",
+        finalPromptTitle: "Final Prompt"
+      },
+      
+      variableActions: {
+        selectionAdded: "Selection added",
+        selectionError: "Selection error",
+        noSelection: "No selection",
+        limitReached: "Variable limit reached",
+        created: "Variable created",
+        deleted: "Variable deleted"
+      },
+      
+      promptActions: {
+        cancel: "Cancel",
+        saveChanges: "Save Changes",
+        changesSaved: "Changes saved"
       }
     },
     sidebar: {
@@ -76,6 +98,12 @@ export const dashboardTranslations = {
     toggles: {
       jsonLoadingTitle: "Reload JSON structure",
       tryAgain: "Try again",
+      primary: {
+        // Add any primary toggles here
+      },
+      secondary: {
+        // Add any secondary toggles here
+      }
     },
     backToDashboard: "Back to Dashboard"
   },
@@ -98,12 +126,11 @@ export const dashboardTranslations = {
       saveDraft: "Guardar Borrador",
     },
     steps: {
-      imageSmartScan: "Análisis Inteligente de Imagen",
+      imageSmartScan: "Image Smart Scan",
       uploadedImages: "Imágenes Subidas",
       smartContextAdded: "Contexto Inteligente Añadido",
       promptTextPlaceholder: "Introduce tu prompt aquí...",
       
-      // Adding missing step properties
       step1: "Paso 1: Crear Prompt",
       step2: "Paso 2: Responder Preguntas",
       step3: "Paso 3: Prompt Final",
@@ -128,6 +155,29 @@ export const dashboardTranslations = {
       toggleSections: {
         jsonLoadingTitle: "Recargar estructura JSON",
         tryAgain: "Intentar de nuevo",
+        jsonLoadingSubtitle: "Procesando tu prompt...",
+        jsonError: "Error generando JSON:",
+        createVariable: "Crear Variable",
+        createVariableMode: "Selecciona segmentos de texto para crear una variable",
+        exitVariableMode: "Salir del modo de creación de variables",
+        variableCount: "Crear Variable",
+        editPrompt: "Editar Prompt",
+        finalPromptTitle: "Prompt Final"
+      },
+      
+      variableActions: {
+        selectionAdded: "Selección añadida",
+        selectionError: "Error de selección",
+        noSelection: "Sin selección",
+        limitReached: "Límite de variables alcanzado",
+        created: "Variable creada",
+        deleted: "Variable eliminada"
+      },
+      
+      promptActions: {
+        cancel: "Cancelar",
+        saveChanges: "Guardar Cambios",
+        changesSaved: "Cambios guardados"
       }
     },
     sidebar: {
@@ -155,6 +205,12 @@ export const dashboardTranslations = {
     toggles: {
       jsonLoadingTitle: "Recargar estructura JSON",
       tryAgain: "Intentar de nuevo",
+      primary: {
+        // Add any primary toggles here
+      },
+      secondary: {
+        // Add any secondary toggles here
+      }
     },
     backToDashboard: "Volver al Dashboard"
   },
@@ -177,12 +233,11 @@ export const dashboardTranslations = {
       saveDraft: "Entwurf speichern",
     },
     steps: {
-      imageSmartScan: "Intelligente Bildanalyse",
+      imageSmartScan: "Image Smart Scan",
       uploadedImages: "Hochgeladene Bilder",
       smartContextAdded: "Intelligenter Kontext Hinzugefügt",
       promptTextPlaceholder: "Gib hier deinen Prompt ein...",
       
-      // Adding missing step properties
       step1: "Schritt 1: Prompt Erstellen",
       step2: "Schritt 2: Fragen Beantworten",
       step3: "Schritt 3: Endgültiger Prompt",
@@ -207,6 +262,29 @@ export const dashboardTranslations = {
       toggleSections: {
         jsonLoadingTitle: "JSON-Struktur neu laden",
         tryAgain: "Erneut versuchen",
+        jsonLoadingSubtitle: "Verarbeite deinen Prompt...",
+        jsonError: "Fehler beim Generieren von JSON:",
+        createVariable: "Variable erstellen",
+        createVariableMode: "Wähle Textsegmente aus, um eine Variable zu erstellen",
+        exitVariableMode: "Variablenerstellungsmodus verlassen",
+        variableCount: "Variable erstellen",
+        editPrompt: "Prompt bearbeiten",
+        finalPromptTitle: "Endgültiger Prompt"
+      },
+      
+      variableActions: {
+        selectionAdded: "Auswahl hinzugefügt",
+        selectionError: "Auswahlsfehler",
+        noSelection: "Keine Auswahl",
+        limitReached: "Variablenlimit erreicht",
+        created: "Variable erstellt",
+        deleted: "Variable gelöscht"
+      },
+      
+      promptActions: {
+        cancel: "Abbrechen",
+        saveChanges: "Änderungen speichern",
+        changesSaved: "Änderungen gespeichert"
       }
     },
     sidebar: {
@@ -234,6 +312,12 @@ export const dashboardTranslations = {
     toggles: {
       jsonLoadingTitle: "JSON-Struktur neu laden",
       tryAgain: "Erneut versuchen",
+      primary: {
+        // Add any primary toggles here
+      },
+      secondary: {
+        // Add any secondary toggles here
+      }
     },
     backToDashboard: "Zurück zum Dashboard"
   },
