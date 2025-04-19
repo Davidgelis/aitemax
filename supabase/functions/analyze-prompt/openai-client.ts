@@ -1,5 +1,3 @@
-// OpenAI API client for prompt analysis
-
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -22,28 +20,36 @@ export async function analyzePromptWithAI(
       role: 'system', 
       content: `${systemMessage}
 
-CRITICAL CONTEXT HANDLING:
-1. Always prioritize context from smart features (website, image, or smart context) over the base prompt
-2. Extract specific, detailed information from the context to pre-fill answers and variables
-3. Use "PRE-FILLED:" prefix for all pre-filled content
-4. Ensure pre-filled answers are 3-5 sentences long with concrete details
-5. Keep variable values concise (1-4 words) but specific
-6. Only pre-fill information that directly relates to the prompt's intent`
+SMART CONTEXT AND PRE-FILLING RULES:
+1. Generate comprehensive questions for ALL aspects of the prompt/intent
+2. Create variables for customizable elements
+3. When smart context is provided:
+   - Use it to pre-fill answers with DETAILED paragraphs (3-5 sentences)
+   - Extract specific values for variables (1-4 words)
+   - Mark all pre-filled content with "PRE-FILLED:" prefix
+4. When user's prompt contains specific details:
+   - Incorporate these details into pre-filled answers
+   - Use them to pre-fill relevant variables
+5. Maintain consistency between questions and variables`
     }
   ];
   
-  let enhancedUserPrompt = `Analyze this prompt: "${promptText}"
+  let enhancedUserPrompt = `Analyze this prompt/intent: "${promptText}"
 
-FIRST, DEEPLY ANALYZE the main intent and requirements.
+ANALYSIS STEPS:
+1. Generate comprehensive questions about:
+   - Core requirements and specifications
+   - Style and tone preferences
+   - Technical constraints
+   - Contextual requirements
+2. Create variables for customizable elements
+3. Pre-fill answers using context from:
+   - Smart button data (detailed paragraphs)
+   - User's input (specific details)
+   - Image analysis (if provided)
+4. Extract concise variable values from context`;
 
-CRITICAL PRE-FILLING RULES:
-1. Pre-fill with DETAILED, SPECIFIC information from context
-2. Mark ALL pre-filled content with "PRE-FILLED:" prefix
-3. Leave questions blank if they cannot be confidently answered
-4. Ensure pre-filled answers are concrete and specific
-5. Generate relevant variables based on identified requirements`;
-
-  // Enhanced context handling with better logging
+  // Enhanced context handling
   if (imageBase64) {
     console.log("Processing image analysis with context");
     // Extract image context instructions if present
@@ -91,19 +97,21 @@ WEBSITE CONTENT PRE-FILLING RULES:
 5. Generate additional questions for missing context`
     });
   } else if (additionalContext.includes("SMART CONTEXT")) {
-    console.log("Processing smart context");
+    console.log("Processing smart context with enhanced pre-filling");
     messages.push({
       role: 'user',
       content: `${enhancedUserPrompt}
 
 ${additionalContext}
 
-SMART CONTEXT PRE-FILLING RULES:
-1. Extract SPECIFIC information from the provided context
-2. Pre-fill questions with detailed context information (3-5 sentences)
-3. Create and pre-fill variables based on context data
-4. Mark all pre-filled content with "PRE-FILLED:" prefix
-5. Generate additional questions for missing information`
+SMART CONTEXT PRE-FILLING INSTRUCTIONS:
+1. First, generate ALL possible relevant questions
+2. Then, use the smart context to:
+   - Write detailed, multi-sentence answers for relevant questions
+   - Extract specific values for variables (1-4 words)
+   - Mark all pre-filled content with "PRE-FILLED:" prefix
+3. Finally, incorporate any specific details from the user's prompt
+4. Ensure consistency between questions and variables`
     });
   } else {
     messages.push({
@@ -155,6 +163,7 @@ SMART CONTEXT PRE-FILLING RULES:
       content: data.choices[0].message.content,
       usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
     };
+    
   } catch (error) {
     console.error("Error calling OpenAI API:", error);
     throw error;

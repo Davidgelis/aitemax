@@ -1,107 +1,48 @@
 import { Question, Variable } from '../types.ts';
 
 export function extractQuestions(aiResponse: string, originalPrompt: string): Question[] {
-  console.log("Extracting questions from AI response, length:", aiResponse.length);
+  console.log("Extracting questions with enhanced pre-fill detection");
   
   try {
     const questions: Question[] = [];
     
-    // Enhanced regex to better capture pre-filled content
+    // Enhanced regex to better capture pre-filled content and handle categories
     const pillarSectionRegex = /### ([^:]+) Questions:\s*([\s\S]*?)(?=###|$)/g;
     let pillarMatch;
-    let foundPillarQuestions = false;
     
     while ((pillarMatch = pillarSectionRegex.exec(aiResponse)) !== null) {
       const category = pillarMatch[1].trim();
       const questionsText = pillarMatch[2].trim();
       
-      console.log(`Found pillar section: ${category} with content length: ${questionsText.length}`);
+      // Split into individual question blocks
+      const questionBlocks = questionsText.split(/(?=\d+\.|\n\s*\n)/).filter(block => block.trim());
       
-      // Enhanced pre-filled answer detection with better pattern matching
-      const questionLines = questionsText
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line && !line.startsWith('['));
-      
-      questionLines.forEach(questionText => {
-        if (questionText.trim()) {
-          // Improved pre-filled detection with more robust regex
-          const prefillMatch = questionText.match(/(.*?)(?:PRE-FILLED:|$)([\s\S]*)/i);
-          
-          if (prefillMatch) {
-            const questionContent = prefillMatch[1].trim();
-            const preFilledAnswer = prefillMatch[2] ? prefillMatch[2].trim() : '';
-            
-            questions.push({
-              id: `q-${questions.length + 1}`,
-              text: questionContent,
-              answer: preFilledAnswer,
-              isRelevant: preFilledAnswer ? true : null,
-              category
-            });
-            
-            console.log(`Added ${preFilledAnswer ? 'pre-filled' : 'empty'} question under ${category}:`, {
-              text: questionContent.substring(0, 50),
-              answerLength: preFilledAnswer.length
-            });
-          }
-        }
-      });
-      
-      foundPillarQuestions = true;
-    }
-    
-    // If no pillar-specific questions found, look for general questions
-    if (!foundPillarQuestions) {
-      console.log("No pillar-specific questions found, looking for general questions");
-      const generalQuestionsRegex = /### Questions:?\s*([\s\S]*?)(?=###|$)/i;
-      const questionsMatch = aiResponse.match(generalQuestionsRegex);
-      
-      if (questionsMatch && questionsMatch[1].trim()) {
-        const questionLines = questionsMatch[1]
-          .split('\n')
-          .map(line => line.trim())
-          .filter(line => line && !line.startsWith('['));
+      questionBlocks.forEach(block => {
+        const lines = block.trim().split('\n');
+        let questionText = '';
+        let answer = '';
+        let isPreFilled = false;
         
-        questionLines.forEach(questionText => {
-          if (questionText.trim()) {
-            // Check for pre-filled answers in general questions
-            const prefillMatch = questionText.match(/(.*?)PRE-FILLED:\s*([\s\S]*)/i);
-            
-            if (prefillMatch) {
-              questions.push({
-                id: `q-${questions.length + 1}`,
-                text: prefillMatch[1].trim(),
-                answer: prefillMatch[2].trim(),
-                isRelevant: true,
-                category: "General"
-              });
-            } else {
-              questions.push({
-                id: `q-${questions.length + 1}`,
-                text: questionText.trim(),
-                answer: "",
-                isRelevant: null,
-                category: "General"
-              });
-            }
+        lines.forEach(line => {
+          if (line.includes('PRE-FILLED:')) {
+            isPreFilled = true;
+            answer = line.split('PRE-FILLED:')[1].trim();
+          } else if (!line.startsWith('[') && line.trim()) {
+            questionText = line.trim();
           }
         });
-      }
+        
+        if (questionText || answer) {
+          questions.push({
+            id: `q-${questions.length + 1}`,
+            text: questionText,
+            answer: answer,
+            isRelevant: isPreFilled ? true : null,
+            category
+          });
+        }
+      });
     }
-    
-    // Log the results
-    const questionsByCategory = questions.reduce((acc: any, q) => {
-      acc[q.category] = (acc[q.category] || 0) + 1;
-      return acc;
-    }, {});
-    
-    const preFilledCount = questions.filter(q => q.answer).length;
-    console.log("Extracted questions summary:", {
-      total: questions.length,
-      preFilled: preFilledCount,
-      byCategory: questionsByCategory
-    });
     
     return questions;
   } catch (error) {
@@ -111,12 +52,12 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
 }
 
 export function extractVariables(aiResponse: string, originalPrompt: string): Variable[] {
-  console.log("Extracting variables from AI response...");
+  console.log("Extracting variables with enhanced detection");
   
   try {
     const variables: Variable[] = [];
     
-    // Enhanced regex to better capture variables sections with pre-filled values
+    // Enhanced regex to better capture variables and their values
     const variablesSectionRegex = /### Variables(?:\s+for\s+([^:]+))?:\s*([\s\S]*?)(?=###|$)/gi;
     let match;
     
@@ -126,40 +67,31 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
       
       if (!variablesText) continue;
       
-      console.log(`Found variables section for category: ${category}`);
+      // Split into individual variable entries
+      const variableEntries = variablesText.split(/\n(?=\w)/).filter(entry => entry.trim());
       
-      // Improved variable line parsing with better pre-filled detection
-      const variableLines = variablesText.split('\n')
-        .map(line => line.trim())
-        .filter(line => line && !line.startsWith('-'));
-      
-      variableLines.forEach(line => {
-        // Enhanced pre-filled detection for variables
-        const varMatch = line.match(/([^:]+):\s*([^(PRE-FILLED)]+)(?:PRE-FILLED:\s*(.+))?/i);
+      variableEntries.forEach(entry => {
+        // Enhanced regex to capture name, description, and pre-filled value
+        const varMatch = entry.match(/([^:]+):\s*([^(PRE-FILLED)]+)(?:PRE-FILLED:\s*(.+))?/i);
         
         if (varMatch) {
           const name = varMatch[1].trim();
           const description = varMatch[2]?.trim() || '';
           const preFilledValue = varMatch[3]?.trim() || '';
           
-          variables.push({
-            id: `v-${variables.length + 1}`,
-            name,
-            value: preFilledValue,
-            isRelevant: preFilledValue ? true : null,
-            category,
-            code: `VAR_${variables.length + 1}`
-          });
-          
-          console.log(`Added variable: ${name} under ${category}${preFilledValue ? ' (pre-filled)' : ''}`);
+          if (name) {
+            variables.push({
+              id: `v-${variables.length + 1}`,
+              name,
+              value: preFilledValue,
+              isRelevant: preFilledValue ? true : null,
+              category,
+              code: `VAR_${variables.length + 1}`
+            });
+          }
         }
       });
     }
-    
-    console.log(`Extracted ${variables.length} variables:`, {
-      preFilledCount: variables.filter(v => v.value).length,
-      categories: [...new Set(variables.map(v => v.category))]
-    });
     
     return variables;
   } catch (error) {
