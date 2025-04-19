@@ -6,26 +6,28 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
   try {
     const questions: Question[] = [];
     
-    // First try to extract pillar-specific questions
-    const pillarRegex = /Questions for ([^:]+):\s*([\s\S]*?)(?=\n\n|Variables|$)/gi;
+    // Extract questions from pillar sections first
+    const pillarSectionRegex = /### ([^:]+) Questions:\s*([\s\S]*?)(?=###|$)/g;
     let pillarMatch;
     let foundPillarQuestions = false;
     
-    while ((pillarMatch = pillarRegex.exec(aiResponse)) !== null) {
+    while ((pillarMatch = pillarSectionRegex.exec(aiResponse)) !== null) {
       const category = pillarMatch[1].trim();
       const questionsText = pillarMatch[2].trim();
       
-      // Parse questions for this pillar - split by newlines and clean up
-      const questionItems = questionsText
-        .split('\n')
-        .map(q => q.trim())
-        .filter(q => q && !q.startsWith('-')); // Filter out bullet points
+      console.log(`Found pillar section: ${category}`);
       
-      questionItems.forEach(item => {
-        if (item.trim()) {
+      // Parse questions for this pillar
+      const questionLines = questionsText
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('-') && !line.startsWith('['));
+      
+      questionLines.forEach(questionText => {
+        if (questionText.trim()) {
           questions.push({
             id: `q-${questions.length + 1}`,
-            text: item.trim(),
+            text: questionText.trim(),
             answer: "",
             isRelevant: null,
             category
@@ -36,22 +38,23 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       foundPillarQuestions = true;
     }
     
-    // If no pillar-specific questions found, try general questions section
+    // If no pillar-specific questions found, look for general questions
     if (!foundPillarQuestions) {
-      const generalQuestionsRegex = /### Questions:?([\s\S]*?)(?=###|$)/i;
+      console.log("No pillar-specific questions found, looking for general questions");
+      const generalQuestionsRegex = /### Questions:?\s*([\s\S]*?)(?=###|$)/i;
       const questionsMatch = aiResponse.match(generalQuestionsRegex);
       
       if (questionsMatch && questionsMatch[1].trim()) {
-        const questionItems = questionsMatch[1]
+        const questionLines = questionsMatch[1]
           .split('\n')
-          .map(q => q.trim())
-          .filter(q => q && !q.startsWith('-')); // Filter out bullet points
+          .map(line => line.trim())
+          .filter(line => line && !line.startsWith('-') && !line.startsWith('['));
         
-        questionItems.forEach(item => {
-          if (item.trim()) {
+        questionLines.forEach(questionText => {
+          if (questionText.trim()) {
             questions.push({
               id: `q-${questions.length + 1}`,
-              text: item.trim(),
+              text: questionText.trim(),
               answer: "",
               isRelevant: null,
               category: "General"
@@ -61,7 +64,13 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       }
     }
     
-    console.log("Extracted questions:", questions.length);
+    console.log("Extracted questions by category:", 
+      questions.reduce((acc: any, q) => {
+        acc[q.category] = (acc[q.category] || 0) + 1;
+        return acc;
+      }, {})
+    );
+    
     return questions;
   } catch (error) {
     console.error("Error extracting questions:", error);

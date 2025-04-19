@@ -10,7 +10,7 @@ INSTRUCTIONS:
 
 OUTPUT FORMAT:
 ### Questions:
-[List questions without any prefixes or markers, one per line]
+[Questions organized by pillar sections]
 
 ### Variables:
 [List variables in plain text format: Name: Description]
@@ -23,7 +23,7 @@ OUTPUT FORMAT:
 [Enhanced version of the prompt incorporating best practices]
 
 IMPORTANT RULES:
-- Questions should be clear and direct, without any prefixes or markers
+- Format questions under clear pillar sections
 - Variables should be in plain text without code formatting
 - Only pre-fill variable values when background info is provided
 - Keep the master command concise and focused
@@ -41,32 +41,23 @@ export const createSystemPrompt = (primaryToggle: string | null, secondaryToggle
 
   // Generate pillar-specific instructions if template exists
   const pillarSpecificInstructions = template?.pillars ? `
-PILLAR-SPECIFIC INSTRUCTIONS:
+PILLAR SECTIONS:
 ${template.pillars.map((pillar: any) => `
-For "${pillar.title}" pillar (${pillar.description}):
-- Generate 2-3 specific questions exploring this pillar's context
-- Create 1-2 variables that capture key ${pillar.title} requirements
-- Ensure all questions and variables directly relate to ${pillar.title}
+### ${pillar.title} Questions:
+[Generate 2-3 specific questions exploring ${pillar.title} context]
+[Questions must directly relate to ${pillar.description}]`).join('\n')}
 
-Required format for this pillar:
-Questions for ${pillar.title}:
-[Question specific to ${pillar.title}]
-[Question specific to ${pillar.title}]
-
-Variables for ${pillar.title}:
-[Variable name]: [Description]
-`).join('\n')}
-
-TEMPLATE CONTEXT:
-Template Type: ${template.isDefault ? 'Default Framework' : 'Custom Template'}
+TEMPLATE METADATA:
+Type: ${template.isDefault ? 'Default Framework' : 'Custom Template'}
 Template ID: ${template.id}
 Temperature: ${template.temperature}
 Character Limit: ${template.characterLimit || 'Not specified'}
 
-NOTE:
-- Each question and variable must be clearly associated with its pillar
-- Variables should be in plain text format
-- Questions should help gather specific requirements for each pillar
+REQUIREMENTS:
+- Each question must be categorized under its specific pillar section
+- Questions should help gather requirements for each pillar
+- Keep questions focused on pillar objectives
+- Format consistently as "### [Pillar Name] Questions:"
 ` : '';
 
   // Combine base prompt with pillar instructions
@@ -78,7 +69,8 @@ ${primaryToggle ? `PRIMARY FOCUS: ${primaryToggle}` : ''}
 ${secondaryToggle ? `SECONDARY FOCUS: ${secondaryToggle}` : ''}`;
 
   console.log("Final system prompt length:", finalPrompt.length);
-  console.log("Pillar-specific instructions:", !!pillarSpecificInstructions);
+  console.log("Has pillar instructions:", !!pillarSpecificInstructions);
   
   return finalPrompt;
 };
+
