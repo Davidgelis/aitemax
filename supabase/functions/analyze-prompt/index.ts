@@ -47,8 +47,8 @@ serve(async (req) => {
     
     // Process image data first for context enhancement
     if (imageData?.base64) {
-      console.log("Processing image data for context enhancement");
-      imageContext = `Analyze this image using the provided context instructions:\n${imageData.context || 'Analyze all visible elements and details in the image to enhance the prompt.'}`
+      console.log("Processing image data...");
+      imageContext = `Analyze this image using the provided context instructions:\n${imageData.context || 'Analyze all visible elements to enhance the prompt.'}`
     }
     
     // Add smart context if available
@@ -87,6 +87,21 @@ serve(async (req) => {
     );
 
     console.log("Analyzing AI response and extracting components");
+    
+    let parsedContent;
+    try {
+      parsedContent = JSON.parse(content);
+      console.log("Successfully parsed content:", {
+        hasQuestions: !!parsedContent.questions,
+        questionsCount: parsedContent.questions?.length || 0,
+        hasVariables: !!parsedContent.variables,
+        hasMasterCommand: !!parsedContent.masterCommand,
+        hasEnhancedPrompt: !!parsedContent.enhancedPrompt
+      });
+    } catch (error) {
+      console.error("Failed to parse content:", error);
+      throw new Error("Invalid response format");
+    }
     
     const questions = extractQuestions(content, enhancedContext);
     console.log(`Extracted ${questions.length} questions with prefilled answers:`, 

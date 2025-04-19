@@ -18,9 +18,9 @@ export async function analyzePromptWithAI(
 
   let imageAnalysisResult = "";
   
-  // First, analyze the image if provided
+  // First, analyze the image if provided using gpt-4o
   if (imageBase64) {
-    console.log("Analyzing image before prompt generation...");
+    console.log("Analyzing image with gpt-4o...");
     try {
       const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -33,14 +33,14 @@ export async function analyzePromptWithAI(
           messages: [
             {
               role: 'system',
-              content: 'You are a specialized image analyzer. Extract detailed information that can be used to enhance the prompt and pre-fill relevant questions.'
+              content: 'Extract detailed information from this image that can enhance the prompt and pre-fill relevant questions.'
             },
             {
               role: 'user',
               content: [
                 {
                   type: "text",
-                  text: "Analyze this image in detail, focusing on elements that could help enhance and expand the user's prompt:"
+                  text: "Analyze this image in detail, focusing on elements that could help enhance the prompt:"
                 },
                 {
                   type: "image_url",
@@ -51,7 +51,8 @@ export async function analyzePromptWithAI(
               ]
             }
           ],
-          max_tokens: 500
+          response_format: { type: "json_object" },
+          max_tokens: 1000
         }),
       });
 
@@ -80,15 +81,14 @@ ${imageAnalysisResult}` : ''}
 INSTRUCTIONS:
 1. Use ALL available context to generate relevant questions
 2. Pre-fill answers when context provides clear information
-3. Ensure questions align with template pillars
-4. Focus on expanding and enhancing the user's intent
-5. Generate specific, detailed questions`;
+3. Focus on expanding the user's intent
+4. Return response in valid JSON format
+5. Mark pre-filled answers with "PRE-FILLED: " prefix`;
 
-  console.log("Sending context to OpenAI:", {
+  console.log("Sending enhanced context to OpenAI:", {
     contextLength: enhancedContext.length,
     hasSmartContext: !!smartContext,
-    hasImageAnalysis: !!imageAnalysisResult,
-    systemMessageLength: systemMessage.length
+    hasImageAnalysis: !!imageAnalysisResult
   });
 
   try {
@@ -130,13 +130,21 @@ INSTRUCTIONS:
 
     try {
       const parsedResponse = JSON.parse(data.choices[0].message.content);
-      console.log("Successfully generated response:", {
+      console.log("Successfully parsed response:", {
         questionsCount: parsedResponse.questions?.length || 0,
         preFilledCount: parsedResponse.questions?.filter((q: any) => q.answer?.startsWith("PRE-FILLED:")).length || 0,
-        variablesCount: parsedResponse.variables?.length || 0,
+        hasVariables: !!parsedResponse.variables,
         hasMasterCommand: !!parsedResponse.masterCommand,
         hasEnhancedPrompt: !!parsedResponse.enhancedPrompt
       });
+      
+      // Validate response format
+      if (!Array.isArray(parsedResponse.questions) || 
+          !Array.isArray(parsedResponse.variables) || 
+          typeof parsedResponse.masterCommand !== 'string' ||
+          typeof parsedResponse.enhancedPrompt !== 'string') {
+        throw new Error("Invalid response structure");
+      }
       
       return {
         content: JSON.stringify(parsedResponse),
