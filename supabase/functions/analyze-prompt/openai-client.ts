@@ -21,34 +21,37 @@ export async function analyzePromptWithAI(
       content: `${systemMessage}
 
 SMART CONTEXT HANDLING:
-1. Generate questions FIRST based on template pillars and user intent
-2. Then use smart context to pre-fill answers, marking them with "PRE-FILLED:"
-3. Do not generate new questions from smart context
-4. Focus on finding relevant information in smart context to answer existing questions
-5. Only pre-fill questions when confident about the answer
-6. Leave questions blank if no relevant information is found
-7. Pre-filled answers should be detailed and specific
-8. Ensure consistency between questions and variables`
+1. Generate pillar-based questions FIRST using template categories
+2. Then analyze provided context to pre-fill answers when confident
+3. Mark pre-filled answers with "PRE-FILLED:" prefix
+4. Focus on accuracy and relevance in pre-filling
+5. Leave questions blank when uncertain
+6. Ensure all pre-filled answers are detailed (3-5 sentences)
+7. Keep questions organized by pillar categories
+8. Do not generate new questions from context`
     }
   ];
   
   let enhancedUserPrompt = `Analyze this prompt/intent: "${promptText}"
 
 ANALYSIS STEPS:
-1. Generate 3-4 comprehensive questions for EACH pillar based on user intent
-2. Create 1-2 variables for EACH pillar
-3. If smart context is provided:
-   - Use it to answer existing questions (do not create new ones)
-   - Mark pre-filled answers with "PRE-FILLED:" prefix
-   - Leave questions blank if no relevant information found
-4. Extract concise variable values from context
-5. Organize everything by pillar categories`;
+1. Generate 3-4 questions for EACH template pillar category
+2. Create 1-2 variables per pillar
+3. If smart context provided:
+   - Carefully analyze context details
+   - Map relevant information to existing questions
+   - Pre-fill answers with "PRE-FILLED:" prefix and details
+   - Leave questions blank if no relevant information
+4. Extract specific variable values
+5. Organize by pillar categories
+6. Double-check all pre-filled answers match questions`;
 
   if (imageBase64) {
-    console.log("Processing image analysis with enhanced context mapping");
+    console.log("Processing image analysis with enhanced pre-filling rules");
     const imageInstructionsMatch = additionalContext.match(/SPECIFIC IMAGE ANALYSIS INSTRUCTIONS: (.*?)(\n\n|$)/s);
     const imageInstructions = imageInstructionsMatch ? imageInstructionsMatch[1].trim() : '';
     
+    // Enhanced image analysis instructions for better pre-filling
     messages.push({
       role: 'user',
       content: [
@@ -56,21 +59,31 @@ ANALYSIS STEPS:
           type: "text",
           text: `${enhancedUserPrompt}
 
-IMAGE ANALYSIS INSTRUCTIONS:
-1. First, analyze the provided image based on these specific instructions: ${imageInstructions}
-2. Generate a detailed paragraph describing ONLY what was requested in the instructions
-3. Then map the analysis to existing questions by:
-   - Matching relevant details to questions in each pillar category
-   - Using "PRE-FILLED:" prefix for answers derived from the image
-   - Providing detailed, specific answers (3-5 sentences each)
-   - Only pre-filling questions when the image content directly relates
-   - Leaving questions blank if no relevant information is found
-4. Do NOT generate new questions from image analysis
-5. Extract specific values from image for relevant variables
-6. Maintain organization by template pillar categories
+IMAGE ANALYSIS WORKFLOW:
+1. First, generate standard pillar-based questions
+2. Analyze image focusing on: ${imageInstructions}
+3. Generate detailed analysis (3-5 sentences) specifically for the requested aspects
+4. Map analysis to questions by:
+   - Finding direct connections between image details and questions
+   - Using "PRE-FILLED:" prefix for every mapped answer
+   - Writing detailed, specific answers (3-5 sentences)
+   - Only pre-filling when highly confident
+5. Format pre-filled answers:
+   PRE-FILLED: Specific detail about [aspect] including [technical elements]. 
+   This demonstrates [relevant context] through [concrete examples]. 
+   The execution showcases [distinctive features].
+6. Maintain pillar categories structure
+7. Double-check all pre-filled content matches questions
 
-For example, if analyzing artistic style, provide a detailed response like:
-"PRE-FILLED: The image showcases a [style] aesthetic with [specific details]. The technical execution includes [techniques used]. The overall design emphasizes [key elements] typical of [style references]."
+RESPONSE STRUCTURE:
+### Task Questions:
+[Questions with PRE-FILLED answers when image matches]
+
+### Style Questions:
+[Questions with PRE-FILLED answers when image matches]
+
+### Technical Questions:
+[Questions with PRE-FILLED answers when image matches]
 
 ${additionalContext}`
         },
@@ -83,41 +96,27 @@ ${additionalContext}`
       ]
     });
   } else if (additionalContext.includes("SMART CONTEXT")) {
-    console.log("Processing smart context with enhanced pre-filling");
+    console.log("Processing smart context with enhanced pre-filling rules");
     messages.push({
       role: 'user',
       content: `${enhancedUserPrompt}
 
 ${additionalContext}
 
-SMART CONTEXT PRE-FILLING INSTRUCTIONS:
-1. First, generate questions based ONLY on template pillars and user intent
-2. Then, analyze smart context to:
-   - Find specific answers for existing questions
-   - Pre-fill answers with "PRE-FILLED:" prefix
-   - Leave questions blank if no relevant information found
-   - Write detailed, multi-sentence answers (3-5 sentences)
-3. Extract specific values (1-4 words) for variables from context
-4. Mark all pre-filled content with "PRE-FILLED:" prefix
-5. Do not generate new questions from smart context
-6. Ensure questions and variables stay grouped by pillar categories`
-    });
-  } else if (additionalContext.includes("WEBSITE CONTEXT")) {
-    console.log("Processing website context");
-    messages.push({
-      role: 'user',
-      content: `${enhancedUserPrompt}
-
-${additionalContext}
-
-WEBSITE CONTENT PRE-FILLING RULES:
-1. Generate 3-4 questions for EACH pillar in the template
-2. Create 1-2 variables for EACH pillar in the template
-3. Extract SPECIFIC quotes and examples from the website that relate to the prompt
-4. Pre-fill questions with detailed website information (3-5 sentences)
-5. Create variables for key website elements and pre-fill their values
-6. Mark all pre-filled content with "PRE-FILLED:" prefix
-7. Ensure questions and variables are grouped by pillar categories`
+SMART CONTEXT PRE-FILLING WORKFLOW:
+1. First generate standard pillar-based questions
+2. Analyze provided context thoroughly
+3. Map context to questions:
+   - Find specific details that answer questions
+   - Use "PRE-FILLED:" prefix for mapped answers
+   - Write detailed, multi-sentence answers
+   - Only pre-fill when highly confident
+4. Format all pre-filled answers:
+   PRE-FILLED: Primary detail or finding from context.
+   Supporting evidence or examples from provided information.
+   Specific implementation or practical aspects.
+5. Maintain pillar categories organization
+6. Review pre-filled answers for accuracy`
     });
   } else {
     messages.push({
@@ -136,7 +135,7 @@ ${additionalContext}`
   }
   
   try {
-    console.log("Calling OpenAI API with enhanced image analysis and pre-filling");
+    console.log("Calling OpenAI API with enhanced pre-filling rules");
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
