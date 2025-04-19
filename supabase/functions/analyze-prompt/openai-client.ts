@@ -15,18 +15,68 @@ export async function analyzePromptWithAI(
     console.error("Missing API key");
     throw new Error("OpenAI API key is required");
   }
+
+  let imageAnalysisResult = "";
+  
+  // First, analyze the image if provided
+  if (imageBase64) {
+    console.log("Analyzing image before prompt generation...");
+    try {
+      const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a specialized image analyzer. Extract key details and components from the image.'
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: "text",
+                  text: "Analyze this image in detail and describe its key elements, colors, composition, and any notable features:"
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:image/jpeg;base64,${imageBase64}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 500
+        }),
+      });
+
+      const analysisData = await imageAnalysisResponse.json();
+      if (analysisData.choices?.[0]?.message?.content) {
+        imageAnalysisResult = analysisData.choices[0].message.content;
+        console.log("Image analysis completed:", imageAnalysisResult.substring(0, 100) + "...");
+      }
+    } catch (error) {
+      console.error("Error analyzing image:", error);
+      throw new Error("Failed to analyze image");
+    }
+  }
   
   const messages = [
     { 
       role: 'system', 
       content: `${systemMessage}\n\nIMPORTANT INSTRUCTIONS FOR CONTEXT ANALYSIS:
-1. Analyze ALL available context sources (main prompt, image analysis, smart context)
+1. Analyze ALL available context sources thoroughly
 2. Pre-fill answers using information from ANY context source
 3. Start all pre-filled answers with "PRE-FILLED: "
 4. Mark questions as relevant when you can confidently pre-fill answers
 5. Be thorough in analyzing visual elements if an image is provided
-6. Ensure all extracted information is reflected in the generated questions
-7. Look for explicit details across all contexts that can pre-fill answers`
+6. Extract specific details from image analysis to pre-fill answers
+7. Ensure all extracted information is reflected in the questions`
     }
   ];
 
@@ -35,14 +85,15 @@ export async function analyzePromptWithAI(
 ${promptText}
 
 ${smartContext ? `ADDITIONAL CONTEXT TO USE FOR PRE-FILLING:\n${smartContext}\n` : ''}
+${imageAnalysisResult ? `IMAGE ANALYSIS RESULTS:\n${imageAnalysisResult}\n` : ''}
 
 REQUIREMENTS:
 1. Return a valid JSON object
 2. Include questions with unique IDs
-3. Pre-fill answers using ALL available context
+3. Pre-fill answers using ALL available context sources
 4. Mark questions as relevant when pre-filled
 5. Organize by categories
-6. If analyzing an image, extract all visual details
+6. Use image analysis results to pre-fill relevant answers
 
 EXPECTED FORMAT:
 {
@@ -61,7 +112,7 @@ EXPECTED FORMAT:
 }`;
 
   if (imageBase64) {
-    console.log("Adding image for analysis");
+    console.log("Adding image for final prompt analysis");
     messages.push({
       role: 'user',
       content: [
@@ -88,6 +139,7 @@ EXPECTED FORMAT:
     console.log("Calling OpenAI API with context lengths:", {
       promptLength: promptText.length,
       smartContextLength: smartContext.length,
+      imageAnalysisLength: imageAnalysisResult.length,
       systemMessageLength: systemMessage.length,
       hasImage: !!imageBase64
     });
@@ -99,7 +151,7 @@ EXPECTED FORMAT:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',  // Using vision-capable model for better image analysis
+        model: 'gpt-4o',
         messages,
         temperature: 0.7,
         max_tokens: 2000,
@@ -148,3 +200,4 @@ EXPECTED FORMAT:
     throw error;
   }
 }
+

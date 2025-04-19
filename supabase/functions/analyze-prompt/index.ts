@@ -27,20 +27,25 @@ serve(async (req) => {
     
     console.log("Starting analyze-prompt with:", {
       hasPrompt: !!promptText,
-      hasImageData: !!imageData,
-      hasSmartContext: !!smartContextData,
-      hasWebsiteData: !!websiteData
+      hasImageData: !!imageData?.base64,
+      hasSmartContext: !!smartContextData?.context,
+      hasWebsiteData: !!websiteData?.url,
+      primaryToggle,
+      secondaryToggle,
+      templateId: template?.id
     });
 
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
     
     // Build the enhanced context by combining all available contexts
     let enhancedContext = promptText || '';
+    let imageContext = '';
     
     // Add image analysis context if available
     if (imageData?.base64) {
       console.log("Processing image data for context enhancement");
-      enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT:\nAnalyzing uploaded image to extract relevant details for the prompt.`;
+      imageContext = `Analyze this image using the provided context instructions:\n${imageData.context || 'Analyze all visible elements and details in the image.'}`
+      enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT:\n${imageContext}`;
     }
     
     // Add smart context if available
@@ -114,3 +119,4 @@ serve(async (req) => {
     );
   }
 });
+
