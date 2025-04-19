@@ -1,4 +1,3 @@
-
 // OpenAI API client for prompt analysis
 
 /**
@@ -133,6 +132,7 @@ When creating and pre-filling questions from Smart Context:
   
   try {
     console.log("Calling OpenAI API with gpt-4.1 for prompt analysis...");
+    console.log("System message length:", systemMessage.length);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -141,9 +141,10 @@ When creating and pre-filling questions from Smart Context:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1', // Changed from gpt-4o to gpt-4.1
+        model: 'gpt-4.1',
         messages,
         temperature: 0.7,
+        max_tokens: 2000,
       }),
     });
     
@@ -168,6 +169,7 @@ When creating and pre-filling questions from Smart Context:
     }
     
     console.log("Successfully analyzed prompt with gpt-4.1");
+    console.log("Response content length:", data.choices[0].message.content.length);
     
     return {
       content: data.choices[0].message.content,

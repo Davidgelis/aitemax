@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 /**
@@ -8,7 +7,7 @@ import { Question, Variable } from '../types.ts';
  * @returns Array of extracted questions
  */
 export function extractQuestions(aiResponse: string, originalPrompt: string): Question[] {
-  console.log("Extracting questions from AI response...");
+  console.log("Extracting questions from AI response, length:", aiResponse.length);
   
   try {
     // First try to extract a questions section from the response
@@ -16,14 +15,14 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
     const questionsMatch = aiResponse.match(questionsRegex);
     
     if (!questionsMatch || !questionsMatch[1].trim()) {
-      console.log("No questions section found in AI response.");
+      console.log("No questions section found in AI response");
       return [];
     }
     
     const questionsText = questionsMatch[1].trim();
     console.log("Questions section found, length:", questionsText.length);
     
-    // Parse individual questions using numbered or bulleted format
+    // Parse individual questions using numbered, asterisk, or dash format
     const questionItems = questionsText.split(/\n\s*(?:\d+[\.\):]|\*|\-)\s+/);
     
     // Filter out empty items and process each question
@@ -31,11 +30,20 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       .filter(item => item.trim().length > 0)
       .map((item, index) => {
         // Try to extract category from the question text
-        const categoryMatch = item.match(/^\s*\*?\*?([A-Za-z\s]+)\*?\*?\s*:/);
-        const category = categoryMatch ? categoryMatch[1].trim() : 'General';
+        const categoryMatch = item.match(/^\s*\[([^\]]+)\]|^\s*\*?\*?([A-Za-z\s]+)\*?\*?\s*:/);
+        const category = categoryMatch 
+          ? (categoryMatch[1] || categoryMatch[2]).trim() 
+          : 'General';
         
         // Clean up the question text
-        let text = item.trim();
+        let text = item.trim()
+          .replace(/^\s*\[[^\]]+\]\s*/, '') // Remove category prefix
+          .replace(/^\s*\*?\*?[A-Za-z\s]+\*?\*?\s*:/, ''); // Remove formatted category
+        
+        console.log(`Extracted question ${index + 1}:`, {
+          category,
+          textPreview: text.substring(0, 50)
+        });
         
         return {
           id: `q-${index + 1}`,
@@ -46,8 +54,7 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
         };
       });
     
-    console.log(`Successfully extracted ${extractedQuestions.length} questions.`);
-    
+    console.log(`Successfully extracted ${extractedQuestions.length} questions`);
     return extractedQuestions;
   } catch (error) {
     console.error("Error extracting questions:", error);
@@ -117,20 +124,20 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
  * @returns The master command string or empty string if not found
  */
 export function extractMasterCommand(aiResponse: string): string {
-  console.log("Extracting master command from AI response...");
+  console.log("Extracting master command...");
   
   try {
-    // Extract master command section from the response
+    // Extract master command section
     const commandRegex = /### Master Command:?([\s\S]*?)(?=###|$)/i;
     const commandMatch = aiResponse.match(commandRegex);
     
     if (!commandMatch || !commandMatch[1].trim()) {
-      console.log("No master command found in AI response.");
+      console.log("No master command found");
       return "";
     }
     
     const commandText = commandMatch[1].trim();
-    console.log("Master command found, length:", commandText.length);
+    console.log("Master command found:", commandText.substring(0, 50));
     
     return commandText;
   } catch (error) {
