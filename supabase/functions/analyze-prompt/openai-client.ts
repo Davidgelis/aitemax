@@ -1,3 +1,4 @@
+
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -22,15 +23,17 @@ export async function analyzePromptWithAI(
     }
   ];
 
-  // Enhanced prompt to ensure proper JSON structure
-  let enhancedPrompt = `ANALYZE THIS PROMPT:
-"${promptText}"
+  // Enhanced prompt to ensure proper JSON structure and context handling
+  let enhancedPrompt = `ANALYZE THIS PROMPT AND ALL PROVIDED CONTEXT:
+${promptText}
+
+${additionalContext ? `ADDITIONAL CONTEXT TO CONSIDER:\n${additionalContext}` : ''}
 
 REQUIREMENTS:
 1. Return a valid JSON object
 2. Include questions with unique IDs
-3. Pre-fill answers when confident
-4. Mark relevant questions
+3. Pre-fill answers based on ALL available context (prompt + additional context)
+4. Mark questions as relevant when pre-filled
 5. Organize by categories
 
 EXPECTED FORMAT:
@@ -47,7 +50,12 @@ EXPECTED FORMAT:
   "variables": [],
   "masterCommand": "",
   "enhancedPrompt": ""
-}`;
+}
+
+IMPORTANT:
+- Pre-fill answers using information from BOTH the main prompt AND additional context
+- Mark questions as relevant (isRelevant: true) when you can confidently pre-fill answers
+- Ensure all pre-filled answers start with "PRE-FILLED: "`;
 
   if (imageBase64) {
     console.log("Processing image analysis");
@@ -56,7 +64,7 @@ EXPECTED FORMAT:
       content: [
         {
           type: "text",
-          text: `${enhancedPrompt}\n\nANALYZE IMAGE AND PRE-FILL ANSWERS\n${additionalContext}`
+          text: enhancedPrompt
         },
         {
           type: "image_url",
@@ -69,12 +77,16 @@ EXPECTED FORMAT:
   } else {
     messages.push({
       role: 'user',
-      content: `${enhancedPrompt}\n\n${additionalContext}`
+      content: enhancedPrompt
     });
   }
 
   try {
-    console.log("Calling OpenAI API");
+    console.log("Calling OpenAI API with context lengths:", {
+      promptLength: promptText.length,
+      additionalContextLength: additionalContext.length,
+      systemMessageLength: systemMessage.length
+    });
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -98,21 +110,37 @@ EXPECTED FORMAT:
     }
 
     const data = await response.json();
-    console.log("Raw OpenAI response:", data);
+    console.log("Raw OpenAI response received, validating format...");
     
     if (!data.choices?.[0]?.message?.content) {
       throw new Error("Invalid response format from OpenAI");
     }
 
     const responseContent = data.choices[0].message.content;
-    console.log("Response content:", responseContent);
+    console.log("Response content length:", responseContent.length);
 
     // Try to parse the JSON response
     try {
       const parsedResponse = JSON.parse(responseContent);
-      console.log("Successfully parsed JSON response:", parsedResponse);
+      console.log("Successfully parsed JSON response:", {
+        questionsCount: parsedResponse.questions?.length || 0,
+        variablesCount: parsedResponse.variables?.length || 0,
+        hasMasterCommand: !!parsedResponse.masterCommand,
+        hasEnhancedPrompt: !!parsedResponse.enhancedPrompt
+      });
+      
+      // Validate questions format
+      if (Array.isArray(parsedResponse.questions)) {
+        parsedResponse.questions.forEach((q: any, index: number) => {
+          if (q.answer && !q.answer.startsWith("PRE-FILLED: ")) {
+            console.log(`Fixing answer format for question ${index + 1}`);
+            q.answer = `PRE-FILLED: ${q.answer}`;
+          }
+        });
+      }
+      
       return {
-        content: responseContent,
+        content: JSON.stringify(parsedResponse),
         usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
       };
     } catch (parseError) {
