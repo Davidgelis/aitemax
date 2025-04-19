@@ -19,7 +19,7 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       const questionItems = questionsText
         .split('\n')
         .map(q => q.trim())
-        .filter(q => q); // Remove empty lines
+        .filter(q => q && !q.startsWith('-')); // Filter out bullet points
       
       questionItems.forEach(item => {
         if (item.trim()) {
@@ -45,7 +45,7 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
         const questionItems = questionsMatch[1]
           .split('\n')
           .map(q => q.trim())
-          .filter(q => q);
+          .filter(q => q && !q.startsWith('-')); // Filter out bullet points
         
         questionItems.forEach(item => {
           if (item.trim()) {
@@ -88,7 +88,7 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
       const variableItems = variablesText
         .split('\n')
         .map(v => v.trim())
-        .filter(v => v);
+        .filter(v => v && !v.startsWith('-')); // Filter out bullet points
       
       variableItems.forEach(item => {
         // Extract variable name and description using the new format
@@ -120,7 +120,7 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
         const variableItems = variablesMatch[1]
           .split('\n')
           .map(v => v.trim())
-          .filter(v => v);
+          .filter(v => v && !v.startsWith('-')); // Filter out bullet points
         
         variableItems.forEach(item => {
           const variableMatch = item.match(/([^:]+):\s*(.+)/);

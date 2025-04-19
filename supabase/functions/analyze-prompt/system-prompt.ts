@@ -34,7 +34,9 @@ export const createSystemPrompt = (primaryToggle: string | null, secondaryToggle
     primaryToggle,
     secondaryToggle,
     hasTemplate: !!template,
-    templatePillars: template?.pillars?.length || 0
+    templatePillars: template?.pillars?.length || 0,
+    isDefaultTemplate: template?.isDefault || false,
+    templateId: template?.id || 'none'
   });
 
   // Generate pillar-specific instructions if template exists
@@ -54,6 +56,12 @@ Questions for ${pillar.title}:
 Variables for ${pillar.title}:
 [Variable name]: [Description]
 `).join('\n')}
+
+TEMPLATE CONTEXT:
+Template Type: ${template.isDefault ? 'Default Framework' : 'Custom Template'}
+Template ID: ${template.id}
+Temperature: ${template.temperature}
+Character Limit: ${template.characterLimit || 'Not specified'}
 
 NOTE:
 - Each question and variable must be clearly associated with its pillar

@@ -20,7 +20,7 @@ serve(async (req) => {
       primaryToggle, 
       secondaryToggle, 
       template,
-      backgroundInfo // New parameter to check if background info was provided
+      backgroundInfo
     } = await req.json();
     
     console.log("Received prompt analysis request:", {
@@ -28,9 +28,22 @@ serve(async (req) => {
       hasPrimaryToggle: !!primaryToggle,
       hasSecondaryToggle: !!secondaryToggle,
       hasTemplate: !!template,
+      templateType: template?.isDefault ? 'Default Framework' : 'Custom Template',
+      templateId: template?.id || 'none',
       hasBackgroundInfo: !!backgroundInfo,
       templatePillars: template?.pillars?.length || 0
     });
+
+    // Validate template structure
+    if (template) {
+      console.log("Validating template structure:", {
+        hasId: !!template.id,
+        hasName: !!template.name,
+        hasPillars: Array.isArray(template.pillars),
+        pillarsCount: template.pillars?.length || 0,
+        isDefault: template.isDefault || false
+      });
+    }
 
     // Create system prompt with template validation
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
@@ -58,11 +71,10 @@ serve(async (req) => {
           { 
             role: "user", 
             content: promptText,
-            // Include background info if provided
             ...(backgroundInfo && { background: backgroundInfo })
           }
         ],
-        temperature: 0.7
+        temperature: template?.temperature || 0.7
       }),
     });
 
@@ -73,18 +85,32 @@ serve(async (req) => {
     const data = await response.json();
     const aiResponse = data.choices[0].message?.content || '';
     
-    // Extract components with background info awareness
+    // Extract components with template awareness
+    console.log("Extracting components with template context...");
     const questions = extractQuestions(aiResponse, promptText);
     const variables = extractVariables(aiResponse, promptText);
     const masterCommand = extractMasterCommand(aiResponse);
     const enhancedPrompt = extractEnhancedPrompt(aiResponse);
+
+    console.log("Analysis complete:", {
+      questionsCount: questions.length,
+      variablesCount: variables.length,
+      hasMasterCommand: !!masterCommand,
+      hasEnhancedPrompt: !!enhancedPrompt,
+      templateUsed: template?.name || 'None'
+    });
 
     return new Response(
       JSON.stringify({
         questions,
         variables,
         masterCommand,
-        enhancedPrompt
+        enhancedPrompt,
+        templateInfo: {
+          id: template?.id || 'none',
+          type: template?.isDefault ? 'Default Framework' : 'Custom Template',
+          pillarsUsed: template?.pillars?.length || 0
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
