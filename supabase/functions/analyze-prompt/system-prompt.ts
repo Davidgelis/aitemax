@@ -11,10 +11,11 @@ INSTRUCTIONS:
 
 OUTPUT FORMAT:
 ### Questions:
-[List questions here, one per line starting with * or -]
+[Organize questions by pillar categories, one per line starting with *]
 
 ### Variables:
-[List variables here, one per line starting with * or -]
+[List variables by pillar categories, one per line starting with *]
+[For each variable include: name, category, and suggested value]
 
 ### Master Command:
 [Single line summarizing the core objective]
@@ -24,7 +25,7 @@ OUTPUT FORMAT:
 
 IMPORTANT RULES:
 - Questions should be specific and actionable
-- Variables should be clearly labeled with their purpose
+- Variables should be clearly labeled with purpose and category
 - Keep the master command concise and focused
 - The enhanced prompt should maintain the original intent while being more specific`;
 
@@ -38,31 +39,38 @@ export const createSystemPrompt = (primaryToggle: string | null, secondaryToggle
 
   // Generate pillar-specific instructions if template exists
   const pillarSpecificInstructions = template?.pillars ? `
-PILLAR-SPECIFIC QUESTION GENERATION RULES:
+PILLAR-SPECIFIC INSTRUCTIONS:
 ${template.pillars.map((pillar: any) => `
-- For the "${pillar.title}" pillar:
-  * Use the pillar description: "${pillar.description}"
-  * Generate 2-4 questions that directly explore this pillar's context and requirements
-  * Ensure questions align with the pillar's specific focus
+For "${pillar.title}" pillar (${pillar.description}):
+- Generate 2-3 specific questions exploring this pillar's context
+- Create 1-2 variables that capture key ${pillar.title} requirements
+- Ensure all questions and variables directly relate to ${pillar.title}
+
+Required format for this pillar:
+### Questions for ${pillar.title}:
+* [Question 1 specific to ${pillar.title}]
+* [Question 2 specific to ${pillar.title}]
+
+### Variables for ${pillar.title}:
+* [Variable 1 name] (${pillar.title}): [suggested value]
 `).join('\n')}
 
-IMPORTANT:
-- Each question must clearly relate to its respective pillar
-- Questions should help gather specific information needed for each pillar
-- Answers should directly contribute to the final prompt structure` : '';
+NOTE:
+- Each question and variable MUST be tagged with its pillar category
+- Variables should include suggested default values
+- Questions should help gather specific requirements for each pillar
+` : '';
 
-  console.log("Generated pillar instructions length:", pillarSpecificInstructions.length);
-
-  // Combine base prompt with pillar instructions and any toggle-specific guidance
+  // Combine base prompt with pillar instructions
   const finalPrompt = `${basePrompt}
 
 ${pillarSpecificInstructions}
 
-${primaryToggle ? `FOCUS ON PRIMARY TOGGLE: ${primaryToggle}` : ''}
-${secondaryToggle ? `CONSIDER SECONDARY TOGGLE: ${secondaryToggle}` : ''}`;
+${primaryToggle ? `PRIMARY FOCUS: ${primaryToggle}` : ''}
+${secondaryToggle ? `SECONDARY FOCUS: ${secondaryToggle}` : ''}`;
 
   console.log("Final system prompt length:", finalPrompt.length);
+  console.log("Pillar-specific instructions:", !!pillarSpecificInstructions);
   
   return finalPrompt;
 };
-

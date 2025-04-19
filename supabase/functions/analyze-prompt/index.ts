@@ -20,7 +20,8 @@ serve(async (req) => {
       promptLength: promptText?.length || 0,
       hasPrimaryToggle: !!primaryToggle,
       hasSecondaryToggle: !!secondaryToggle,
-      hasTemplate: !!template
+      hasTemplate: !!template,
+      templatePillars: template?.pillars?.length || 0
     });
 
     // Validate template structure if provided
@@ -52,8 +53,8 @@ serve(async (req) => {
       throw new Error("OpenAI API key is not configured");
     }
 
-    // Call OpenAI API directly using fetch
-    console.log("Calling OpenAI API with gpt-4.1 model...");
+    // Call OpenAI API with gpt-4.1 model
+    console.log("Calling OpenAI API...");
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -66,6 +67,7 @@ serve(async (req) => {
           { role: "system", content: systemPrompt },
           { role: "user", content: promptText }
         ],
+        temperature: 0.7
       }),
     });
 
@@ -91,6 +93,8 @@ serve(async (req) => {
       variablesCount: variables.length,
       hasMasterCommand: !!masterCommand,
       hasEnhancedPrompt: !!enhancedPrompt,
+      categories: [...new Set(questions.map(q => q.category))],
+      variableCategories: [...new Set(variables.map(v => v.category))]
     });
 
     return new Response(

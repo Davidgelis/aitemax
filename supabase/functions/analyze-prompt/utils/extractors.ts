@@ -1,117 +1,139 @@
+
 import { Question, Variable } from '../types.ts';
 
-/**
- * Extracts questions from the AI response.
- * @param aiResponse - The raw response from the AI
- * @param originalPrompt - The original prompt text
- * @returns Array of extracted questions
- */
 export function extractQuestions(aiResponse: string, originalPrompt: string): Question[] {
   console.log("Extracting questions from AI response, length:", aiResponse.length);
   
   try {
-    // First try to extract a questions section from the response
-    const questionsRegex = /### Questions:?([\s\S]*?)(?=###|$)/i;
-    const questionsMatch = aiResponse.match(questionsRegex);
+    const questions: Question[] = [];
     
-    if (!questionsMatch || !questionsMatch[1].trim()) {
-      console.log("No questions section found in AI response");
-      return [];
+    // First try to extract pillar-specific question sections
+    const pillarRegex = /### Questions for ([^:]+):\s*([\s\S]*?)(?=###|$)/gi;
+    let pillarMatch;
+    let foundPillarQuestions = false;
+    
+    while ((pillarMatch = pillarRegex.exec(aiResponse)) !== null) {
+      const category = pillarMatch[1].trim();
+      const questionsText = pillarMatch[2].trim();
+      
+      // Parse questions for this pillar
+      const questionItems = questionsText.split(/\n\s*\*\s+/);
+      questionItems
+        .filter(item => item.trim().length > 0)
+        .forEach((item, index) => {
+          questions.push({
+            id: `q-${questions.length + 1}`,
+            text: item.trim(),
+            answer: "",
+            isRelevant: null,
+            category
+          });
+        });
+      
+      foundPillarQuestions = true;
     }
     
-    const questionsText = questionsMatch[1].trim();
-    console.log("Questions section found, length:", questionsText.length);
+    // If no pillar-specific questions found, try general questions section
+    if (!foundPillarQuestions) {
+      const generalQuestionsRegex = /### Questions:?([\s\S]*?)(?=###|$)/i;
+      const questionsMatch = aiResponse.match(generalQuestionsRegex);
+      
+      if (questionsMatch && questionsMatch[1].trim()) {
+        const questionItems = questionsMatch[1].trim().split(/\n\s*\*\s+/);
+        questionItems
+          .filter(item => item.trim().length > 0)
+          .forEach((item, index) => {
+            questions.push({
+              id: `q-${questions.length + 1}`,
+              text: item.trim(),
+              answer: "",
+              isRelevant: null,
+              category: "General"
+            });
+          });
+      }
+    }
     
-    // Parse individual questions using numbered, asterisk, or dash format
-    const questionItems = questionsText.split(/\n\s*(?:\d+[\.\):]|\*|\-)\s+/);
-    
-    // Filter out empty items and process each question
-    const extractedQuestions = questionItems
-      .filter(item => item.trim().length > 0)
-      .map((item, index) => {
-        // Try to extract category from the question text
-        const categoryMatch = item.match(/^\s*\[([^\]]+)\]|^\s*\*?\*?([A-Za-z\s]+)\*?\*?\s*:/);
-        const category = categoryMatch 
-          ? (categoryMatch[1] || categoryMatch[2]).trim() 
-          : 'General';
-        
-        // Clean up the question text
-        let text = item.trim()
-          .replace(/^\s*\[[^\]]+\]\s*/, '') // Remove category prefix
-          .replace(/^\s*\*?\*?[A-Za-z\s]+\*?\*?\s*:/, ''); // Remove formatted category
-        
-        console.log(`Extracted question ${index + 1}:`, {
-          category,
-          textPreview: text.substring(0, 50)
-        });
-        
-        return {
-          id: `q-${index + 1}`,
-          text,
-          answer: "",
-          isRelevant: null,
-          category
-        };
-      });
-    
-    console.log(`Successfully extracted ${extractedQuestions.length} questions`);
-    return extractedQuestions;
+    console.log("Extracted questions:", questions.length);
+    return questions;
   } catch (error) {
     console.error("Error extracting questions:", error);
     return [];
   }
 }
 
-/**
- * Extracts variables from the AI response.
- * @param aiResponse - The raw response from the AI
- * @param originalPrompt - The original prompt text
- * @returns Array of extracted variables
- */
 export function extractVariables(aiResponse: string, originalPrompt: string): Variable[] {
   console.log("Extracting variables from AI response...");
   
   try {
-    // Extract variables section from the response
-    const variablesRegex = /### Variables:?([\s\S]*?)(?=###|$)/i;
-    const variablesMatch = aiResponse.match(variablesRegex);
+    const variables: Variable[] = [];
     
-    if (!variablesMatch || !variablesMatch[1].trim()) {
-      console.log("No variables section found in AI response.");
-      return [];
+    // First try to extract pillar-specific variable sections
+    const pillarRegex = /### Variables for ([^:]+):\s*([\s\S]*?)(?=###|$)/gi;
+    let pillarMatch;
+    let foundPillarVariables = false;
+    
+    while ((pillarMatch = pillarRegex.exec(aiResponse)) !== null) {
+      const category = pillarMatch[1].trim();
+      const variablesText = pillarMatch[2].trim();
+      
+      // Parse variables for this pillar
+      const variableItems = variablesText.split(/\n\s*\*\s+/);
+      variableItems
+        .filter(item => item.trim().length > 0)
+        .forEach((item, index) => {
+          // Try to extract variable name and suggested value
+          const nameValueMatch = item.match(/([^:(\n]+)(?:\s*\(([^)]+)\))?\s*:\s*(.+)/);
+          if (nameValueMatch) {
+            const name = nameValueMatch[1].trim();
+            const value = nameValueMatch[3].trim();
+            
+            variables.push({
+              id: `v-${variables.length + 1}`,
+              name,
+              value,
+              isRelevant: null,
+              category,
+              code: `VAR_${variables.length + 1}`
+            });
+          }
+        });
+      
+      foundPillarVariables = true;
     }
     
-    const variablesText = variablesMatch[1].trim();
-    console.log("Variables section found, length:", variablesText.length);
+    // If no pillar-specific variables found, try general variables section
+    if (!foundPillarVariables) {
+      const generalVariablesRegex = /### Variables:?([\s\S]*?)(?=###|$)/i;
+      const variablesMatch = aiResponse.match(generalVariablesRegex);
+      
+      if (variablesMatch && variablesMatch[1].trim()) {
+        const variableItems = variablesMatch[1].trim().split(/\n\s*\*\s+/);
+        variableItems
+          .filter(item => item.trim().length > 0)
+          .forEach((item, index) => {
+            // Try to extract variable name and category if present
+            const nameMatch = item.match(/([^:(\n]+)(?:\s*\(([^)]+)\))?\s*:?\s*(.*)/);
+            if (nameMatch) {
+              const name = nameMatch[1].trim();
+              const category = nameMatch[2]?.trim() || "General";
+              const value = nameMatch[3]?.trim() || "";
+              
+              variables.push({
+                id: `v-${variables.length + 1}`,
+                name,
+                value,
+                isRelevant: null,
+                category,
+                code: `VAR_${variables.length + 1}`
+              });
+            }
+          });
+      }
+    }
     
-    // Parse individual variables
-    const variableItems = variablesText.split(/\n\s*(?:\d+[\.\):]|\*|\-)\s+/);
-    
-    // Filter out empty items and process each variable
-    const extractedVariables = variableItems
-      .filter(item => item.trim().length > 0)
-      .map((item, index) => {
-        // Try to extract a variable name from the text
-        const nameMatch = item.match(/^\s*\*?\*?([A-Za-z\s]+)\*?\*?\s*:/);
-        const name = nameMatch ? nameMatch[1].trim() : `Variable ${index + 1}`;
-        
-        // Assign a category if possible
-        const categoryMatch = item.match(/\(([A-Za-z\s]+)\)/);
-        const category = categoryMatch ? categoryMatch[1].trim() : 'General';
-        
-        return {
-          id: `v-${index + 1}`,
-          name,
-          value: "",
-          isRelevant: null,
-          category,
-          code: `VAR_${index + 1}`
-        };
-      });
-    
-    console.log(`Successfully extracted ${extractedVariables.length} variables.`);
-    
-    return extractedVariables;
+    console.log("Extracted variables:", variables.length);
+    return variables;
   } catch (error) {
     console.error("Error extracting variables:", error);
     return [];
