@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -47,13 +46,13 @@ serve(async (req) => {
     
     // Process image data first for context enhancement
     if (imageData?.base64) {
-      console.log("Processing image data...");
+      console.log("Processing image data for context enhancement");
       imageContext = `Analyze this image using the provided context instructions:\n${imageData.context || 'Analyze all visible elements to enhance the prompt.'}`
     }
     
     // Add smart context if available
     if (smartContextData?.context) {
-      console.log("Adding smart context:", {
+      console.log("Adding smart context data:", {
         contextLength: smartContextData.context.length,
         hasInstructions: !!smartContextData.usageInstructions
       });
@@ -70,9 +69,7 @@ serve(async (req) => {
       console.log("Adding website context from:", websiteData.url);
       enhancedContext = `${enhancedContext}\n\nWEBSITE CONTEXT:\nURL: ${websiteData.url}\n${websiteData.instructions || ''}`;
     }
-    
-    console.log("Final enhanced context length:", enhancedContext.length);
-    
+
     const apiKey = Deno.env.get('OPENAI_API_KEY');
     if (!apiKey) {
       throw new Error("OpenAI API key is not configured");
@@ -86,14 +83,14 @@ serve(async (req) => {
       imageData?.base64
     );
 
-    console.log("Analyzing AI response and extracting components");
+    console.log("Processing AI response with context-aware extraction");
     
     let parsedContent;
     try {
       parsedContent = JSON.parse(content);
-      console.log("Successfully parsed content:", {
-        hasQuestions: !!parsedContent.questions,
+      console.log("Successfully parsed response:", {
         questionsCount: parsedContent.questions?.length || 0,
+        preFilledCount: parsedContent.questions?.filter(q => q.answer?.startsWith("PRE-FILLED:")).length || 0,
         hasVariables: !!parsedContent.variables,
         hasMasterCommand: !!parsedContent.masterCommand,
         hasEnhancedPrompt: !!parsedContent.enhancedPrompt
@@ -102,7 +99,7 @@ serve(async (req) => {
       console.error("Failed to parse content:", error);
       throw new Error("Invalid response format");
     }
-    
+
     const questions = extractQuestions(content, enhancedContext);
     console.log(`Extracted ${questions.length} questions with prefilled answers:`, 
       questions.filter(q => q.answer && q.answer.startsWith("PRE-FILLED:")).length);

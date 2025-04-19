@@ -1,4 +1,3 @@
-
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -16,7 +15,11 @@ export async function analyzePromptWithAI(
     throw new Error("OpenAI API key is required");
   }
 
-  let imageAnalysisResult = "";
+  let structuredContext = {
+    imageAnalysis: null,
+    smartContext: smartContext || null,
+    promptText
+  };
   
   // First, analyze the image if provided using gpt-4o
   if (imageBase64) {
@@ -33,14 +36,20 @@ export async function analyzePromptWithAI(
           messages: [
             {
               role: 'system',
-              content: 'Extract detailed information from this image that can enhance the prompt and pre-fill relevant questions.'
+              content: `Analyze this image and extract structured information in JSON format. Include:
+              - description: Detailed description of the image
+              - subjects: Main subjects/elements in the image
+              - style: Visual style and characteristics
+              - technical: Technical aspects (resolution, quality, etc)
+              - context: Any contextual information that might be relevant
+              Return ONLY valid JSON.`
             },
             {
               role: 'user',
               content: [
                 {
                   type: "text",
-                  text: "Analyze this image in detail, focusing on elements that could help enhance the prompt:"
+                  text: "Analyze this image in detail:"
                 },
                 {
                   type: "image_url",
@@ -51,44 +60,49 @@ export async function analyzePromptWithAI(
               ]
             }
           ],
-          response_format: { type: "json_object" },
-          max_tokens: 1000
+          response_format: { type: "json_object" }
         }),
       });
 
       const analysisData = await imageAnalysisResponse.json();
       if (analysisData.choices?.[0]?.message?.content) {
-        imageAnalysisResult = analysisData.choices[0].message.content;
-        console.log("Image analysis completed:", imageAnalysisResult.substring(0, 100) + "...");
+        try {
+          structuredContext.imageAnalysis = JSON.parse(analysisData.choices[0].message.content);
+          console.log("Structured image analysis:", structuredContext.imageAnalysis);
+        } catch (parseError) {
+          console.error("Failed to parse image analysis JSON:", parseError);
+          structuredContext.imageAnalysis = { error: "Failed to parse analysis" };
+        }
       }
     } catch (error) {
       console.error("Error analyzing image:", error);
-      throw new Error("Failed to analyze image");
+      structuredContext.imageAnalysis = { error: "Failed to analyze image" };
     }
   }
 
-  // Build comprehensive context
-  const enhancedContext = `
-USER PROMPT:
-${promptText}
-
-${smartContext ? `SMART CONTEXT:
-${smartContext}` : ''}
-
-${imageAnalysisResult ? `IMAGE ANALYSIS:
-${imageAnalysisResult}` : ''}
-
-INSTRUCTIONS:
-1. Use ALL available context to generate relevant questions
-2. Pre-fill answers when context provides clear information
-3. Focus on expanding the user's intent
-4. Return response in valid JSON format
-5. Mark pre-filled answers with "PRE-FILLED: " prefix`;
+  // Build comprehensive context with metadata
+  const enhancedContext = {
+    userInput: {
+      prompt: promptText,
+      timestamp: new Date().toISOString()
+    },
+    context: {
+      image: structuredContext.imageAnalysis,
+      smart: smartContext ? {
+        content: smartContext,
+        type: "user-provided"
+      } : null
+    },
+    instructions: {
+      primary: "Generate comprehensive questions and pre-fill answers using available context",
+      format: "Return valid JSON with questions array, variables array, masterCommand, and enhancedPrompt"
+    }
+  };
 
   console.log("Sending enhanced context to OpenAI:", {
-    contextLength: enhancedContext.length,
+    hasImageAnalysis: !!structuredContext.imageAnalysis,
     hasSmartContext: !!smartContext,
-    hasImageAnalysis: !!imageAnalysisResult
+    promptLength: promptText.length
   });
 
   try {
@@ -107,7 +121,7 @@ INSTRUCTIONS:
           },
           {
             role: 'user',
-            content: enhancedContext
+            content: JSON.stringify(enhancedContext)
           }
         ],
         temperature: 0.7,
