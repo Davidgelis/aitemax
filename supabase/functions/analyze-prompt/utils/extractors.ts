@@ -1,4 +1,3 @@
-
 // Functions for extracting data from AI analysis response
 
 // Function to extract questions from the AI analysis
@@ -9,8 +8,14 @@ export const extractQuestions = (analysisText: string, originalPrompt: string) =
     if (parsedResponse && Array.isArray(parsedResponse.contextQuestions)) {
       console.log("Successfully extracted questions from JSON response");
       
-      // Validate and enhance question descriptions
+      // Validate questions have proper category assignments
       const enhancedQuestions = parsedResponse.contextQuestions.map(q => {
+        // Ensure question has a valid category
+        if (!q.category) {
+          console.warn(`Question missing category: ${q.text}`);
+          q.category = 'Other';
+        }
+
         // Check if answer contains generic references and flag it
         const hasGenericReference = q.answer && (
           q.answer.includes("the image shows") || 
@@ -33,8 +38,7 @@ export const extractQuestions = (analysisText: string, originalPrompt: string) =
       return enhancedQuestions;
     }
   } catch (e) {
-    // If JSON parsing fails, use regex extraction as fallback
-    console.log("Using regex fallback for extracting questions");
+    console.error("Error parsing JSON response:", e);
   }
 
   // If direct JSON parsing didn't work, try to extract the questions section

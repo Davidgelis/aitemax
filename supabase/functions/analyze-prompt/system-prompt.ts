@@ -284,8 +284,26 @@ CREATIVE OUTPUT STYLE:
     }
   }
 
+  // Make template pillar organization more explicit
+  const templateInstructions = template?.pillars ? `
+TEMPLATE PILLAR ORGANIZATION:
+The questions and variables MUST be organized according to these exact pillar categories:
+${template.pillars.map((pillar: any) => 
+  `- ${pillar.title}: ${pillar.description}`
+).join('\n')}
+
+IMPORTANT: Every question MUST be assigned to one of these exact pillar categories: ${template.pillars.map((p: any) => p.title).join(', ')}
+` : `
+FOUR-PILLAR QUESTION AND VARIABLE ORGANIZATION:
+- TASK QUESTIONS: Focus on what needs to be done, expected outputs, purpose, and objectives
+- PERSONA QUESTIONS: Focus on audience, tone, style, perspective, and who is involved
+- CONDITIONS QUESTIONS: Focus on constraints, requirements, limitations, and context
+- INSTRUCTIONS QUESTIONS: Focus on process, methodology, steps, and implementation
+`;
+
   // Return the combined system prompt
   return `${basePrompt}
+${templateInstructions}
 ${toggleSpecificInstructions}
 
 SMART CONTEXT PROCESSING:
