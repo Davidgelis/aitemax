@@ -1,4 +1,3 @@
-
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -21,38 +20,31 @@ export async function analyzePromptWithAI(
       role: 'system', 
       content: `${systemMessage}
 
-SMART CONTEXT AND PRE-FILLING RULES:
-1. Generate comprehensive questions for EACH pillar in the template framework
-2. Create at least 1-2 variables for EACH pillar in the template
-3. When smart context is provided:
-   - Use it as the PRIMARY source to pre-fill answers with DETAILED paragraphs (3-5 sentences)
-   - Extract specific values for variables (1-4 words)
-   - Mark all pre-filled content with "PRE-FILLED:" prefix
-4. When user's prompt contains specific details:
-   - Incorporate these details into pre-filled answers
-   - Use them to pre-fill relevant variables
-5. Maintain consistency between questions and variables
-6. ALWAYS ensure questions are categorized by template pillars`
+SMART CONTEXT HANDLING:
+1. Generate questions FIRST based on template pillars and user intent
+2. Then use smart context to pre-fill answers, marking them with "PRE-FILLED:"
+3. Do not generate new questions from smart context
+4. Focus on finding relevant information in smart context to answer existing questions
+5. Only pre-fill questions when confident about the answer
+6. Leave questions blank if no relevant information is found
+7. Pre-filled answers should be detailed and specific
+8. Ensure consistency between questions and variables`
     }
   ];
   
   let enhancedUserPrompt = `Analyze this prompt/intent: "${promptText}"
 
 ANALYSIS STEPS:
-1. Generate 3-4 comprehensive questions for EACH pillar about:
-   - Core requirements and specifications
-   - Style and tone preferences
-   - Technical constraints
-   - Contextual requirements
+1. Generate 3-4 comprehensive questions for EACH pillar based on user intent
 2. Create 1-2 variables for EACH pillar
-3. Pre-fill answers using context from:
-   - Smart button data (detailed paragraphs)
-   - User's input (specific details)
-   - Image analysis (if provided)
+3. If smart context is provided:
+   - Use it to answer existing questions (do not create new ones)
+   - Mark pre-filled answers with "PRE-FILLED:" prefix
+   - Leave questions blank if no relevant information found
 4. Extract concise variable values from context
-5. Organize questions and variables by pillar categories`;
+5. Organize everything by pillar categories`;
 
-  // Enhanced context handling
+  // Enhanced smart context handling
   if (imageBase64) {
     console.log("Processing image analysis with context");
     // Extract image context instructions if present
@@ -94,15 +86,16 @@ ${additionalContext}`
 ${additionalContext}
 
 SMART CONTEXT PRE-FILLING INSTRUCTIONS:
-1. First, generate 3-4 questions for EACH pillar in the template
-2. Create 1-2 variables for EACH pillar in the template
-3. Then, use the smart context to:
-   - Write detailed, multi-sentence answers (3-5 sentences) for relevant questions
-   - Extract specific values (1-4 words) for variables
-   - Mark all pre-filled content with "PRE-FILLED:" prefix
-4. Use details from the user's prompt to further enhance pre-filled content
-5. Ensure questions and variables are grouped by pillar categories
-6. Maintain consistency between questions and variables`
+1. First, generate questions based ONLY on template pillars and user intent
+2. Then, analyze smart context to:
+   - Find specific answers for existing questions
+   - Pre-fill answers with "PRE-FILLED:" prefix
+   - Leave questions blank if no relevant information found
+   - Write detailed, multi-sentence answers (3-5 sentences)
+3. Extract specific values (1-4 words) for variables from context
+4. Mark all pre-filled content with "PRE-FILLED:" prefix
+5. Do not generate new questions from smart context
+6. Ensure questions and variables stay grouped by pillar categories`
     });
   } else if (additionalContext.includes("WEBSITE CONTEXT")) {
     console.log("Processing website context");
