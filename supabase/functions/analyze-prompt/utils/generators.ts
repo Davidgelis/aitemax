@@ -1,3 +1,4 @@
+
 import { Question, Variable } from '../types.ts';
 
 /**
@@ -12,18 +13,26 @@ export function generateContextQuestionsForPrompt(
 ): Question[] {
   // Default questions if no template provided or invalid template
   if (!template || !template.pillars || !Array.isArray(template.pillars) || template.pillars.length === 0) {
+    console.log("No valid template found, using default questions");
     return generateDefaultQuestions(promptText);
   }
 
   const questions: Question[] = [];
   let questionIdCounter = 1;
 
-  // Generate 2-4 questions per pillar based on the pillar description
+  console.log(`Generating questions based on ${template.pillars.length} pillars from template: ${template.name}`);
+  
+  // Generate 3-4 questions per pillar based on the pillar description
   template.pillars.forEach((pillar: any) => {
-    if (!pillar || !pillar.title || !pillar.description) return;
+    if (!pillar || !pillar.title || !pillar.description) {
+      console.log("Skipping invalid pillar", pillar);
+      return;
+    }
 
     const pillarTitle = pillar.title;
     const pillarDescription = pillar.description;
+    
+    console.log(`Generating questions for pillar: ${pillarTitle}`);
     
     // Generate questions specific to this pillar using its description for context
     const pillarQuestions = generateQuestionsForPillar(
@@ -33,12 +42,15 @@ export function generateContextQuestionsForPrompt(
       questionIdCounter
     );
     
+    console.log(`Generated ${pillarQuestions.length} questions for pillar ${pillarTitle}`);
+    
     questions.push(...pillarQuestions);
     questionIdCounter += pillarQuestions.length;
   });
 
   // If we couldn't generate any questions from pillars, fall back to defaults
   if (questions.length === 0) {
+    console.log("Failed to generate pillar-based questions, using defaults");
     return generateDefaultQuestions(promptText);
   }
 
@@ -56,30 +68,63 @@ function generateQuestionsForPillar(
 ): Question[] {
   // Extract key focus areas from the pillar description
   const focusAreas = extractFocusAreasFromDescription(pillarDescription);
+  console.log(`Extracted focus areas for ${pillarTitle}:`, focusAreas);
   
-  // Generate 2-4 questions based on the pillar focus
+  // Generate 3-4 questions based on the pillar focus
   const questions: Question[] = [];
-  const questionsToGenerate = Math.min(Math.max(focusAreas.length, 2), 4);
+  const questionsToGenerate = Math.min(Math.max(focusAreas.length + 1, 3), 4);
   
   // Basic question templates that can be adapted for different pillars
-  const questionTemplates = [
-    "What is the main {focus} you want to address?",
-    "Could you describe the {focus} in more detail?",
-    "What specific aspects of {focus} are most important?",
-    "What are your expectations regarding {focus}?",
-    "How would you like the {focus} to be handled?",
-    "What are the key considerations for {focus}?",
-    "What outcome do you expect related to {focus}?",
-    "How should {focus} be incorporated?"
-  ];
+  const questionTemplates = {
+    "Task": [
+      "What is the main {focus} you want to achieve?",
+      "How would you define the scope of the {focus}?",
+      "What are the key deliverables for this {focus}?",
+      "What does success look like for this {focus}?"
+    ],
+    "Persona": [
+      "Who is the target audience for this {focus}?",
+      "What role or perspective should be adopted for the {focus}?",
+      "What level of expertise should be demonstrated in the {focus}?",
+      "How would you describe the ideal voice for this {focus}?"
+    ],
+    "Conditions": [
+      "What tone or style should be used for the {focus}?",
+      "Are there any specific constraints for the {focus}?",
+      "What is the desired length or format for the {focus}?",
+      "What mood or emotional impact should the {focus} have?"
+    ],
+    "Instructions": [
+      "What specific steps or processes should be included in the {focus}?",
+      "How should the {focus} be structured or organized?",
+      "What methodology should be used for the {focus}?",
+      "What guidance is needed for implementing the {focus}?"
+    ],
+    "Generic": [
+      "What is the purpose of the {focus}?",
+      "How would you describe the ideal {focus}?",
+      "What aspects of the {focus} are most important?",
+      "What specific elements should be included in the {focus}?"
+    ]
+  };
+  
+  // Choose the right question template category based on pillar title
+  const templateCategory = Object.keys(questionTemplates).find(
+    category => pillarTitle.toLowerCase().includes(category.toLowerCase()) || 
+               category.toLowerCase().includes(pillarTitle.toLowerCase())
+  ) || "Generic";
+  
+  console.log(`Using question template category "${templateCategory}" for pillar "${pillarTitle}"`);
+  
+  const selectedTemplates = questionTemplates[templateCategory];
   
   // Use focus areas to create specific questions
   for (let i = 0; i < questionsToGenerate; i++) {
-    // If we have a focus area, use it; otherwise use a generic approach
+    // If we have a focus area, use it; otherwise use the pillar title
     const focus = i < focusAreas.length ? focusAreas[i] : pillarTitle.toLowerCase();
     
     // Get a question template and replace the focus placeholder
-    const template = questionTemplates[i % questionTemplates.length];
+    const template = selectedTemplates[i % selectedTemplates.length];
     const text = template.replace('{focus}', focus);
     
     questions.push({
@@ -108,7 +153,7 @@ function extractFocusAreasFromDescription(description: string): string[] {
     const words = sentence.trim().split(/\s+/);
     
     // Look for important words by avoiding common words/stopwords
-    const stopwords = ['the', 'a', 'an', 'is', 'are', 'and', 'or', 'to', 'that', 'this', 'in', 'for', 'with', 'by'];
+    const stopwords = ['the', 'a', 'an', 'is', 'are', 'and', 'or', 'to', 'that', 'this', 'in', 'for', 'with', 'by', 'on', 'as', 'it', 'be', 'not', 'of'];
     const keyWords = words.filter(word => 
       word.length > 3 && !stopwords.includes(word.toLowerCase())
     );
@@ -186,18 +231,26 @@ export function generateContextualVariablesForPrompt(
 ): Variable[] {
   // Default variables if no template provided or invalid template
   if (!template || !template.pillars || !Array.isArray(template.pillars) || template.pillars.length === 0) {
+    console.log("No valid template found, using default variables");
     return generateDefaultVariables();
   }
   
   const variables: Variable[] = [];
   let variableCounter = 1;
   
+  console.log(`Generating variables based on ${template.pillars.length} pillars from template: ${template.name}`);
+  
   // Generate 1-2 variables per pillar based on the pillar description
   template.pillars.forEach((pillar: any) => {
-    if (!pillar || !pillar.title || !pillar.description) return;
+    if (!pillar || !pillar.title || !pillar.description) {
+      console.log("Skipping invalid pillar for variables", pillar);
+      return;
+    }
     
     const pillarTitle = pillar.title;
     const pillarDescription = pillar.description;
+    
+    console.log(`Generating variables for pillar: ${pillarTitle}`);
     
     // Generate variables specific to this pillar
     const pillarVariables = generateVariablesForPillar(
@@ -207,12 +260,15 @@ export function generateContextualVariablesForPrompt(
       variableCounter
     );
     
+    console.log(`Generated ${pillarVariables.length} variables for pillar ${pillarTitle}`);
+    
     variables.push(...pillarVariables);
     variableCounter += pillarVariables.length;
   });
   
   // If we couldn't generate any variables from pillars, fall back to defaults
   if (variables.length === 0) {
+    console.log("Failed to generate pillar-based variables, using defaults");
     return generateDefaultVariables();
   }
   
@@ -230,14 +286,15 @@ function generateVariablesForPillar(
 ): Variable[] {
   // Determine key variable types based on the pillar
   const variableTypes = determineVariableTypesForPillar(pillarTitle, pillarDescription);
+  console.log(`Determined variable types for ${pillarTitle}:`, variableTypes);
   
   const variables: Variable[] = [];
   
   // Generate 1-2 variables per pillar
-  const variablesToGenerate = Math.min(2, variableTypes.length);
+  const variablesToGenerate = Math.min(2, Math.max(variableTypes.length, 1));
   
   for (let i = 0; i < variablesToGenerate; i++) {
-    const variableType = variableTypes[i];
+    const variableType = i < variableTypes.length ? variableTypes[i] : `${pillarTitle} Parameter`;
     
     variables.push({
       id: `v-${startId + i}`,
@@ -282,10 +339,23 @@ function determineVariableTypesForPillar(pillarTitle: string, pillarDescription:
     }
   });
   
-  // Use the best matching pillar variables or a generic set
-  const variableTypes = bestMatch ? 
-    commonVariablesByPillar[bestMatch] : 
-    ["Input", "Output Format", "Context"];
+  // Use the best matching pillar variables or extract from description
+  let variableTypes: string[] = [];
+  
+  if (bestMatch) {
+    // Get variables from the matching category
+    variableTypes = commonVariablesByPillar[bestMatch];
+  } else {
+    // Extract potential variable names from the description
+    const words = pillarDescription.split(/\s+/);
+    const nouns = words.filter(word => word.length > 3 && /^[A-Z][a-z]+$/.test(word));
+    
+    if (nouns.length > 0) {
+      variableTypes = nouns.slice(0, 3);
+    } else {
+      variableTypes = ["Format", "Context", "Parameter"];
+    }
+  }
   
   return variableTypes;
 }

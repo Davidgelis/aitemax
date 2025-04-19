@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -30,6 +31,8 @@ serve(async (req) => {
       hasPrimaryToggle: !!primaryToggle,
       hasSecondaryToggle: !!secondaryToggle,
       hasTemplate: !!template,
+      templateName: template?.name || 'none',
+      templatePillarsCount: template?.pillars?.length || 0,
       hasWebsiteData: !!websiteData,
       hasImageData: !!imageData,
       hasSmartContext: !!smartContextData
@@ -37,6 +40,9 @@ serve(async (req) => {
 
     // Create system prompt with template
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
+    
+    // Log the first 200 characters of the system prompt to help with debugging
+    console.log("System prompt excerpt:", systemPrompt.substring(0, 200) + "...");
     
     // Enhanced context building with better structure
     let additionalContext = "";
@@ -78,7 +84,8 @@ serve(async (req) => {
       questionsCount: questions.length,
       variablesCount: variables.length,
       preFilledQuestions: questions.filter(q => q.answer).length,
-      preFilledVariables: variables.filter(v => v.value).length
+      preFilledVariables: variables.filter(v => v.value).length,
+      pillarsRepresented: [...new Set(questions.map(q => q.category))].join(', ')
     });
 
     return new Response(

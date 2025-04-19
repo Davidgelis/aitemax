@@ -1,3 +1,4 @@
+
 // Base prompt used for all prompt analysis requests
 const basePrompt = `You are a specialized AI assistant focused on analyzing and enhancing text prompts. Your task is to extract meaningful questions and variables from user prompts to help create more effective AI interactions.
 
@@ -13,8 +14,9 @@ QUESTION GENERATION RULES:
    - Technical specifications
    - Style preferences
    - Context requirements
-2. Organize questions into clear categories
+2. Organize questions into clear categories that match the template pillars
 3. Ensure questions cover both explicit and implicit needs
+4. Generate at least 2-3 questions for EACH pillar in the template
 
 VARIABLE CREATION RULES:
 1. Identify ALL customizable elements
@@ -24,6 +26,7 @@ VARIABLE CREATION RULES:
    - Reusable elements
 3. Use clear, specific names
 4. Keep values concise (1-4 words)
+5. Create at least 1-2 variables for EACH pillar in the template
 
 PRE-FILLING RULES:
 1. Use smart context to:
@@ -37,7 +40,7 @@ PRE-FILLING RULES:
 
 OUTPUT FORMAT:
 ### Questions:
-[Comprehensive questions organized by category]
+[Comprehensive questions organized by pillar category]
 [Pre-filled answers marked with "PRE-FILLED:" prefix]
 
 ### Variables:
@@ -70,10 +73,16 @@ Temperature: ${template.temperature}
 PILLAR SECTIONS:
 ${template.pillars.map((pillar: any) => `
 ### ${pillar.title} Questions:
-[Generate 2-3 specific questions exploring ${pillar.title}]
+[Generate 3-4 specific questions exploring ${pillar.title}]
 [Questions must directly relate to ${pillar.description}]
+[Each question must help gather critical information about this pillar]
 [If context provides relevant information, pre-fill answers]
-[Format: ### ${pillar.title} Questions:]`).join('\n')}
+[Format: ### ${pillar.title} Questions:]
+
+### ${pillar.title} Variables:
+[Generate 1-2 variables specific to ${pillar.title}]
+[Variables should capture key customizable elements for this pillar]
+[Format: Variable_Name: Description]`).join('\n')}
 
 REQUIREMENTS:
 - Each question MUST be categorized under its specific pillar section
@@ -82,6 +91,8 @@ REQUIREMENTS:
 - Use the exact pillar titles as section headers
 - Pre-fill answers when context provides relevant information
 - Mark pre-filled answers with "PRE-FILLED:" prefix
+- Variables must be organized by pillar categories
+- Ensure at least 1 variable per pillar
 ` : '';
 
   // Combine base prompt with pillar instructions and focus areas
@@ -94,10 +105,12 @@ ${secondaryToggle ? `SECONDARY FOCUS: ${secondaryToggle}` : ''}
 
 CONTEXT HANDLING:
 - When image context is provided, extract relevant details to pre-fill appropriate questions and variables
+- When smart context is provided, use it as the PRIMARY source for pre-filling questions and variables
 - Only pre-fill values that are directly observable or clearly implied from the context
 - Always mark pre-filled values with "PRE-FILLED:" prefix
 - For questions that cannot be answered from context, leave them blank
-- Maintain consistency between pre-filled values across questions and variables`;
+- Maintain consistency between pre-filled values across questions and variables
+- ALWAYS generate questions for EACH pillar in the template, regardless of context availability`;
 
   return finalPrompt;
 };

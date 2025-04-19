@@ -1,3 +1,4 @@
+
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -21,33 +22,35 @@ export async function analyzePromptWithAI(
       content: `${systemMessage}
 
 SMART CONTEXT AND PRE-FILLING RULES:
-1. Generate comprehensive questions for ALL aspects of the prompt/intent
-2. Create variables for customizable elements
+1. Generate comprehensive questions for EACH pillar in the template framework
+2. Create at least 1-2 variables for EACH pillar in the template
 3. When smart context is provided:
-   - Use it to pre-fill answers with DETAILED paragraphs (3-5 sentences)
+   - Use it as the PRIMARY source to pre-fill answers with DETAILED paragraphs (3-5 sentences)
    - Extract specific values for variables (1-4 words)
    - Mark all pre-filled content with "PRE-FILLED:" prefix
 4. When user's prompt contains specific details:
    - Incorporate these details into pre-filled answers
    - Use them to pre-fill relevant variables
-5. Maintain consistency between questions and variables`
+5. Maintain consistency between questions and variables
+6. ALWAYS ensure questions are categorized by template pillars`
     }
   ];
   
   let enhancedUserPrompt = `Analyze this prompt/intent: "${promptText}"
 
 ANALYSIS STEPS:
-1. Generate comprehensive questions about:
+1. Generate 3-4 comprehensive questions for EACH pillar about:
    - Core requirements and specifications
    - Style and tone preferences
    - Technical constraints
    - Contextual requirements
-2. Create variables for customizable elements
+2. Create 1-2 variables for EACH pillar
 3. Pre-fill answers using context from:
    - Smart button data (detailed paragraphs)
    - User's input (specific details)
    - Image analysis (if provided)
-4. Extract concise variable values from context`;
+4. Extract concise variable values from context
+5. Organize questions and variables by pillar categories`;
 
   // Enhanced context handling
   if (imageBase64) {
@@ -66,11 +69,12 @@ ANALYSIS STEPS:
 ANALYZE THIS IMAGE WITH THESE SPECIFIC INSTRUCTIONS: ${imageInstructions}
 
 Then:
-1. Pre-fill questions that can be answered directly from the image with DETAILED descriptions
-2. Create additional questions for context that's missing but needed
-3. Pre-fill variable values with specific, concrete details from the image
-4. Mark all pre-filled content with "PRE-FILLED:" prefix
-5. Group questions by relevant categories
+1. Generate 3-4 questions for EACH pillar in the template
+2. Pre-fill questions that can be answered directly from the image with DETAILED descriptions
+3. Create 1-2 variables for EACH pillar in the template
+4. Pre-fill variable values with specific, concrete details from the image
+5. Mark all pre-filled content with "PRE-FILLED:" prefix
+6. Group questions and variables by template pillar categories
 ${additionalContext}`
         },
         {
@@ -81,21 +85,6 @@ ${additionalContext}`
         }
       ]
     });
-  } else if (additionalContext.includes("WEBSITE CONTEXT")) {
-    console.log("Processing website context");
-    messages.push({
-      role: 'user',
-      content: `${enhancedUserPrompt}
-
-${additionalContext}
-
-WEBSITE CONTENT PRE-FILLING RULES:
-1. Extract SPECIFIC quotes and examples that relate to the prompt
-2. Pre-fill questions with detailed website information (3-5 sentences)
-3. Create variables for key website elements and pre-fill their values
-4. Mark all pre-filled content with "PRE-FILLED:" prefix
-5. Generate additional questions for missing context`
-    });
   } else if (additionalContext.includes("SMART CONTEXT")) {
     console.log("Processing smart context with enhanced pre-filling");
     messages.push({
@@ -105,23 +94,51 @@ WEBSITE CONTENT PRE-FILLING RULES:
 ${additionalContext}
 
 SMART CONTEXT PRE-FILLING INSTRUCTIONS:
-1. First, generate ALL possible relevant questions
-2. Then, use the smart context to:
-   - Write detailed, multi-sentence answers for relevant questions
-   - Extract specific values for variables (1-4 words)
+1. First, generate 3-4 questions for EACH pillar in the template
+2. Create 1-2 variables for EACH pillar in the template
+3. Then, use the smart context to:
+   - Write detailed, multi-sentence answers (3-5 sentences) for relevant questions
+   - Extract specific values (1-4 words) for variables
    - Mark all pre-filled content with "PRE-FILLED:" prefix
-3. Finally, incorporate any specific details from the user's prompt
-4. Ensure consistency between questions and variables`
+4. Use details from the user's prompt to further enhance pre-filled content
+5. Ensure questions and variables are grouped by pillar categories
+6. Maintain consistency between questions and variables`
+    });
+  } else if (additionalContext.includes("WEBSITE CONTEXT")) {
+    console.log("Processing website context");
+    messages.push({
+      role: 'user',
+      content: `${enhancedUserPrompt}
+
+${additionalContext}
+
+WEBSITE CONTENT PRE-FILLING RULES:
+1. Generate 3-4 questions for EACH pillar in the template
+2. Create 1-2 variables for EACH pillar in the template
+3. Extract SPECIFIC quotes and examples from the website that relate to the prompt
+4. Pre-fill questions with detailed website information (3-5 sentences)
+5. Create variables for key website elements and pre-fill their values
+6. Mark all pre-filled content with "PRE-FILLED:" prefix
+7. Ensure questions and variables are grouped by pillar categories`
     });
   } else {
     messages.push({
       role: 'user',
-      content: `${enhancedUserPrompt} ${additionalContext}`
+      content: `${enhancedUserPrompt}
+
+TEMPLATE-BASED QUESTION GENERATION:
+1. Generate 3-4 questions for EACH pillar in the template
+2. Create 1-2 variables for EACH pillar in the template
+3. Ensure questions are directly relevant to each pillar's purpose
+4. Pre-fill any questions that can be answered from the user's prompt
+5. Organize all questions and variables by pillar categories
+
+${additionalContext}`
     });
   }
   
   try {
-    console.log("Calling OpenAI API with enhanced context handling");
+    console.log("Calling OpenAI API with enhanced template-based questions");
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -156,7 +173,7 @@ SMART CONTEXT PRE-FILLING INSTRUCTIONS:
       throw new Error("Invalid response format from OpenAI API");
     }
     
-    console.log("Successfully analyzed prompt with context");
+    console.log("Successfully analyzed prompt with template-based questions");
     console.log("Response content length:", data.choices[0].message.content.length);
     
     return {
