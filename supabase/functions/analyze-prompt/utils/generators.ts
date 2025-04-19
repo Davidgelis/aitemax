@@ -1,9 +1,103 @@
 // Helper functions to generate fallback data
 
 /**
- * Generate context-appropriate questions based on prompt text
+ * Generate context-appropriate questions based on prompt text and template pillars
  */
-export function generateContextQuestionsForPrompt(promptText: string): any[] {
+export function generateContextQuestionsForPrompt(
+  promptText: string,
+  template: any = null
+): any[] {
+  // If we have a valid template with pillars, use template-based question generation
+  if (template?.pillars && Array.isArray(template.pillars) && template.pillars.length > 0) {
+    const questions = [];
+    let questionId = 1;
+
+    template.pillars.forEach(pillar => {
+      // Generate 2-4 questions per pillar based on its description
+      const pillarQuestions = generateQuestionsForPillar(
+        promptText,
+        pillar.title,
+        pillar.description,
+        questionId,
+        Math.min(4, Math.max(2, Math.ceil(8 / template.pillars.length))) // Distribute questions evenly
+      );
+      questions.push(...pillarQuestions);
+      questionId += pillarQuestions.length;
+    });
+
+    return questions;
+  }
+
+  // Fallback to existing category-based questions if no template
+  return generateDefaultQuestions(promptText);
+}
+
+function generateQuestionsForPillar(
+  promptText: string,
+  pillarTitle: string,
+  pillarDescription: string,
+  startId: number,
+  questionCount: number
+): any[] {
+  const questions = [];
+  const lowerPrompt = promptText.toLowerCase();
+  
+  // Helper to create a user-friendly question
+  const createQuestion = (text: string) => ({
+    id: `q${startId + questions.length}`,
+    text,
+    isRelevant: null,
+    answer: "",
+    category: pillarTitle
+  });
+
+  // Use pillar description to guide question generation
+  const description = pillarDescription.toLowerCase();
+
+  // Common patterns to make questions more user-friendly
+  const patterns = [
+    "Could you explain in simple terms",
+    "In your own words, describe",
+    "Help me understand",
+    "What would you like to achieve regarding",
+    "Tell me more about"
+  ];
+
+  // Generate base questions from pillar description
+  const keyTerms = description
+    .replace(/[^\w\s]/g, '')
+    .split(/\s+/)
+    .filter(word => word.length > 4)
+    .slice(0, questionCount);
+
+  keyTerms.forEach((term, index) => {
+    const pattern = patterns[index % patterns.length];
+    questions.push(createQuestion(
+      `${pattern} how ${term} relates to your needs? (Use everyday language)`
+    ));
+  });
+
+  // Fill remaining questions with context-specific ones
+  while (questions.length < questionCount) {
+    if (lowerPrompt.includes('technical') || lowerPrompt.includes('code')) {
+      questions.push(createQuestion(
+        "How would you explain this to someone who isn't technical? (Think of explaining it to a friend)"
+      ));
+    } else if (lowerPrompt.includes('data') || lowerPrompt.includes('analysis')) {
+      questions.push(createQuestion(
+        "What kind of insights would be most helpful for you? (Think of real-world examples)"
+      ));
+    } else {
+      questions.push(createQuestion(
+        "What's the main thing you're hoping to accomplish with this?"
+      ));
+    }
+  }
+
+  return questions;
+}
+
+function generateDefaultQuestions(promptText: string): any[] {
   const lowerPrompt = promptText.toLowerCase();
 
   // Define common technical terms that might need explanation
