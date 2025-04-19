@@ -32,26 +32,25 @@ serve(async (req) => {
       hasTemplate: !!template,
       hasWebsiteData: !!websiteData,
       hasImageData: !!imageData,
-      hasSmartContext: !!smartContextData,
-      templateType: template?.isDefault ? 'Default Framework' : 'Custom Template'
+      hasSmartContext: !!smartContextData
     });
 
     // Create system prompt with template
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
     
-    // Build additional context string
+    // Enhanced context building with better structure
     let additionalContext = "";
     
     if (imageData) {
-      additionalContext += `\nSPECIFIC IMAGE ANALYSIS INSTRUCTIONS: ${imageData.instructions || 'Analyze all relevant aspects of the image.'}\n\n`;
+      additionalContext += `\nIMAGE ANALYSIS CONTEXT:\nInstructions: ${imageData.instructions || 'Analyze all relevant aspects of the image.'}\n\n`;
     }
     
     if (websiteData) {
-      additionalContext += `\nWEBSITE CONTEXT:\n${websiteData.content}\nANALYSIS INSTRUCTIONS: ${websiteData.instructions}\n\n`;
+      additionalContext += `\nWEBSITE CONTEXT:\n${websiteData.content}\nExtraction Instructions: ${websiteData.instructions}\n\n`;
     }
     
     if (smartContextData) {
-      additionalContext += `\nSMART CONTEXT DATA:\n${smartContextData.context}\nUSAGE INSTRUCTIONS: ${smartContextData.usageInstructions}\n\n`;
+      additionalContext += `\nSMART CONTEXT DATA:\n${smartContextData.context}\nUsage Requirements: ${smartContextData.usageInstructions}\n\n`;
     }
     
     // Validate OpenAI API key
@@ -60,7 +59,7 @@ serve(async (req) => {
       throw new Error("OpenAI API key is not configured");
     }
 
-    // Call OpenAI API with context
+    // Call OpenAI API with enhanced context
     const { content, usage } = await analyzePromptWithAI(
       promptText,
       systemPrompt,
@@ -69,8 +68,7 @@ serve(async (req) => {
       imageData?.base64
     );
 
-    // Extract components
-    console.log("Extracting components with context...");
+    console.log("Extracting components from AI response...");
     const questions = extractQuestions(content, promptText);
     const variables = extractVariables(content, promptText);
     const masterCommand = extractMasterCommand(content);

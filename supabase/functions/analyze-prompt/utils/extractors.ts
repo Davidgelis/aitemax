@@ -6,7 +6,7 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
   try {
     const questions: Question[] = [];
     
-    // Extract questions from pillar sections with pre-filled answers
+    // Enhanced regex to better capture pre-filled content
     const pillarSectionRegex = /### ([^:]+) Questions:\s*([\s\S]*?)(?=###|$)/g;
     let pillarMatch;
     let foundPillarQuestions = false;
@@ -17,7 +17,7 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       
       console.log(`Found pillar section: ${category} with content length: ${questionsText.length}`);
       
-      // Parse questions and pre-filled answers
+      // Enhanced pre-filled answer detection with better pattern matching
       const questionLines = questionsText
         .split('\n')
         .map(line => line.trim())
@@ -25,32 +25,24 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       
       questionLines.forEach(questionText => {
         if (questionText.trim()) {
-          // Enhanced pre-filled answer detection
-          const prefillMatch = questionText.match(/(.*?)PRE-FILLED:\s*([\s\S]*)/i);
+          // Improved pre-filled detection with more robust regex
+          const prefillMatch = questionText.match(/(.*?)(?:PRE-FILLED:|$)([\s\S]*)/i);
           
           if (prefillMatch) {
             const questionContent = prefillMatch[1].trim();
-            const preFilledAnswer = prefillMatch[2].trim();
+            const preFilledAnswer = prefillMatch[2] ? prefillMatch[2].trim() : '';
             
             questions.push({
               id: `q-${questions.length + 1}`,
               text: questionContent,
               answer: preFilledAnswer,
-              isRelevant: true, // Pre-filled answers are marked as relevant
+              isRelevant: preFilledAnswer ? true : null,
               category
             });
             
-            console.log(`Added pre-filled question under ${category}:`, {
+            console.log(`Added ${preFilledAnswer ? 'pre-filled' : 'empty'} question under ${category}:`, {
               text: questionContent.substring(0, 50),
               answerLength: preFilledAnswer.length
-            });
-          } else {
-            questions.push({
-              id: `q-${questions.length + 1}`,
-              text: questionText.trim(),
-              answer: "",
-              isRelevant: null,
-              category
             });
           }
         }
@@ -124,32 +116,31 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
   try {
     const variables: Variable[] = [];
     
-    // First try to extract pillar-specific variables
-    const pillarSectionRegex = /### Variables for ([^:]+):\s*([\s\S]*?)(?=###|$)|### Variables:\s*([\s\S]*?)(?=###|$)/gi;
+    // Enhanced regex to better capture variables sections with pre-filled values
+    const variablesSectionRegex = /### Variables(?:\s+for\s+([^:]+))?:\s*([\s\S]*?)(?=###|$)/gi;
     let match;
-    let foundVariables = false;
     
-    while ((match = pillarSectionRegex.exec(aiResponse)) !== null) {
+    while ((match = variablesSectionRegex.exec(aiResponse)) !== null) {
       const category = match[1] || 'General';
-      const variablesText = (match[1] ? match[2] : match[3])?.trim();
+      const variablesText = match[2]?.trim();
       
       if (!variablesText) continue;
       
       console.log(`Found variables section for category: ${category}`);
       
-      // Parse variables line by line with enhanced pre-filled detection
+      // Improved variable line parsing with better pre-filled detection
       const variableLines = variablesText.split('\n')
         .map(line => line.trim())
         .filter(line => line && !line.startsWith('-'));
       
       variableLines.forEach(line => {
-        // Enhanced pre-filled value detection
-        const prefillMatch = line.match(/([^:]+):\s*([^(PRE-FILLED)]+)(?:PRE-FILLED:\s*(.+))?/i);
+        // Enhanced pre-filled detection for variables
+        const varMatch = line.match(/([^:]+):\s*([^(PRE-FILLED)]+)(?:PRE-FILLED:\s*(.+))?/i);
         
-        if (prefillMatch) {
-          const name = prefillMatch[1].trim();
-          const description = prefillMatch[2].trim();
-          const preFilledValue = prefillMatch[3]?.trim() || '';
+        if (varMatch) {
+          const name = varMatch[1].trim();
+          const description = varMatch[2]?.trim() || '';
+          const preFilledValue = varMatch[3]?.trim() || '';
           
           variables.push({
             id: `v-${variables.length + 1}`,
@@ -163,11 +154,8 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
           console.log(`Added variable: ${name} under ${category}${preFilledValue ? ' (pre-filled)' : ''}`);
         }
       });
-      
-      foundVariables = true;
     }
     
-    // Log the results
     console.log(`Extracted ${variables.length} variables:`, {
       preFilledCount: variables.filter(v => v.value).length,
       categories: [...new Set(variables.map(v => v.category))]

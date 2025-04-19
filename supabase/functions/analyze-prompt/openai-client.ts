@@ -1,4 +1,3 @@
-
 // OpenAI API client for prompt analysis
 
 export async function analyzePromptWithAI(
@@ -19,25 +18,34 @@ export async function analyzePromptWithAI(
   }
   
   const messages = [
-    { role: 'system', content: systemMessage }
+    { 
+      role: 'system', 
+      content: `${systemMessage}
+
+CRITICAL CONTEXT HANDLING:
+1. Always prioritize context from smart features (website, image, or smart context) over the base prompt
+2. Extract specific, detailed information from the context to pre-fill answers and variables
+3. Use "PRE-FILLED:" prefix for all pre-filled content
+4. Ensure pre-filled answers are 3-5 sentences long with concrete details
+5. Keep variable values concise (1-4 words) but specific
+6. Only pre-fill information that directly relates to the prompt's intent`
+    }
   ];
   
-  // Enhanced context handling for all smart features
-  let enhancedUserPrompt = `Analyze this prompt for generating questions and variables: "${promptText}"
+  let enhancedUserPrompt = `Analyze this prompt: "${promptText}"
 
-FIRST, DEEPLY ANALYZE the main intent behind this prompt to understand what the user wants to accomplish.
+FIRST, DEEPLY ANALYZE the main intent and requirements.
 
-CRITICAL: When pre-filling answers and values:
-1. Only pre-fill information that is DIRECTLY related to the prompt's intent
-2. Pre-fill with DETAILED, SPECIFIC information (3-5 sentences for questions, 1-4 words for variables)
-3. Mark all pre-filled content with "PRE-FILLED:" prefix
-4. Leave questions blank if they cannot be confidently answered from the context
-5. Ensure pre-filled answers are concrete and specific, not vague references`;
+CRITICAL PRE-FILLING RULES:
+1. Pre-fill with DETAILED, SPECIFIC information from context
+2. Mark ALL pre-filled content with "PRE-FILLED:" prefix
+3. Leave questions blank if they cannot be confidently answered
+4. Ensure pre-filled answers are concrete and specific
+5. Generate relevant variables based on identified requirements`;
 
-  // If we have an image, add image-specific instructions
+  // Enhanced context handling with better logging
   if (imageBase64) {
-    console.log("Image provided for analysis - adding to OpenAI API request");
-    
+    console.log("Processing image analysis with context");
     // Extract image context instructions if present
     const imageInstructionsMatch = additionalContext.match(/SPECIFIC IMAGE ANALYSIS INSTRUCTIONS: (.*?)(\n\n|$)/s);
     const imageInstructions = imageInstructionsMatch ? imageInstructionsMatch[1].trim() : '';
@@ -68,34 +76,34 @@ ${additionalContext}`
       ]
     });
   } else if (additionalContext.includes("WEBSITE CONTEXT")) {
-    console.log("Website context provided - handling website data");
+    console.log("Processing website context");
     messages.push({
       role: 'user',
       content: `${enhancedUserPrompt}
 
 ${additionalContext}
 
-When pre-filling from website content:
+WEBSITE CONTENT PRE-FILLING RULES:
 1. Extract SPECIFIC quotes and examples that relate to the prompt
-2. Pre-fill questions with 3-5 sentences of detailed information
-3. Use concrete facts and examples from the website
+2. Pre-fill questions with detailed website information (3-5 sentences)
+3. Create variables for key website elements and pre-fill their values
 4. Mark all pre-filled content with "PRE-FILLED:" prefix
-5. Create additional questions for missing context`
+5. Generate additional questions for missing context`
     });
   } else if (additionalContext.includes("SMART CONTEXT")) {
-    console.log("Smart context provided - processing additional context");
+    console.log("Processing smart context");
     messages.push({
       role: 'user',
       content: `${enhancedUserPrompt}
 
 ${additionalContext}
 
-When pre-filling from smart context:
-1. Extract SPECIFIC information that relates to the prompt
-2. Pre-fill questions with detailed, relevant information
-3. Use concrete examples and details from the context
+SMART CONTEXT PRE-FILLING RULES:
+1. Extract SPECIFIC information from the provided context
+2. Pre-fill questions with detailed context information (3-5 sentences)
+3. Create and pre-fill variables based on context data
 4. Mark all pre-filled content with "PRE-FILLED:" prefix
-5. Create additional questions for missing context`
+5. Generate additional questions for missing information`
     });
   } else {
     messages.push({
@@ -105,8 +113,7 @@ When pre-filling from smart context:
   }
   
   try {
-    console.log("Calling OpenAI API for prompt analysis...");
-    console.log("Message count:", messages.length);
+    console.log("Calling OpenAI API with enhanced context handling");
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
