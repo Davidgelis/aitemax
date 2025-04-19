@@ -1,8 +1,6 @@
+
 // OpenAI API client for prompt analysis
 
-/**
- * Sends a prompt for analysis to OpenAI API
- */
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -24,42 +22,41 @@ export async function analyzePromptWithAI(
     { role: 'system', content: systemMessage }
   ];
   
-  // If we have an image, create a message with content parts
+  // Enhanced context handling for all smart features
+  let enhancedUserPrompt = `Analyze this prompt for generating questions and variables: "${promptText}"
+
+FIRST, DEEPLY ANALYZE the main intent behind this prompt to understand what the user wants to accomplish.
+
+CRITICAL: When pre-filling answers and values:
+1. Only pre-fill information that is DIRECTLY related to the prompt's intent
+2. Pre-fill with DETAILED, SPECIFIC information (3-5 sentences for questions, 1-4 words for variables)
+3. Mark all pre-filled content with "PRE-FILLED:" prefix
+4. Leave questions blank if they cannot be confidently answered from the context
+5. Ensure pre-filled answers are concrete and specific, not vague references`;
+
+  // If we have an image, add image-specific instructions
   if (imageBase64) {
-    console.log("Image provided for analysis - adding to OpenAI API request with gpt-4.1");
+    console.log("Image provided for analysis - adding to OpenAI API request");
     
-    // Extract image context instructions if present in additionalContext
-    let imageInstructionsText = "";
-    const imageContextMatch = additionalContext.match(/SPECIFIC IMAGE ANALYSIS INSTRUCTIONS: (.*?)(\n\n|$)/s);
-    if (imageContextMatch && imageContextMatch[1]) {
-      imageInstructionsText = `\n\nFOCUS SPECIFICALLY ON THESE USER INSTRUCTIONS: ${imageContextMatch[1].trim()}`;
-      console.log("Found specific image analysis instructions:", imageInstructionsText);
-    }
+    // Extract image context instructions if present
+    const imageInstructionsMatch = additionalContext.match(/SPECIFIC IMAGE ANALYSIS INSTRUCTIONS: (.*?)(\n\n|$)/s);
+    const imageInstructions = imageInstructionsMatch ? imageInstructionsMatch[1].trim() : '';
     
     messages.push({
       role: 'user',
       content: [
         {
           type: "text",
-          text: `Analyze this prompt for generating questions and variables: "${promptText}" 
-          
-First, DEEPLY ANALYZE the intent behind this prompt to understand what the user is trying to accomplish.
+          text: `${enhancedUserPrompt}
 
-Then, provide a DETAILED description of the image (2-3 paragraphs). Do not just refer to "the image" - instead, thoroughly describe the content, elements, layout, colors, text, and any relevant features visible. Be specific and concrete about what you see.${imageInstructionsText}
+ANALYZE THIS IMAGE WITH THESE SPECIFIC INSTRUCTIONS: ${imageInstructions}
 
-Then generate focused questions and variables with pre-filled values based on what you directly observe in the image that's MOST RELEVANT to the prompt.
-
-IMPORTANT: After analyzing the image, identify what ADDITIONAL context is still needed from the user that is NOT visible in the image and create questions to gather that missing information. For example, if the image shows lighting but doesn't indicate purpose, ask questions about the intended use.
-
-CRITICAL: All extracted information must be evaluated with the specific objective of constructing an AI-TOOL-READY PROMPT. Every piece of context must serve the end goal: generating a final prompt optimized for use with existing AI tools. This means focusing on details, parameters, and instructions that will result in an effective prompt that works well with AI systems.
-
-SPLIT YOUR QUESTIONS INTO:
-1. Questions answerable directly from the image (pre-fill these with DETAILED descriptions of what you observe, not just references to "the image")
-2. Questions that need user input (leave these blank)
-
-IMPORTANT FORMATTING REQUIREMENTS:
-- Question answers must contain DETAILED DESCRIPTIONS (one full paragraph of 3-5 sentences) not just references to content
-- Variable values must be concise (1-4 words maximum)
+Then:
+1. Pre-fill questions that can be answered directly from the image with DETAILED descriptions
+2. Create additional questions for context that's missing but needed
+3. Pre-fill variable values with specific, concrete details from the image
+4. Mark all pre-filled content with "PRE-FILLED:" prefix
+5. Group questions by relevant categories
 ${additionalContext}`
         },
         {
@@ -70,69 +67,46 @@ ${additionalContext}`
         }
       ]
     });
-  } else {
-    // No image, just use a simple text message with additional context
-    console.log("No image provided - using text-only OpenAI API request");
-    console.log("Additional context provided:", additionalContext ? "Yes" : "No");
-    
-    // Enhance user prompt with more specific instructions for intent analysis and content extraction
-    let messageText = `Analyze this prompt for generating questions and variables: "${promptText}"
-
-FIRST, DEEPLY ANALYZE the main intent behind this prompt. What is the user trying to accomplish? Is it content creation, image generation, research, marketing, coding, or something else?
-
-CRITICAL: All extracted information must be evaluated with the specific objective of constructing an AI-TOOL-READY PROMPT. Every piece of context must serve the end goal: generating a final prompt optimized for use with existing AI tools. This means focusing on details, parameters, and instructions that will result in an effective prompt that works well with AI systems.`;
-    
-    if (additionalContext.includes("WEBSITE CONTEXT")) {
-      messageText += `
-
-${additionalContext}
-
-When creating and pre-filling questions:
-1. FOCUS ON THE ORIGINAL PROMPT'S INTENT - the website content should enhance, not replace it
-2. Create questions that relate to the original prompt's purpose, not about the website itself
-3. If the prompt is about creating something (like a landing page), questions should be about that creation process
-4. Use the website content to provide detailed answers that support the original prompt's goals
-5. Extract 1-2 full sentences of detailed information from the website for question answers
-6. Include concrete facts, quotes or examples from the website that support the original prompt's purpose
-7. If the user asked to extract specific information (like "best practices"), focus on those items as they relate to the original prompt
-8. Remember: website content is supplementary research material for enhancing the original prompt, not the primary subject
-9. CLEARLY IDENTIFY what additional context is still needed from the user that is NOT present in the website content
-10. Create additional questions to gather the missing context from the user (leave these blank)
-11. ENSURE all extracted information is optimized for creating an AI-tool-ready prompt
-12. DO NOT simply refer to "the website content" - INSTEAD, provide DETAILED DESCRIPTIONS and SPECIFIC QUOTES from the content
-13. Question answers must contain 3-5 sentences of detailed, specific information from the website
-14. Variable values must be derived from website content but limited to 1-4 words`;
-    } else if (additionalContext.includes("SMART CONTEXT DATA")) {
-      messageText += `
-
-${additionalContext}
-
-When creating and pre-filling questions from Smart Context:
-1. FOCUS ON THE ORIGINAL PROMPT'S INTENT - the smart context should enhance, not replace it
-2. Create questions that relate to the original prompt's purpose, leveraging the smart context information
-3. Use the smart context to provide detailed answers that support the original prompt's goals
-4. Extract 1-2 full sentences of detailed information from the smart context for question answers
-5. Include specific terminology, concepts, or examples from the smart context when relevant
-6. CLEARLY IDENTIFY what additional context is still needed from the user that is NOT present in the smart context
-7. Create additional questions to gather the missing context from the user (leave these blank)
-8. ENSURE all extracted information is optimized for creating an AI-tool-ready prompt
-9. DO NOT simply refer to "the provided context" - INSTEAD, provide DETAILED DESCRIPTIONS and SPECIFIC QUOTES from the smart context
-10. Question answers must contain DETAILED DESCRIPTIONS (one full paragraph of 3-5 sentences)
-11. Variable values must remain concise (1-4 words maximum)
-12. NEVER say "According to the provided context" or similar phrases - instead, directly incorporate the information`;
-    } else {
-      messageText += ` ${additionalContext}`;
-    }
-    
+  } else if (additionalContext.includes("WEBSITE CONTEXT")) {
+    console.log("Website context provided - handling website data");
     messages.push({
       role: 'user',
-      content: messageText
+      content: `${enhancedUserPrompt}
+
+${additionalContext}
+
+When pre-filling from website content:
+1. Extract SPECIFIC quotes and examples that relate to the prompt
+2. Pre-fill questions with 3-5 sentences of detailed information
+3. Use concrete facts and examples from the website
+4. Mark all pre-filled content with "PRE-FILLED:" prefix
+5. Create additional questions for missing context`
+    });
+  } else if (additionalContext.includes("SMART CONTEXT")) {
+    console.log("Smart context provided - processing additional context");
+    messages.push({
+      role: 'user',
+      content: `${enhancedUserPrompt}
+
+${additionalContext}
+
+When pre-filling from smart context:
+1. Extract SPECIFIC information that relates to the prompt
+2. Pre-fill questions with detailed, relevant information
+3. Use concrete examples and details from the context
+4. Mark all pre-filled content with "PRE-FILLED:" prefix
+5. Create additional questions for missing context`
+    });
+  } else {
+    messages.push({
+      role: 'user',
+      content: `${enhancedUserPrompt} ${additionalContext}`
     });
   }
   
   try {
-    console.log("Calling OpenAI API with gpt-4.1 for prompt analysis...");
-    console.log("System message length:", systemMessage.length);
+    console.log("Calling OpenAI API for prompt analysis...");
+    console.log("Message count:", messages.length);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -141,7 +115,7 @@ When creating and pre-filling questions from Smart Context:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1',
+        model: 'gpt-4o',
         messages,
         temperature: 0.7,
         max_tokens: 2000,
@@ -157,7 +131,6 @@ When creating and pre-filling questions from Smart Context:
       } catch (parseError) {
         console.error("Failed to parse error response:", parseError);
       }
-      
       throw new Error(errorMessage);
     }
     
@@ -168,7 +141,7 @@ When creating and pre-filling questions from Smart Context:
       throw new Error("Invalid response format from OpenAI API");
     }
     
-    console.log("Successfully analyzed prompt with gpt-4.1");
+    console.log("Successfully analyzed prompt with context");
     console.log("Response content length:", data.choices[0].message.content.length);
     
     return {

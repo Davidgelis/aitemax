@@ -1,7 +1,7 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
+import { analyzePromptWithAI } from './openai-client.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,7 +20,9 @@ serve(async (req) => {
       primaryToggle, 
       secondaryToggle, 
       template,
-      backgroundInfo
+      websiteData,
+      imageData,
+      smartContextData
     } = await req.json();
     
     console.log("Received prompt analysis request:", {
@@ -28,20 +30,29 @@ serve(async (req) => {
       hasPrimaryToggle: !!primaryToggle,
       hasSecondaryToggle: !!secondaryToggle,
       hasTemplate: !!template,
-      templateType: template?.isDefault ? 'Default Framework' : 'Custom Template',
-      templateId: template?.id || 'none',
-      templateName: template?.name,
-      hasBackgroundInfo: !!backgroundInfo,
-      templatePillars: template?.pillars?.length || 0
+      hasWebsiteData: !!websiteData,
+      hasImageData: !!imageData,
+      hasSmartContext: !!smartContextData,
+      templateType: template?.isDefault ? 'Default Framework' : 'Custom Template'
     });
-
-    // Validate template structure if provided
-    if (template && (!template.id || !template.name || !Array.isArray(template.pillars))) {
-      throw new Error("Invalid template structure provided");
-    }
 
     // Create system prompt with template
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
+    
+    // Build additional context string
+    let additionalContext = "";
+    
+    if (imageData) {
+      additionalContext += `\nSPECIFIC IMAGE ANALYSIS INSTRUCTIONS: ${imageData.instructions || 'Analyze all relevant aspects of the image.'}\n\n`;
+    }
+    
+    if (websiteData) {
+      additionalContext += `\nWEBSITE CONTEXT:\n${websiteData.content}\nANALYSIS INSTRUCTIONS: ${websiteData.instructions}\n\n`;
+    }
+    
+    if (smartContextData) {
+      additionalContext += `\nSMART CONTEXT DATA:\n${smartContextData.context}\nUSAGE INSTRUCTIONS: ${smartContextData.usageInstructions}\n\n`;
+    }
     
     // Validate OpenAI API key
     const apiKey = Deno.env.get('OPENAI_API_KEY');
@@ -49,51 +60,27 @@ serve(async (req) => {
       throw new Error("OpenAI API key is not configured");
     }
 
-    // Call OpenAI API with template context
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { 
-            role: "system", 
-            content: systemPrompt 
-          },
-          { 
-            role: "user", 
-            content: promptText,
-            ...(backgroundInfo && { background: backgroundInfo })
-          }
-        ],
-        temperature: template?.temperature || 0.7
-      }),
-    });
+    // Call OpenAI API with context
+    const { content, usage } = await analyzePromptWithAI(
+      promptText,
+      systemPrompt,
+      apiKey,
+      additionalContext,
+      imageData?.base64
+    );
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const aiResponse = data.choices[0].message?.content || '';
-    
-    // Extract components with template awareness
-    console.log("Extracting components with template context...");
-    const questions = extractQuestions(aiResponse, promptText);
-    const variables = extractVariables(aiResponse, promptText);
-    const masterCommand = extractMasterCommand(aiResponse);
-    const enhancedPrompt = extractEnhancedPrompt(aiResponse);
+    // Extract components
+    console.log("Extracting components with context...");
+    const questions = extractQuestions(content, promptText);
+    const variables = extractVariables(content, promptText);
+    const masterCommand = extractMasterCommand(content);
+    const enhancedPrompt = extractEnhancedPrompt(content);
 
     console.log("Analysis complete:", {
       questionsCount: questions.length,
       variablesCount: variables.length,
-      hasMasterCommand: !!masterCommand,
-      hasEnhancedPrompt: !!enhancedPrompt,
-      templateUsed: template?.name || 'None',
-      pillarsFound: [...new Set(questions.map(q => q.category))]
+      preFilledQuestions: questions.filter(q => q.answer).length,
+      preFilledVariables: variables.filter(v => v.value).length
     });
 
     return new Response(
@@ -105,8 +92,7 @@ serve(async (req) => {
         templateInfo: template ? {
           id: template.id,
           name: template.name,
-          type: template.isDefault ? 'Default Framework' : 'Custom Template',
-          pillarsUsed: template.pillars.length
+          type: template.isDefault ? 'Default Framework' : 'Custom Template'
         } : null
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -116,10 +102,7 @@ serve(async (req) => {
     console.error('Error in analyze-prompt function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
 });
