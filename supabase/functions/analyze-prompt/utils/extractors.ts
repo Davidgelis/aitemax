@@ -6,7 +6,7 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
   try {
     const questions: Question[] = [];
     
-    // Extract questions from pillar sections first
+    // Extract questions from pillar sections first - improved regex pattern
     const pillarSectionRegex = /### ([^:]+) Questions:\s*([\s\S]*?)(?=###|$)/g;
     let pillarMatch;
     let foundPillarQuestions = false;
@@ -15,13 +15,13 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       const category = pillarMatch[1].trim();
       const questionsText = pillarMatch[2].trim();
       
-      console.log(`Found pillar section: ${category}`);
+      console.log(`Found pillar section: ${category} with content length: ${questionsText.length}`);
       
-      // Parse questions for this pillar
+      // Parse questions for this pillar - improved question parsing
       const questionLines = questionsText
         .split('\n')
         .map(line => line.trim())
-        .filter(line => line && !line.startsWith('-') && !line.startsWith('['));
+        .filter(line => line && !line.startsWith('[') && !line.startsWith('-'));
       
       questionLines.forEach(questionText => {
         if (questionText.trim()) {
@@ -32,6 +32,7 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
             isRelevant: null,
             category
           });
+          console.log(`Added question under ${category}:`, questionText.substring(0, 50));
         }
       });
       
@@ -48,7 +49,7 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
         const questionLines = questionsMatch[1]
           .split('\n')
           .map(line => line.trim())
-          .filter(line => line && !line.startsWith('-') && !line.startsWith('['));
+          .filter(line => line && !line.startsWith('[') && !line.startsWith('-'));
         
         questionLines.forEach(questionText => {
           if (questionText.trim()) {
@@ -64,12 +65,13 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       }
     }
     
-    console.log("Extracted questions by category:", 
-      questions.reduce((acc: any, q) => {
-        acc[q.category] = (acc[q.category] || 0) + 1;
-        return acc;
-      }, {})
-    );
+    // Log the results
+    const questionsByCategory = questions.reduce((acc: any, q) => {
+      acc[q.category] = (acc[q.category] || 0) + 1;
+      return acc;
+    }, {});
+    
+    console.log("Extracted questions by category:", questionsByCategory);
     
     return questions;
   } catch (error) {

@@ -24,7 +24,17 @@ export const StepOne = ({
   onAnalyze,
   isLoading
 }: StepOneProps) => {
-  const { currentTemplate } = useTemplateManagement();
+  const { getCurrentTemplate } = useTemplateManagement();
+  
+  const handleAnalyze = () => {
+    const currentTemplate = getCurrentTemplate();
+    console.log("StepOne: Analyzing with template:", {
+      templateId: currentTemplate?.id,
+      templateName: currentTemplate?.name,
+      pillarsCount: currentTemplate?.pillars?.length
+    });
+    onAnalyze();
+  };
   
   return (
     <>
@@ -35,11 +45,11 @@ export const StepOne = ({
       <PromptEditor 
         promptText={promptText}
         setPromptText={setPromptText}
-        onAnalyze={onAnalyze}
+        onAnalyze={handleAnalyze}
         selectedPrimary={selectedPrimary}
         selectedSecondary={selectedSecondary}
         isLoading={isLoading}
-        maxLength={currentTemplate?.characterLimit || 3000}
+        maxLength={getCurrentTemplate()?.characterLimit || 3000}
       />
     </>
   );

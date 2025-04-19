@@ -41,23 +41,23 @@ export const createSystemPrompt = (primaryToggle: string | null, secondaryToggle
 
   // Generate pillar-specific instructions if template exists
   const pillarSpecificInstructions = template?.pillars ? `
+TEMPLATE FRAMEWORK:
+Template: ${template.name}
+Type: ${template.isDefault ? 'Default Framework' : 'Custom Template'}
+Temperature: ${template.temperature}
+
 PILLAR SECTIONS:
 ${template.pillars.map((pillar: any) => `
 ### ${pillar.title} Questions:
-[Generate 2-3 specific questions exploring ${pillar.title} context]
-[Questions must directly relate to ${pillar.description}]`).join('\n')}
-
-TEMPLATE METADATA:
-Type: ${template.isDefault ? 'Default Framework' : 'Custom Template'}
-Template ID: ${template.id}
-Temperature: ${template.temperature}
-Character Limit: ${template.characterLimit || 'Not specified'}
+[Generate 2-3 specific questions exploring ${pillar.title}]
+[Questions must directly relate to ${pillar.description}]
+[Format: ### ${pillar.title} Questions:]`).join('\n')}
 
 REQUIREMENTS:
-- Each question must be categorized under its specific pillar section
+- Each question MUST be categorized under its specific pillar section
 - Questions should help gather requirements for each pillar
 - Keep questions focused on pillar objectives
-- Format consistently as "### [Pillar Name] Questions:"
+- Use the exact pillar titles as section headers
 ` : '';
 
   // Combine base prompt with pillar instructions
@@ -73,4 +73,3 @@ ${secondaryToggle ? `SECONDARY FOCUS: ${secondaryToggle}` : ''}`;
   
   return finalPrompt;
 };
-

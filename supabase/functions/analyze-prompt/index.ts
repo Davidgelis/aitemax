@@ -30,22 +30,17 @@ serve(async (req) => {
       hasTemplate: !!template,
       templateType: template?.isDefault ? 'Default Framework' : 'Custom Template',
       templateId: template?.id || 'none',
+      templateName: template?.name,
       hasBackgroundInfo: !!backgroundInfo,
       templatePillars: template?.pillars?.length || 0
     });
 
-    // Validate template structure
-    if (template) {
-      console.log("Validating template structure:", {
-        hasId: !!template.id,
-        hasName: !!template.name,
-        hasPillars: Array.isArray(template.pillars),
-        pillarsCount: template.pillars?.length || 0,
-        isDefault: template.isDefault || false
-      });
+    // Validate template structure if provided
+    if (template && (!template.id || !template.name || !Array.isArray(template.pillars))) {
+      throw new Error("Invalid template structure provided");
     }
 
-    // Create system prompt with template validation
+    // Create system prompt with template
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
     
     // Validate OpenAI API key
@@ -54,7 +49,7 @@ serve(async (req) => {
       throw new Error("OpenAI API key is not configured");
     }
 
-    // Call OpenAI API
+    // Call OpenAI API with template context
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -97,7 +92,8 @@ serve(async (req) => {
       variablesCount: variables.length,
       hasMasterCommand: !!masterCommand,
       hasEnhancedPrompt: !!enhancedPrompt,
-      templateUsed: template?.name || 'None'
+      templateUsed: template?.name || 'None',
+      pillarsFound: [...new Set(questions.map(q => q.category))]
     });
 
     return new Response(
@@ -106,11 +102,12 @@ serve(async (req) => {
         variables,
         masterCommand,
         enhancedPrompt,
-        templateInfo: {
-          id: template?.id || 'none',
-          type: template?.isDefault ? 'Default Framework' : 'Custom Template',
-          pillarsUsed: template?.pillars?.length || 0
-        }
+        templateInfo: template ? {
+          id: template.id,
+          name: template.name,
+          type: template.isDefault ? 'Default Framework' : 'Custom Template',
+          pillarsUsed: template.pillars.length
+        } : null
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
