@@ -1,4 +1,3 @@
-
 // Base prompt used for all prompt analysis requests
 const basePrompt = `You are a specialized AI assistant focused on analyzing and enhancing text prompts. Your task is to extract meaningful questions and variables from user prompts to help create more effective AI interactions.
 
@@ -13,8 +12,9 @@ OUTPUT FORMAT:
 [Questions organized by pillar sections]
 
 ### Variables:
-[List variables in plain text format: Name: Description]
-[Only suggest values if background information was provided]
+[List variables in Name: Description format, one per line]
+[Keep descriptions brief and actionable]
+[Group variables by pillar if template provided]
 
 ### Master Command:
 [Single line summarizing the core objective]

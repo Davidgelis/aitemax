@@ -1,4 +1,3 @@
-
 import { Question, Variable } from "./types";
 import { RefObject } from "react";
 import { QuestionList } from "./QuestionList";
@@ -60,8 +59,8 @@ export const StepTwo = ({
         />
       </div>
 
-      <div className="mb-6">
-        <VariableList 
+      <div className="mt-8">
+        <VariableList
           variables={variables}
           onVariableChange={onVariableChange}
           onVariableRelevance={onVariableRelevance}
@@ -74,13 +73,13 @@ export const StepTwo = ({
         />
       </div>
 
-      <div className="flex justify-end">
-        <button 
+      <div className="flex justify-end mt-8">
+        <button
           onClick={onContinue}
-          className={`aurora-button ${!canProceedToStep3 ? 'opacity-70 cursor-not-allowed' : ''}`}
           disabled={!canProceedToStep3}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
         >
-          {t.steps.continue}
+          {t.steps.continueToStep3}
         </button>
       </div>
     </div>

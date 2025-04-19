@@ -87,23 +87,25 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
     const variables: Variable[] = [];
     
     // First try to extract pillar-specific variables
-    const pillarRegex = /Variables for ([^:]+):\s*([\s\S]*?)(?=\n\n|###|$)/gi;
-    let pillarMatch;
-    let foundPillarVariables = false;
+    const pillarSectionRegex = /### Variables for ([^:]+):\s*([\s\S]*?)(?=###|$)|### Variables:\s*([\s\S]*?)(?=###|$)/gi;
+    let match;
+    let foundVariables = false;
     
-    while ((pillarMatch = pillarRegex.exec(aiResponse)) !== null) {
-      const category = pillarMatch[1].trim();
-      const variablesText = pillarMatch[2].trim();
+    while ((match = pillarSectionRegex.exec(aiResponse)) !== null) {
+      const category = match[1] || 'General';
+      const variablesText = (match[1] ? match[2] : match[3])?.trim();
       
-      // Parse variables for this pillar
-      const variableItems = variablesText
-        .split('\n')
-        .map(v => v.trim())
-        .filter(v => v && !v.startsWith('-')); // Filter out bullet points
+      if (!variablesText) continue;
       
-      variableItems.forEach(item => {
-        // Extract variable name and description using the new format
-        const variableMatch = item.match(/([^:]+):\s*(.+)/);
+      console.log(`Found variables section for category: ${category}`);
+      
+      // Parse variables line by line
+      const variableLines = variablesText.split('\n')
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('-'));
+      
+      variableLines.forEach(line => {
+        const variableMatch = line.match(/([^:]+):\s*(.+)/);
         if (variableMatch) {
           const name = variableMatch[1].trim();
           const description = variableMatch[2].trim();
@@ -111,30 +113,33 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
           variables.push({
             id: `v-${variables.length + 1}`,
             name,
-            value: '', // Start with empty value unless background info was provided
+            value: '',
             isRelevant: null,
             category,
             code: `VAR_${variables.length + 1}`
           });
+          
+          console.log(`Added variable: ${name} under ${category}`);
         }
       });
       
-      foundPillarVariables = true;
+      foundVariables = true;
     }
     
-    // If no pillar-specific variables found, try general variables section
-    if (!foundPillarVariables) {
-      const generalVariablesRegex = /### Variables:?([\s\S]*?)(?=###|$)/i;
+    // If no variables found in any section, look for general variables
+    if (!foundVariables) {
+      console.log("No pillar-specific variables found, looking for general variables");
+      const generalVariablesRegex = /### Variables:?\s*([\s\S]*?)(?=###|$)/i;
       const variablesMatch = aiResponse.match(generalVariablesRegex);
       
       if (variablesMatch && variablesMatch[1].trim()) {
-        const variableItems = variablesMatch[1]
+        const variableLines = variablesMatch[1]
           .split('\n')
-          .map(v => v.trim())
-          .filter(v => v && !v.startsWith('-')); // Filter out bullet points
+          .map(line => line.trim())
+          .filter(line => line && !line.startsWith('-'));
         
-        variableItems.forEach(item => {
-          const variableMatch = item.match(/([^:]+):\s*(.+)/);
+        variableLines.forEach(line => {
+          const variableMatch = line.match(/([^:]+):\s*(.+)/);
           if (variableMatch) {
             const name = variableMatch[1].trim();
             const description = variableMatch[2].trim();
@@ -142,7 +147,7 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
             variables.push({
               id: `v-${variables.length + 1}`,
               name,
-              value: '', // Start with empty value unless background info was provided
+              value: '',
               isRelevant: null,
               category: 'General',
               code: `VAR_${variables.length + 1}`
@@ -152,8 +157,9 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
       }
     }
     
-    console.log("Extracted variables:", variables.length);
+    console.log(`Extracted ${variables.length} variables`);
     return variables;
+    
   } catch (error) {
     console.error("Error extracting variables:", error);
     return [];
