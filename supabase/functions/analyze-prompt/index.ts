@@ -1,7 +1,6 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
-import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.2.1';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
 
 const corsHeaders = {
@@ -53,22 +52,31 @@ serve(async (req) => {
       throw new Error("OpenAI API key is not configured");
     }
 
-    // Call OpenAI
-    const configuration = new Configuration({
-      apiKey: apiKey,
-    });
-    const openai = new OpenAIApi(configuration);
-
+    // Call OpenAI API directly using fetch
     console.log("Calling OpenAI API with gpt-4.1 model...");
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-4.1',
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: promptText }
-      ],
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4.1',
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: promptText }
+        ],
+      }),
     });
 
-    const aiResponse = completion.data.choices[0].message?.content || '';
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("OpenAI API error:", errorData);
+      throw new Error(`OpenAI API error: ${response.status} ${errorData}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.choices[0].message?.content || '';
     console.log("AI Response received, length:", aiResponse.length);
     console.log("First 200 chars of response:", aiResponse.substring(0, 200));
 
