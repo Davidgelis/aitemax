@@ -33,14 +33,14 @@ export async function analyzePromptWithAI(
           messages: [
             {
               role: 'system',
-              content: 'You are a specialized image analyzer. Extract key details and components from the image.'
+              content: 'You are a specialized image analyzer. Extract detailed information that can be used to enhance the prompt and pre-fill relevant questions.'
             },
             {
               role: 'user',
               content: [
                 {
                   type: "text",
-                  text: "Analyze this image in detail and describe its key elements, colors, composition, and any notable features:"
+                  text: "Analyze this image in detail, focusing on elements that could help enhance and expand the user's prompt:"
                 },
                 {
                   type: "image_url",
@@ -65,85 +65,33 @@ export async function analyzePromptWithAI(
       throw new Error("Failed to analyze image");
     }
   }
-  
-  const messages = [
-    { 
-      role: 'system', 
-      content: `${systemMessage}\n\nIMPORTANT INSTRUCTIONS FOR CONTEXT ANALYSIS:
-1. Analyze ALL available context sources thoroughly
-2. Pre-fill answers using information from ANY context source
-3. Start all pre-filled answers with "PRE-FILLED: "
-4. Mark questions as relevant when you can confidently pre-fill answers
-5. Be thorough in analyzing visual elements if an image is provided
-6. Extract specific details from image analysis to pre-fill answers
-7. Ensure all extracted information is reflected in the questions`
-    }
-  ];
 
-  // Enhanced prompt to ensure proper context handling and JSON structure
-  let enhancedPrompt = `ANALYZE THIS COMBINED CONTEXT:
+  // Build comprehensive context
+  const enhancedContext = `
+USER PROMPT:
 ${promptText}
 
-${smartContext ? `ADDITIONAL CONTEXT TO USE FOR PRE-FILLING:\n${smartContext}\n` : ''}
-${imageAnalysisResult ? `IMAGE ANALYSIS RESULTS:\n${imageAnalysisResult}\n` : ''}
+${smartContext ? `SMART CONTEXT:
+${smartContext}` : ''}
 
-REQUIREMENTS:
-1. Return a valid JSON object
-2. Include questions with unique IDs
-3. Pre-fill answers using ALL available context sources
-4. Mark questions as relevant when pre-filled
-5. Organize by categories
-6. Use image analysis results to pre-fill relevant answers
+${imageAnalysisResult ? `IMAGE ANALYSIS:
+${imageAnalysisResult}` : ''}
 
-EXPECTED FORMAT:
-{
-  "questions": [
-    {
-      "id": "q-1",
-      "category": "Task",
-      "text": "What is the main goal?",
-      "answer": "PRE-FILLED: Based on context...",
-      "isRelevant": true
-    }
-  ],
-  "variables": [],
-  "masterCommand": "",
-  "enhancedPrompt": ""
-}`;
+INSTRUCTIONS:
+1. Use ALL available context to generate relevant questions
+2. Pre-fill answers when context provides clear information
+3. Ensure questions align with template pillars
+4. Focus on expanding and enhancing the user's intent
+5. Generate specific, detailed questions`;
 
-  if (imageBase64) {
-    console.log("Adding image for final prompt analysis");
-    messages.push({
-      role: 'user',
-      content: [
-        {
-          type: "text",
-          text: enhancedPrompt
-        },
-        {
-          type: "image_url",
-          image_url: {
-            url: `data:image/jpeg;base64,${imageBase64}`
-          }
-        }
-      ]
-    });
-  } else {
-    messages.push({
-      role: 'user',
-      content: enhancedPrompt
-    });
-  }
+  console.log("Sending context to OpenAI:", {
+    contextLength: enhancedContext.length,
+    hasSmartContext: !!smartContext,
+    hasImageAnalysis: !!imageAnalysisResult,
+    systemMessageLength: systemMessage.length
+  });
 
   try {
-    console.log("Calling OpenAI API with context lengths:", {
-      promptLength: promptText.length,
-      smartContextLength: smartContext.length,
-      imageAnalysisLength: imageAnalysisResult.length,
-      systemMessageLength: systemMessage.length,
-      hasImage: !!imageBase64
-    });
-    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -152,7 +100,16 @@ EXPECTED FORMAT:
       },
       body: JSON.stringify({
         model: 'gpt-4o',
-        messages,
+        messages: [
+          { 
+            role: 'system', 
+            content: systemMessage 
+          },
+          {
+            role: 'user',
+            content: enhancedContext
+          }
+        ],
         temperature: 0.7,
         max_tokens: 2000,
         response_format: { type: "json_object" }
@@ -166,19 +123,14 @@ EXPECTED FORMAT:
     }
 
     const data = await response.json();
-    console.log("Raw OpenAI response received, validating format...");
     
     if (!data.choices?.[0]?.message?.content) {
       throw new Error("Invalid response format from OpenAI");
     }
 
-    const responseContent = data.choices[0].message.content;
-    console.log("Response content length:", responseContent.length);
-
-    // Parse and validate the JSON response
     try {
-      const parsedResponse = JSON.parse(responseContent);
-      console.log("Successfully parsed JSON response:", {
+      const parsedResponse = JSON.parse(data.choices[0].message.content);
+      console.log("Successfully generated response:", {
         questionsCount: parsedResponse.questions?.length || 0,
         preFilledCount: parsedResponse.questions?.filter((q: any) => q.answer?.startsWith("PRE-FILLED:")).length || 0,
         variablesCount: parsedResponse.variables?.length || 0,
@@ -194,10 +146,8 @@ EXPECTED FORMAT:
       console.error("Failed to parse JSON response:", parseError);
       throw new Error("Invalid JSON response from OpenAI");
     }
-    
   } catch (error) {
     console.error("Error calling OpenAI API:", error);
     throw error;
   }
 }
-
