@@ -10,7 +10,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -26,32 +25,29 @@ serve(async (req) => {
       smartContextData
     } = await req.json();
     
-    console.log("Analyzing prompt with:", {
+    console.log("Processing analyze-prompt request:", {
       promptLength: promptText?.length || 0,
       hasTemplate: !!template,
       hasImageData: !!imageData,
-      hasSmartContext: !!smartContextData,
-      templateName: template?.name || 'none'
+      hasSmartContext: !!smartContextData
     });
 
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
-    
-    // Build enhanced context
     let additionalContext = "";
     
-    if (imageData) {
-      console.log("Processing image data for analysis");
-      additionalContext += `\nIMAGE ANALYSIS CONTEXT:\n${imageData.instructions || 'Analyze all relevant aspects.'}\n\n`;
+    if (websiteData) {
+      console.log("Adding website context");
+      additionalContext += `\nWEBSITE CONTENT:\n${websiteData.content}\n`;
     }
     
     if (smartContextData) {
-      console.log("Processing smart context data");
-      additionalContext += `\nSMART CONTEXT:\n${smartContextData.context}\nUsage Instructions: ${smartContextData.usageInstructions}\n\n`;
+      console.log("Adding smart context");
+      additionalContext += `\nSMART CONTEXT:\n${smartContextData.context}\n`;
     }
     
-    if (websiteData) {
-      console.log("Processing website data");
-      additionalContext += `\nWEBSITE CONTEXT:\n${websiteData.content}\nInstructions: ${websiteData.instructions}\n\n`;
+    if (imageData) {
+      console.log("Adding image context");
+      additionalContext += `\nIMAGE CONTEXT:\n${imageData.instructions || ''}\n`;
     }
     
     const apiKey = Deno.env.get('OPENAI_API_KEY');
@@ -59,8 +55,7 @@ serve(async (req) => {
       throw new Error("OpenAI API key is not configured");
     }
 
-    console.log("Calling OpenAI API for analysis...");
-    const { content, usage } = await analyzePromptWithAI(
+    const { content } = await analyzePromptWithAI(
       promptText,
       systemPrompt,
       apiKey,
@@ -70,11 +65,11 @@ serve(async (req) => {
 
     console.log("Extracting components from AI response");
     const questions = extractQuestions(content, promptText);
-    console.log("Extracted questions count:", questions.length);
-    console.log("Questions with pre-filled answers:", 
-      questions.filter(q => q.answer).length);
-
+    console.log(`Extracted ${questions.length} questions`);
+    
     const variables = extractVariables(content, promptText);
+    console.log(`Extracted ${variables.length} variables`);
+    
     const masterCommand = extractMasterCommand(content);
     const enhancedPrompt = extractEnhancedPrompt(content);
 

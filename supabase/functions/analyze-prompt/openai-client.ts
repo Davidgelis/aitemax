@@ -1,4 +1,3 @@
-
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -23,49 +22,41 @@ export async function analyzePromptWithAI(
     }
   ];
 
-  let enhancedPrompt = `PROMPT ANALYSIS REQUEST:
+  // Enhanced prompt to ensure proper JSON structure
+  let enhancedPrompt = `ANALYZE THIS PROMPT:
 "${promptText}"
 
-STRUCTURED OUTPUT REQUIREMENTS:
-1. Use JSON format for consistent parsing
-2. Include questions array with:
-   - Unique IDs (q-1, q-2, etc.)
-   - Clear categories
-   - Pre-filled answers when confident
-   - "PRE-FILLED:" prefix for pre-filled answers
-3. Mark pre-filled questions as relevant
-4. Questions should be organized by categories
+REQUIREMENTS:
+1. Return a valid JSON object
+2. Include questions with unique IDs
+3. Pre-fill answers when confident
+4. Mark relevant questions
+5. Organize by categories
 
-Example JSON structure:
+EXPECTED FORMAT:
 {
   "questions": [
     {
       "id": "q-1",
       "category": "Task",
       "text": "What is the main goal?",
-      "answer": "PRE-FILLED: Based on the context...",
+      "answer": "PRE-FILLED: Based on context...",
       "isRelevant": true
     }
-  ]
+  ],
+  "variables": [],
+  "masterCommand": "",
+  "enhancedPrompt": ""
 }`;
 
   if (imageBase64) {
-    console.log("Processing image analysis with enhanced pre-filling");
+    console.log("Processing image analysis");
     messages.push({
       role: 'user',
       content: [
         {
           type: "text",
-          text: `${enhancedPrompt}
-
-IMAGE ANALYSIS INSTRUCTIONS:
-1. Analyze image thoroughly
-2. Extract specific visual details
-3. Pre-fill answers with observed details
-4. Use "PRE-FILLED:" prefix
-5. Set isRelevant true for pre-filled answers
-
-${additionalContext}`
+          text: `${enhancedPrompt}\n\nANALYZE IMAGE AND PRE-FILL ANSWERS\n${additionalContext}`
         },
         {
           type: "image_url",
@@ -78,14 +69,12 @@ ${additionalContext}`
   } else {
     messages.push({
       role: 'user',
-      content: `${enhancedPrompt}
-
-${additionalContext}`
+      content: `${enhancedPrompt}\n\n${additionalContext}`
     });
   }
 
   try {
-    console.log("Calling OpenAI API with enhanced configuration");
+    console.log("Calling OpenAI API");
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -98,40 +87,38 @@ ${additionalContext}`
         messages,
         temperature: 0.7,
         max_tokens: 2000,
+        response_format: { type: "json_object" }
       }),
     });
 
     if (!response.ok) {
-      let errorMessage = `OpenAI API responded with status ${response.status}`;
-      try {
-        const errorData = await response.text();
-        console.error("OpenAI API error:", errorData);
-        errorMessage += `: ${errorData}`;
-      } catch (parseError) {
-        console.error("Failed to parse error response:", parseError);
-      }
-      throw new Error(errorMessage);
+      const errorData = await response.text();
+      console.error("OpenAI API error:", errorData);
+      throw new Error(`OpenAI API error: ${errorData}`);
     }
 
     const data = await response.json();
+    console.log("Raw OpenAI response:", data);
     
-    if (!data || !data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error("Invalid response from OpenAI API:", data);
-      throw new Error("Invalid response format from OpenAI API");
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error("Invalid response format from OpenAI");
     }
 
     const responseContent = data.choices[0].message.content;
-    
-    // Log response details for debugging
-    console.log("OpenAI Response received:");
-    console.log("- Raw response excerpt:", responseContent.substring(0, 200));
-    console.log("- Contains PRE-FILLED prefix:", responseContent.includes("PRE-FILLED:"));
-    console.log("- Contains JSON structure:", responseContent.includes('"questions":'));
-    
-    return {
-      content: responseContent,
-      usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
-    };
+    console.log("Response content:", responseContent);
+
+    // Try to parse the JSON response
+    try {
+      const parsedResponse = JSON.parse(responseContent);
+      console.log("Successfully parsed JSON response:", parsedResponse);
+      return {
+        content: responseContent,
+        usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+      };
+    } catch (parseError) {
+      console.error("Failed to parse JSON response:", parseError);
+      throw new Error("Invalid JSON response from OpenAI");
+    }
     
   } catch (error) {
     console.error("Error calling OpenAI API:", error);

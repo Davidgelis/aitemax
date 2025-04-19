@@ -1,75 +1,51 @@
 import { Question, Variable } from '../types.ts';
 
 export function extractQuestions(aiResponse: string, originalPrompt: string): Question[] {
-  console.log("Starting question extraction with enhanced validation");
-  console.log("AI Response excerpt:", aiResponse.substring(0, 200) + "...");
+  console.log("Starting question extraction");
   
   try {
-    const questions: Question[] = [];
-    
-    // First try to parse as JSON if the response is in JSON format
+    // Try to parse the response as JSON first
     try {
-      const jsonResponse = JSON.parse(aiResponse);
-      if (jsonResponse.questions && Array.isArray(jsonResponse.questions)) {
-        console.log("Successfully parsed JSON response with questions");
-        return jsonResponse.questions.map((q: any, index: number) => ({
+      const parsedResponse = JSON.parse(aiResponse);
+      console.log("Successfully parsed JSON response");
+      
+      if (Array.isArray(parsedResponse.questions)) {
+        console.log(`Found ${parsedResponse.questions.length} questions in JSON`);
+        return parsedResponse.questions.map((q: any, index: number) => ({
           id: q.id || `q-${index + 1}`,
-          text: q.text,
-          answer: q.answer || "",
-          isRelevant: q.isRelevant ?? null,
-          category: q.category || "General"
+          text: q.text || '',
+          answer: q.answer || '',
+          isRelevant: typeof q.isRelevant === 'boolean' ? q.isRelevant : null,
+          category: q.category || 'General'
         }));
       }
     } catch (jsonError) {
-      console.log("Response is not in JSON format, proceeding with text parsing");
+      console.error("JSON parsing failed:", jsonError);
     }
     
-    // Enhanced regex to better capture questions and pre-filled content
-    const questionSectionRegex = /(?:###\s*([^:]+)\s*Questions:|\n\d+\.|Q:)\s*([\s\S]*?)(?=###|$)/g;
-    let sectionMatch;
+    // Fallback to regex-based extraction if JSON parsing fails
+    console.log("Falling back to regex extraction");
+    const questions: Question[] = [];
+    const questionRegex = /(?:###\s*([^:]+)\s*Questions:|Q\d+:)\s*(.*?)(?=###|Q\d+:|$)/gs;
     
-    while ((sectionMatch = questionSectionRegex.exec(aiResponse)) !== null) {
-      const category = sectionMatch[1]?.trim() || "General";
-      const questionsText = sectionMatch[2].trim();
+    let match;
+    while ((match = questionRegex.exec(aiResponse)) !== null) {
+      const category = match[1]?.trim() || 'General';
+      const questionText = match[2].trim();
       
-      console.log(`Found question section for category: ${category}`);
-      
-      // Split into individual question blocks
-      const questionBlocks = questionsText.split(/(?=\d+\.|Q:)/).filter(block => block.trim());
-      console.log(`Found ${questionBlocks.length} questions in category ${category}`);
-      
-      questionBlocks.forEach(block => {
-        const lines = block.trim().split('\n');
-        let questionText = '';
-        let answer = '';
-        let isPreFilled = false;
-        
-        lines.forEach(line => {
-          if (line.includes("PRE-FILLED:")) {
-            isPreFilled = true;
-            answer = line.split("PRE-FILLED:")[1].trim();
-            console.log(`Found pre-filled answer: ${answer.substring(0, 50)}...`);
-          } else if (!questionText && line.trim()) {
-            questionText = line.replace(/^\d+\.\s*|Q:\s*/i, '').trim();
-          }
+      if (questionText) {
+        const answerMatch = questionText.match(/PRE-FILLED:\s*(.*?)(?=\n|$)/);
+        questions.push({
+          id: `q-${questions.length + 1}`,
+          text: questionText.replace(/PRE-FILLED:\s*.*$/, '').trim(),
+          answer: answerMatch ? answerMatch[1].trim() : '',
+          isRelevant: answerMatch ? true : null,
+          category
         });
-        
-        if (questionText) {
-          questions.push({
-            id: `q-${questions.length + 1}`,
-            text: questionText,
-            answer: answer,
-            isRelevant: isPreFilled ? true : null,
-            category
-          });
-        }
-      });
+      }
     }
     
-    console.log(`Extracted ${questions.length} total questions`);
-    console.log("Questions with pre-filled answers:", 
-      questions.filter(q => q.answer).length);
-    
+    console.log(`Extracted ${questions.length} questions`);
     return questions;
   } catch (error) {
     console.error("Error in question extraction:", error);
