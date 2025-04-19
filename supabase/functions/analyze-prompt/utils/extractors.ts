@@ -6,8 +6,8 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
   try {
     const questions: Question[] = [];
     
-    // First try to extract pillar-specific question sections
-    const pillarRegex = /### Questions for ([^:]+):\s*([\s\S]*?)(?=###|$)/gi;
+    // First try to extract pillar-specific questions
+    const pillarRegex = /Questions for ([^:]+):\s*([\s\S]*?)(?=\n\n|Variables|$)/gi;
     let pillarMatch;
     let foundPillarQuestions = false;
     
@@ -15,14 +15,13 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       const category = pillarMatch[1].trim();
       const questionsText = pillarMatch[2].trim();
       
-      // Parse questions for this pillar
+      // Parse questions for this pillar - split by newlines and clean up
       const questionItems = questionsText
         .split('\n')
         .map(q => q.trim())
-        .filter(q => q && !q.startsWith('*')) // Filter out lines starting with asterisk
-        .map(q => q.replace(/\(.*?\)$/, '')); // Remove pillar labels at the end
+        .filter(q => q); // Remove empty lines
       
-      questionItems.forEach((item, index) => {
+      questionItems.forEach(item => {
         if (item.trim()) {
           questions.push({
             id: `q-${questions.length + 1}`,
@@ -46,10 +45,9 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
         const questionItems = questionsMatch[1]
           .split('\n')
           .map(q => q.trim())
-          .filter(q => q && !q.startsWith('*')) // Filter out lines starting with asterisk
-          .map(q => q.replace(/\(.*?\)$/, '')); // Remove pillar labels at the end
+          .filter(q => q);
         
-        questionItems.forEach((item, index) => {
+        questionItems.forEach(item => {
           if (item.trim()) {
             questions.push({
               id: `q-${questions.length + 1}`,
@@ -77,8 +75,8 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
   try {
     const variables: Variable[] = [];
     
-    // First try to extract pillar-specific variable sections
-    const pillarRegex = /### Variables for ([^:]+):\s*([\s\S]*?)(?=###|$)/gi;
+    // First try to extract pillar-specific variables
+    const pillarRegex = /Variables for ([^:]+):\s*([\s\S]*?)(?=\n\n|###|$)/gi;
     let pillarMatch;
     let foundPillarVariables = false;
     
@@ -90,17 +88,14 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
       const variableItems = variablesText
         .split('\n')
         .map(v => v.trim())
-        .filter(v => v && v.startsWith('*')); // Only process lines starting with *
+        .filter(v => v);
       
-      variableItems.forEach((item, index) => {
-        // Remove asterisk and clean up the variable text
-        const cleanItem = item.replace(/^\*\s*/, '');
-        
-        // Try to extract variable name and suggested value
-        const nameValueMatch = cleanItem.match(/([^:(\n]+)(?:\s*\(([^)]+)\))?\s*:\s*(.+)/);
-        if (nameValueMatch) {
-          const name = nameValueMatch[1].trim();
-          const value = nameValueMatch[3].trim();
+      variableItems.forEach(item => {
+        // Extract variable name and description using the new format
+        const variableMatch = item.match(/([^:]+):\s*(.+)/);
+        if (variableMatch) {
+          const name = variableMatch[1].trim();
+          const description = variableMatch[2].trim();
           
           variables.push({
             id: `v-${variables.length + 1}`,
@@ -125,24 +120,20 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
         const variableItems = variablesMatch[1]
           .split('\n')
           .map(v => v.trim())
-          .filter(v => v && v.startsWith('*')); // Only process lines starting with *
+          .filter(v => v);
         
-        variableItems.forEach((item, index) => {
-          // Remove asterisk and clean up the variable text
-          const cleanItem = item.replace(/^\*\s*/, '');
-          
-          // Try to extract variable name and category if present
-          const nameMatch = cleanItem.match(/([^:(\n]+)(?:\s*\(([^)]+)\))?\s*:?\s*(.*)/);
-          if (nameMatch) {
-            const name = nameMatch[1].trim();
-            const category = nameMatch[2]?.trim() || "General";
+        variableItems.forEach(item => {
+          const variableMatch = item.match(/([^:]+):\s*(.+)/);
+          if (variableMatch) {
+            const name = variableMatch[1].trim();
+            const description = variableMatch[2].trim();
             
             variables.push({
               id: `v-${variables.length + 1}`,
               name,
               value: '', // Start with empty value unless background info was provided
               isRelevant: null,
-              category,
+              category: 'General',
               code: `VAR_${variables.length + 1}`
             });
           }
