@@ -19,12 +19,14 @@ export async function analyzePromptWithAI(
   const messages = [
     { 
       role: 'system', 
-      content: `${systemMessage}\n\nIMPORTANT INSTRUCTIONS FOR HANDLING CONTEXT:
-1. Analyze both the main prompt AND any additional context provided
-2. When pre-filling answers, use information from ALL available context
-3. Ensure all pre-filled answers start with "PRE-FILLED: "
-4. Mark questions as relevant when answers can be confidently pre-filled
-5. Look for explicit details in the context that can pre-fill answers`
+      content: `${systemMessage}\n\nIMPORTANT INSTRUCTIONS FOR CONTEXT ANALYSIS:
+1. Analyze ALL available context sources (main prompt, image analysis, smart context)
+2. Pre-fill answers using information from ANY context source
+3. Start all pre-filled answers with "PRE-FILLED: "
+4. Mark questions as relevant when you can confidently pre-fill answers
+5. Be thorough in analyzing visual elements if an image is provided
+6. Ensure all extracted information is reflected in the generated questions
+7. Look for explicit details across all contexts that can pre-fill answers`
     }
   ];
 
@@ -40,6 +42,7 @@ REQUIREMENTS:
 3. Pre-fill answers using ALL available context
 4. Mark questions as relevant when pre-filled
 5. Organize by categories
+6. If analyzing an image, extract all visual details
 
 EXPECTED FORMAT:
 {
@@ -55,15 +58,10 @@ EXPECTED FORMAT:
   "variables": [],
   "masterCommand": "",
   "enhancedPrompt": ""
-}
-
-IMPORTANT:
-- Pre-fill answers using information from BOTH the main prompt AND additional context
-- Mark questions as relevant (isRelevant: true) when you can confidently pre-fill answers
-- Ensure all pre-filled answers start with "PRE-FILLED: "
-- Look for explicit information in the context that can be used to pre-fill answers`;
+}`;
 
   if (imageBase64) {
+    console.log("Adding image for analysis");
     messages.push({
       role: 'user',
       content: [
@@ -90,7 +88,8 @@ IMPORTANT:
     console.log("Calling OpenAI API with context lengths:", {
       promptLength: promptText.length,
       smartContextLength: smartContext.length,
-      systemMessageLength: systemMessage.length
+      systemMessageLength: systemMessage.length,
+      hasImage: !!imageBase64
     });
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -100,7 +99,7 @@ IMPORTANT:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',  // Using more capable model for better context understanding
+        model: 'gpt-4o',  // Using vision-capable model for better image analysis
         messages,
         temperature: 0.7,
         max_tokens: 2000,
@@ -134,16 +133,6 @@ IMPORTANT:
         hasMasterCommand: !!parsedResponse.masterCommand,
         hasEnhancedPrompt: !!parsedResponse.enhancedPrompt
       });
-      
-      // Validate questions format and pre-filled answers
-      if (Array.isArray(parsedResponse.questions)) {
-        parsedResponse.questions.forEach((q: any, index: number) => {
-          if (q.answer && !q.answer.startsWith("PRE-FILLED: ")) {
-            console.log(`Fixing answer format for question ${index + 1}`);
-            q.answer = `PRE-FILLED: ${q.answer}`;
-          }
-        });
-      }
       
       return {
         content: JSON.stringify(parsedResponse),

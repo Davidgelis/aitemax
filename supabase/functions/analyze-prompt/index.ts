@@ -25,12 +25,11 @@ serve(async (req) => {
       smartContextData
     } = await req.json();
     
-    console.log("Processing analyze-prompt request with data:", {
-      promptLength: promptText?.length || 0,
-      hasTemplate: !!template,
-      hasSmartContext: !!smartContextData,
-      smartContextLength: smartContextData?.context?.length || 0,
+    console.log("Starting analyze-prompt with:", {
+      hasPrompt: !!promptText,
       hasImageData: !!imageData,
+      hasSmartContext: !!smartContextData,
+      hasWebsiteData: !!websiteData
     });
 
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
@@ -38,21 +37,33 @@ serve(async (req) => {
     // Build the enhanced context by combining all available contexts
     let enhancedContext = promptText || '';
     
+    // Add image analysis context if available
+    if (imageData?.base64) {
+      console.log("Processing image data for context enhancement");
+      enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT:\nAnalyzing uploaded image to extract relevant details for the prompt.`;
+    }
+    
+    // Add smart context if available
     if (smartContextData?.context) {
-      console.log("Processing smart context:", {
+      console.log("Adding smart context:", {
         contextLength: smartContextData.context.length,
-        usageInstructions: smartContextData.usageInstructions
+        hasInstructions: !!smartContextData.usageInstructions
       });
       
-      // Combine the smart context with the original prompt
       enhancedContext = `${enhancedContext}\n\nADDITIONAL CONTEXT:\n${smartContextData.context}`;
       
       if (smartContextData.usageInstructions) {
         enhancedContext += `\n\nUSAGE INSTRUCTIONS:\n${smartContextData.usageInstructions}`;
       }
-      
-      console.log("Combined context length:", enhancedContext.length);
     }
+    
+    // Add website context if available
+    if (websiteData?.url) {
+      console.log("Adding website context from:", websiteData.url);
+      enhancedContext = `${enhancedContext}\n\nWEBSITE CONTEXT:\nURL: ${websiteData.url}\n${websiteData.instructions || ''}`;
+    }
+    
+    console.log("Final enhanced context length:", enhancedContext.length);
     
     const apiKey = Deno.env.get('OPENAI_API_KEY');
     if (!apiKey) {
@@ -63,7 +74,7 @@ serve(async (req) => {
       enhancedContext,
       systemPrompt,
       apiKey,
-      smartContextData?.context || "",  // Pass smart context separately for special handling
+      smartContextData?.context || "",
       imageData?.base64
     );
 
