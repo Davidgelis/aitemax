@@ -31,7 +31,6 @@ export const QuestionList = ({
 
   // Group questions by category
   const groupedQuestions: Record<string, Question[]> = {};
-  const displayQuestions = questions.length > 0 ? questions : placeholderTestQuestions;
   
   // Sort categories to ensure consistent order
   displayQuestions.forEach(question => {
