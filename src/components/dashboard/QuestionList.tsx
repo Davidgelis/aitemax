@@ -26,6 +26,9 @@ export const QuestionList = ({
   const [currentAnswer, setCurrentAnswer] = useState("");
   const maxCharacterLimit = 1000; // Set the character limit to 1000
 
+  console.log('Incoming questions:', questions);
+  console.log('Placeholder questions:', placeholderTestQuestions);
+
   // Display placeholder test questions if no questions are provided
   const displayQuestions = questions.length > 0 ? questions : placeholderTestQuestions;
 
@@ -34,17 +37,27 @@ export const QuestionList = ({
   
   // Sort categories to ensure consistent order
   displayQuestions.forEach(question => {
+    console.log('Processing question:', question);
     const category = question.category || 'Other';
+    console.log('Category for question:', category);
+    
     if (!groupedQuestions[category]) {
       groupedQuestions[category] = [];
     }
     groupedQuestions[category].push(question);
   });
 
-  // Sort categories alphabetically, but keep "Task" first if it exists
+  console.log('Grouped questions:', groupedQuestions);
+
+  // Sort categories alphabetically, but keep certain pillars first
+  const pillarOrder = ['Task', 'Persona', 'Conditions', 'Instructions'];
   const categories = Object.keys(groupedQuestions).sort((a, b) => {
-    if (a === "Task") return -1;
-    if (b === "Task") return 1;
+    const aIndex = pillarOrder.indexOf(a);
+    const bIndex = pillarOrder.indexOf(b);
+    
+    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+    if (aIndex !== -1) return -1;
+    if (bIndex !== -1) return 1;
     return a.localeCompare(b);
   });
 
