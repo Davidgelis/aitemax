@@ -1,3 +1,4 @@
+
 import { Question, Variable } from "./types";
 import { RefObject } from "react";
 import { QuestionList } from "./QuestionList";
@@ -79,7 +80,7 @@ export const StepTwo = ({
           disabled={!canProceedToStep3}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
         >
-          {t.steps.continueToStep3}
+          {t.steps.continue}
         </button>
       </div>
     </div>

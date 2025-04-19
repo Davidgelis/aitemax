@@ -6,14 +6,16 @@ INSTRUCTIONS:
 2. Generate focused questions based on this analysis
 3. Extract potential variables that can be customized
 4. Create a master command that summarizes the core objective
+5. If image context or smart context is provided, use it to pre-fill relevant answers and values
 
 OUTPUT FORMAT:
 ### Questions:
 [Questions organized by pillar sections]
+[For each question that can be answered from context, include "PRE-FILLED: your answer here"]
 
 ### Variables:
 [List variables in Name: Description format, one per line]
-[Keep descriptions brief and actionable]
+[For variables with context-based values, include "PRE-FILLED: value" after the description]
 [Group variables by pillar if template provided]
 
 ### Master Command:
@@ -24,8 +26,9 @@ OUTPUT FORMAT:
 
 IMPORTANT RULES:
 - Format questions under clear pillar sections
+- Only pre-fill values when confident based on provided context
+- Use "PRE-FILLED:" prefix for answers derived from context
 - Variables should be in plain text without code formatting
-- Only pre-fill variable values when background info is provided
 - Keep the master command concise and focused
 - The enhanced prompt should maintain the original intent while being more specific`;
 
@@ -39,7 +42,7 @@ export const createSystemPrompt = (primaryToggle: string | null, secondaryToggle
     templateId: template?.id || 'none'
   });
 
-  // Generate pillar-specific instructions if template exists
+  // Add context-specific instructions if template exists
   const pillarSpecificInstructions = template?.pillars ? `
 TEMPLATE FRAMEWORK:
 Template: ${template.name}
@@ -51,6 +54,7 @@ ${template.pillars.map((pillar: any) => `
 ### ${pillar.title} Questions:
 [Generate 2-3 specific questions exploring ${pillar.title}]
 [Questions must directly relate to ${pillar.description}]
+[If context provides relevant information, pre-fill answers]
 [Format: ### ${pillar.title} Questions:]`).join('\n')}
 
 REQUIREMENTS:
@@ -58,18 +62,24 @@ REQUIREMENTS:
 - Questions should help gather requirements for each pillar
 - Keep questions focused on pillar objectives
 - Use the exact pillar titles as section headers
+- Pre-fill answers when context provides relevant information
+- Mark pre-filled answers with "PRE-FILLED:" prefix
 ` : '';
 
-  // Combine base prompt with pillar instructions
+  // Combine base prompt with pillar instructions and focus areas
   const finalPrompt = `${basePrompt}
 
 ${pillarSpecificInstructions}
 
 ${primaryToggle ? `PRIMARY FOCUS: ${primaryToggle}` : ''}
-${secondaryToggle ? `SECONDARY FOCUS: ${secondaryToggle}` : ''}`;
+${secondaryToggle ? `SECONDARY FOCUS: ${secondaryToggle}` : ''}
 
-  console.log("Final system prompt length:", finalPrompt.length);
-  console.log("Has pillar instructions:", !!pillarSpecificInstructions);
-  
+CONTEXT HANDLING:
+- When image context is provided, extract relevant details to pre-fill appropriate questions and variables
+- Only pre-fill values that are directly observable or clearly implied from the context
+- Always mark pre-filled values with "PRE-FILLED:" prefix
+- For questions that cannot be answered from context, leave them blank
+- Maintain consistency between pre-filled values across questions and variables`;
+
   return finalPrompt;
 };
