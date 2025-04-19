@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 export function extractQuestions(aiResponse: string, originalPrompt: string): Question[] {
@@ -17,10 +16,14 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       const questionsText = pillarMatch[2].trim();
       
       // Parse questions for this pillar
-      const questionItems = questionsText.split(/\n\s*\*\s+/);
-      questionItems
-        .filter(item => item.trim().length > 0)
-        .forEach((item, index) => {
+      const questionItems = questionsText
+        .split('\n')
+        .map(q => q.trim())
+        .filter(q => q && !q.startsWith('*')) // Filter out lines starting with asterisk
+        .map(q => q.replace(/\(.*?\)$/, '')); // Remove pillar labels at the end
+      
+      questionItems.forEach((item, index) => {
+        if (item.trim()) {
           questions.push({
             id: `q-${questions.length + 1}`,
             text: item.trim(),
@@ -28,7 +31,8 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
             isRelevant: null,
             category
           });
-        });
+        }
+      });
       
       foundPillarQuestions = true;
     }
@@ -39,10 +43,14 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       const questionsMatch = aiResponse.match(generalQuestionsRegex);
       
       if (questionsMatch && questionsMatch[1].trim()) {
-        const questionItems = questionsMatch[1].trim().split(/\n\s*\*\s+/);
-        questionItems
-          .filter(item => item.trim().length > 0)
-          .forEach((item, index) => {
+        const questionItems = questionsMatch[1]
+          .split('\n')
+          .map(q => q.trim())
+          .filter(q => q && !q.startsWith('*')) // Filter out lines starting with asterisk
+          .map(q => q.replace(/\(.*?\)$/, '')); // Remove pillar labels at the end
+        
+        questionItems.forEach((item, index) => {
+          if (item.trim()) {
             questions.push({
               id: `q-${questions.length + 1}`,
               text: item.trim(),
@@ -50,7 +58,8 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
               isRelevant: null,
               category: "General"
             });
-          });
+          }
+        });
       }
     }
     
@@ -78,26 +87,31 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
       const variablesText = pillarMatch[2].trim();
       
       // Parse variables for this pillar
-      const variableItems = variablesText.split(/\n\s*\*\s+/);
-      variableItems
-        .filter(item => item.trim().length > 0)
-        .forEach((item, index) => {
-          // Try to extract variable name and suggested value
-          const nameValueMatch = item.match(/([^:(\n]+)(?:\s*\(([^)]+)\))?\s*:\s*(.+)/);
-          if (nameValueMatch) {
-            const name = nameValueMatch[1].trim();
-            const value = nameValueMatch[3].trim();
-            
-            variables.push({
-              id: `v-${variables.length + 1}`,
-              name,
-              value,
-              isRelevant: null,
-              category,
-              code: `VAR_${variables.length + 1}`
-            });
-          }
-        });
+      const variableItems = variablesText
+        .split('\n')
+        .map(v => v.trim())
+        .filter(v => v && v.startsWith('*')); // Only process lines starting with *
+      
+      variableItems.forEach((item, index) => {
+        // Remove asterisk and clean up the variable text
+        const cleanItem = item.replace(/^\*\s*/, '');
+        
+        // Try to extract variable name and suggested value
+        const nameValueMatch = cleanItem.match(/([^:(\n]+)(?:\s*\(([^)]+)\))?\s*:\s*(.+)/);
+        if (nameValueMatch) {
+          const name = nameValueMatch[1].trim();
+          const value = nameValueMatch[3].trim();
+          
+          variables.push({
+            id: `v-${variables.length + 1}`,
+            name,
+            value: '', // Start with empty value unless background info was provided
+            isRelevant: null,
+            category,
+            code: `VAR_${variables.length + 1}`
+          });
+        }
+      });
       
       foundPillarVariables = true;
     }
@@ -108,27 +122,31 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
       const variablesMatch = aiResponse.match(generalVariablesRegex);
       
       if (variablesMatch && variablesMatch[1].trim()) {
-        const variableItems = variablesMatch[1].trim().split(/\n\s*\*\s+/);
-        variableItems
-          .filter(item => item.trim().length > 0)
-          .forEach((item, index) => {
-            // Try to extract variable name and category if present
-            const nameMatch = item.match(/([^:(\n]+)(?:\s*\(([^)]+)\))?\s*:?\s*(.*)/);
-            if (nameMatch) {
-              const name = nameMatch[1].trim();
-              const category = nameMatch[2]?.trim() || "General";
-              const value = nameMatch[3]?.trim() || "";
-              
-              variables.push({
-                id: `v-${variables.length + 1}`,
-                name,
-                value,
-                isRelevant: null,
-                category,
-                code: `VAR_${variables.length + 1}`
-              });
-            }
-          });
+        const variableItems = variablesMatch[1]
+          .split('\n')
+          .map(v => v.trim())
+          .filter(v => v && v.startsWith('*')); // Only process lines starting with *
+        
+        variableItems.forEach((item, index) => {
+          // Remove asterisk and clean up the variable text
+          const cleanItem = item.replace(/^\*\s*/, '');
+          
+          // Try to extract variable name and category if present
+          const nameMatch = cleanItem.match(/([^:(\n]+)(?:\s*\(([^)]+)\))?\s*:?\s*(.*)/);
+          if (nameMatch) {
+            const name = nameMatch[1].trim();
+            const category = nameMatch[2]?.trim() || "General";
+            
+            variables.push({
+              id: `v-${variables.length + 1}`,
+              name,
+              value: '', // Start with empty value unless background info was provided
+              isRelevant: null,
+              category,
+              code: `VAR_${variables.length + 1}`
+            });
+          }
+        });
       }
     }
     
