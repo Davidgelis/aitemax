@@ -1,3 +1,4 @@
+
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -58,15 +59,18 @@ ANALYSIS STEPS:
           type: "text",
           text: `${enhancedUserPrompt}
 
-ANALYZE THIS IMAGE WITH THESE SPECIFIC INSTRUCTIONS: ${imageInstructions}
+IMAGE ANALYSIS AND PRE-FILLING RULES:
+1. First, generate standard questions for EACH pillar based on template and user intent
+2. Then analyze the provided image with these instructions: ${imageInstructions}
+3. Use image analysis results to:
+   - Find specific details to answer existing questions
+   - Pre-fill answers with "PRE-FILLED:" prefix and detailed descriptions
+   - Leave questions blank if image doesn't provide relevant information
+4. Extract specific values for variables from image content
+5. Keep all questions grouped by template pillar categories
+6. Do NOT generate new questions from image analysis
+7. Focus on using image details to enhance existing questions
 
-Then:
-1. Generate 3-4 questions for EACH pillar in the template
-2. Pre-fill questions that can be answered directly from the image with DETAILED descriptions
-3. Create 1-2 variables for EACH pillar in the template
-4. Pre-fill variable values with specific, concrete details from the image
-5. Mark all pre-filled content with "PRE-FILLED:" prefix
-6. Group questions and variables by template pillar categories
 ${additionalContext}`
         },
         {
@@ -131,7 +135,7 @@ ${additionalContext}`
   }
   
   try {
-    console.log("Calling OpenAI API with enhanced template-based questions");
+    console.log("Calling OpenAI API with enhanced template-based questions and pre-filling");
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
