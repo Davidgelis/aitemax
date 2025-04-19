@@ -31,6 +31,9 @@ export const QuestionList = ({
 
   // Group questions by category
   const groupedQuestions: Record<string, Question[]> = {};
+  const displayQuestions = questions.length > 0 ? questions : placeholderTestQuestions;
+  
+  // Sort categories to ensure consistent order
   displayQuestions.forEach(question => {
     const category = question.category || 'Other';
     if (!groupedQuestions[category]) {
@@ -39,8 +42,12 @@ export const QuestionList = ({
     groupedQuestions[category].push(question);
   });
 
-  // Get all categories
-  const categories = Object.keys(groupedQuestions);
+  // Sort categories alphabetically, but keep "Task" first if it exists
+  const categories = Object.keys(groupedQuestions).sort((a, b) => {
+    if (a === "Task") return -1;
+    if (b === "Task") return 1;
+    return a.localeCompare(b);
+  });
 
   // Function to clean question text - removing prefixes and asterisks
   const cleanQuestionText = (text: string): string => {
@@ -141,7 +148,12 @@ export const QuestionList = ({
       <div ref={containerRef} className="max-h-[285px] overflow-y-auto pr-2 space-y-6">
         {categories.map(category => (
           <div key={category} className="space-y-4">
-            <h4 className="font-medium text-sm text-accent">{category}</h4>
+            <h4 className="font-medium text-sm text-accent bg-accent/5 p-2 rounded-md">
+              {category}
+              <span className="text-xs text-muted-foreground ml-2">
+                ({groupedQuestions[category].length})
+              </span>
+            </h4>
             
             {groupedQuestions[category].map((question, index) => (
               <div key={question.id} className="p-4 border rounded-lg bg-background">

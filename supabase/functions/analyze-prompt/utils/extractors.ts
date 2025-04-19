@@ -4,75 +4,67 @@
 export const extractQuestions = (analysisText: string, originalPrompt: string) => {
   try {
     // Try to parse the entire response as JSON
+    console.log("Attempting to parse AI response as JSON");
     const parsedResponse = JSON.parse(analysisText);
+    
     if (parsedResponse && Array.isArray(parsedResponse.contextQuestions)) {
       console.log("Successfully extracted questions from JSON response");
+      console.log("Questions by category:", parsedResponse.contextQuestions.reduce((acc: any, q: any) => {
+        acc[q.category] = (acc[q.category] || 0) + 1;
+        return acc;
+      }, {}));
       
       // Validate questions have proper category assignments
       const enhancedQuestions = parsedResponse.contextQuestions.map(q => {
-        // Ensure question has a valid category
+        // Ensure question has a valid category and structure
         if (!q.category) {
-          console.warn(`Question missing category: ${q.text}`);
+          console.warn(`Question missing category, text: "${q.text}"`);
           q.category = 'Other';
         }
 
-        // Check if answer contains generic references and flag it
-        const hasGenericReference = q.answer && (
-          q.answer.includes("the image shows") || 
-          q.answer.includes("the website mentions") || 
-          q.answer.includes("the provided context") ||
-          q.answer.includes("based on the context")
-        );
-        
-        if (hasGenericReference) {
-          console.warn("Question answer contains generic references:", q.text);
-        }
-        
-        return {
-          ...q,
-          // Add metadata about answer quality
-          answerQuality: hasGenericReference ? "generic" : "detailed"
+        // Validate question structure
+        const validatedQuestion = {
+          id: q.id || `q-${Math.random().toString(36).substr(2, 9)}`,
+          text: q.text,
+          answer: q.answer || "",
+          isRelevant: q.isRelevant ?? null,
+          category: q.category,
+          technicalTerms: Array.isArray(q.technicalTerms) ? q.technicalTerms : []
         };
+
+        return validatedQuestion;
       });
       
+      console.log(`Processed ${enhancedQuestions.length} questions across ${new Set(enhancedQuestions.map(q => q.category)).size} categories`);
       return enhancedQuestions;
     }
   } catch (e) {
     console.error("Error parsing JSON response:", e);
   }
 
-  // If direct JSON parsing didn't work, try to extract the questions section
+  // If JSON parsing didn't work, try to extract questions section
   try {
+    console.log("Attempting to extract questions from structured text");
     const questionsMatch = analysisText.match(/\"contextQuestions\"\s*:\s*(\[[\s\S]*?\])/);
     if (questionsMatch && questionsMatch[1]) {
       const questionsJson = questionsMatch[1].replace(/\\"/g, '"');
       const questions = JSON.parse(questionsJson);
       if (Array.isArray(questions)) {
         console.log("Successfully extracted questions from contextQuestions section");
-        return questions;
+        return questions.map(q => ({
+          ...q,
+          category: q.category || 'Other',
+          isRelevant: q.isRelevant ?? null,
+          answer: q.answer || ""
+        }));
       }
     }
   } catch (e) {
-    console.error("Error extracting questions from contextQuestions section:", e);
+    console.error("Error extracting questions from structured text:", e);
   }
 
-  // Fallback to legacy format if needed
-  try {
-    const questionsMatch = analysisText.match(/CONTEXT QUESTIONS:?\s*(\[[\s\S]*?\])/);
-    if (questionsMatch && questionsMatch[1]) {
-      const questionsJson = questionsMatch[1].replace(/\\"/g, '"');
-      const questions = JSON.parse(questionsJson);
-      if (Array.isArray(questions)) {
-        console.log("Successfully extracted questions from CONTEXT QUESTIONS section");
-        return questions;
-      }
-    }
-  } catch (e) {
-    console.error("Error extracting questions from legacy format:", e);
-  }
-
-  // If we get here, use some default questions based on the original prompt
-  console.warn("Falling back to generating default questions based on prompt");
+  // Fallback to generating default questions based on template if available
+  console.warn("Using fallback question generation");
   return generateDefaultQuestions(originalPrompt);
 };
 
@@ -204,92 +196,55 @@ export const extractEnhancedPrompt = (analysisText: string) => {
   return "# Enhanced Prompt\n\nThis is an enhanced version of your original prompt.";
 };
 
-// Helper function to generate default questions based on the original prompt
+// Updated helper function to generate default questions based on the original prompt
 const generateDefaultQuestions = (originalPrompt: string) => {
+  console.log("Generating default questions for prompt");
   const prompt = originalPrompt.toLowerCase();
-  const questions = [];
   
-  // Add general intent questions first
-  questions.push({
-    id: "q1",
-    text: "What is the main purpose or goal you want to achieve?",
-    answer: "",
-    category: "Intent"
-  });
+  // Base questions that apply to any prompt
+  const questions = [
+    {
+      id: "q1",
+      text: "What is the main objective or goal you want to achieve?",
+      answer: "",
+      isRelevant: null,
+      category: "Task",
+      technicalTerms: []
+    },
+    {
+      id: "q2",
+      text: "Who is the target audience for this content?",
+      answer: "",
+      isRelevant: null,
+      category: "Audience",
+      technicalTerms: []
+    }
+  ];
   
-  questions.push({
-    id: "q2",
-    text: "Who is the target audience for this content?",
-    answer: "",
-    category: "Audience"
-  });
-  
-  // Check for content creation intent
-  if (prompt.includes("write") || prompt.includes("create") || prompt.includes("generate content")) {
+  // Add additional questions based on prompt content
+  if (prompt.includes("write") || prompt.includes("create") || prompt.includes("generate")) {
     questions.push({
       id: "q3",
       text: "What tone and style should the content have?",
       answer: "",
-      category: "Style"
-    });
-    
-    questions.push({
-      id: "q4",
-      text: "What is the preferred length or format for this content?",
-      answer: "",
-      category: "Format"
+      isRelevant: null,
+      category: "Style",
+      technicalTerms: []
     });
   }
   
-  // Check for image generation intent
-  if (prompt.includes("image") || prompt.includes("picture") || prompt.includes("design")) {
-    questions.push({
-      id: "q3",
-      text: "What style, mood, or aesthetic are you looking for?",
-      answer: "",
-      category: "Style"
-    });
-    
+  if (prompt.includes("analyze") || prompt.includes("research")) {
     questions.push({
       id: "q4",
-      text: "What specific elements should be included in the image?",
+      text: "What specific aspects need to be analyzed?",
       answer: "",
-      category: "Content"
+      isRelevant: null,
+      category: "Analysis",
+      technicalTerms: []
     });
   }
   
-  // Check for research intent
-  if (prompt.includes("research") || prompt.includes("analyze") || prompt.includes("study")) {
-    questions.push({
-      id: "q3",
-      text: "What specific aspects do you want researched?",
-      answer: "",
-      category: "Scope"
-    });
-    
-    questions.push({
-      id: "q4",
-      text: "What level of detail do you need in the research?",
-      answer: "",
-      category: "Depth"
-    });
-  }
-  
-  // Add general fallback questions
-  questions.push({
-    id: "q5",
-    text: "Are there any specific examples or references you want to follow?",
-    answer: "",
-    category: "Reference"
-  });
-  
-  questions.push({
-    id: "q6",
-    text: "Are there any specific constraints or requirements to consider?",
-    answer: "",
-    category: "Constraints"
-  });
-  
+  console.log(`Generated ${questions.length} default questions`);
   return questions;
 };
 
