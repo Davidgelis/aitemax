@@ -1,5 +1,4 @@
-
-import { Question, Variable } from '../types';
+import { Question, Variable } from '../types.ts';
 
 /**
  * Generates context-specific questions based on the template pillars
