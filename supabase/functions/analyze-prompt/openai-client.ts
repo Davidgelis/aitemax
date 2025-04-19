@@ -1,4 +1,3 @@
-
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -45,10 +44,8 @@ ANALYSIS STEPS:
 4. Extract concise variable values from context
 5. Organize everything by pillar categories`;
 
-  // Enhanced smart context handling
   if (imageBase64) {
-    console.log("Processing image analysis with context");
-    // Extract image context instructions if present
+    console.log("Processing image analysis with enhanced context mapping");
     const imageInstructionsMatch = additionalContext.match(/SPECIFIC IMAGE ANALYSIS INSTRUCTIONS: (.*?)(\n\n|$)/s);
     const imageInstructions = imageInstructionsMatch ? imageInstructionsMatch[1].trim() : '';
     
@@ -59,17 +56,21 @@ ANALYSIS STEPS:
           type: "text",
           text: `${enhancedUserPrompt}
 
-IMAGE ANALYSIS AND PRE-FILLING RULES:
-1. First, generate standard questions for EACH pillar based on template and user intent
-2. Then analyze the provided image with these instructions: ${imageInstructions}
-3. Use image analysis results to:
-   - Find specific details to answer existing questions
-   - Pre-fill answers with "PRE-FILLED:" prefix and detailed descriptions
-   - Leave questions blank if image doesn't provide relevant information
-4. Extract specific values for variables from image content
-5. Keep all questions grouped by template pillar categories
-6. Do NOT generate new questions from image analysis
-7. Focus on using image details to enhance existing questions
+IMAGE ANALYSIS INSTRUCTIONS:
+1. First, analyze the provided image based on these specific instructions: ${imageInstructions}
+2. Generate a detailed paragraph describing ONLY what was requested in the instructions
+3. Then map the analysis to existing questions by:
+   - Matching relevant details to questions in each pillar category
+   - Using "PRE-FILLED:" prefix for answers derived from the image
+   - Providing detailed, specific answers (3-5 sentences each)
+   - Only pre-filling questions when the image content directly relates
+   - Leaving questions blank if no relevant information is found
+4. Do NOT generate new questions from image analysis
+5. Extract specific values from image for relevant variables
+6. Maintain organization by template pillar categories
+
+For example, if analyzing artistic style, provide a detailed response like:
+"PRE-FILLED: The image showcases a [style] aesthetic with [specific details]. The technical execution includes [techniques used]. The overall design emphasizes [key elements] typical of [style references]."
 
 ${additionalContext}`
         },
@@ -135,7 +136,7 @@ ${additionalContext}`
   }
   
   try {
-    console.log("Calling OpenAI API with enhanced template-based questions and pre-filling");
+    console.log("Calling OpenAI API with enhanced image analysis and pre-filling");
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
