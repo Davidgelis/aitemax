@@ -26,46 +26,40 @@ serve(async (req) => {
       smartContextData
     } = await req.json();
     
-    console.log("Received prompt analysis request:", {
+    console.log("Analyzing prompt with:", {
       promptLength: promptText?.length || 0,
-      hasPrimaryToggle: !!primaryToggle,
-      hasSecondaryToggle: !!secondaryToggle,
       hasTemplate: !!template,
-      templateName: template?.name || 'none',
-      templatePillarsCount: template?.pillars?.length || 0,
-      hasWebsiteData: !!websiteData,
       hasImageData: !!imageData,
-      hasSmartContext: !!smartContextData
+      hasSmartContext: !!smartContextData,
+      templateName: template?.name || 'none'
     });
 
-    // Create system prompt with template
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
     
-    // Log the first 200 characters of the system prompt to help with debugging
-    console.log("System prompt excerpt:", systemPrompt.substring(0, 200) + "...");
-    
-    // Enhanced context building with better structure
+    // Build enhanced context
     let additionalContext = "";
     
     if (imageData) {
-      additionalContext += `\nIMAGE ANALYSIS CONTEXT:\nInstructions: ${imageData.instructions || 'Analyze all relevant aspects of the image.'}\n\n`;
-    }
-    
-    if (websiteData) {
-      additionalContext += `\nWEBSITE CONTEXT:\n${websiteData.content}\nExtraction Instructions: ${websiteData.instructions}\n\n`;
+      console.log("Processing image data for analysis");
+      additionalContext += `\nIMAGE ANALYSIS CONTEXT:\n${imageData.instructions || 'Analyze all relevant aspects.'}\n\n`;
     }
     
     if (smartContextData) {
-      additionalContext += `\nSMART CONTEXT DATA:\n${smartContextData.context}\nUsage Requirements: ${smartContextData.usageInstructions}\n\n`;
+      console.log("Processing smart context data");
+      additionalContext += `\nSMART CONTEXT:\n${smartContextData.context}\nUsage Instructions: ${smartContextData.usageInstructions}\n\n`;
     }
     
-    // Validate OpenAI API key
+    if (websiteData) {
+      console.log("Processing website data");
+      additionalContext += `\nWEBSITE CONTEXT:\n${websiteData.content}\nInstructions: ${websiteData.instructions}\n\n`;
+    }
+    
     const apiKey = Deno.env.get('OPENAI_API_KEY');
     if (!apiKey) {
       throw new Error("OpenAI API key is not configured");
     }
 
-    // Call OpenAI API with enhanced context
+    console.log("Calling OpenAI API for analysis...");
     const { content, usage } = await analyzePromptWithAI(
       promptText,
       systemPrompt,
@@ -74,19 +68,15 @@ serve(async (req) => {
       imageData?.base64
     );
 
-    console.log("Extracting components from AI response...");
+    console.log("Extracting components from AI response");
     const questions = extractQuestions(content, promptText);
+    console.log("Extracted questions count:", questions.length);
+    console.log("Questions with pre-filled answers:", 
+      questions.filter(q => q.answer).length);
+
     const variables = extractVariables(content, promptText);
     const masterCommand = extractMasterCommand(content);
     const enhancedPrompt = extractEnhancedPrompt(content);
-
-    console.log("Analysis complete:", {
-      questionsCount: questions.length,
-      variablesCount: variables.length,
-      preFilledQuestions: questions.filter(q => q.answer).length,
-      preFilledVariables: variables.filter(v => v.value).length,
-      pillarsRepresented: [...new Set(questions.map(q => q.category))].join(', ')
-    });
 
     return new Response(
       JSON.stringify({

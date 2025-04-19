@@ -1,25 +1,42 @@
-
 import { Question, Variable } from '../types.ts';
 
 export function extractQuestions(aiResponse: string, originalPrompt: string): Question[] {
-  console.log("Extracting questions with enhanced pillar detection");
+  console.log("Starting question extraction with enhanced validation");
+  console.log("AI Response excerpt:", aiResponse.substring(0, 200) + "...");
   
   try {
     const questions: Question[] = [];
     
-    // Enhanced regex to better capture pillar-based questions and pre-filled content
-    const pillarSectionRegex = /### ([^:]+) Questions:\s*([\s\S]*?)(?=###|$)/g;
-    let pillarMatch;
+    // First try to parse as JSON if the response is in JSON format
+    try {
+      const jsonResponse = JSON.parse(aiResponse);
+      if (jsonResponse.questions && Array.isArray(jsonResponse.questions)) {
+        console.log("Successfully parsed JSON response with questions");
+        return jsonResponse.questions.map((q: any, index: number) => ({
+          id: q.id || `q-${index + 1}`,
+          text: q.text,
+          answer: q.answer || "",
+          isRelevant: q.isRelevant ?? null,
+          category: q.category || "General"
+        }));
+      }
+    } catch (jsonError) {
+      console.log("Response is not in JSON format, proceeding with text parsing");
+    }
     
-    while ((pillarMatch = pillarSectionRegex.exec(aiResponse)) !== null) {
-      const category = pillarMatch[1].trim();
-      const questionsText = pillarMatch[2].trim();
+    // Enhanced regex to better capture questions and pre-filled content
+    const questionSectionRegex = /(?:###\s*([^:]+)\s*Questions:|\n\d+\.|Q:)\s*([\s\S]*?)(?=###|$)/g;
+    let sectionMatch;
+    
+    while ((sectionMatch = questionSectionRegex.exec(aiResponse)) !== null) {
+      const category = sectionMatch[1]?.trim() || "General";
+      const questionsText = sectionMatch[2].trim();
       
-      console.log(`Found question section for pillar: ${category}`);
+      console.log(`Found question section for category: ${category}`);
       
       // Split into individual question blocks
-      const questionBlocks = questionsText.split(/(?=\d+\.|\n\s*\n)/).filter(block => block.trim());
-      console.log(`Found ${questionBlocks.length} questions for pillar: ${category}`);
+      const questionBlocks = questionsText.split(/(?=\d+\.|Q:)/).filter(block => block.trim());
+      console.log(`Found ${questionBlocks.length} questions in category ${category}`);
       
       questionBlocks.forEach(block => {
         const lines = block.trim().split('\n');
@@ -28,28 +45,16 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
         let isPreFilled = false;
         
         lines.forEach(line => {
-          const preFilledMatch = line.match(/PRE-FILLED:\s*(.*)/);
-          if (preFilledMatch) {
+          if (line.includes("PRE-FILLED:")) {
             isPreFilled = true;
-            answer = preFilledMatch[1].trim();
-          } else if (!line.startsWith('[') && line.trim() && !questionText) {
-            // First non-empty, non-instruction line is the question
-            questionText = line.trim();
-          } else if (!line.startsWith('[') && line.trim() && questionText && !isPreFilled && !answer) {
-            // If we found additional content that's not pre-filled and not the question itself,
-            // it might be part of an answer without proper PRE-FILLED prefix
-            if (answer) {
-              answer += ' ' + line.trim();
-            } else {
-              answer = line.trim();
-            }
+            answer = line.split("PRE-FILLED:")[1].trim();
+            console.log(`Found pre-filled answer: ${answer.substring(0, 50)}...`);
+          } else if (!questionText && line.trim()) {
+            questionText = line.replace(/^\d+\.\s*|Q:\s*/i, '').trim();
           }
         });
         
         if (questionText) {
-          // Clean up question text (remove numbers and other artifacts)
-          questionText = questionText.replace(/^\d+\.\s*/, '').trim();
-          
           questions.push({
             id: `q-${questions.length + 1}`,
             text: questionText,
@@ -61,34 +66,13 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       });
     }
     
-    console.log(`Total extracted questions: ${questions.length}`);
-    
-    // If no questions were extracted with the pillar-based approach, try a fallback method
-    if (questions.length === 0) {
-      console.log("No pillar-based questions found, trying fallback extraction method");
-      
-      const fallbackQuestionRegex = /\d+\.\s*([^\n]+)(?:\s*PRE-FILLED:\s*([^\n]*))?/g;
-      let fallbackMatch;
-      
-      while ((fallbackMatch = fallbackQuestionRegex.exec(aiResponse)) !== null) {
-        const questionText = fallbackMatch[1].trim();
-        const answer = fallbackMatch[2] ? fallbackMatch[2].trim() : '';
-        
-        questions.push({
-          id: `q-${questions.length + 1}`,
-          text: questionText,
-          answer: answer,
-          isRelevant: answer ? true : null,
-          category: 'General'
-        });
-      }
-      
-      console.log(`Extracted ${questions.length} questions with fallback method`);
-    }
+    console.log(`Extracted ${questions.length} total questions`);
+    console.log("Questions with pre-filled answers:", 
+      questions.filter(q => q.answer).length);
     
     return questions;
   } catch (error) {
-    console.error("Error extracting questions:", error);
+    console.error("Error in question extraction:", error);
     return [];
   }
 }

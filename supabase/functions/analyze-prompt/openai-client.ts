@@ -19,45 +19,38 @@ export async function analyzePromptWithAI(
   const messages = [
     { 
       role: 'system', 
-      content: `${systemMessage}
-
-STRUCTURED OUTPUT FORMAT:
-1. Generate questions by category (Task, Style, Technical, etc.)
-2. For each question:
-   - Must have a unique ID and category
-   - For pre-filled answers, use "PRE-FILLED:" prefix
-   - Write detailed 3-5 sentence answers when pre-filling
-3. Mark relevance explicitly (true/false/null)
-4. Ensure proper JSON structure for frontend parsing
-
-Example structure:
-{
-  "questions": [
-    {
-      "id": "q-1",
-      "category": "Task",
-      "text": "What is the goal?",
-      "answer": "PRE-FILLED: Based on the provided context...",
-      "isRelevant": true
-    }
-  ]
-}`
+      content: systemMessage
     }
   ];
 
   let enhancedPrompt = `PROMPT ANALYSIS REQUEST:
 "${promptText}"
 
-OUTPUT REQUIREMENTS:
-1. Generate consistent question IDs (q-1, q-2, etc.)
-2. Pre-fill answers when confident using context
-3. Add "PRE-FILLED:" prefix to pre-filled answers
-4. Set isRelevant true for pre-filled questions
-5. Organize by categories
-6. Include detailed explanations in pre-filled answers`;
+STRUCTURED OUTPUT REQUIREMENTS:
+1. Use JSON format for consistent parsing
+2. Include questions array with:
+   - Unique IDs (q-1, q-2, etc.)
+   - Clear categories
+   - Pre-filled answers when confident
+   - "PRE-FILLED:" prefix for pre-filled answers
+3. Mark pre-filled questions as relevant
+4. Questions should be organized by categories
+
+Example JSON structure:
+{
+  "questions": [
+    {
+      "id": "q-1",
+      "category": "Task",
+      "text": "What is the main goal?",
+      "answer": "PRE-FILLED: Based on the context...",
+      "isRelevant": true
+    }
+  ]
+}`;
 
   if (imageBase64) {
-    console.log("Processing image analysis with enhanced pre-filling rules");
+    console.log("Processing image analysis with enhanced pre-filling");
     messages.push({
       role: 'user',
       content: [
@@ -67,11 +60,10 @@ OUTPUT REQUIREMENTS:
 
 IMAGE ANALYSIS INSTRUCTIONS:
 1. Analyze image thoroughly
-2. Map visual elements to question categories
-3. Pre-fill answers with specific details observed
-4. Use "PRE-FILLED:" prefix for answers
-5. Write detailed 3-5 sentence answers
-6. Set isRelevant true for pre-filled questions
+2. Extract specific visual details
+3. Pre-fill answers with observed details
+4. Use "PRE-FILLED:" prefix
+5. Set isRelevant true for pre-filled answers
 
 ${additionalContext}`
         },
@@ -83,22 +75,6 @@ ${additionalContext}`
         }
       ]
     });
-  } else if (additionalContext.includes("SMART CONTEXT")) {
-    console.log("Processing smart context with enhanced pre-filling rules");
-    messages.push({
-      role: 'user',
-      content: `${enhancedPrompt}
-
-SMART CONTEXT INSTRUCTIONS:
-1. Analyze provided context thoroughly
-2. Map context details to question categories
-3. Pre-fill answers using context information
-4. Use "PRE-FILLED:" prefix for all pre-filled answers
-5. Write detailed 3-5 sentence answers
-6. Set isRelevant true for pre-filled questions
-
-${additionalContext}`
-    });
   } else {
     messages.push({
       role: 'user',
@@ -109,8 +85,7 @@ ${additionalContext}`
   }
 
   try {
-    console.log("Calling OpenAI API with enhanced pre-filling configuration");
-    console.log("Context type:", imageBase64 ? "Image" : additionalContext.includes("SMART CONTEXT") ? "Smart Context" : "Standard");
+    console.log("Calling OpenAI API with enhanced configuration");
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -145,11 +120,13 @@ ${additionalContext}`
       throw new Error("Invalid response format from OpenAI API");
     }
 
-    // Log the response to check pre-filled answers
     const responseContent = data.choices[0].message.content;
-    console.log("Response from OpenAI:");
+    
+    // Log response details for debugging
+    console.log("OpenAI Response received:");
+    console.log("- Raw response excerpt:", responseContent.substring(0, 200));
     console.log("- Contains PRE-FILLED prefix:", responseContent.includes("PRE-FILLED:"));
-    console.log("- Number of pre-filled answers:", (responseContent.match(/PRE-FILLED:/g) || []).length);
+    console.log("- Contains JSON structure:", responseContent.includes('"questions":'));
     
     return {
       content: responseContent,
