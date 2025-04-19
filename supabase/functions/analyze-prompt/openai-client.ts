@@ -3,7 +3,7 @@ export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
   apiKey: string,
-  additionalContext: string = "",
+  smartContext: string = "",
   imageBase64?: string
 ): Promise<any> {
   if (!promptText || typeof promptText !== 'string') {
@@ -19,20 +19,25 @@ export async function analyzePromptWithAI(
   const messages = [
     { 
       role: 'system', 
-      content: systemMessage
+      content: `${systemMessage}\n\nIMPORTANT INSTRUCTIONS FOR HANDLING CONTEXT:
+1. Analyze both the main prompt AND any additional context provided
+2. When pre-filling answers, use information from ALL available context
+3. Ensure all pre-filled answers start with "PRE-FILLED: "
+4. Mark questions as relevant when answers can be confidently pre-filled
+5. Look for explicit details in the context that can pre-fill answers`
     }
   ];
 
-  // Enhanced prompt to ensure proper JSON structure and context handling
-  let enhancedPrompt = `ANALYZE THIS PROMPT AND ALL PROVIDED CONTEXT:
+  // Enhanced prompt to ensure proper context handling and JSON structure
+  let enhancedPrompt = `ANALYZE THIS COMBINED CONTEXT:
 ${promptText}
 
-${additionalContext ? `ADDITIONAL CONTEXT TO CONSIDER:\n${additionalContext}` : ''}
+${smartContext ? `ADDITIONAL CONTEXT TO USE FOR PRE-FILLING:\n${smartContext}\n` : ''}
 
 REQUIREMENTS:
 1. Return a valid JSON object
 2. Include questions with unique IDs
-3. Pre-fill answers based on ALL available context (prompt + additional context)
+3. Pre-fill answers using ALL available context
 4. Mark questions as relevant when pre-filled
 5. Organize by categories
 
@@ -55,10 +60,10 @@ EXPECTED FORMAT:
 IMPORTANT:
 - Pre-fill answers using information from BOTH the main prompt AND additional context
 - Mark questions as relevant (isRelevant: true) when you can confidently pre-fill answers
-- Ensure all pre-filled answers start with "PRE-FILLED: "`;
+- Ensure all pre-filled answers start with "PRE-FILLED: "
+- Look for explicit information in the context that can be used to pre-fill answers`;
 
   if (imageBase64) {
-    console.log("Processing image analysis");
     messages.push({
       role: 'user',
       content: [
@@ -84,7 +89,7 @@ IMPORTANT:
   try {
     console.log("Calling OpenAI API with context lengths:", {
       promptLength: promptText.length,
-      additionalContextLength: additionalContext.length,
+      smartContextLength: smartContext.length,
       systemMessageLength: systemMessage.length
     });
     
@@ -95,7 +100,7 @@ IMPORTANT:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o',  // Using more capable model for better context understanding
         messages,
         temperature: 0.7,
         max_tokens: 2000,
@@ -119,17 +124,18 @@ IMPORTANT:
     const responseContent = data.choices[0].message.content;
     console.log("Response content length:", responseContent.length);
 
-    // Try to parse the JSON response
+    // Parse and validate the JSON response
     try {
       const parsedResponse = JSON.parse(responseContent);
       console.log("Successfully parsed JSON response:", {
         questionsCount: parsedResponse.questions?.length || 0,
+        preFilledCount: parsedResponse.questions?.filter((q: any) => q.answer?.startsWith("PRE-FILLED:")).length || 0,
         variablesCount: parsedResponse.variables?.length || 0,
         hasMasterCommand: !!parsedResponse.masterCommand,
         hasEnhancedPrompt: !!parsedResponse.enhancedPrompt
       });
       
-      // Validate questions format
+      // Validate questions format and pre-filled answers
       if (Array.isArray(parsedResponse.questions)) {
         parsedResponse.questions.forEach((q: any, index: number) => {
           if (q.answer && !q.answer.startsWith("PRE-FILLED: ")) {

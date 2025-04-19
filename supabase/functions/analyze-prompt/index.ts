@@ -28,53 +28,31 @@ serve(async (req) => {
     console.log("Processing analyze-prompt request with data:", {
       promptLength: promptText?.length || 0,
       hasTemplate: !!template,
-      hasWebsiteData: !!websiteData,
       hasSmartContext: !!smartContextData,
+      smartContextLength: smartContextData?.context?.length || 0,
       hasImageData: !!imageData,
-      smartContextLength: smartContextData?.context?.length || 0
     });
 
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
     
-    // Build the enhanced context string by combining all available contexts
+    // Build the enhanced context by combining all available contexts
     let enhancedContext = promptText || '';
-    let additionalContext = '';
     
     if (smartContextData?.context) {
-      console.log("Processing smart context data:", {
+      console.log("Processing smart context:", {
         contextLength: smartContextData.context.length,
-        hasInstructions: !!smartContextData.usageInstructions
+        usageInstructions: smartContextData.usageInstructions
       });
       
-      // Add smart context with usage instructions if available
-      const smartContextString = `
-SMART CONTEXT:
-${smartContextData.context}
-
-${smartContextData.usageInstructions ? `USAGE INSTRUCTIONS:
-${smartContextData.usageInstructions}` : ''}
-`;
-      additionalContext += smartContextString;
-      console.log("Added smart context to analysis");
+      // Combine the smart context with the original prompt
+      enhancedContext = `${enhancedContext}\n\nADDITIONAL CONTEXT:\n${smartContextData.context}`;
+      
+      if (smartContextData.usageInstructions) {
+        enhancedContext += `\n\nUSAGE INSTRUCTIONS:\n${smartContextData.usageInstructions}`;
+      }
+      
+      console.log("Combined context length:", enhancedContext.length);
     }
-    
-    if (websiteData?.content) {
-      console.log("Adding website context");
-      additionalContext += `\nWEBSITE CONTENT:\n${websiteData.content}\n`;
-    }
-    
-    if (imageData) {
-      console.log("Adding image context");
-      additionalContext += `\nIMAGE CONTEXT:\n${imageData.instructions || ''}\n`;
-    }
-
-    console.log("Final context structure:", {
-      originalPromptLength: enhancedContext.length,
-      additionalContextLength: additionalContext.length,
-      hasSmartContext: additionalContext.includes("SMART CONTEXT"),
-      hasWebsiteContent: additionalContext.includes("WEBSITE CONTENT"),
-      hasImageContext: additionalContext.includes("IMAGE CONTEXT")
-    });
     
     const apiKey = Deno.env.get('OPENAI_API_KEY');
     if (!apiKey) {
@@ -85,16 +63,19 @@ ${smartContextData.usageInstructions}` : ''}
       enhancedContext,
       systemPrompt,
       apiKey,
-      additionalContext,
+      smartContextData?.context || "",  // Pass smart context separately for special handling
       imageData?.base64
     );
 
     console.log("Analyzing AI response and extracting components");
+    
     const questions = extractQuestions(content, enhancedContext);
-    console.log(`Extracted ${questions.length} questions`);
+    console.log(`Extracted ${questions.length} questions with prefilled answers:`, 
+      questions.filter(q => q.answer && q.answer.startsWith("PRE-FILLED:")).length);
     
     const variables = extractVariables(content, enhancedContext);
-    console.log(`Extracted ${variables.length} variables`);
+    console.log(`Extracted ${variables.length} variables with values:`, 
+      variables.filter(v => v.value).length);
     
     const masterCommand = extractMasterCommand(content);
     const enhancedPrompt = extractEnhancedPrompt(content);
