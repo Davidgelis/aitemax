@@ -1,3 +1,4 @@
+
 import { Question, Variable } from '../types.ts';
 
 /**
@@ -229,12 +230,10 @@ function formatImageAnswer(imageInfo: string): string {
   return `Based on image analysis: ${imageInfo}`;
 }
 
-import { Question, Variable } from '../types.ts';
-
 /**
  * Generates context-specific variables for prompt analysis.
  */
-function generateContextualVariablesForPrompt(
+export function generateContextualVariablesForPrompt(
   promptText: string,
   template: any = null,
   imageAnalysis: any = null,
@@ -245,88 +244,117 @@ function generateContextualVariablesForPrompt(
   const variables: Variable[] = [];
   let variableCounter = 1;
 
-  // Core Task Variables (always include these)
-  const coreVariables = [
-    { name: "Format/Medium", value: "", category: "Core Task" },
-    { name: "Output Type", value: "", category: "Core Task" },
-    { name: "Main Subject", value: "", category: "Core Task" }
+  // Define core variable categories
+  const variableCategories = [
+    {
+      name: "Core Task",
+      required: true,
+      vars: [
+        { name: "Format/Medium", value: "" },
+        { name: "Output Type", value: "" },
+        { name: "Main Subject", value: "" }
+      ]
+    },
+    {
+      name: "Technical",
+      required: false,
+      vars: [
+        { name: "Dimensions/Size", value: "" },
+        { name: "Resolution/Quality", value: "" },
+        { name: "Technical Constraints", value: "" }
+      ]
+    },
+    {
+      name: "Style",
+      required: false,
+      vars: [
+        { name: "Style/Aesthetic", value: "" },
+        { name: "Tone/Mood", value: "" },
+        { name: "Color Scheme", value: "" }
+      ]
+    },
+    {
+      name: "Context",
+      required: false,
+      vars: [
+        { name: "Target Audience", value: "" },
+        { name: "Purpose/Intent", value: "" },
+        { name: "Usage Context", value: "" }
+      ]
+    }
   ];
 
-  // Technical Variables
-  const technicalVariables = [
-    { name: "Dimensions/Size", value: "", category: "Technical" },
-    { name: "Resolution/Quality", value: "", category: "Technical" },
-    { name: "Technical Constraints", value: "", category: "Technical" }
-  ];
+  // Generate variables ensuring at least 8 total
+  variableCategories.forEach(category => {
+    const categoryVars = category.vars.map((v, i) => ({
+      id: `v-${variableCounter + i}`,
+      name: v.name,
+      value: "",
+      isRelevant: category.required,
+      category: category.name,
+      code: `VAR_${variableCounter + i}`
+    }));
+    
+    variables.push(...categoryVars);
+    variableCounter += categoryVars.length;
+  });
 
-  // Style Variables
-  const styleVariables = [
-    { name: "Style/Aesthetic", value: "", category: "Style" },
-    { name: "Tone/Mood", value: "", category: "Style" },
-    { name: "Color Scheme", value: "", category: "Style" }
-  ];
-
-  // Context Variables
-  const contextVariables = [
-    { name: "Target Audience", value: "", category: "Context" },
-    { name: "Purpose/Intent", value: "", category: "Context" },
-    { name: "Usage Context", value: "", category: "Context" }
-  ];
-
-  // Combine all base variables
-  const allBaseVariables = [
-    ...coreVariables,
-    ...technicalVariables,
-    ...styleVariables,
-    ...contextVariables
-  ];
-
-  // Add base variables with proper IDs and codes
-  variables.push(...allBaseVariables.map((v, i) => ({
-    id: `v-${variableCounter + i}`,
-    name: v.name,
-    value: v.value,
-    isRelevant: true,
-    category: v.category,
-    code: `VAR_${variableCounter + i}`
-  })));
-  
-  variableCounter += allBaseVariables.length;
-
-  // Extract and pre-fill values from available context
-  if (imageAnalysis) {
-    prefillFromImageAnalysis(variables, imageAnalysis);
+  // Pre-fill values only from explicit user context
+  if (smartContext?.context && smartContext.usageInstructions) {
+    prefillFromSmartContext(variables, smartContext.context, smartContext.usageInstructions);
   }
 
-  if (smartContext?.context) {
-    prefillFromSmartContext(variables, smartContext.context);
+  if (imageAnalysis && imageAnalysis.analysis) {
+    prefillFromImageAnalysis(variables, imageAnalysis.analysis);
   }
 
   // Extract explicit values from prompt text
   prefillFromPromptText(variables, promptText);
 
+  // Ensure we have at least 8 variables
+  while (variables.length < 8) {
+    variables.push({
+      id: `v-${variableCounter}`,
+      name: `Variable ${variableCounter}`,
+      value: "",
+      isRelevant: false,
+      category: "Additional",
+      code: `VAR_${variableCounter}`
+    });
+    variableCounter++;
+  }
+
   return variables;
 }
 
-function prefillFromImageAnalysis(variables: Variable[], imageAnalysis: any) {
-  if (imageAnalysis.style?.colors?.length > 0) {
-    const color = imageAnalysis.style.colors[0];
+function prefillFromImageAnalysis(variables: Variable[], analysis: any) {
+  if (!analysis) return;
+
+  console.log("Prefilling variables from image analysis");
+  
+  // Only prefill if we have high confidence matches
+  if (analysis.style?.colors?.length > 0 && analysis.style.confidence > 0.7) {
     const colorVar = variables.find(v => v.name === "Color Scheme");
     if (colorVar) {
-      colorVar.value = color;
+      colorVar.value = analysis.style.colors[0];
+      colorVar.contextSource = "image";
     }
   }
 
-  if (imageAnalysis.subjects?.length > 0) {
-    const subject = imageAnalysis.subjects[0];
+  if (analysis.subjects?.length > 0 && analysis.confidence > 0.7) {
     const subjectVar = variables.find(v => v.name === "Main Subject");
     if (subjectVar) {
-      subjectVar.value = subject;
+      subjectVar.value = analysis.subjects[0];
+      subjectVar.contextSource = "image";
     }
   }
 }
 
-function prefillFromSmartContext(variables: Variable[], context: string) {
+function prefillFromSmartContext(variables: Variable[], context: string, usageInstructions: string) {
+  if (!context || !usageInstructions) return;
+  
+  console.log("Prefilling variables from smart context");
+  
   const keyValuePattern = /([a-zA-Z\s]+):\s*([^,.]+)/gi;
   let match;
 
@@ -334,14 +362,22 @@ function prefillFromSmartContext(variables: Variable[], context: string) {
     const name = match[1].trim();
     const value = match[2].trim();
 
-    const variable = variables.find(v => v.name === name);
-    if (variable) {
-      variable.value = value;
+    // Only prefill if the usage instructions mention this type of information
+    if (usageInstructions.toLowerCase().includes(name.toLowerCase())) {
+      const variable = variables.find(v => v.name === name);
+      if (variable) {
+        variable.value = value;
+        variable.contextSource = "smartContext";
+      }
     }
   }
 }
 
 function prefillFromPromptText(variables: Variable[], promptText: string) {
+  if (!promptText) return;
+  
+  console.log("Prefilling variables from prompt text");
+  
   const patterns = [
     /(?:with|has|in|of)\s+(?:a|an|the)?\s*([a-zA-Z\s]+)\s+([a-zA-Z\s]+)/gi,
     /(?:style|type|kind|color|size|format)\s+(?:of|is|should be)?\s*([a-zA-Z\s]+)/gi,
@@ -359,11 +395,10 @@ function prefillFromPromptText(variables: Variable[], promptText: string) {
         const variable = variables.find(v => v.name === name);
         if (variable) {
           variable.value = value;
+          variable.contextSource = "prompt";
         }
       }
     }
   });
 }
 
-// Export the functions
-export { generateContextualVariablesForPrompt };
