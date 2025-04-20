@@ -16,6 +16,16 @@ CONTEXT ANALYSIS RULES:
 4. Map context data to appropriate question categories
 5. Use context to pre-fill answers with proper attribution
 
+IMAGE ANALYSIS INTEGRATION RULES:
+1. When image analysis data is available:
+   - Extract visual elements, style, composition details
+   - Map image attributes to relevant questions
+   - Use image analysis for technical specifications
+   - Consider image context for artistic direction
+2. Always attribute pre-filled answers from images with "(from image analysis)"
+3. Validate image-based pre-fills against the analysis data
+4. Use image data to inform style, composition, and technical questions
+
 QUESTION GENERATION AND PRE-FILLING RULES:
 1. Generate questions that:
    - Deeply explore user's core intent
@@ -33,11 +43,6 @@ QUESTION GENERATION AND PRE-FILLING RULES:
      - "(from prompt)" for prompt-derived answers
 5. Ensure each pre-filled answer includes specific data points from the context
 6. Validate pre-filled answers against context data
-7. IMPORTANT: When image analysis is available, use its data to pre-fill relevant questions about:
-   - Visual style and characteristics
-   - Subject matter and composition
-   - Technical aspects
-   - Contextual elements
 
 OUTPUT FORMAT:
 You MUST return a valid JSON object with this exact structure:

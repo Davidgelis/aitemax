@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 export async function analyzePromptWithAI(
@@ -23,9 +24,9 @@ export async function analyzePromptWithAI(
     promptText
   };
   
-  // Process image if available
+  // Process image if available with enhanced error handling and validation
   if (imageBase64) {
-    console.log("Analyzing image with gpt-4o...");
+    console.log("Starting image analysis with GPT-4o...");
     try {
       const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -67,25 +68,39 @@ export async function analyzePromptWithAI(
         }),
       });
 
+      if (!imageAnalysisResponse.ok) {
+        throw new Error(`Image analysis failed with status: ${imageAnalysisResponse.status}`);
+      }
+
       const analysisData = await imageAnalysisResponse.json();
       console.log("Raw image analysis response:", analysisData);
       
       if (analysisData.choices?.[0]?.message?.content) {
         try {
-          structuredContext.imageAnalysis = JSON.parse(analysisData.choices[0].message.content);
-          console.log("Structured image analysis:", structuredContext.imageAnalysis);
+          const parsedContent = JSON.parse(analysisData.choices[0].message.content);
+          console.log("Structured image analysis:", parsedContent);
+          
+          // Validate the parsed content has all required fields
+          const requiredFields = ['description', 'subjects', 'style', 'technical', 'context', 'potential_use'];
+          const missingFields = requiredFields.filter(field => !parsedContent[field]);
+          
+          if (missingFields.length > 0) {
+            console.warn("Image analysis missing fields:", missingFields);
+          }
+          
+          structuredContext.imageAnalysis = parsedContent;
         } catch (parseError) {
           console.error("Failed to parse image analysis JSON:", parseError);
-          structuredContext.imageAnalysis = { error: "Failed to parse analysis" };
+          throw new Error("Invalid image analysis response format");
         }
       }
     } catch (error) {
       console.error("Error analyzing image:", error);
-      structuredContext.imageAnalysis = { error: "Failed to analyze image" };
+      throw new Error(`Image analysis failed: ${error.message}`);
     }
   }
 
-  // Process smart context first if available
+  // Process smart context with enhanced validation
   if (smartContext) {
     console.log("Processing smart context for enhanced analysis");
     try {
@@ -117,6 +132,10 @@ export async function analyzePromptWithAI(
         }),
       });
 
+      if (!smartContextResponse.ok) {
+        throw new Error(`Smart context analysis failed with status: ${smartContextResponse.status}`);
+      }
+
       const smartData = await smartContextResponse.json();
       if (smartData.choices?.[0]?.message?.content) {
         try {
@@ -124,38 +143,46 @@ export async function analyzePromptWithAI(
           console.log("Structured smart context:", structuredContext.smartContext);
         } catch (parseError) {
           console.error("Failed to parse smart context JSON:", parseError);
+          throw new Error("Invalid smart context response format");
         }
       }
     } catch (error) {
       console.error("Error processing smart context:", error);
+      throw new Error(`Smart context analysis failed: ${error.message}`);
     }
   }
 
-  // Build comprehensive context with metadata for better question pre-filling
+  // Build comprehensive context for better pre-filling
   const enhancedContext = {
     userInput: {
       prompt: promptText,
       timestamp: new Date().toISOString()
     },
     context: {
-      image: structuredContext.imageAnalysis,
+      image: structuredContext.imageAnalysis ? {
+        analysis: structuredContext.imageAnalysis,
+        type: "vision",
+        source: "gpt-4o"
+      } : null,
       smart: structuredContext.smartContext ? {
         content: structuredContext.smartContext,
         type: "structured",
         source: "user-provided"
       } : null
     },
-    instructions: {
-      primary: "Generate comprehensive questions and pre-fill answers using all available context",
-      format: "Return valid JSON with questions array, variables array, masterCommand, and enhancedPrompt"
-    },
     metadata: {
-      hasImageAnalysis: !!structuredContext.imageAnalysis && !structuredContext.imageAnalysis.error,
+      hasImageAnalysis: !!structuredContext.imageAnalysis,
       hasSmartContext: !!structuredContext.smartContext
     }
   };
 
   try {
+    console.log("Sending final analysis request with context:", {
+      hasImage: !!enhancedContext.context.image,
+      hasSmartContext: !!enhancedContext.context.smart,
+      promptLength: promptText.length
+    });
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -202,14 +229,6 @@ export async function analyzePromptWithAI(
         hasEnhancedPrompt: !!parsedResponse.enhancedPrompt
       });
       
-      // Validate response format
-      if (!Array.isArray(parsedResponse.questions) || 
-          !Array.isArray(parsedResponse.variables) || 
-          typeof parsedResponse.masterCommand !== 'string' ||
-          typeof parsedResponse.enhancedPrompt !== 'string') {
-        throw new Error("Invalid response structure");
-      }
-      
       return {
         content: JSON.stringify(parsedResponse),
         usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
@@ -223,3 +242,4 @@ export async function analyzePromptWithAI(
     throw error;
   }
 }
+
