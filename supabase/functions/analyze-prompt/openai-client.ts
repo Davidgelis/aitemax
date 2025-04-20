@@ -27,7 +27,7 @@ export async function analyzePromptWithAI(
   
   // Process image if available with enhanced validation and error handling
   if (imageBase64) {
-    console.log("Starting image analysis with GPT-4.1...");
+    console.log("Starting image analysis with GPT-4.1-2025-04-14...");
     try {
       // Validate and clean base64 string
       if (imageBase64.includes(',')) {
@@ -35,165 +35,253 @@ export async function analyzePromptWithAI(
         console.log("Cleaned base64 string for image analysis");
       }
 
-      // Validate base64 format
+      // Validate base64 format and strip any whitespace
+      imageBase64 = imageBase64.replace(/\s/g, '');
       if (!/^[A-Za-z0-9+/=]+$/.test(imageBase64)) {
         throw new Error("Invalid base64 format");
       }
       
-      const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      // Determine MIME type based on base64 prefix if available
+      let mimeType = "image/jpeg"; // Default
+      if (imageBase64.startsWith('/9j/')) {
+        mimeType = "image/jpeg";
+      } else if (imageBase64.startsWith('iVBOR')) {
+        mimeType = "image/png";
+      } else if (imageBase64.startsWith('R0lGO')) {
+        mimeType = "image/gif";
+      } else if (imageBase64.startsWith('UklGR')) {
+        mimeType = "image/webp";
+      }
+      
+      // Use a single API call with both the image and text to save time and tokens
+      console.log("Sending integrated analysis request to GPT-4.1");
+      
+      const analysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4.1',
+          model: 'gpt-4.1-2025-04-14', // Use dated model ID for stability
           messages: [
             {
               role: 'system',
-              content: `Analyze this image and extract key information in a concise JSON format. Include:
-              {
-                "description": "Brief description of the image",
-                "subjects": ["Main elements in the image"],
-                "style": {"colors": [], "composition": ""},
-                "technical": {"quality": "", "lighting": ""},
-                "context": "Overall mood and setting",
-                "potential_use": ["Suggested applications"]
-              }
-              Keep responses brief and focused. Return ONLY valid JSON.`
+              content: `${systemMessage}
+
+VARIABLE EXTRACTION AND PREFILLING RULES:
+1. Only extract variables when they are EXPLICITLY mentioned in the prompt text or clearly visible in image data
+2. Create variables ONLY for concrete values that can be directly extracted, not for concepts or themes
+3. Pre-fill variables ONLY when you have high confidence (>90%) about their values
+4. Format all variables consistently with user-friendly names and clear values
+5. IMPORTANT: Do not create variables for abstract concepts or uncertain values
+6. VARIABLES OUTPUT FORMAT:
+{
+  "id": "unique-id",
+  "name": "clear-descriptive-name",
+  "value": "extracted-concrete-value",
+  "isRelevant": true,
+  "category": "Category",
+  "code": "VAR_X"
+}
+
+JSON SCHEMA for response:
+{
+  "questions": [
+    {
+      "id": "string",
+      "category": "string",
+      "text": "string",
+      "answer": "string",
+      "isRelevant": boolean,
+      "contextSource": "string",
+      "technicalTerms": [
+        {
+          "term": "string",
+          "explanation": "string",
+          "example": "string"
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "id": "string",
+      "name": "string",
+      "value": "string",
+      "isRelevant": boolean,
+      "category": "string",
+      "code": "string"
+    }
+  ],
+  "masterCommand": "string",
+  "enhancedPrompt": "string"
+}`
             },
             {
               role: 'user',
               content: [
                 {
                   type: "text",
-                  text: "Analyze this image:"
+                  text: `Analyze this prompt: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`
                 },
-                {
+                ...(imageBase64 ? [{
                   type: "image_url",
                   image_url: {
-                    url: `data:image/jpeg;base64,${imageBase64}`
+                    url: `data:${mimeType};base64,${imageBase64}`,
+                    detail: "high" // Use high detail for better text recognition
                   }
-                }
+                }] : [])
               ]
             }
           ],
-          max_tokens: 1000,
-          temperature: 0.3,
+          temperature: 0.5, // Balance between creativity and precision
+          max_tokens: 2000, // Generous token limit for full analysis
           response_format: { type: "json_object" }
         }),
       });
 
-      if (!imageAnalysisResponse.ok) {
-        const errorText = await imageAnalysisResponse.text();
-        console.error("Image analysis failed:", {
-          status: imageAnalysisResponse.status,
+      if (!analysisResponse.ok) {
+        const errorText = await analysisResponse.text();
+        console.error("Analysis failed:", {
+          status: analysisResponse.status,
           error: errorText
         });
-        throw new Error(`Image analysis failed: ${imageAnalysisResponse.status}`);
+        throw new Error(`Analysis failed: ${analysisResponse.status}`);
       }
 
-      const analysisData = await imageAnalysisResponse.json();
-      console.log("Raw image analysis response received");
+      const analysisData = await analysisResponse.json();
+      console.log("Analysis response received");
       
       if (!analysisData.choices?.[0]?.message?.content) {
-        throw new Error("Invalid response format from image analysis");
+        throw new Error("Invalid response format from analysis");
       }
 
       try {
         const parsedContent = JSON.parse(analysisData.choices[0].message.content);
-        console.log("Successfully parsed image analysis:", {
-          hasDescription: !!parsedContent.description,
-          subjectsCount: parsedContent.subjects?.length,
-          hasStyle: !!parsedContent.style
+        console.log("Successfully parsed analysis:", {
+          questionsCount: parsedContent.questions?.length || 0,
+          variablesCount: parsedContent.variables?.length || 0,
+          hasMasterCommand: !!parsedContent.masterCommand
         });
         
-        structuredContext.imageAnalysis = parsedContent;
+        // Return full analysis directly instead of making a second API call
+        return {
+          content: analysisData.choices[0].message.content,
+          usage: analysisData.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+        };
       } catch (parseError) {
-        console.error("Failed to parse image analysis JSON:", parseError);
-        throw new Error("Invalid image analysis response format");
+        console.error("Failed to parse analysis JSON:", parseError);
+        throw new Error("Invalid analysis response format");
       }
     } catch (error) {
-      console.error("Error in image analysis:", error);
-      throw new Error(`Image analysis failed: ${error.message}`);
+      console.error("Error in analysis:", error);
+      throw new Error(`Analysis failed: ${error.message}`);
     }
-  }
-
-  try {
-    const finalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4.1',
-        messages: [
-          { role: 'system', content: systemMessage },
-          {
-            role: 'user',
-            content: JSON.stringify({
-              prompt: promptText,
-              context: {
-                imageAnalysis: structuredContext.imageAnalysis,
-                smartContext: structuredContext.smartContext
-              }
-            })
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-        response_format: { type: "json_object" }
-      }),
-    });
-
-    if (!finalResponse.ok) {
-      const errorText = await finalResponse.text();
-      console.error("OpenAI API error:", errorText);
-      throw new Error(`OpenAI API error: ${finalResponse.status}`);
-    }
-
-    const data = await finalResponse.json();
-    console.log("OpenAI response received:", {
-      hasChoices: !!data.choices,
-      firstChoiceLength: data.choices?.[0]?.message?.content?.length
-    });
-    
-    if (!data.choices?.[0]?.message?.content) {
-      throw new Error("Invalid response format from OpenAI");
-    }
-
+  } else {
+    // No image, just process the text prompt
     try {
-      const parsedResponse = JSON.parse(data.choices[0].message.content);
+      console.log("Processing text-only prompt...");
       
-      // Ensure all questions from image analysis are properly attributed
-      if (structuredContext.imageAnalysis && parsedResponse.questions) {
-        parsedResponse.questions = parsedResponse.questions.map(q => {
-          if (q.answer?.startsWith("PRE-FILLED:") && q.contextSource === "image" && !q.answer.includes("(from image analysis)")) {
-            q.answer = `${q.answer} (from image analysis)`;
-          }
-          return q;
-        });
-      }
+      const analysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4.1-2025-04-14', // Use dated model ID
+          messages: [
+            { 
+              role: 'system', 
+              content: `${systemMessage}
 
-      console.log("Successfully parsed final response:", {
-        questionsCount: parsedResponse.questions?.length || 0,
-        preFilledCount: parsedResponse.questions?.filter(q => q.answer?.startsWith("PRE-FILLED:")).length || 0,
-        hasVariables: !!parsedResponse.variables,
-        hasMasterCommand: !!parsedResponse.masterCommand
-      });
-      
-      return {
-        content: JSON.stringify(parsedResponse),
-        usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
-      };
-    } catch (parseError) {
-      console.error("Failed to parse OpenAI response:", parseError);
-      throw new Error(`Invalid JSON response from OpenAI: ${parseError.message}`);
-    }
-  } catch (error) {
-    console.error("Error in analyzePromptWithAI:", error);
-    throw error;
-  }
+VARIABLE EXTRACTION AND PREFILLING RULES:
+1. Only extract variables when they are EXPLICITLY mentioned in the prompt text
+2. Create variables ONLY for concrete values that can be directly extracted, not for concepts or themes
+3. Pre-fill variables ONLY when you have high confidence (>90%) about their values
+4. Format all variables consistently with user-friendly names and clear values
+5. IMPORTANT: Do not create variables for abstract concepts or uncertain values
+6. VARIABLES OUTPUT FORMAT:
+{
+  "id": "unique-id",
+  "name": "clear-descriptive-name",
+  "value": "extracted-concrete-value",
+  "isRelevant": true,
+  "category": "Category",
+  "code": "VAR_X"
 }
 
+JSON SCHEMA for response:
+{
+  "questions": [
+    {
+      "id": "string",
+      "category": "string",
+      "text": "string",
+      "answer": "string",
+      "isRelevant": boolean,
+      "contextSource": "string",
+      "technicalTerms": [
+        {
+          "term": "string",
+          "explanation": "string",
+          "example": "string"
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "id": "string",
+      "name": "string",
+      "value": "string",
+      "isRelevant": boolean,
+      "category": "string",
+      "code": "string"
+    }
+  ],
+  "masterCommand": "string",
+  "enhancedPrompt": "string"
+}`
+            },
+            {
+              role: 'user',
+              content: `Analyze this prompt: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`
+            }
+          ],
+          temperature: 0.5,
+          max_tokens: 2000,
+          response_format: { type: "json_object" }
+        }),
+      });
+  
+      if (!analysisResponse.ok) {
+        const errorText = await analysisResponse.text();
+        console.error("OpenAI API error:", errorText);
+        throw new Error(`OpenAI API error: ${analysisResponse.status}`);
+      }
+  
+      const data = await analysisResponse.json();
+      console.log("OpenAI response received");
+      
+      if (!data.choices?.[0]?.message?.content) {
+        throw new Error("Invalid response format from OpenAI");
+      }
+  
+      try {
+        // Return the parsed content directly
+        return {
+          content: data.choices[0].message.content,
+          usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+        };
+      } catch (parseError) {
+        console.error("Failed to parse OpenAI response:", parseError);
+        throw new Error(`Invalid JSON response from OpenAI: ${parseError.message}`);
+      }
+    } catch (error) {
+      console.error("Error in analyzePromptWithAI:", error);
+      throw error;
+    }
+  }
+}

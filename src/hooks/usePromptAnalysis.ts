@@ -100,6 +100,20 @@ export const usePromptAnalysis = (
           debug: data.debug
         });
         
+        // Add detailed logging for variables
+        if (data.variables && data.variables.length > 0) {
+          console.log("Extracted variables:", data.variables.map((v: Variable) => ({
+            id: v.id,
+            name: v.name,
+            value: v.value?.substring(0, 30) + (v.value?.length > 30 ? '...' : ''),
+            category: v.category,
+            isRelevant: v.isRelevant,
+            code: v.code
+          })));
+        } else {
+          console.warn("No variables were extracted from the analysis");
+        }
+        
         // Log image-based pre-filled questions for debugging
         if (data.questions) {
           const imageBasedQuestions = data.questions.filter((q: Question) => 
@@ -119,7 +133,24 @@ export const usePromptAnalysis = (
         }
         
         setQuestions(data.questions || []);
-        setVariables(data.variables || []);
+        
+        // Ensure variables are properly initialized even if none were returned
+        if (data.variables && Array.isArray(data.variables)) {
+          // Make sure all variables have required fields
+          const processedVariables = data.variables.map((v: any, index: number) => ({
+            id: v.id || `var-${index}`,
+            name: v.name || `Variable ${index + 1}`,
+            value: v.value || '',
+            isRelevant: v.isRelevant === undefined ? true : v.isRelevant,
+            category: v.category || 'Other',
+            code: v.code || `VAR_${index + 1}`
+          }));
+          setVariables(processedVariables);
+        } else {
+          console.log("No variables found in analysis result, initializing empty array");
+          setVariables([]);
+        }
+        
         setMasterCommand(data.masterCommand || "");
         setFinalPrompt(data.enhancedPrompt || "");
         setCurrentStep(2);
