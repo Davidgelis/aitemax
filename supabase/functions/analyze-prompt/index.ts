@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -26,7 +27,7 @@ serve(async (req) => {
     
     console.log("Starting analyze-prompt with:", {
       promptLength: promptText?.length,
-      hasImageData: !!imageData?.base64,
+      hasImageData: !!imageData,
       hasSmartContext: !!smartContextData?.context,
       hasWebsiteData: !!websiteData?.url,
       primaryToggle,
@@ -42,12 +43,49 @@ serve(async (req) => {
     
     // Build the enhanced context by combining all available contexts
     let enhancedContext = promptText;
+    let imageBase64 = null;
     let imageContext = '';
     
-    // Process image data first for context enhancement
-    if (imageData?.base64) {
-      console.log("Processing image data for context enhancement");
-      imageContext = `Analyze this image using the provided context instructions:\n${imageData.context || 'Analyze all visible elements to enhance the prompt.'}`
+    // Process image data with enhanced validation and logging
+    if (imageData) {
+      console.log("Processing image data:", {
+        isArray: Array.isArray(imageData),
+        hasFirstItem: Array.isArray(imageData) && imageData.length > 0,
+        firstItemHasBase64: Array.isArray(imageData) && imageData.length > 0 && !!imageData[0]?.base64
+      });
+      
+      // Handle both single image object and array formats
+      if (Array.isArray(imageData) && imageData.length > 0) {
+        // Use the first image if it's an array
+        if (imageData[0]?.base64) {
+          imageBase64 = imageData[0].base64;
+          imageContext = imageData[0].context || 'Analyze all visible elements to enhance the prompt.';
+          console.log("Using first image from array with base64 length:", imageBase64.length);
+        }
+      } else if (imageData.base64) {
+        // Direct image object
+        imageBase64 = imageData.base64;
+        imageContext = imageData.context || 'Analyze all visible elements to enhance the prompt.';
+        console.log("Using direct image object with base64 length:", imageBase64.length);
+      }
+      
+      if (imageBase64) {
+        // Clean base64 string if needed
+        if (imageBase64.includes(',')) {
+          imageBase64 = imageBase64.split(',')[1];
+          console.log("Cleaned up base64 string by removing data URL prefix");
+        }
+        
+        console.log("Image data prepared for analysis:", {
+          base64Length: imageBase64.length,
+          contextLength: imageContext.length
+        });
+        
+        // Add image context to prompt if available
+        enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT: ${imageContext}`;
+      } else {
+        console.warn("Image data was provided but no valid base64 content found");
+      }
     }
     
     // Add smart context if available
@@ -75,12 +113,19 @@ serve(async (req) => {
       throw new Error("OpenAI API key is not configured");
     }
 
+    console.log("Calling analyzePromptWithAI with:", {
+      promptTextLength: enhancedContext.length,
+      hasSmartContext: !!smartContextData?.context,
+      hasImageBase64: !!imageBase64,
+      imageBase64Length: imageBase64 ? imageBase64.length : 0
+    });
+
     const { content } = await analyzePromptWithAI(
       enhancedContext,
       systemPrompt,
       apiKey,
       smartContextData?.context || "",
-      imageData?.base64
+      imageBase64
     );
 
     console.log("Processing AI response with context-aware extraction");
@@ -91,18 +136,29 @@ serve(async (req) => {
       console.log("Successfully parsed response:", {
         questionsCount: parsedContent.questions?.length || 0,
         preFilledCount: parsedContent.questions?.filter(q => q.answer?.startsWith("PRE-FILLED:")).length || 0,
+        imagePreFilledCount: parsedContent.questions?.filter(q => 
+          q.answer?.startsWith("PRE-FILLED:") && 
+          (q.answer?.includes("(from image analysis)") || q.contextSource === "image")
+        ).length || 0,
         hasVariables: !!parsedContent.variables,
         hasMasterCommand: !!parsedContent.masterCommand,
         hasEnhancedPrompt: !!parsedContent.enhancedPrompt
       });
     } catch (error) {
       console.error("Failed to parse content:", error);
-      throw new Error("Invalid response format");
+      throw new Error(`Invalid response format: ${error.message}`);
     }
 
     const questions = extractQuestions(content, enhancedContext);
-    console.log(`Extracted ${questions.length} questions with prefilled answers:`, 
-      questions.filter(q => q.answer && q.answer.startsWith("PRE-FILLED:")).length);
+    const imageBasedQuestions = questions.filter(q => 
+      q.answer?.includes("(from image analysis)") || q.answer?.includes("image")
+    );
+    
+    console.log(`Extracted ${questions.length} questions with pre-filled answers:`, {
+      preFilledTotal: questions.filter(q => q.answer && q.answer.startsWith("PRE-FILLED:")).length,
+      imageBasedCount: imageBasedQuestions.length,
+      imageQuestions: imageBasedQuestions.map(q => ({id: q.id, text: q.text.substring(0, 30)}))
+    });
     
     const variables = extractVariables(content, enhancedContext);
     console.log(`Extracted ${variables.length} variables with values:`, 
@@ -121,7 +177,13 @@ serve(async (req) => {
           id: template.id,
           name: template.name,
           type: template.isDefault ? 'Default Framework' : 'Custom Template'
-        } : null
+        } : null,
+        // Include debugging info about image processing in development
+        debug: {
+          hasImageData: !!imageBase64,
+          imageProcessingStatus: imageBase64 ? "processed" : "not available",
+          imagePreFilledCount: imageBasedQuestions.length
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

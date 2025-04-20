@@ -48,8 +48,18 @@ export const usePromptAnalysis = (
         hasSmartContext: !!smartContext && !!smartContext.context,
         inputTypes,
         uploadedImagesCount: uploadedImages?.length || 0,
-        model: "gpt-4.1" // Updated model reference
+        model: "gpt-4.1" // Using gpt-4.1 as specified
       });
+
+      // Log image details if available
+      if (uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0) {
+        console.log("Image details for analysis:", uploadedImages.map(img => ({
+          hasBase64: !!img.base64,
+          base64Length: img.base64 ? img.base64.length : 0,
+          hasContext: !!img.context,
+          contextLength: img.context ? img.context.length : 0
+        })));
+      }
 
       const { data, error } = await supabase.functions.invoke("analyze-prompt", {
         body: {
@@ -62,7 +72,8 @@ export const usePromptAnalysis = (
           imageData: uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0 ? uploadedImages : null,
           smartContextData: smartContext || null,
           inputTypes,
-          template: currentTemplate  // Pass the template to the edge function
+          template: currentTemplate,  // Pass the template to the edge function
+          model: "gpt-4.1" // Ensure the model is passed to the edge function
         },
       });
 
@@ -79,7 +90,34 @@ export const usePromptAnalysis = (
       }
 
       if (data) {
-        console.log("Analysis result:", data);
+        console.log("Analysis result:", {
+          questionsCount: data.questions?.length || 0,
+          preFilledCount: data.questions?.filter((q: Question) => q.answer?.startsWith("PRE-FILLED:")).length || 0,
+          imageBasedCount: data.questions?.filter((q: Question) => 
+            q.answer?.includes("(from image analysis)") || q.answer?.includes("image")
+          ).length || 0,
+          variablesCount: data.variables?.length || 0,
+          debug: data.debug
+        });
+        
+        // Log image-based pre-filled questions for debugging
+        if (data.questions) {
+          const imageBasedQuestions = data.questions.filter((q: Question) => 
+            q.answer?.includes("(from image analysis)") || q.answer?.includes("image")
+          );
+          
+          if (imageBasedQuestions.length > 0) {
+            console.log("Image-based pre-filled questions:", imageBasedQuestions.map((q: Question) => ({
+              id: q.id,
+              category: q.category,
+              text: q.text.substring(0, 30) + "...",
+              answer: q.answer?.substring(0, 30) + "..."
+            })));
+          } else {
+            console.warn("No image-based pre-filled questions found despite image data being provided");
+          }
+        }
+        
         setQuestions(data.questions || []);
         setVariables(data.variables || []);
         setMasterCommand(data.masterCommand || "");
@@ -164,7 +202,8 @@ export const usePromptAnalysis = (
           secondaryToggle,
           userId: user?.id || null,
           promptId: currentPromptId,
-          template: templateCopy  // Pass the template copy to the edge function
+          template: templateCopy,  // Pass the template copy to the edge function
+          model: "gpt-4.1" // Using gpt-4.1 as specified
         }
       });
       

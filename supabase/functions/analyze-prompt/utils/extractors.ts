@@ -1,3 +1,4 @@
+
 import { Question, Variable } from '../types.ts';
 
 export function extractQuestions(aiResponse: string, originalPrompt: string): Question[] {
@@ -10,17 +11,33 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       
       if (Array.isArray(parsedResponse.questions)) {
         console.log(`Found ${parsedResponse.questions.length} questions in JSON`);
+        
+        // Check for image-based pre-fills
+        const imageBasedQuestions = parsedResponse.questions.filter((q: any) => 
+          q.answer?.includes("(from image analysis)") || q.contextSource === "image"
+        );
+        console.log(`Found ${imageBasedQuestions.length} questions with image-based pre-fills`);
+        
         return parsedResponse.questions.map((q: any, index: number) => {
           let answer = q.answer || '';
-          let contextSource = q.contextSource;
+          let contextSource = q.contextSource || '';
           
           // Validate and enhance pre-filled answers
           if (answer.startsWith('PRE-FILLED:')) {
+            // Ensure source attribution is present
             if (!answer.includes('(from')) {
-              if (contextSource) {
-                answer = `${answer} (from ${contextSource})`;
+              if (contextSource === 'image') {
+                answer = `${answer} (from image analysis)`;
+                console.log(`Added missing image attribution to question ${q.id || index + 1}`);
+              } else if (contextSource === 'smartContext' || contextSource === 'smart') {
+                answer = `${answer} (from smart context)`;
+                console.log(`Added missing smart context attribution to question ${q.id || index + 1}`);
+              } else if (contextSource === 'prompt') {
+                answer = `${answer} (from prompt)`;
+                console.log(`Added missing prompt attribution to question ${q.id || index + 1}`);
               }
             }
+            
             console.log(`Enhanced pre-filled answer for question ${q.id || index + 1} from source: ${contextSource || 'unknown'}`);
           }
           
@@ -32,6 +49,8 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
             category: q.category || 'General'
           };
         });
+      } else {
+        console.log("No questions array found in JSON response");
       }
     } catch (jsonError) {
       console.error("JSON parsing failed:", jsonError);
@@ -48,18 +67,37 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       const questionText = match[2].trim();
       
       if (questionText) {
-        const answerMatch = questionText.match(/PRE-FILLED:\s*(.*?)(?=\n|$)/);
+        // Enhanced regex to capture pre-filled answers with source attribution
+        const answerMatch = questionText.match(/PRE-FILLED:\s*(.*?)(?:\(from ([^)]+)\))?(?=\n|$)/);
+        
+        const answer = answerMatch 
+          ? (answerMatch[1].trim() + (answerMatch[2] ? ` (from ${answerMatch[2]})` : ''))
+          : '';
+          
+        const source = answerMatch && answerMatch[2] 
+          ? answerMatch[2].trim() 
+          : (answer.includes('image') ? 'image analysis' : 
+             answer.includes('smart') ? 'smart context' : 
+             answer ? 'prompt' : '');
+        
         questions.push({
           id: `q-${questions.length + 1}`,
           text: questionText.replace(/PRE-FILLED:\s*.*$/, '').trim(),
-          answer: answerMatch ? answerMatch[1].trim() : '',
+          answer: answerMatch ? `PRE-FILLED: ${answer}` : '',
           isRelevant: answerMatch ? true : null,
           category
         });
       }
     }
     
-    console.log(`Extracted ${questions.length} questions`);
+    console.log(`Extracted ${questions.length} questions using regex`);
+    
+    // Check for image-based pre-fills in regex extraction
+    const imageBasedQuestions = questions.filter(q => 
+      q.answer?.includes("(from image analysis)") || q.answer?.includes("image")
+    );
+    console.log(`Found ${imageBasedQuestions.length} questions with image-based pre-fills using regex`);
+    
     return questions;
   } catch (error) {
     console.error("Error in question extraction:", error);
@@ -180,7 +218,7 @@ export function extractMasterCommand(aiResponse: string): string {
     }
     
     const commandText = commandMatch[1].trim();
-    console.log("Master command found:", commandText.substring(0, 50));
+    console.log("Master command found:", commandText.substring(0, 50) + (commandText.length > 50 ? "..." : ""));
     
     return commandText;
   } catch (error) {

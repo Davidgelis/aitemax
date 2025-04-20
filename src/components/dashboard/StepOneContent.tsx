@@ -81,7 +81,13 @@ export const StepOneContent = ({
 
   const handleImagesChange = (images: UploadedImage[]) => {
     setUploadedImages(images);
-    console.log("StepOneContent: Images updated:", images);
+    console.log("StepOneContent: Images updated:", images.map(img => ({
+      id: img.id,
+      hasBase64: !!img.base64,
+      base64Length: img.base64 ? img.base64.length : 0,
+      hasContext: !!img.context
+    })));
+    
     // Pass the images up to the parent component without triggering analysis
     onImagesChange(images);
   };
@@ -109,11 +115,17 @@ export const StepOneContent = ({
     console.log("StepOneContent: Analyzing with GPT-4.1:", {
       promptText,
       uploadedImages: uploadedImages.length,
+      uploadedImagesData: uploadedImages.map(img => ({
+        id: img.id,
+        hasBase64: !!img.base64,
+        base64Length: img.base64 ? img.base64.length : 0,
+        hasContext: !!img.context
+      })),
       websiteContext,
       smartContext: smartContext ? "Provided" : "None",
       selectedPrimary,
       selectedSecondary,
-      model: "gpt-4.1"
+      model: "gpt-4.1" // Using gpt-4.1 as specified
     });
     
     onAnalyze();
@@ -140,6 +152,14 @@ export const StepOneContent = ({
       }, 300);
     }
   };
+
+  // Add a clean up function for images on component unmount
+  useEffect(() => {
+    return () => {
+      console.log("StepOneContent: Cleaning up images on unmount");
+      setUploadedImages([]);
+    };
+  }, []);
 
   return (
     <div className="border rounded-xl p-6 bg-card">
