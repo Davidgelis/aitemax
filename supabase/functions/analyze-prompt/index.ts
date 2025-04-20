@@ -22,14 +22,16 @@ serve(async (req) => {
       template,
       websiteData,
       imageData,
-      smartContextData
+      smartContextData,
+      model = 'gpt-4o' // Default to gpt-4o if not specified
     } = await req.json();
     
     console.log("Starting analyze-prompt with:", {
       promptLength: promptText?.length,
       hasImageData: !!imageData,
       hasSmartContext: !!smartContextData?.context,
-      hasWebsiteData: !!websiteData?.url
+      hasWebsiteData: !!websiteData?.url,
+      model
     });
 
     if (!promptText?.trim()) {
@@ -48,7 +50,8 @@ serve(async (req) => {
       console.log("Processing image data");
       
       if (Array.isArray(imageData) && imageData.length > 0 && imageData[0]?.base64) {
-        imageBase64 = imageData[0].base64;
+        // Strip data URL prefix if present
+        imageBase64 = imageData[0].base64.replace(/^data:image\/[a-z]+;base64,/, '');
         imageContext = imageData[0].context || '';
         enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT: ${imageContext}`;
       }
@@ -74,7 +77,8 @@ serve(async (req) => {
       systemPrompt,
       apiKey,
       smartContextData?.context || "",
-      imageBase64
+      imageBase64,
+      model // Pass the model parameter to the API call
     );
 
     let parsedContent;
@@ -98,7 +102,8 @@ serve(async (req) => {
         enhancedPrompt,
         debug: {
           hasImageData: !!imageBase64,
-          imageProcessingStatus: imageBase64 ? "processed" : "not available"
+          imageProcessingStatus: imageBase64 ? "processed" : "not available",
+          model
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -26,7 +26,7 @@ export const usePromptAnalysis = (
     smartContext: { context: string; usageInstructions: string } | null = null
   ) => {
     setIsLoading(true);
-    setCurrentLoadingMessage("Analyzing your prompt with GPT-4.1...");
+    setCurrentLoadingMessage("Analyzing your prompt with GPT-4o...");
 
     try {
       // Get the current template
@@ -48,17 +48,22 @@ export const usePromptAnalysis = (
         hasSmartContext: !!smartContext && !!smartContext.context,
         inputTypes,
         uploadedImagesCount: uploadedImages?.length || 0,
-        model: "gpt-4.1" // Using gpt-4.1 as specified
+        model: "gpt-4o" // Use gpt-4o as default model
       });
 
-      // Log image details if available
+      // Prepare optimized images if available - focus on compression and validation
+      let processedImages = null;
       if (uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0) {
-        console.log("Image details for analysis:", uploadedImages.map(img => ({
+        // Log but don't send full base64 to logs
+        console.log("Processing images for analysis:", uploadedImages.map(img => ({
           hasBase64: !!img.base64,
           base64Length: img.base64 ? img.base64.length : 0,
           hasContext: !!img.context,
           contextLength: img.context ? img.context.length : 0
         })));
+        
+        // Just pass the images through, we'll optimize in the Edge Function
+        processedImages = uploadedImages;
       }
 
       const { data, error } = await supabase.functions.invoke("analyze-prompt", {
@@ -69,11 +74,11 @@ export const usePromptAnalysis = (
           userId: user?.id || null,
           promptId: currentPromptId,
           websiteData: websiteContext || null,
-          imageData: uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0 ? uploadedImages : null,
+          imageData: processedImages,
           smartContextData: smartContext || null,
           inputTypes,
           template: currentTemplate,  // Pass the template to the edge function
-          model: "gpt-4.1" // Ensure the model is passed to the edge function
+          model: "gpt-4o" // Pass model parameter explicitly
         },
       });
 
@@ -112,24 +117,6 @@ export const usePromptAnalysis = (
           })));
         } else {
           console.warn("No variables were extracted from the analysis");
-        }
-        
-        // Log image-based pre-filled questions for debugging
-        if (data.questions) {
-          const imageBasedQuestions = data.questions.filter((q: Question) => 
-            q.answer?.includes("(from image analysis)") || q.answer?.includes("image")
-          );
-          
-          if (imageBasedQuestions.length > 0) {
-            console.log("Image-based pre-filled questions:", imageBasedQuestions.map((q: Question) => ({
-              id: q.id,
-              category: q.category,
-              text: q.text.substring(0, 30) + "...",
-              answer: q.answer?.substring(0, 30) + "..."
-            })));
-          } else {
-            console.warn("No image-based pre-filled questions found despite image data being provided");
-          }
         }
         
         setQuestions(data.questions || []);
@@ -234,7 +221,7 @@ export const usePromptAnalysis = (
           userId: user?.id || null,
           promptId: currentPromptId,
           template: templateCopy,  // Pass the template copy to the edge function
-          model: "gpt-4.1" // Using gpt-4.1 as specified
+          model: "gpt-4o" // Use gpt-4o as default model
         }
       });
       
