@@ -53,7 +53,7 @@ serve(async (req) => {
     let hasValidImageData = false;
     if (Array.isArray(imageData) && imageData.length > 0) {
       hasValidImageData = imageData.some(img => img && img.base64 && img.context);
-      console.log(`Image data validation: ${hasValidImageData ? 'Valid' : 'Invalid'}`);
+      console.log(`Image data validation: ${hasValidImageData ? 'Valid' : 'Invalid'}, Images with context: ${imageData.filter(img => img.context).length}`);
     }
 
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
@@ -73,7 +73,8 @@ serve(async (req) => {
         enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT: ${imageContext}`;
         console.log("Successfully processed image data:", {
           hasBase64: !!imageBase64,
-          hasContext: !!imageContext
+          hasContext: !!imageContext,
+          contextLength: imageContext.length
         });
       }
     }
@@ -109,26 +110,39 @@ serve(async (req) => {
     let parsedContent;
     try {
       parsedContent = JSON.parse(content);
-      console.log("Successfully parsed JSON response");
+      console.log("Successfully parsed JSON response", {
+        hasImageAnalysis: !!parsedContent.imageAnalysis,
+        hasQuestions: !!parsedContent.questions
+      });
     } catch (error) {
       console.error("Failed to parse content:", error);
       throw new Error(`Invalid response format: ${error.message}`);
     }
 
-    // Generate questions based on context and complexity
+    // Generate questions based on context, now prioritizing images
     let questions = [];
-    const shouldGenerateQuestions = !isPromptSimple || hasValidImageData;
     
-    if (shouldGenerateQuestions) {
-      console.log("Generating questions with context");
+    // If we have valid image data, always generate questions
+    if (hasValidImageData) {
+      console.log("Generating questions based on image data");
       if (template && template.pillars && Array.isArray(template.pillars) && template.pillars.length > 0) {
         questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, parsedContent?.imageAnalysis);
+      } else {
+        // Even without a template, generate image-specific questions
+        questions = generateContextQuestionsForPrompt(enhancedContext, null, smartContextData, parsedContent?.imageAnalysis);
+      }
+      console.log(`Generated ${questions.length} questions with image data`);
+    } else if (!isPromptSimple) {
+      // For complex prompts without images, use regular question generation
+      console.log("Generating questions for complex prompt");
+      if (template && template.pillars && Array.isArray(template.pillars) && template.pillars.length > 0) {
+        questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, null);
       } else if (Array.isArray(parsedContent?.questions)) {
         questions = extractQuestions(content, enhancedContext);
       }
-      console.log(`Generated ${questions.length} questions`);
+      console.log(`Generated ${questions.length} questions for complex prompt`);
     } else {
-      console.log("Skipping question generation for simple prompt");
+      console.log("Skipping question generation for simple prompt without image");
     }
     
     // Always generate variables with appropriate complexity
@@ -165,7 +179,8 @@ serve(async (req) => {
           templateUsed: template?.name || "none",
           pillarsCount: template?.pillars?.length || 0,
           isPromptSimple,
-          hasValidImageData
+          hasValidImageData,
+          imageAnalysisAvailable: !!parsedContent?.imageAnalysis
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

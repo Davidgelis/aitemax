@@ -13,7 +13,7 @@ export function generateContextQuestionsForPrompt(
   
   if (!template || !template.pillars || !Array.isArray(template.pillars) || template.pillars.length === 0) {
     console.log("No valid template found, using default questions");
-    return generateDefaultQuestions(promptText);
+    return generateDefaultQuestions(promptText, imageAnalysis);
   }
 
   const questions: Question[] = [];
@@ -47,25 +47,74 @@ export function generateContextQuestionsForPrompt(
 
   // Only pre-fill answers based on available context if we have questions
   if (questions.length > 0) {
+    console.log("Prefilling questions with available context data");
     const prefilledQuestions = prefillQuestionAnswers(questions, promptText, smartContext, imageAnalysis);
     return prefilledQuestions;
+  }
+  
+  // Special case: Check if we have image data but no template questions
+  if (imageAnalysis && (!questions.length || questions.length < 2)) {
+    console.log("Using image-specific questions since we have image data but no template questions");
+    return generateImageSpecificQuestions(imageAnalysis);
   }
   
   // Fallback for empty questions - should never happen with valid templates
   if (questions.length === 0) {
     console.log("Warning: No questions generated from template pillars. Using fallback questions.");
-    return generateDefaultQuestions(promptText);
+    return generateDefaultQuestions(promptText, imageAnalysis);
   }
 
   return questions;
 }
 
 /**
+ * Generate image-specific questions based on image analysis
+ */
+function generateImageSpecificQuestions(imageAnalysis: any): Question[] {
+  console.log("Generating image-specific questions");
+  const questions = [
+    {
+      id: "q-img-1",
+      text: "What elements or objects in this image should be emphasized?",
+      answer: imageAnalysis?.subjects?.join(", ") || "",
+      isRelevant: true,
+      category: "Image Context",
+      contextSource: "image"
+    },
+    {
+      id: "q-img-2",
+      text: "What is the main subject of this image?",
+      answer: imageAnalysis?.mainSubject || "",
+      isRelevant: true,
+      category: "Image Context",
+      contextSource: "image"
+    },
+    {
+      id: "q-img-3",
+      text: "What style or aesthetic does this image represent?",
+      answer: imageAnalysis?.style?.description || "",
+      isRelevant: true,
+      category: "Image Style",
+      contextSource: "image"
+    },
+    {
+      id: "q-img-4",
+      text: "How should this image be used in the final output?",
+      answer: "",
+      isRelevant: true,
+      category: "Image Usage"
+    }
+  ];
+  
+  return questions;
+}
+
+/**
  * Generate default questions as a fallback
  */
-function generateDefaultQuestions(promptText: string): Question[] {
+function generateDefaultQuestions(promptText: string, imageAnalysis: any = null): Question[] {
   console.log("Using fallback default questions");
-  return [
+  const defaultQuestions = [
     {
       id: "q-default-1",
       text: "What is the primary goal of this prompt?",
@@ -95,6 +144,31 @@ function generateDefaultQuestions(promptText: string): Question[] {
       category: "Format"
     }
   ];
+  
+  // If we have image analysis data, add image-specific questions
+  if (imageAnalysis) {
+    const imageQuestions = [
+      {
+        id: "q-img-1",
+        text: "What elements in this image should be emphasized?",
+        answer: imageAnalysis?.subjects?.join(", ") || "",
+        isRelevant: true,
+        category: "Image",
+        contextSource: "image"
+      },
+      {
+        id: "q-img-2",
+        text: "How should this image be used in the final output?",
+        answer: "",
+        isRelevant: true,
+        category: "Image"
+      }
+    ];
+    
+    return [...defaultQuestions, ...imageQuestions];
+  }
+  
+  return defaultQuestions;
 }
 
 /**
@@ -193,6 +267,12 @@ function prefillQuestionAnswers(
   smartContext: any,
   imageAnalysis: any
 ): Question[] {
+  console.log("Prefilling question answers with available context", {
+    hasSmartContext: !!smartContext?.context,
+    hasImageAnalysis: !!imageAnalysis,
+    questionCount: questions.length
+  });
+  
   return questions.map(question => {
     const q = { ...question };
     
@@ -202,6 +282,7 @@ function prefillQuestionAnswers(
       if (contextMatch) {
         q.answer = formatContextAnswer(contextMatch);
         q.contextSource = "smartContext";
+        console.log(`Prefilled question "${q.text.substring(0, 30)}..." from smart context`);
       }
     }
     
@@ -211,6 +292,7 @@ function prefillQuestionAnswers(
       if (imageMatch) {
         q.answer = formatImageAnswer(imageMatch);
         q.contextSource = "image";
+        console.log(`Prefilled question "${q.text.substring(0, 30)}..." from image analysis`);
       }
     }
     
@@ -266,7 +348,43 @@ function formatContextAnswer(context: string): string {
  * Find matching information from image analysis
  */
 function findImageMatch(questionText: string, imageAnalysis: any): string | null {
-  // Implementation specific to your image analysis structure
+  if (!imageAnalysis) return null;
+  
+  const questionLower = questionText.toLowerCase();
+  
+  // Check for subject/content related questions
+  if (questionLower.includes('subject') || 
+      questionLower.includes('about') || 
+      questionLower.includes('content') ||
+      questionLower.includes('element')) {
+    if (imageAnalysis.subjects && imageAnalysis.subjects.length > 0) {
+      return `The image contains: ${imageAnalysis.subjects.join(', ')}`;
+    }
+    if (imageAnalysis.description) {
+      return imageAnalysis.description;
+    }
+  }
+  
+  // Check for style/aesthetic related questions
+  if (questionLower.includes('style') || 
+      questionLower.includes('tone') || 
+      questionLower.includes('mood') ||
+      questionLower.includes('aesthetic')) {
+    if (imageAnalysis.style?.description) {
+      return imageAnalysis.style.description;
+    }
+    if (imageAnalysis.style?.colors && imageAnalysis.style.colors.length > 0) {
+      return `The image has a ${imageAnalysis.style.colors.join(', ')} color scheme`;
+    }
+  }
+  
+  // Check for format/medium related questions
+  if (questionLower.includes('format') || questionLower.includes('medium')) {
+    if (imageAnalysis.format) {
+      return `The image is in ${imageAnalysis.format} format`;
+    }
+  }
+  
   return null;
 }
 
@@ -274,7 +392,7 @@ function findImageMatch(questionText: string, imageAnalysis: any): string | null
  * Format image-based answer
  */
 function formatImageAnswer(imageInfo: string): string {
-  return `Based on image analysis: ${imageInfo}`;
+  return imageInfo;
 }
 
 /**
@@ -284,9 +402,16 @@ export function generateContextualVariablesForPrompt(
   promptText: string,
   template: any = null,
   imageAnalysis: any = null,
-  smartContext: any = null
+  smartContext: any = null,
+  isSimple: boolean = false
 ): Variable[] {
-  console.log("Generating contextual variables with enhanced intent detection");
+  console.log("Generating contextual variables with enhanced intent detection", {
+    promptLength: promptText?.length,
+    hasTemplate: !!template,
+    hasImageAnalysis: !!imageAnalysis,
+    hasSmartContext: !!smartContext?.context,
+    isSimplePrompt: isSimple
+  });
 
   const variables: Variable[] = [];
   let variableCounter = 1;
@@ -351,8 +476,10 @@ export function generateContextualVariablesForPrompt(
     prefillFromSmartContext(variables, smartContext.context, smartContext.usageInstructions);
   }
 
-  if (imageAnalysis && imageAnalysis.analysis) {
-    prefillFromImageAnalysis(variables, imageAnalysis.analysis);
+  // Prioritize image analysis prefilling if available
+  if (imageAnalysis) {
+    console.log("Prefilling variables from image analysis");
+    prefillFromImageAnalysis(variables, imageAnalysis);
   }
 
   // Extract explicit values from prompt text
@@ -377,22 +504,56 @@ export function generateContextualVariablesForPrompt(
 function prefillFromImageAnalysis(variables: Variable[], analysis: any) {
   if (!analysis) return;
 
-  console.log("Prefilling variables from image analysis");
+  console.log("Prefilling variables from image analysis with fields:", Object.keys(analysis).join(", "));
   
-  // Only prefill if we have high confidence matches
-  if (analysis.style?.colors?.length > 0 && analysis.style.confidence > 0.7) {
-    const colorVar = variables.find(v => v.name === "Color Scheme");
-    if (colorVar) {
-      colorVar.value = analysis.style.colors[0];
-      colorVar.contextSource = "image";
+  // Map image analysis properties to variable names
+  const mappings = [
+    { analysisKey: "style.colors", varName: "Color Scheme", transform: (val: string[]) => val.join(", ") },
+    { analysisKey: "subjects", varName: "Main Subject", transform: (val: string[]) => val.length > 0 ? val[0] : "" },
+    { analysisKey: "style.description", varName: "Style/Aesthetic", transform: (val: string) => val },
+    { analysisKey: "format", varName: "Format/Medium", transform: (val: string) => val },
+    { analysisKey: "dimensions", varName: "Dimensions/Size", transform: (val: any) => `${val.width}x${val.height}` },
+    { analysisKey: "style.mood", varName: "Tone/Mood", transform: (val: string) => val },
+    { analysisKey: "quality", varName: "Resolution/Quality", transform: (val: string) => val }
+  ];
+  
+  mappings.forEach(mapping => {
+    const variableToFill = variables.find(v => v.name === mapping.varName);
+    if (!variableToFill) return;
+    
+    // Extract the value from potentially nested path
+    const path = mapping.analysisKey.split('.');
+    let value = analysis;
+    for (const key of path) {
+      if (!value) break;
+      value = value[key];
     }
-  }
-
-  if (analysis.subjects?.length > 0 && analysis.confidence > 0.7) {
+    
+    if (value) {
+      try {
+        variableToFill.value = mapping.transform(value);
+        variableToFill.contextSource = "image";
+        console.log(`Prefilled "${mapping.varName}" with "${variableToFill.value}" from image analysis`);
+      } catch (error) {
+        console.error(`Error transforming value for ${mapping.varName}:`, error);
+      }
+    }
+  });
+  
+  // Special handling for additional fields
+  if (analysis.description && !variables.find(v => v.name === "Main Subject")?.value) {
     const subjectVar = variables.find(v => v.name === "Main Subject");
     if (subjectVar) {
-      subjectVar.value = analysis.subjects[0];
+      subjectVar.value = analysis.description.split(' ').slice(0, 3).join(' ');
       subjectVar.contextSource = "image";
+    }
+  }
+  
+  if (analysis.purpose) {
+    const purposeVar = variables.find(v => v.name === "Purpose/Intent");
+    if (purposeVar) {
+      purposeVar.value = analysis.purpose;
+      purposeVar.contextSource = "image";
     }
   }
 }

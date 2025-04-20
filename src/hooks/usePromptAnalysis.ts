@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -39,10 +40,14 @@ export const usePromptAnalysis = (
         pillarsCount: currentTemplate?.pillars?.length || 0
       });
 
-      if (!currentTemplate || !currentTemplate.pillars || !Array.isArray(currentTemplate.pillars)) {
-        console.warn("Invalid template structure:", currentTemplate);
+      // Check for template but don't block analysis for images
+      const hasImages = !!uploadedImages && uploadedImages.length > 0;
+      const hasValidImageData = hasImages && uploadedImages.some(img => img && img.base64 && img.context);
+      
+      if (!currentTemplate?.pillars?.length && !hasValidImageData) {
+        console.warn("Template missing pillars and no image data available");
         toast({
-          title: "Template issue",
+          title: "Template note",
           description: "The template configuration might affect question generation.",
           variant: "default"
         });
@@ -54,12 +59,13 @@ export const usePromptAnalysis = (
 
       console.log("Calling analyze-prompt edge function with:", {
         promptLength: promptText.length,
-        hasImages: !!uploadedImages && uploadedImages.length > 0,
+        hasImages: hasImages,
         imagesData: uploadedImages?.map(img => ({
           id: img.id,
           hasBase64: !!img.base64,
           hasContext: !!img.context
         })),
+        hasValidImageData,
         hasSmartContext: !!smartContext?.context,
         hasWebsiteContext: !!websiteContext?.url,
         model: "gpt-4o"
@@ -105,27 +111,52 @@ export const usePromptAnalysis = (
         questionsCount: data.questions?.length || 0,
         hasVariables: Array.isArray(data.variables),
         variablesCount: data.variables?.length || 0,
+        hasValidImageData: data.debug?.hasValidImageData,
+        imageAnalysisAvailable: data.debug?.imageAnalysisAvailable,
         debug: data.debug
       });
 
+      // Check for data before setting questions
       if (Array.isArray(data.questions) && data.questions.length > 0) {
-        console.log(`Setting ${data.questions.length} questions`);
+        // Log prefilled questions to help debugging
+        const prefilledQuestions = data.questions.filter(q => q.answer);
+        if (prefilledQuestions.length > 0) {
+          console.log(`Setting ${data.questions.length} questions with ${prefilledQuestions.length} prefilled answers`);
+          prefilledQuestions.forEach(q => 
+            console.log(`Prefilled Q: "${q.text.substring(0, 30)}..." with "${q.answer.substring(0, 30)}..."`));
+        } else {
+          console.log(`Setting ${data.questions.length} questions with no prefilled answers`);
+        }
+        
         setQuestions(data.questions);
-      } else if (data.debug?.hasValidImageData || !data.debug?.isPromptSimple) {
-        console.warn("No questions generated for complex prompt or image data");
+      } else if (data.debug?.hasValidImageData) {
+        console.warn("No questions generated despite valid image data");
         toast({
-          title: "Analysis note",
-          description: "Could not generate relevant questions. You can still proceed with variables.",
+          title: "Image analysis note",
+          description: "Could not generate specific questions from your image, proceeding with variables.",
           variant: "default"
         });
         setQuestions([]);
+      } else if (data.debug?.isPromptSimple && !data.debug?.hasValidImageData) {
+        console.log("No questions for simple prompt without image data");
+        setQuestions([]);
       } else {
-        console.log("No questions needed for simple prompt");
+        console.warn("No questions in analysis result");
         setQuestions([]);
       }
 
+      // Handle variables
       if (Array.isArray(data.variables)) {
-        console.log(`Setting ${data.variables.length} variables`);
+        // Log prefilled variables to help debugging
+        const prefilledVars = data.variables.filter(v => v.value);
+        if (prefilledVars.length > 0) {
+          console.log(`Setting ${data.variables.length} variables with ${prefilledVars.length} prefilled values`);
+          prefilledVars.forEach(v => 
+            console.log(`Prefilled Var: "${v.name}" with "${v.value.substring(0, 30)}..."`));
+        } else {
+          console.log(`Setting ${data.variables.length} variables with no prefilled values`);
+        }
+        
         setVariables(data.variables);
       } else {
         console.warn("No variables in analysis result");
@@ -135,9 +166,25 @@ export const usePromptAnalysis = (
       setMasterCommand(data.masterCommand || "");
       setFinalPrompt(data.enhancedPrompt || "");
 
-      // Only proceed to step 2 if we have valid content
-      if ((data.questions && data.questions.length > 0) || (data.variables && data.variables.length > 0)) {
-        console.log("Analysis successful, moving to step 2");
+      // Proceed to step 2 if we have either:
+      // 1. Questions (regardless of source)
+      // 2. Variables with at least some prefilled values from image analysis
+      // 3. Valid image data (even without questions/variables)
+      const hasPrefilledVars = Array.isArray(data.variables) && 
+                               data.variables.some(v => v.value && v.contextSource === "image");
+      
+      if ((data.questions && data.questions.length > 0) || 
+          (data.variables && data.variables.length > 0 && hasPrefilledVars) ||
+          data.debug?.hasValidImageData) {
+        console.log("Analysis successful, moving to step 2", {
+          hasQuestions: data.questions && data.questions.length > 0,
+          hasPrefilledVars,
+          hasValidImageData: data.debug?.hasValidImageData
+        });
+        setCurrentStep(2);
+      } else if (data.variables && data.variables.length > 0) {
+        // If we only have variables but none from image analysis, also proceed
+        console.log("Moving to step 2 with variables only");
         setCurrentStep(2);
       } else {
         console.warn("Not enough content to proceed to step 2");
