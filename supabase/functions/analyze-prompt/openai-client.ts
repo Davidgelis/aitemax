@@ -23,8 +23,8 @@ export async function analyzePromptWithAI(
     // Validate and clean base64 string if provided
     let cleanBase64 = null;
     if (imageBase64) {
-      // Clean base64 string (remove spaces and validate)
-      cleanBase64 = imageBase64.replace(/\s/g, '');
+      // Clean base64 string (remove prefix if present and spaces)
+      cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '').replace(/\s/g, '');
       
       // Validate base64 format using RegEx
       if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
@@ -40,31 +40,29 @@ export async function analyzePromptWithAI(
     ];
     
     // Build user message with text and optionally include image
+    let userContent: any;
+    
     if (cleanBase64) {
       // If we have an image, use a content array with both text and image
-      messages.push({
-        role: 'user',
-        content: [
-          {
-            type: "text",
-            text: `Analyze this prompt: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`
-          },
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:image/jpeg;base64,${cleanBase64}`,
-              detail: "high"
-            }
+      userContent = [
+        {
+          type: "text",
+          text: `Analyze this prompt: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: `data:image/jpeg;base64,${cleanBase64}`,
+            detail: "high"
           }
-        ]
-      });
+        }
+      ];
     } else {
       // Text-only message
-      messages.push({
-        role: 'user', 
-        content: `Analyze this prompt: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`
-      });
+      userContent = `Analyze this prompt: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`;
     }
+    
+    messages.push({ role: 'user', content: userContent });
     
     // Make a single API call with all content
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

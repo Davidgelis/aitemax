@@ -11,7 +11,7 @@ export function generateContextQuestionsForPrompt(
   promptText: string,
   template: any = null
 ): Question[] {
-  // Default questions if no template provided or invalid template
+  // Validate template structure before proceeding
   if (!template || !template.pillars || !Array.isArray(template.pillars) || template.pillars.length === 0) {
     console.log("No valid template found, using default questions");
     return generateDefaultQuestions(promptText);

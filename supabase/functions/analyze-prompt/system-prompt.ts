@@ -45,7 +45,7 @@ VARIABLE EXTRACTION RULES:
    - Abstract concepts
    - General instructions
    - Uncertain values
-4. Assign appropriate categories
+4. Assign appropriate categories based on template pillars
 5. Generate unique codes (VAR_1, VAR_2, etc.)
 6. Mark variables as relevant when central to request`;
 
@@ -132,5 +132,6 @@ IMPORTANT:
 4. Generate specific, focused questions
 5. Maintain consistency between related answers
 6. ONLY extract variables for explicitly mentioned concrete values
-7. Each variable MUST have a name, value, category, and code`;
+7. Each variable MUST have a name, value, category, and code
+8. IMPORTANT: Make sure to categorize EVERY question with the exact pillar title it belongs to`;
 };

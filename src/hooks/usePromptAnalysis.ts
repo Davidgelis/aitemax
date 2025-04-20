@@ -31,6 +31,12 @@ export const usePromptAnalysis = (
     try {
       // Get the current template
       const currentTemplate = getCurrentTemplate();
+      
+      console.log("Analyze using template:", { 
+        templateId: currentTemplate?.id,
+        templateName: currentTemplate?.name,
+        pillarsCount: currentTemplate?.pillars?.length || 0
+      });
 
       // Add more robust input validation
       const inputTypes = {
@@ -105,6 +111,30 @@ export const usePromptAnalysis = (
           debug: data.debug
         });
         
+        // Process questions to ensure they have proper categories based on template pillars
+        if (data.questions && Array.isArray(data.questions) && currentTemplate?.pillars) {
+          const pillarsMap = new Map();
+          currentTemplate.pillars.forEach((pillar: any) => {
+            pillarsMap.set(pillar.title.toLowerCase(), pillar.title);
+          });
+          
+          // Ensure questions have proper category names matching the exact pillar titles
+          data.questions = data.questions.map((q: Question) => {
+            if (q.category) {
+              const matchedPillar = currentTemplate.pillars.find((pillar: any) => 
+                pillar.title.toLowerCase() === q.category.toLowerCase() ||
+                q.category.toLowerCase().includes(pillar.title.toLowerCase()) ||
+                pillar.title.toLowerCase().includes(q.category.toLowerCase())
+              );
+              
+              if (matchedPillar) {
+                return { ...q, category: matchedPillar.title };
+              }
+            }
+            return q;
+          });
+        }
+        
         // Add detailed logging for variables
         if (data.variables && data.variables.length > 0) {
           console.log("Extracted variables:", data.variables.map((v: Variable) => ({
@@ -115,6 +145,24 @@ export const usePromptAnalysis = (
             isRelevant: v.isRelevant,
             code: v.code
           })));
+          
+          // Process variables to ensure they have proper categories based on template pillars
+          if (currentTemplate?.pillars) {
+            data.variables = data.variables.map((v: Variable) => {
+              if (v.category) {
+                const matchedPillar = currentTemplate.pillars.find((pillar: any) => 
+                  pillar.title.toLowerCase() === v.category.toLowerCase() ||
+                  v.category.toLowerCase().includes(pillar.title.toLowerCase()) ||
+                  pillar.title.toLowerCase().includes(v.category.toLowerCase())
+                );
+                
+                if (matchedPillar) {
+                  return { ...v, category: matchedPillar.title };
+                }
+              }
+              return v;
+            });
+          }
         } else {
           console.warn("No variables were extracted from the analysis");
         }

@@ -3,6 +3,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
 import { analyzePromptWithAI } from './openai-client.ts';
+import { generateContextQuestionsForPrompt, generateContextualVariablesForPrompt } from './utils/generators.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,6 +32,8 @@ serve(async (req) => {
       hasImageData: !!imageData,
       hasSmartContext: !!smartContextData?.context,
       hasWebsiteData: !!websiteData?.url,
+      templateName: template?.name || 'none',
+      templatePillars: template?.pillars?.length || 0,
       model
     });
 
@@ -89,8 +92,24 @@ serve(async (req) => {
       throw new Error(`Invalid response format: ${error.message}`);
     }
 
-    const questions = extractQuestions(content, enhancedContext);
-    const variables = extractVariables(content, enhancedContext);
+    // Extract or generate questions based on the AI response and template
+    let questions;
+    if (Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0) {
+      questions = extractQuestions(content, enhancedContext);
+    } else {
+      console.log("No questions in AI response, generating from template");
+      questions = generateContextQuestionsForPrompt(enhancedContext, template);
+    }
+    
+    // Extract or generate variables based on the AI response and template
+    let variables;
+    if (Array.isArray(parsedContent?.variables) && parsedContent.variables.length > 0) {
+      variables = extractVariables(content, enhancedContext);
+    } else {
+      console.log("No variables in AI response, generating from template");
+      variables = generateContextualVariablesForPrompt(enhancedContext, template);
+    }
+    
     const masterCommand = extractMasterCommand(content);
     const enhancedPrompt = extractEnhancedPrompt(content);
 
@@ -103,7 +122,9 @@ serve(async (req) => {
         debug: {
           hasImageData: !!imageBase64,
           imageProcessingStatus: imageBase64 ? "processed" : "not available",
-          model
+          model,
+          templateUsed: template?.name || "none",
+          pillarsCount: template?.pillars?.length || 0
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
