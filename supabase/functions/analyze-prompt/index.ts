@@ -44,6 +44,14 @@ serve(async (req) => {
       throw new Error("Prompt text is required");
     }
 
+    // Validate template structure
+    if (!template || !template.pillars || !Array.isArray(template.pillars) || template.pillars.length === 0) {
+      console.log("Warning: Invalid or missing template structure", template);
+    } else {
+      console.log(`Template has ${template.pillars.length} pillars:`, 
+        template.pillars.map((p: any) => p.title || "Unnamed").join(", "));
+    }
+
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
     
     // Build the enhanced context
@@ -99,19 +107,24 @@ serve(async (req) => {
       throw new Error(`Invalid response format: ${error.message}`);
     }
 
-    // Extract or generate questions and variables based on the AI response
+    // IMPORTANT: Generate questions strictly based on template
     let questions = [];
-    let variables = [];
-
-    if (Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0) {
-      console.log("Extracting questions from AI response");
+    if (template && template.pillars && Array.isArray(template.pillars) && template.pillars.length > 0) {
+      console.log("Generating questions from template pillars");
+      questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, parsedContent?.imageAnalysis);
+      console.log(`Generated ${questions.length} questions from template pillars`);
+    } 
+    // Only use AI-generated questions as a fallback
+    else if (Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0) {
+      console.log("Using AI-generated questions as fallback");
       questions = extractQuestions(content, enhancedContext);
     } else {
-      console.log("Generating questions from template");
-      questions = generateContextQuestionsForPrompt(enhancedContext, template);
+      console.log("No template or AI questions available, using default questions");
+      questions = generateContextQuestionsForPrompt(enhancedContext, null);
     }
     
     // Enhanced variable extraction with context awareness
+    let variables = [];
     if (Array.isArray(parsedContent?.variables) && parsedContent.variables.length > 0) {
       console.log("Extracting variables from AI response");
       variables = extractVariables(content, enhancedContext);

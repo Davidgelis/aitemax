@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 /**
@@ -10,6 +9,8 @@ export function generateContextQuestionsForPrompt(
   smartContext: any = null,
   imageAnalysis: any = null
 ): Question[] {
+  console.log("Generating questions strictly based on template pillars");
+  
   if (!template || !template.pillars || !Array.isArray(template.pillars) || template.pillars.length === 0) {
     console.log("No valid template found, using default questions");
     return generateDefaultQuestions(promptText);
@@ -20,7 +21,7 @@ export function generateContextQuestionsForPrompt(
 
   console.log(`Generating questions based on ${template.pillars.length} pillars from template: ${template.name}`);
   
-  // Generate up to 3 questions per pillar
+  // Generate questions ONLY based on the template pillars
   template.pillars.forEach((pillar: any) => {
     if (!pillar || !pillar.title || !pillar.description) {
       console.log("Skipping invalid pillar", pillar);
@@ -32,7 +33,7 @@ export function generateContextQuestionsForPrompt(
     
     console.log(`Generating questions for pillar: ${pillarTitle}`);
     
-    // Generate up to 3 focused questions per pillar
+    // Generate questions for this specific pillar
     const pillarQuestions = generateQuestionsForPillar(
       promptText,
       pillarTitle,
@@ -44,10 +45,56 @@ export function generateContextQuestionsForPrompt(
     questionIdCounter += pillarQuestions.length;
   });
 
-  // Pre-fill answers based on available context
-  const prefilledQuestions = prefillQuestionAnswers(questions, promptText, smartContext, imageAnalysis);
+  // Only pre-fill answers based on available context if we have questions
+  if (questions.length > 0) {
+    const prefilledQuestions = prefillQuestionAnswers(questions, promptText, smartContext, imageAnalysis);
+    return prefilledQuestions;
+  }
+  
+  // Fallback for empty questions - should never happen with valid templates
+  if (questions.length === 0) {
+    console.log("Warning: No questions generated from template pillars. Using fallback questions.");
+    return generateDefaultQuestions(promptText);
+  }
 
-  return prefilledQuestions;
+  return questions;
+}
+
+/**
+ * Generate default questions as a fallback
+ */
+function generateDefaultQuestions(promptText: string): Question[] {
+  console.log("Using fallback default questions");
+  return [
+    {
+      id: "q-default-1",
+      text: "What is the primary goal of this prompt?",
+      answer: "",
+      isRelevant: true,
+      category: "Task"
+    },
+    {
+      id: "q-default-2",
+      text: "What style or tone should be used?",
+      answer: "",
+      isRelevant: true,
+      category: "Style"
+    },
+    {
+      id: "q-default-3",
+      text: "Who is the target audience?",
+      answer: "",
+      isRelevant: true,
+      category: "Context"
+    },
+    {
+      id: "q-default-4",
+      text: "What format should the output take?",
+      answer: "",
+      isRelevant: true,
+      category: "Format"
+    }
+  ];
 }
 
 /**
@@ -63,7 +110,7 @@ function generateQuestionsForPillar(
   const keyAspects = extractKeyAspects(pillarDescription);
   const questions: Question[] = [];
   
-  // Generate a maximum of 3 questions
+  // Generate a maximum of 3 questions per pillar
   const maxQuestions = Math.min(3, keyAspects.length + 1);
   
   // Question templates mapped to pillar types
@@ -103,7 +150,7 @@ function generateQuestionsForPillar(
       id: `q-${startId + i}`,
       text: template.replace('{aspect}', aspect),
       answer: "",
-      isRelevant: null,
+      isRelevant: true, // Set these as relevant by default
       category: pillarTitle
     });
   }
@@ -401,4 +448,3 @@ function prefillFromPromptText(variables: Variable[], promptText: string) {
     }
   });
 }
-

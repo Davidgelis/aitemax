@@ -2,6 +2,7 @@
 import { PromptEditor } from "./PromptEditor";
 import { TemplateSelector } from "./TemplateSelector";
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
+import { useEffect } from "react";
 
 interface StepOneProps {
   promptText: string;
@@ -24,7 +25,17 @@ export const StepOne = ({
   onAnalyze,
   isLoading
 }: StepOneProps) => {
-  const { getCurrentTemplate } = useTemplateManagement();
+  const { getCurrentTemplate, currentTemplate } = useTemplateManagement();
+  
+  useEffect(() => {
+    // Log template info on component mount
+    const template = getCurrentTemplate();
+    console.log("StepOne: Current template:", {
+      templateId: template?.id,
+      templateName: template?.name,
+      pillarsCount: template?.pillars?.length
+    });
+  }, [getCurrentTemplate, currentTemplate]);
   
   const handleAnalyze = () => {
     const currentTemplate = getCurrentTemplate();
@@ -33,6 +44,11 @@ export const StepOne = ({
       templateName: currentTemplate?.name,
       pillarsCount: currentTemplate?.pillars?.length
     });
+    
+    if (!currentTemplate || !currentTemplate.pillars || !Array.isArray(currentTemplate.pillars) || currentTemplate.pillars.length === 0) {
+      console.warn("StepOne: Invalid template structure for question generation");
+    }
+    
     onAnalyze();
   };
   
