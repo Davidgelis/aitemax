@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 export function extractQuestions(aiResponse: string, originalPrompt: string): Question[] {
@@ -106,97 +105,99 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
 }
 
 export function extractVariables(aiResponse: string, originalPrompt: string): Variable[] {
-  console.log("Extracting variables with enhanced pillar detection");
+  console.log("Extracting variables with enhanced context awareness");
   
   try {
-    const variables: Variable[] = [];
-    
-    // Enhanced regex to better capture pillar-based variables and their values
-    const variablesSectionRegex = /### ([^:]+) Variables:\s*([\s\S]*?)(?=###|$)/gi;
-    let match;
-    
-    while ((match = variablesSectionRegex.exec(aiResponse)) !== null) {
-      const category = match[1].trim();
-      const variablesText = match[2]?.trim();
-      
-      if (!variablesText) continue;
-      
-      console.log(`Found variable section for pillar: ${category}`);
-      
-      // Split into individual variable entries
-      const variableEntries = variablesText.split(/\n(?=\w)/).filter(entry => entry.trim());
-      console.log(`Found ${variableEntries.length} variables for pillar: ${category}`);
-      
-      variableEntries.forEach(entry => {
-        // Enhanced regex to capture name, description, and pre-filled value
-        // This handles both formats:
-        // 1. Name: Description PRE-FILLED: Value
-        // 2. Name: Description
-        const varMatch = entry.match(/([^:]+):\s*([^(PRE-FILLED)]+)(?:PRE-FILLED:\s*(.+))?/i);
-        
-        if (varMatch) {
-          const name = varMatch[1].trim();
-          const description = varMatch[2]?.trim() || '';
-          const preFilledValue = varMatch[3]?.trim() || '';
-          
-          if (name) {
-            variables.push({
-              id: `v-${variables.length + 1}`,
-              name,
-              value: preFilledValue,
-              isRelevant: preFilledValue ? true : null,
-              category,
-              code: `VAR_${variables.length + 1}`
-            });
-          }
-        }
-      });
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(aiResponse);
+      console.log("Successfully parsed JSON response");
+    } catch (error) {
+      console.error("Failed to parse JSON response:", error);
+      return generateFallbackVariables(originalPrompt);
     }
-    
-    console.log(`Total extracted variables: ${variables.length}`);
-    
-    // If no variables were extracted with the pillar-based approach, try a fallback approach
-    if (variables.length === 0) {
-      console.log("No pillar-based variables found, trying fallback extraction method");
+
+    if (Array.isArray(parsedResponse?.variables) && parsedResponse.variables.length > 0) {
+      console.log(`Found ${parsedResponse.variables.length} variables in response`);
       
-      // Look for a general Variables section
-      const fallbackVariablesSectionRegex = /### Variables:\s*([\s\S]*?)(?=###|$)/i;
-      const fallbackMatch = aiResponse.match(fallbackVariablesSectionRegex);
-      
-      if (fallbackMatch && fallbackMatch[1].trim()) {
-        const variablesText = fallbackMatch[1].trim();
-        const variableEntries = variablesText.split(/\n(?=\w)/).filter(entry => entry.trim());
-        
-        console.log(`Found ${variableEntries.length} variables with fallback method`);
-        
-        variableEntries.forEach(entry => {
-          const varMatch = entry.match(/([^:]+):\s*([^(PRE-FILLED)]+)(?:PRE-FILLED:\s*(.+))?/i);
-          
-          if (varMatch) {
-            const name = varMatch[1].trim();
-            const description = varMatch[2]?.trim() || '';
-            const preFilledValue = varMatch[3]?.trim() || '';
-            
-            if (name) {
-              variables.push({
-                id: `v-${variables.length + 1}`,
-                name,
-                value: preFilledValue,
-                isRelevant: preFilledValue ? true : null,
-                category: 'General',
-                code: `VAR_${variables.length + 1}`
-              });
-            }
-          }
-        });
+      // Validate and normalize variables
+      const validatedVariables = parsedResponse.variables
+        .filter(v => v && typeof v === 'object' && v.name)
+        .map((v, index) => ({
+          id: v.id || `v-${index + 1}`,
+          name: v.name,
+          value: v.value || '',
+          isRelevant: v.isRelevant === false ? false : true,
+          category: v.category || 'General',
+          code: v.code || `VAR_${index + 1}`
+        }));
+
+      if (validatedVariables.length > 0) {
+        console.log("Returning validated variables:", validatedVariables);
+        return validatedVariables;
       }
     }
     
-    return variables;
+    // If no valid variables found, generate fallback variables
+    console.log("No valid variables found in response, using fallback generation");
+    return generateFallbackVariables(originalPrompt);
+    
   } catch (error) {
     console.error("Error extracting variables:", error);
-    return [];
+    return generateFallbackVariables(originalPrompt);
   }
+}
+
+function generateFallbackVariables(promptText: string): Variable[] {
+  console.log("Generating fallback variables from prompt:", promptText);
+  
+  const variables: Variable[] = [];
+  
+  // Extract key phrases and potential variables using regex patterns
+  const patterns = [
+    // Style/format related
+    /(?:in|with)\s+(?:a\s+)?([a-zA-Z\s]+)\s+style/i,
+    // Color related
+    /(?:color|colou?red?)\s+([a-zA-Z\s]+)/i,
+    // Size/dimensions
+    /(\d+\s*(?:x|\*)\s*\d+)/i,
+    // Actions/verbs
+    /(?:showing|depicting|doing|performing)\s+([a-zA-Z\s]+)/i,
+    // Subjects/objects
+    /(?:of|with)\s+(?:a|an|the)?\s*([a-zA-Z\s]+)/i
+  ];
+  
+  patterns.forEach((pattern, index) => {
+    const match = promptText.match(pattern);
+    if (match && match[1]) {
+      const value = match[1].trim();
+      if (value && !variables.some(v => v.value === value)) {
+        variables.push({
+          id: `v-${variables.length + 1}`,
+          name: `Variable ${variables.length + 1}`,
+          value: value,
+          isRelevant: true,
+          category: 'Extracted',
+          code: `VAR_${variables.length + 1}`
+        });
+      }
+    }
+  });
+  
+  // Always ensure at least one variable
+  if (variables.length === 0) {
+    variables.push({
+      id: 'v-1',
+      name: 'Main Element',
+      value: '',
+      isRelevant: true,
+      category: 'General',
+      code: 'VAR_1'
+    });
+  }
+  
+  console.log("Generated fallback variables:", variables);
+  return variables;
 }
 
 /**
