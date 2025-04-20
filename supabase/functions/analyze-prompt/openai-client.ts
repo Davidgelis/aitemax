@@ -18,25 +18,21 @@ export async function analyzePromptWithAI(
     throw new Error("OpenAI API key is required");
   }
 
-  // Initialize structured context object
+  // Initialize structured context object with validated data
   let structuredContext = {
     imageAnalysis: null,
     smartContext: null,
-    promptText
+    promptText: promptText.slice(0, 4000) // Limit prompt text length
   };
   
-  // Process image if available with enhanced error handling and validation
+  // Process image if available with enhanced validation and error handling
   if (imageBase64) {
     console.log("Starting image analysis with GPT-4.1...");
     try {
-      // Validate base64 string
-      if (!imageBase64.match(/^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$/)) {
-        console.warn("Invalid base64 format, attempting to clean up...");
-        // Try to clean up the base64 string by removing potential data URL prefix
-        if (imageBase64.includes(',')) {
-          imageBase64 = imageBase64.split(',')[1];
-          console.log("Extracted base64 content after comma");
-        }
+      // Validate and clean base64 string
+      if (imageBase64.includes(',')) {
+        imageBase64 = imageBase64.split(',')[1];
+        console.log("Cleaned base64 string for image analysis");
       }
       
       const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -46,25 +42,27 @@ export async function analyzePromptWithAI(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4.1', // Using gpt-4.1 as required
+          model: 'gpt-4.1',
           messages: [
             {
               role: 'system',
-              content: `Analyze this image and extract detailed structured information in JSON format. Include:
-              - description: Comprehensive description of the image
-              - subjects: Main subjects/elements with detailed attributes
-              - style: Visual style characteristics, colors, composition
-              - technical: Resolution, quality, lighting, perspective
-              - context: Mood, setting, intended purpose
-              - potential_use: Suggested applications or uses
-              Return ONLY valid JSON with these exact fields.`
+              content: `Analyze this image and extract key information in a concise JSON format. Include:
+              {
+                "description": "Brief description of the image",
+                "subjects": ["Main elements in the image"],
+                "style": {"colors": [], "composition": ""},
+                "technical": {"quality": "", "lighting": ""},
+                "context": "Overall mood and setting",
+                "potential_use": ["Suggested applications"]
+              }
+              Keep responses brief and focused. Return ONLY valid JSON.`
             },
             {
               role: 'user',
               content: [
                 {
                   type: "text",
-                  text: "Analyze this image in detail:"
+                  text: "Analyze this image:"
                 },
                 {
                   type: "image_url",
@@ -75,174 +73,68 @@ export async function analyzePromptWithAI(
               ]
             }
           ],
+          max_tokens: 1000, // Limit response size
+          temperature: 0.3, // More deterministic responses
           response_format: { type: "json_object" }
         }),
       });
 
       if (!imageAnalysisResponse.ok) {
         const errorText = await imageAnalysisResponse.text();
-        console.error(`Image analysis failed with status: ${imageAnalysisResponse.status}`, errorText);
-        throw new Error(`Image analysis failed with status: ${imageAnalysisResponse.status}`);
+        console.error("Image analysis failed:", {
+          status: imageAnalysisResponse.status,
+          error: errorText
+        });
+        throw new Error(`Image analysis failed: ${imageAnalysisResponse.status}`);
       }
 
       const analysisData = await imageAnalysisResponse.json();
-      console.log("Raw image analysis response received, status:", analysisData.choices ? "Success" : "Failed");
+      console.log("Raw image analysis response received");
       
-      if (analysisData.choices?.[0]?.message?.content) {
-        try {
-          const parsedContent = JSON.parse(analysisData.choices[0].message.content);
-          console.log("Structured image analysis:", {
-            description: parsedContent.description?.substring(0, 100) + "...",
-            hasSubjects: !!parsedContent.subjects,
-            hasStyle: !!parsedContent.style,
-            hasTechnical: !!parsedContent.technical,
-          });
-          
-          // Validate the parsed content has all required fields
-          const requiredFields = ['description', 'subjects', 'style', 'technical', 'context', 'potential_use'];
-          const missingFields = requiredFields.filter(field => !parsedContent[field]);
-          
-          if (missingFields.length > 0) {
-            console.warn("Image analysis missing fields:", missingFields);
-            // Add empty objects for missing fields to prevent errors
-            missingFields.forEach(field => {
-              parsedContent[field] = parsedContent[field] || {};
-            });
-          }
-          
-          structuredContext.imageAnalysis = parsedContent;
-        } catch (parseError) {
-          console.error("Failed to parse image analysis JSON:", parseError);
-          throw new Error(`Invalid image analysis response format: ${parseError.message}`);
-        }
-      } else {
-        console.error("No content in image analysis response");
-        throw new Error("Empty response from image analysis");
+      if (!analysisData.choices?.[0]?.message?.content) {
+        throw new Error("Invalid response format from image analysis");
+      }
+
+      try {
+        const parsedContent = JSON.parse(analysisData.choices[0].message.content);
+        console.log("Successfully parsed image analysis:", {
+          hasDescription: !!parsedContent.description,
+          subjectsCount: parsedContent.subjects?.length,
+          hasStyle: !!parsedContent.style
+        });
+        
+        structuredContext.imageAnalysis = parsedContent;
+      } catch (parseError) {
+        console.error("Failed to parse image analysis JSON:", parseError);
+        throw new Error("Invalid image analysis response format");
       }
     } catch (error) {
-      console.error("Error analyzing image:", error);
+      console.error("Error in image analysis:", error);
       // Continue without image analysis rather than failing completely
-      console.log("Will proceed without image analysis");
+      console.log("Proceeding without image analysis");
     }
   }
-
-  // Process smart context with enhanced validation
-  if (smartContext) {
-    console.log("Processing smart context for enhanced analysis");
-    try {
-      const smartContextResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4.1', // Using gpt-4.1 as required
-          messages: [
-            {
-              role: 'system',
-              content: `Analyze the provided context and extract structured information in JSON format. Include:
-              - key_points: Main points or requirements
-              - technical_details: Any technical specifications
-              - preferences: Style or format preferences
-              - constraints: Any limitations or restrictions
-              - metadata: Any other relevant contextual information
-              Return ONLY valid JSON.`
-            },
-            {
-              role: 'user',
-              content: smartContext
-            }
-          ],
-          response_format: { type: "json_object" }
-        }),
-      });
-
-      if (!smartContextResponse.ok) {
-        const errorText = await smartContextResponse.text();
-        console.error(`Smart context analysis failed with status: ${smartContextResponse.status}`, errorText);
-        throw new Error(`Smart context analysis failed with status: ${smartContextResponse.status}`);
-      }
-
-      const smartData = await smartContextResponse.json();
-      if (smartData.choices?.[0]?.message?.content) {
-        try {
-          structuredContext.smartContext = JSON.parse(smartData.choices[0].message.content);
-          console.log("Structured smart context:", {
-            hasKeyPoints: !!structuredContext.smartContext.key_points,
-            hasTechnicalDetails: !!structuredContext.smartContext.technical_details,
-            hasPreferences: !!structuredContext.smartContext.preferences,
-          });
-        } catch (parseError) {
-          console.error("Failed to parse smart context JSON:", parseError);
-          throw new Error(`Invalid smart context response format: ${parseError.message}`);
-        }
-      } else {
-        console.error("No content in smart context response");
-      }
-    } catch (error) {
-      console.error("Error processing smart context:", error);
-      // Continue without smart context rather than failing completely
-      console.log("Will proceed without smart context");
-    }
-  }
-
-  // Build comprehensive context for better pre-filling
-  const enhancedContext = {
-    userInput: {
-      prompt: promptText,
-      timestamp: new Date().toISOString()
-    },
-    context: {
-      image: structuredContext.imageAnalysis ? {
-        analysis: structuredContext.imageAnalysis,
-        type: "vision",
-        source: "gpt-4.1"
-      } : null,
-      smart: structuredContext.smartContext ? {
-        content: structuredContext.smartContext,
-        type: "structured",
-        source: "user-provided"
-      } : null
-    },
-    metadata: {
-      hasImageAnalysis: !!structuredContext.imageAnalysis,
-      hasSmartContext: !!structuredContext.smartContext
-    }
-  };
 
   try {
-    console.log("Sending final analysis request with context:", {
-      hasImage: !!enhancedContext.context.image,
-      hasSmartContext: !!enhancedContext.context.smart,
-      promptLength: promptText.length
-    });
-    
-    // Log detailed image context if available
-    if (enhancedContext.context.image) {
-      console.log("Image context summary for final analysis:", {
-        description: enhancedContext.context.image.analysis.description.substring(0, 100) + "...",
-        subjectsCount: Object.keys(enhancedContext.context.image.analysis.subjects || {}).length,
-        styleAttributes: Object.keys(enhancedContext.context.image.analysis.style || {}).length
-      });
-    }
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const finalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1', // Using gpt-4.1 as required
+        model: 'gpt-4.1',
         messages: [
-          { 
-            role: 'system', 
-            content: systemMessage 
-          },
+          { role: 'system', content: systemMessage },
           {
             role: 'user',
-            content: JSON.stringify(enhancedContext)
+            content: JSON.stringify({
+              prompt: promptText,
+              context: {
+                imageAnalysis: structuredContext.imageAnalysis,
+                smartContext: structuredContext.smartContext
+              }
+            })
           }
         ],
         temperature: 0.7,
@@ -251,13 +143,17 @@ export async function analyzePromptWithAI(
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("OpenAI API error:", errorData);
-      throw new Error(`OpenAI API error: ${errorData}`);
+    if (!finalResponse.ok) {
+      const errorText = await finalResponse.text();
+      console.error("OpenAI API error:", errorText);
+      throw new Error(`OpenAI API error: ${finalResponse.status}`);
     }
 
-    const data = await response.json();
+    const data = await finalResponse.json();
+    console.log("OpenAI response received:", {
+      hasChoices: !!data.choices,
+      firstChoiceLength: data.choices?.[0]?.message?.content?.length
+    });
     
     if (!data.choices?.[0]?.message?.content) {
       throw new Error("Invalid response format from OpenAI");
@@ -265,41 +161,34 @@ export async function analyzePromptWithAI(
 
     try {
       const parsedResponse = JSON.parse(data.choices[0].message.content);
-      console.log("Successfully parsed response:", {
-        questionsCount: parsedResponse.questions?.length || 0,
-        preFilledCount: parsedResponse.questions?.filter((q: any) => q.answer?.startsWith("PRE-FILLED:")).length || 0,
-        hasVariables: !!parsedResponse.variables,
-        hasMasterCommand: !!parsedResponse.masterCommand,
-        hasEnhancedPrompt: !!parsedResponse.enhancedPrompt
-      });
       
-      // Verify image-based pre-filled answers have proper attribution
-      if (enhancedContext.context.image && parsedResponse.questions) {
-        const imagePreFilledQuestions = parsedResponse.questions.filter((q: any) => 
-          q.answer?.startsWith("PRE-FILLED:") && q.contextSource === "image"
-        );
-        
-        console.log(`Found ${imagePreFilledQuestions.length} questions pre-filled from image analysis`);
-        
-        // Make sure all image-based pre-fills have proper attribution
-        parsedResponse.questions = parsedResponse.questions.map((q: any) => {
+      // Ensure all questions from image analysis are properly attributed
+      if (structuredContext.imageAnalysis && parsedResponse.questions) {
+        parsedResponse.questions = parsedResponse.questions.map(q => {
           if (q.answer?.startsWith("PRE-FILLED:") && q.contextSource === "image" && !q.answer.includes("(from image analysis)")) {
             q.answer = `${q.answer} (from image analysis)`;
           }
           return q;
         });
       }
+
+      console.log("Successfully parsed final response:", {
+        questionsCount: parsedResponse.questions?.length || 0,
+        preFilledCount: parsedResponse.questions?.filter(q => q.answer?.startsWith("PRE-FILLED:")).length || 0,
+        hasVariables: !!parsedResponse.variables,
+        hasMasterCommand: !!parsedResponse.masterCommand
+      });
       
       return {
         content: JSON.stringify(parsedResponse),
         usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
       };
     } catch (parseError) {
-      console.error("Failed to parse JSON response:", parseError);
+      console.error("Failed to parse OpenAI response:", parseError);
       throw new Error(`Invalid JSON response from OpenAI: ${parseError.message}`);
     }
   } catch (error) {
-    console.error("Error calling OpenAI API:", error);
+    console.error("Error in analyzePromptWithAI:", error);
     throw error;
   }
 }
