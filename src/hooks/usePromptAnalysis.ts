@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 export const usePromptAnalysis = (
   promptText: string,
@@ -46,7 +47,7 @@ export const usePromptAnalysis = (
         toast({
           title: "Template warning",
           description: "The selected template may not be properly configured. Questions might not be generated correctly.",
-          variant: "warning"
+          variant: "default" // Changed from "warning" to "default"
         });
       }
 
@@ -124,7 +125,7 @@ export const usePromptAnalysis = (
         toast({
           title: "Template issue",
           description: "Could not generate questions from the selected template. Please try a different template.",
-          variant: "warning",
+          variant: "default" // Changed from "warning" to "default"
         });
         setQuestions([]);
         setIsLoading(false);

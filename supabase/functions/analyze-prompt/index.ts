@@ -43,6 +43,10 @@ serve(async (req) => {
     if (!promptText?.trim()) {
       throw new Error("Prompt text is required");
     }
+    
+    // Check if prompt is too short/simple for questions
+    const isPromptSimple = promptText.length < 50 || promptText.split(' ').length < 10;
+    console.log(`Prompt simplicity check: ${isPromptSimple ? 'Simple prompt' : 'Complex prompt'}`);
 
     // Validate template structure
     if (!template || !template.pillars || !Array.isArray(template.pillars) || template.pillars.length === 0) {
@@ -107,25 +111,35 @@ serve(async (req) => {
       throw new Error(`Invalid response format: ${error.message}`);
     }
 
-    // IMPORTANT: Generate questions strictly based on template
+    // For simple prompts, ONLY generate variables, not questions
     let questions = [];
-    if (template && template.pillars && Array.isArray(template.pillars) && template.pillars.length > 0) {
+    if (!isPromptSimple && template && template.pillars && Array.isArray(template.pillars) && template.pillars.length > 0) {
       console.log("Generating questions from template pillars");
       questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, parsedContent?.imageAnalysis);
       console.log(`Generated ${questions.length} questions from template pillars`);
     } 
-    // Only use AI-generated questions as a fallback
-    else if (Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0) {
+    // Only use AI-generated questions for complex prompts and as fallback
+    else if (!isPromptSimple && Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0) {
       console.log("Using AI-generated questions as fallback");
       questions = extractQuestions(content, enhancedContext);
     } else {
-      console.log("No template or AI questions available, using default questions");
-      questions = generateContextQuestionsForPrompt(enhancedContext, null);
+      console.log("Simple prompt or no template - not generating questions");
+      questions = [];
     }
     
-    // Enhanced variable extraction with context awareness
+    // Always generate variables, with single word answers for simple prompts
     let variables = [];
-    if (Array.isArray(parsedContent?.variables) && parsedContent.variables.length > 0) {
+    if (isPromptSimple) {
+      console.log("Simple prompt detected - generating concise single-word variables");
+      // For simple prompts, generate more concise variables with single-word values
+      variables = generateContextualVariablesForPrompt(
+        enhancedContext,
+        template,
+        parsedContent?.imageAnalysis || null,
+        smartContextData,
+        true // Flag to indicate we want concise, single-word variables
+      );
+    } else if (Array.isArray(parsedContent?.variables) && parsedContent.variables.length > 0) {
       console.log("Extracting variables from AI response");
       variables = extractVariables(content, enhancedContext);
     } else {
@@ -159,7 +173,8 @@ serve(async (req) => {
           imageProcessingStatus: imageBase64 ? "processed" : "not available",
           model,
           templateUsed: template?.name || "none",
-          pillarsCount: template?.pillars?.length || 0
+          pillarsCount: template?.pillars?.length || 0,
+          isPromptSimple
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
