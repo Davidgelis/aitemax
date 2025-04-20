@@ -10,12 +10,13 @@ export interface AIModel {
   updated_at?: string;
 }
 
-// Update the UploadedImage interface to include context
+// Update the UploadedImage interface to include base64 property
 export interface UploadedImage {
   id: string;
   url: string;
   file: File;
   context?: string;
+  base64?: string; // Add the base64 property
 }
 
 export interface Question {
