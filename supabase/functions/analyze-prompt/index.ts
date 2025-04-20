@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -127,28 +126,32 @@ serve(async (req) => {
       throw new Error(`Invalid response format: ${error.message}`);
     }
 
-    // Generate questions based on context, now prioritizing images
+    // Prefer AI-generated questions when they're available and focus on user intent
     let questions = [];
     
-    // If we have valid image data, always generate questions
-    if (hasValidImageData) {
-      console.log("Generating questions based on image data");
-      if (template && template.pillars && Array.isArray(template.pillars) && template.pillars.length > 0) {
-        questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, parsedContent?.imageAnalysis);
+    if (Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0) {
+      // Check if the questions are focused on intent rather than just pillars
+      const directPillarQuestions = parsedContent.questions.filter(q => 
+        q.text.includes("regarding") && template?.pillars?.some(p => q.text.includes(p.title))
+      );
+      
+      // If there are no direct pillar questions or the ratio is acceptable, use AI questions
+      if (directPillarQuestions.length === 0 || directPillarQuestions.length < parsedContent.questions.length / 2) {
+        console.log("Using AI-generated questions that focus on user intent");
+        questions = parsedContent.questions;
       } else {
-        // Even without a template, generate image-specific questions
-        questions = generateContextQuestionsForPrompt(enhancedContext, null, smartContextData, parsedContent?.imageAnalysis);
+        // Otherwise, generate our own intent-focused questions
+        console.log("Generating intent-focused questions as fallback");
+        questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, parsedContent?.imageAnalysis);
       }
-      console.log(`Generated ${questions.length} questions with image data`);
+    } else if (hasValidImageData && parsedContent?.imageAnalysis) {
+      // For image analysis with valid data, generate questions based on the image
+      console.log("Generating questions based on image analysis");
+      questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, parsedContent.imageAnalysis);
     } else if (!isPromptSimple) {
-      // For complex prompts without images, use regular question generation
-      console.log("Generating questions for complex prompt");
-      if (template && template.pillars && Array.isArray(template.pillars) && template.pillars.length > 0) {
-        questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, null);
-      } else if (Array.isArray(parsedContent?.questions)) {
-        questions = extractQuestions(content, enhancedContext);
-      }
-      console.log(`Generated ${questions.length} questions for complex prompt`);
+      // For complex prompts without images, generate intent-focused questions
+      console.log("Generating intent-focused questions for complex prompt");
+      questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, null);
     } else {
       console.log("Skipping question generation for simple prompt without image");
     }

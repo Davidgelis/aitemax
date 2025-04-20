@@ -11,15 +11,15 @@ Respond ONLY in valid JSON format with these sections:
 - "imageAnalysis": (Optional) Object with image insights
 
 Question Guidelines:
-1. Generate 4-6 questions that directly relate to the user's prompt content
-2. Questions should seek clarification or additional details about the user's intent
-3. Pre-fill answers when context is available (max 1000 characters per answer)
+1. Generate 4-6 questions that directly relate to the user's prompt content and intent
+2. Questions should seek clarification about the user's specific needs and goals
+3. Pre-fill answers when context is available from the prompt or image (max 1000 characters per answer)
 4. Each question must have:
    - "id": Unique string (e.g., "q-1")
-   - "text": Clear, context-specific question
+   - "text": Clear question about the user's intent and needs
    - "answer": Pre-filled from available context or empty string
    - "isRelevant": Boolean (true if question is important)
-   - "category": Match template pillar or default categories
+   - "category": Descriptive category related to user intent
    - "contextSource": Origin if pre-filled ("image", "prompt", "smartContext")
 
 Variable Guidelines:
@@ -40,19 +40,21 @@ Image Analysis Guidelines:
    - Contextual relevance to prompt
 
 Pre-fill Rules:
-1. Only use explicitly provided information
-2. Image analysis should be detailed but concise
+1. Only use explicitly provided information from user's prompt or image
+2. Image analysis should be detailed but concise (under 1000 characters)
 3. Keep variable values short and specific
-4. Questions should build on user's intent`;
+4. Never generate fictional answers when pre-filling`;
 
-  // Add template-specific instructions if provided
+  // Add template-specific instructions if provided, but only as guidance
   if (template && Array.isArray(template.pillars) && template.pillars.length > 0) {
-    systemPrompt += `\n\nTemplate Categories:\n`;
+    systemPrompt += `\n\nTemplate Categories for guidance (do not directly ask about these):\n`;
     template.pillars.forEach((pillar: any) => {
       if (pillar && pillar.title && pillar.description) {
         systemPrompt += `\n- "${pillar.title}": ${pillar.description}\n`;
       }
     });
+    
+    systemPrompt += `\nIMPORTANT: Use these template categories only as guidance. Do NOT generate questions that directly ask "What specific requirements do you have regarding [category]?". Instead, create natural questions about the user's intent that relate to these themes.`;
   }
 
   // Add toggle-specific focus

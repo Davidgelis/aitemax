@@ -48,19 +48,34 @@ export function generateContextQuestionsForPrompt(
     questions.push(...imageQuestions);
   }
   
-  // Add template-specific questions if available
+  // Add intent-focused questions based on template themes
   if (template?.pillars?.length > 0) {
-    template.pillars.forEach((pillar: any, index: number) => {
-      if (pillar?.title) {
-        questions.push({
-          id: `q-t-${index + 1}`,
-          text: `What specific requirements do you have regarding ${pillar.title.toLowerCase()}?`,
-          answer: "",
-          isRelevant: true,
-          category: pillar.title
-        });
+    // Instead of directly asking about pillars, create intent-focused questions
+    const intentQuestions = [
+      {
+        id: "q-intent-1",
+        text: "What is the most important aspect of your request that needs to be addressed?",
+        answer: "",
+        isRelevant: true,
+        category: "Priority"
+      },
+      {
+        id: "q-intent-2",
+        text: "Are there any specific constraints or limitations that should be considered?",
+        answer: "",
+        isRelevant: true,
+        category: "Constraints"
+      },
+      {
+        id: "q-intent-3",
+        text: "What style, tone, or approach would work best for your needs?",
+        answer: "",
+        isRelevant: true,
+        category: "Style"
       }
-    });
+    ];
+    
+    questions.push(...intentQuestions);
   }
   
   return questions;
