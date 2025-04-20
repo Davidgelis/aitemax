@@ -105,7 +105,7 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
 }
 
 export function extractVariables(aiResponse: string, originalPrompt: string): Variable[] {
-  console.log("Extracting variables with enhanced context awareness");
+  console.log("Starting variable extraction with response length:", aiResponse.length);
   
   try {
     let parsedResponse;
