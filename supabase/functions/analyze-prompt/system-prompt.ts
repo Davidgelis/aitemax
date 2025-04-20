@@ -11,19 +11,19 @@ Respond ONLY in valid JSON format with these sections:
 - "imageAnalysis": (Optional) Object with image insights
 
 Question Guidelines:
-1. Generate 4-6 questions that directly relate to the user's intent and needs
-2. When pre-filling answers:
-   - Write detailed paragraph responses (200-1000 characters)
-   - Include specific examples and insights from available context
-   - Focus on user's goals and objectives
-   - Explain reasoning and implications
-   - Draw connections between different aspects
+1. Generate 4-6 questions that directly relate to the user's specified analysis needs
+2. When pre-filling answers from image analysis:
+   - Only prefill answers for questions that match user's requested analysis
+   - Write clear, factual descriptions (200-1000 characters)
+   - Focus on describing actual visual elements, not suggestions
+   - Stay within the scope of what was specifically requested
+   - Use objective, descriptive language
 3. Each question must have:
-   - "id": Unique string (e.g., "q-1")
-   - "text": Clear question about user's intent and needs
-   - "answer": Detailed paragraph when context available
-   - "isRelevant": Boolean (true if question is important)
-   - "category": Descriptive category related to user intent
+   - "id": Unique string
+   - "text": Question aligned with template pillars and user intent
+   - "answer": Detailed description when matching user's analysis request
+   - "isRelevant": Boolean (true if directly related to user's needs)
+   - "category": Match with template pillar categories
    - "contextSource": Origin if pre-filled ("image", "prompt", "smartContext")
 
 Variable Guidelines:
@@ -37,37 +37,28 @@ Variable Guidelines:
    - "code": Template code (e.g., "VAR_1")
 
 Image Analysis Guidelines:
-1. Provide detailed, descriptive analysis (max 1000 characters)
-2. Include:
-   - Subject matter and composition
-   - Style and artistic elements
-   - Technical aspects (quality, format)
-   - Contextual relevance to prompt
-3. Use analysis to pre-fill detailed question answers about:
-   - How the image elements should be used
-   - Specific style requirements
-   - Technical considerations
-   - Integration with prompt objectives`;
+1. Only analyze aspects specifically requested by the user
+2. Provide clear, factual descriptions of requested elements
+3. Focus on describing what exists, not suggesting changes
+4. Keep descriptions objective and detailed`;
 
-  // Add template-specific instructions if provided, but only as guidance
+  // Add template-specific instructions
   if (template && Array.isArray(template.pillars) && template.pillars.length > 0) {
-    systemPrompt += `\n\nTemplate Categories for guidance (use these themes to inform questions, but do not ask about them directly):\n`;
+    systemPrompt += `\n\nTemplate Pillars (use these for question categories):\n`;
     template.pillars.forEach((pillar: any) => {
       if (pillar && pillar.title && pillar.description) {
         systemPrompt += `\n- "${pillar.title}": ${pillar.description}\n`;
       }
     });
-    
-    systemPrompt += `\nIMPORTANT: These template categories are only for guidance. Create natural questions about the user's goals and objectives that relate to these themes. DO NOT ask directly about template categories.`;
   }
 
   // Add toggle-specific focus
   if (primaryToggle) {
-    systemPrompt += `\n\nPrimary focus: "${primaryToggle}". Consider this aspect when analyzing intent.`;
+    systemPrompt += `\n\nPrimary focus: "${primaryToggle}". Consider this aspect in analysis.`;
   }
   
   if (secondaryToggle) {
-    systemPrompt += `\n\nSecondary focus: "${secondaryToggle}". Consider this aspect when relevant.`;
+    systemPrompt += `\n\nSecondary focus: "${secondaryToggle}". Consider when relevant.`;
   }
 
   return systemPrompt;

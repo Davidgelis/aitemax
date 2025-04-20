@@ -21,23 +21,26 @@ export async function analyzePromptWithAI(
   try {
     // Validate and clean base64 string if provided
     let cleanBase64 = null;
+    let imageInstructions = null;
+    
     if (imageBase64) {
       cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '').replace(/\s/g, '');
       
-      if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
-        throw new Error("Invalid base64 format");
-      }
+      // Extract user's analysis instructions from the prompt
+      const instructionsMatch = promptText.match(/Image Analysis Instructions:\s*([^]*?)(?:\n\n|$)/i);
+      imageInstructions = instructionsMatch ? instructionsMatch[1].trim() : null;
       
-      console.log(`Valid image data detected, length: ${cleanBase64.length}`);
+      console.log("Image analysis instructions detected:", imageInstructions);
     }
     
-    // Enhanced user content construction with specific instructions for detailed answers
     let userContent: string | Array<any>;
     if (cleanBase64) {
       userContent = [
         {
           type: "text",
-          text: `Analyze this prompt and provide detailed insights: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}\n\nFor any images provided:\n1. Create a detailed analysis describing the subject, style, composition, and visual elements\n2. Use this analysis to pre-fill detailed paragraph answers (200-1000 characters) about how these elements relate to the user's goals\n3. Generate questions that explore how the visual elements should be incorporated`
+          text: `Analyze this prompt with the following context:\n${promptText}${
+            smartContext ? `\n\nAdditional context: ${smartContext}` : ''
+          }\n\nFor image analysis:\n1. Only analyze aspects specifically requested by user\n2. Provide clear, factual descriptions of requested elements\n3. Focus on describing what exists, not suggesting changes\n\nUser's image analysis instructions: ${imageInstructions || 'No specific instructions provided'}`
         },
         {
           type: "image_url",
@@ -48,7 +51,7 @@ export async function analyzePromptWithAI(
         }
       ];
     } else {
-      userContent = `Analyze this prompt and provide detailed insights: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}\n\nProvide detailed paragraph answers (200-1000 characters) that explain the reasoning and implications when pre-filling questions.`;
+      userContent = promptText + (smartContext ? `\n\nAdditional context: ${smartContext}` : '');
     }
 
     // Prepare messages array after userContent is defined

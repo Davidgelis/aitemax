@@ -1,3 +1,4 @@
+
 import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
@@ -6,70 +7,79 @@ export function generateContextQuestionsForPrompt(
   smartContext: any = null,
   imageAnalysis: any = null
 ): Question[] {
-  console.log("Generating context-specific questions based on user prompt");
+  console.log("Generating context-specific questions based on user prompt and template pillars");
   
   const questions: Question[] = [];
   
-  // Base questions about the prompt's intent with detailed pre-filled answers
-  questions.push({
-    id: "q-1",
-    text: "What specific outcome or result are you looking to achieve with this prompt?",
-    answer: promptText ? `Based on the provided prompt "${promptText.substring(0, 100)}...", the intended outcome appears to focus on [extracted goal]. This aligns with [reasoning]. Consider these aspects: [detailed implications]. For best results, we should emphasize [key elements].` : "",
-    isRelevant: true,
-    category: "Core Intent",
-    contextSource: "prompt"
-  });
-  
-  // If we have image analysis, add detailed image-specific questions
-  if (imageAnalysis) {
-    console.log("Adding image-specific questions with detailed analysis");
-    
-    const imageQuestions = [
-      {
-        id: "q-img-1",
-        text: "How should these visual elements be incorporated into the final result?",
-        answer: imageAnalysis.description ? `The image shows ${imageAnalysis.description}. These visual elements can be leveraged by: 1) [detailed strategy], 2) [specific approach], 3) [integration method]. This will enhance the final result by [detailed explanation].` : "",
-        isRelevant: true,
-        category: "Visual Context",
-        contextSource: "image"
-      },
-      {
-        id: "q-img-2",
-        text: "What aspects of this image's style should be emphasized?",
-        answer: imageAnalysis.style?.description ? `The image exhibits ${imageAnalysis.style.description}. To maintain consistency: 1) [detailed style elements], 2) [specific techniques], 3) [implementation approach]. This styling choice matters because [detailed reasoning].` : "",
-        isRelevant: true,
-        category: "Style Elements",
-        contextSource: "image"
-      }
-    ];
-    
-    questions.push(...imageQuestions);
-  }
-  
-  // Add intent-focused questions based on context
+  // Only generate questions based on template pillars
   if (template?.pillars?.length > 0) {
-    // Create intent-focused questions that relate to template themes
-    const intentQuestions = [
-      {
-        id: "q-intent-1",
-        text: "What are the most critical aspects that need to be addressed in your request?",
-        answer: smartContext?.context ? `Based on the provided context, the critical aspects are: 1) [detailed aspect], 2) [specific need], 3) [key requirement]. These are important because [detailed explanation of impact and relevance].` : "",
-        isRelevant: true,
-        category: "Priority",
-        contextSource: smartContext?.context ? "smartContext" : undefined
-      },
-      {
-        id: "q-intent-2",
-        text: "Are there any specific constraints or requirements that should be considered?",
-        answer: "",
-        isRelevant: true,
-        category: "Constraints"
+    template.pillars.forEach((pillar: any, index: number) => {
+      if (pillar && pillar.title) {
+        questions.push({
+          id: `q-${index + 1}`,
+          text: `How does your request align with the ${pillar.title.toLowerCase()} requirements?`,
+          answer: "", // Only prefill if matches user's analysis request
+          isRelevant: true,
+          category: pillar.title,
+          contextSource: undefined
+        });
       }
-    ];
-    
-    questions.push(...intentQuestions);
+    });
   }
-  
+
+  // If we have image analysis and specific user instructions
+  if (imageAnalysis && imageAnalysis.userInstructions) {
+    console.log("Processing image analysis with user instructions:", imageAnalysis.userInstructions);
+    
+    // Only add image-specific questions that match user's requested analysis
+    const userRequestedElements = imageAnalysis.userInstructions.toLowerCase();
+    
+    if (userRequestedElements.includes('style') || userRequestedElements.includes('artistic')) {
+      questions.push({
+        id: 'q-style',
+        text: 'What is the artistic style of the image?',
+        answer: imageAnalysis.style || imageAnalysis.artisticStyle || '',
+        isRelevant: true,
+        category: 'Style Elements',
+        contextSource: 'image'
+      });
+    }
+    
+    if (userRequestedElements.includes('color') || userRequestedElements.includes('palette')) {
+      questions.push({
+        id: 'q-color',
+        text: 'What are the main colors used in the image?',
+        answer: imageAnalysis.colors || '',
+        isRelevant: true,
+        category: 'Visual Elements',
+        contextSource: 'image'
+      });
+    }
+    
+    if (userRequestedElements.includes('composition') || userRequestedElements.includes('layout')) {
+      questions.push({
+        id: 'q-composition',
+        text: 'How is the image composed?',
+        answer: imageAnalysis.composition || '',
+        isRelevant: true,
+        category: 'Composition',
+        contextSource: 'image'
+      });
+    }
+  }
+
+  // Ensure we have a good mix of questions
+  while (questions.length < 4) {
+    questions.push({
+      id: `q-${questions.length + 1}`,
+      text: `What are your specific requirements for this aspect of the ${template?.name || 'project'}?`,
+      answer: '',
+      isRelevant: true,
+      category: 'Requirements',
+      contextSource: undefined
+    });
+  }
+
   return questions;
 }
 
