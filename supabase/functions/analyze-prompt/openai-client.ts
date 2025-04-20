@@ -31,13 +31,13 @@ export async function analyzePromptWithAI(
       console.log(`Valid image data detected, length: ${cleanBase64.length}`);
     }
     
-    // Build user content first
+    // Enhanced user content construction
     let userContent: string | Array<any>;
     if (cleanBase64) {
       userContent = [
         {
           type: "text",
-          text: `Analyze this prompt and identify customizable elements: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`
+          text: `Analyze this prompt and provide detailed insights: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`
         },
         {
           type: "image_url",
@@ -48,7 +48,7 @@ export async function analyzePromptWithAI(
         }
       ];
     } else {
-      userContent = `Analyze this prompt and identify customizable elements: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`;
+      userContent = `Analyze this prompt and provide detailed insights: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`;
     }
 
     // Prepare messages array after userContent is defined

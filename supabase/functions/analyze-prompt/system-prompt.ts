@@ -1,98 +1,68 @@
 
-/**
- * Creates the system prompt for the AI analysis based on user preferences and selected template
- */
 export function createSystemPrompt(primaryToggle: string | null, secondaryToggle: string | null, template: any): string {
-  // Base system prompt
   let systemPrompt = `
-You are an expert prompt analyzer and enhancer. Your task is to analyze the user's prompt and identify customizable elements.
+You are an expert prompt analyzer that helps enhance and structure user prompts.
 
-Respond ONLY in valid JSON format according to these strict guidelines:
+Respond ONLY in valid JSON format with these sections:
+- "questions": Array of questions relevant to the user's prompt
+- "variables": Array of variable objects
+- "masterCommand": String with master command
+- "enhancedPrompt": String with enhanced prompt
+- "imageAnalysis": (Optional) Object with image insights
 
-1. Structure your response as a JSON object with these exact sections:
-   - "questions": An array of question objects
-   - "variables": An array of variable objects  
-   - "masterCommand": A string containing a master command
-   - "enhancedPrompt": A string containing an enhanced version of the original prompt
-   - "imageAnalysis": (Optional) An object containing insights from image analysis
+Question Guidelines:
+1. Generate 4-6 questions that directly relate to the user's prompt content
+2. Questions should seek clarification or additional details about the user's intent
+3. Pre-fill answers when context is available (max 1000 characters per answer)
+4. Each question must have:
+   - "id": Unique string (e.g., "q-1")
+   - "text": Clear, context-specific question
+   - "answer": Pre-filled from available context or empty string
+   - "isRelevant": Boolean (true if question is important)
+   - "category": Match template pillar or default categories
+   - "contextSource": Origin if pre-filled ("image", "prompt", "smartContext")
 
-2. Format for "questions" array:
-   Each question object must have:
-   - "id": A unique string identifier (e.g., "q-1", "q-2")
-   - "text": The actual question text
-   - "answer": Default is empty string, unless pre-filled from analysis
-   - "isRelevant": Boolean null by default
-   - "category": Must match one of the template pillars exactly
-   - "contextSource": (Optional) Origin of pre-filled data ("image", "prompt", "smartContext")
+Variable Guidelines:
+1. Each variable must have:
+   - "id": Unique string
+   - "name": Descriptive name
+   - "value": Single word or short phrase when context available
+   - "isRelevant": Boolean
+   - "category": Category name
+   - "code": Template code (e.g., "VAR_1")
 
-3. Format for "variables" array:
-   Each variable object must have:
-   - "id": A unique string identifier (e.g., "v-1", "v-2")
-   - "name": Descriptive name for the variable
-   - "value": Default or extracted value
-   - "isRelevant": Boolean true by default
-   - "category": A category name 
-   - "code": A short code for template use (e.g., "VAR_1")
+Image Analysis Guidelines:
+1. Provide detailed, descriptive analysis (max 1000 characters)
+2. Include:
+   - Subject matter and composition
+   - Style and artistic elements
+   - Technical aspects (quality, format)
+   - Contextual relevance to prompt
 
-4. Generate at least 8 variables across these categories:
-   - "Core Task": Purpose, output type, subject
-   - "Technical": Dimensions, quality, constraints
-   - "Style": Aesthetic, tone, colors
-   - "Context": Audience, intent, usage
+Pre-fill Rules:
+1. Only use explicitly provided information
+2. Image analysis should be detailed but concise
+3. Keep variable values short and specific
+4. Questions should build on user's intent`;
 
-5. Pre-fill values whenever possible:
-   - From the prompt text
-   - From image analysis (mark with "contextSource": "image")
-   - From smart context (mark with "contextSource": "smartContext")
-   
-6. For each question, assign to exactly one category that matches a template pillar.
-`;
-
-  // Add template-specific instructions if a template is provided
+  // Add template-specific instructions if provided
   if (template && Array.isArray(template.pillars) && template.pillars.length > 0) {
-    // Add template information
-    systemPrompt += `\n\nYou must use the following template pillars for categorizing questions:\n`;
-    
-    // Add each pillar with its description
+    systemPrompt += `\n\nTemplate Categories:\n`;
     template.pillars.forEach((pillar: any) => {
       if (pillar && pillar.title && pillar.description) {
         systemPrompt += `\n- "${pillar.title}": ${pillar.description}\n`;
       }
     });
-    
-    // Emphasize strict categorization requirements
-    systemPrompt += `\nIMPORTANT: All questions MUST be categorized using EXACTLY these pillar names. Use the pillar descriptions to guide the types of questions you generate for each category.`;
-  } else {
-    // Default categorization if no template is provided
-    systemPrompt += `\n\nUse these default categories for questions:
-- "Task": Questions about what needs to be done
-- "Persona": Questions about the target audience or perspective
-- "Conditions": Questions about the style, tone, or constraints
-- "Instructions": Questions about specific steps or methodology
-`;
   }
 
-  // Add toggle-specific instructions
+  // Add toggle-specific focus
   if (primaryToggle) {
-    systemPrompt += `\n\nPrimary focus selected: "${primaryToggle}". Generate questions and variables specifically relevant to this theme.\n`;
+    systemPrompt += `\n\nPrimary focus: "${primaryToggle}". Prioritize this aspect in analysis.`;
   }
   
   if (secondaryToggle) {
-    systemPrompt += `\n\nSecondary focus selected: "${secondaryToggle}". Include some questions and variables related to this aspect as well.\n`;
+    systemPrompt += `\n\nSecondary focus: "${secondaryToggle}". Include relevant questions and variables.`;
   }
-
-  // Add final reminders about format
-  systemPrompt += `
-Remember:
-1. Your entire response must be valid JSON that can be parsed with JSON.parse()
-2. Do not include any text outside the JSON object
-3. Format all questions by category, matching exactly the template pillar names
-4. Ensure at least 8 variables are generated, pre-filled when possible
-5. Include a "masterCommand" that summarizes the overall intent
-6. Include an "enhancedPrompt" that builds on the original
-
-RESPOND ONLY WITH VALID JSON.
-`;
 
   return systemPrompt;
 }

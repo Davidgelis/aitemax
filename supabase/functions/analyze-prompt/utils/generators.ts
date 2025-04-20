@@ -1,7 +1,7 @@
 import { Question, Variable } from '../types.ts';
 
 /**
- * Generates context-specific questions based on the template pillars
+ * Generates context-specific questions based on the prompt and available context
  */
 export function generateContextQuestionsForPrompt(
   promptText: string,
@@ -9,223 +9,57 @@ export function generateContextQuestionsForPrompt(
   smartContext: any = null,
   imageAnalysis: any = null
 ): Question[] {
-  console.log("Generating questions strictly based on template pillars");
+  console.log("Generating context-specific questions based on user prompt");
   
-  if (!template || !template.pillars || !Array.isArray(template.pillars) || template.pillars.length === 0) {
-    console.log("No valid template found, using default questions");
-    return generateDefaultQuestions(promptText, imageAnalysis);
-  }
-
   const questions: Question[] = [];
-  let questionIdCounter = 1;
-
-  console.log(`Generating questions based on ${template.pillars.length} pillars from template: ${template.name}`);
   
-  // Generate questions ONLY based on the template pillars
-  template.pillars.forEach((pillar: any) => {
-    if (!pillar || !pillar.title || !pillar.description) {
-      console.log("Skipping invalid pillar", pillar);
-      return;
-    }
-
-    const pillarTitle = pillar.title;
-    const pillarDescription = pillar.description;
-    
-    console.log(`Generating questions for pillar: ${pillarTitle}`);
-    
-    // Generate questions for this specific pillar
-    const pillarQuestions = generateQuestionsForPillar(
-      promptText,
-      pillarTitle,
-      pillarDescription,
-      questionIdCounter
-    );
-    
-    questions.push(...pillarQuestions);
-    questionIdCounter += pillarQuestions.length;
+  // Base questions about the prompt's intent
+  questions.push({
+    id: "q-1",
+    text: "What specific outcome or result are you looking to achieve with this prompt?",
+    answer: "",
+    isRelevant: true,
+    category: "Core Intent"
   });
-
-  // Only pre-fill answers based on available context if we have questions
-  if (questions.length > 0) {
-    console.log("Prefilling questions with available context data");
-    const prefilledQuestions = prefillQuestionAnswers(questions, promptText, smartContext, imageAnalysis);
-    return prefilledQuestions;
-  }
   
-  // Special case: Check if we have image data but no template questions
-  if (imageAnalysis && (!questions.length || questions.length < 2)) {
-    console.log("Using image-specific questions since we have image data but no template questions");
-    return generateImageSpecificQuestions(imageAnalysis);
-  }
-  
-  // Fallback for empty questions - should never happen with valid templates
-  if (questions.length === 0) {
-    console.log("Warning: No questions generated from template pillars. Using fallback questions.");
-    return generateDefaultQuestions(promptText, imageAnalysis);
-  }
-
-  return questions;
-}
-
-/**
- * Generate image-specific questions based on image analysis
- */
-function generateImageSpecificQuestions(imageAnalysis: any): Question[] {
-  console.log("Generating image-specific questions");
-  const questions = [
-    {
-      id: "q-img-1",
-      text: "What elements or objects in this image should be emphasized?",
-      answer: imageAnalysis?.subjects?.join(", ") || "",
-      isRelevant: true,
-      category: "Image Context",
-      contextSource: "image"
-    },
-    {
-      id: "q-img-2",
-      text: "What is the main subject of this image?",
-      answer: imageAnalysis?.mainSubject || "",
-      isRelevant: true,
-      category: "Image Context",
-      contextSource: "image"
-    },
-    {
-      id: "q-img-3",
-      text: "What style or aesthetic does this image represent?",
-      answer: imageAnalysis?.style?.description || imageAnalysis?.artisticStyle || "",
-      isRelevant: true,
-      category: "Image Style",
-      contextSource: "image"
-    },
-    {
-      id: "q-img-4",
-      text: "How should this image be used in the final output?",
-      answer: "",
-      isRelevant: true,
-      category: "Image Usage"
-    }
-  ];
-  
-  return questions;
-}
-
-/**
- * Generate default questions as a fallback
- */
-function generateDefaultQuestions(promptText: string, imageAnalysis: any = null): Question[] {
-  console.log("Using fallback default questions");
-  const defaultQuestions = [
-    {
-      id: "q-default-1",
-      text: "What is the primary goal of this prompt?",
-      answer: "",
-      isRelevant: true,
-      category: "Task"
-    },
-    {
-      id: "q-default-2",
-      text: "What style or tone should be used?",
-      answer: "",
-      isRelevant: true,
-      category: "Style"
-    },
-    {
-      id: "q-default-3",
-      text: "Who is the target audience?",
-      answer: "",
-      isRelevant: true,
-      category: "Context"
-    },
-    {
-      id: "q-default-4",
-      text: "What format should the output take?",
-      answer: "",
-      isRelevant: true,
-      category: "Format"
-    }
-  ];
-  
-  // If we have image analysis data, add image-specific questions
+  // If we have image analysis, add detailed image-specific questions
   if (imageAnalysis) {
+    console.log("Adding image-specific questions with detailed analysis");
+    
     const imageQuestions = [
       {
         id: "q-img-1",
-        text: "What elements in this image should be emphasized?",
-        answer: imageAnalysis?.subjects?.join(", ") || "",
+        text: "How should these visual elements be incorporated into the final result?",
+        answer: imageAnalysis.description || "",
         isRelevant: true,
-        category: "Image",
+        category: "Visual Context",
         contextSource: "image"
       },
       {
         id: "q-img-2",
-        text: "How should this image be used in the final output?",
-        answer: "",
+        text: "What aspects of this image's style should be emphasized?",
+        answer: imageAnalysis.style?.description || imageAnalysis.artisticStyle || "",
         isRelevant: true,
-        category: "Image"
+        category: "Style Elements",
+        contextSource: "image"
       }
     ];
     
-    return [...defaultQuestions, ...imageQuestions];
+    questions.push(...imageQuestions);
   }
   
-  return defaultQuestions;
-}
-
-/**
- * Generate up to 3 focused questions for a specific pillar
- */
-function generateQuestionsForPillar(
-  promptText: string,
-  pillarTitle: string,
-  pillarDescription: string,
-  startId: number
-): Question[] {
-  // Extract key aspects from pillar description
-  const keyAspects = extractKeyAspects(pillarDescription);
-  const questions: Question[] = [];
-  
-  // Generate a maximum of 3 questions per pillar
-  const maxQuestions = Math.min(3, keyAspects.length + 1);
-  
-  // Question templates mapped to pillar types
-  const questionTemplates = {
-    "Task": [
-      "What specific {aspect} needs to be achieved?",
-      "How would you define the scope of the {aspect}?",
-      "What are the key deliverables for the {aspect}?"
-    ],
-    "Persona": [
-      "Who is the target audience for the {aspect}?",
-      "What role should be adopted for the {aspect}?",
-      "What expertise level is needed for the {aspect}?"
-    ],
-    "Conditions": [
-      "What style should be used for the {aspect}?",
-      "Are there specific constraints for the {aspect}?",
-      "What is the desired format for the {aspect}?"
-    ],
-    "Instructions": [
-      "What steps are needed for the {aspect}?",
-      "How should the {aspect} be structured?",
-      "What methods should be used for the {aspect}?"
-    ]
-  };
-  
-  const templateCategory = Object.keys(questionTemplates).find(
-    category => pillarTitle.toLowerCase().includes(category.toLowerCase())
-  ) || "Task";
-  
-  const templates = questionTemplates[templateCategory];
-  
-  for (let i = 0; i < maxQuestions; i++) {
-    const aspect = keyAspects[i] || pillarTitle.toLowerCase();
-    const template = templates[i % templates.length];
-    questions.push({
-      id: `q-${startId + i}`,
-      text: template.replace('{aspect}', aspect),
-      answer: "",
-      isRelevant: true, // Set these as relevant by default
-      category: pillarTitle
+  // Add template-specific questions if available
+  if (template?.pillars?.length > 0) {
+    template.pillars.forEach((pillar: any, index: number) => {
+      if (pillar?.title) {
+        questions.push({
+          id: `q-t-${index + 1}`,
+          text: `What specific requirements do you have regarding ${pillar.title.toLowerCase()}?`,
+          answer: "",
+          isRelevant: true,
+          category: pillar.title
+        });
+      }
     });
   }
   
@@ -233,180 +67,7 @@ function generateQuestionsForPillar(
 }
 
 /**
- * Extract key aspects from a pillar description
- */
-function extractKeyAspects(description: string): string[] {
-  const sentences = description.split(/[.!?]/).filter(s => s.trim());
-  const keyPhrases = [];
-  
-  const stopwords = ['the', 'a', 'an', 'is', 'are', 'and', 'or', 'to', 'that', 'this'];
-  
-  for (const sentence of sentences) {
-    const words = sentence.trim().split(/\s+/);
-    const keyWords = words.filter(word => 
-      word.length > 3 && !stopwords.includes(word.toLowerCase())
-    );
-    
-    if (keyWords.length > 0) {
-      const phrase = keyWords.slice(0, 2).join(' ').toLowerCase();
-      if (!keyPhrases.includes(phrase)) {
-        keyPhrases.push(phrase);
-      }
-    }
-  }
-  
-  return keyPhrases.slice(0, 3);
-}
-
-/**
- * Pre-fill question answers based on available context
- */
-function prefillQuestionAnswers(
-  questions: Question[],
-  promptText: string,
-  smartContext: any,
-  imageAnalysis: any
-): Question[] {
-  console.log("Prefilling question answers with available context", {
-    hasSmartContext: !!smartContext?.context,
-    hasImageAnalysis: !!imageAnalysis,
-    imageAnalysisFields: imageAnalysis ? Object.keys(imageAnalysis).join(", ") : "none",
-    questionCount: questions.length
-  });
-  
-  return questions.map(question => {
-    const q = { ...question };
-    
-    // Try to match question with smart context
-    if (smartContext?.context) {
-      const contextMatch = findContextMatch(q.text, smartContext.context);
-      if (contextMatch) {
-        q.answer = formatContextAnswer(contextMatch);
-        q.contextSource = "smartContext";
-        console.log(`Prefilled question "${q.text.substring(0, 30)}..." from smart context`);
-      }
-    }
-    
-    // Try to match with image analysis if no smart context match
-    if (!q.answer && imageAnalysis) {
-      const imageMatch = findImageMatch(q.text, imageAnalysis);
-      if (imageMatch) {
-        q.answer = formatImageAnswer(imageMatch);
-        q.contextSource = "image";
-        console.log(`Prefilled question "${q.text.substring(0, 30)}..." from image analysis with: "${q.answer.substring(0, 30)}..."`);
-      }
-    }
-    
-    return q;
-  });
-}
-
-/**
- * Find matching context for a question
- */
-function findContextMatch(questionText: string, context: string): string | null {
-  // Convert question to keywords
-  const keywords = questionText.toLowerCase()
-    .replace(/[?.!]/g, '')
-    .split(' ')
-    .filter(word => word.length > 3);
-    
-  // Look for context segments that match multiple keywords
-  const contextSegments = context.split(/[.!?]\s+/);
-  
-  for (const segment of contextSegments) {
-    const segmentLower = segment.toLowerCase();
-    const matchingKeywords = keywords.filter(keyword => 
-      segmentLower.includes(keyword)
-    );
-    
-    if (matchingKeywords.length >= 2) {
-      return segment.trim();
-    }
-  }
-  
-  return null;
-}
-
-/**
- * Format context answer into a concise paragraph
- */
-function formatContextAnswer(context: string): string {
-  // Limit to ~100 words
-  const words = context.split(/\s+/);
-  const limitedWords = words.slice(0, 100);
-  let formattedAnswer = limitedWords.join(' ');
-  
-  // Add ellipsis if truncated
-  if (words.length > 100) {
-    formattedAnswer += '...';
-  }
-  
-  return formattedAnswer;
-}
-
-/**
- * Find matching information from image analysis
- */
-function findImageMatch(questionText: string, imageAnalysis: any): string | null {
-  if (!imageAnalysis) return null;
-  
-  console.log(`Finding image match for question: "${questionText.substring(0, 30)}..." with available fields: ${Object.keys(imageAnalysis).join(", ")}`);
-  
-  const questionLower = questionText.toLowerCase();
-  
-  // Check for subject/content related questions
-  if (questionLower.includes('subject') || 
-      questionLower.includes('about') || 
-      questionLower.includes('content') ||
-      questionLower.includes('element') ||
-      questionLower.includes('object')) {
-    if (imageAnalysis.subjects && imageAnalysis.subjects.length > 0) {
-      return `The image contains: ${imageAnalysis.subjects.join(', ')}`;
-    }
-    if (imageAnalysis.mainSubject) {
-      return imageAnalysis.mainSubject;
-    }
-    if (imageAnalysis.description) {
-      return imageAnalysis.description;
-    }
-  }
-  
-  // Check for style/aesthetic related questions
-  if (questionLower.includes('style') || 
-      questionLower.includes('tone') || 
-      questionLower.includes('mood') ||
-      questionLower.includes('aesthetic')) {
-    if (imageAnalysis.style?.description) {
-      return imageAnalysis.style.description;
-    }
-    if (imageAnalysis.artisticStyle) {
-      return imageAnalysis.artisticStyle;
-    }
-    if (imageAnalysis.style?.colors && imageAnalysis.style.colors.length > 0) {
-      return `The image has a ${imageAnalysis.style.colors.join(', ')} color scheme`;
-    }
-  }
-  
-  // Check for format/medium related questions
-  if (questionLower.includes('format') || questionLower.includes('medium')) {
-    if (imageAnalysis.format) {
-      return `The image is in ${imageAnalysis.format} format`;
-    }
-  }
-  
-  return null;
-}
-
-/**
- * Format image-based answer
- */
-function formatImageAnswer(imageInfo: string): string {
-  return imageInfo;
-}
-
-/**
- * Generates context-specific variables for prompt analysis.
+ * Enhanced variable generation with better context awareness
  */
 export function generateContextualVariablesForPrompt(
   promptText: string,
