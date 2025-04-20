@@ -1,8 +1,8 @@
-
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
+import { useToast } from "@/hooks/use-toast";
 
 export const usePromptAnalysis = (
   promptText: string,
@@ -19,58 +19,38 @@ export const usePromptAnalysis = (
   const [isLoading, setIsLoading] = useState(false);
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState("");
   const { getCurrentTemplate } = useTemplateManagement();
+  const { toast } = useToast();
 
   const handleAnalyze = async (
     uploadedImages: any[] | null = null,
     websiteContext: { url: string; instructions: string } | null = null,
     smartContext: { context: string; usageInstructions: string } | null = null
   ) => {
+    console.log("Starting analysis with prompt:", promptText.substring(0, 50) + "...");
     setIsLoading(true);
-    setCurrentLoadingMessage("Analyzing your prompt with GPT-4o...");
+    setCurrentLoadingMessage("Analyzing your prompt...");
 
     try {
       // Get the current template
       const currentTemplate = getCurrentTemplate();
-      
-      console.log("Analyze using template:", { 
+      console.log("Using template:", {
         templateId: currentTemplate?.id,
         templateName: currentTemplate?.name,
         pillarsCount: currentTemplate?.pillars?.length || 0
       });
 
       // Add more robust input validation
-      const inputTypes = {
-        hasText: !!promptText,
-        hasToggles: !!(selectedPrimary || selectedSecondary),
-        hasWebscan: !!(websiteContext && websiteContext.url),
-        hasImageScan: !!(uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0),
-        hasSmartContext: !!(smartContext && smartContext.context)
-      };
-
-      console.log("Analyze inputs:", { 
-        promptText: promptText ? `${promptText.substring(0, 50)}...` : "empty", 
-        hasImages: !!uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0,
-        hasWebsiteContext: !!websiteContext && !!websiteContext.url,
-        hasSmartContext: !!smartContext && !!smartContext.context,
-        inputTypes,
-        uploadedImagesCount: uploadedImages?.length || 0,
-        model: "gpt-4o" // Use gpt-4o as default model
-      });
-
-      // Prepare optimized images if available - focus on compression and validation
-      let processedImages = null;
-      if (uploadedImages && Array.isArray(uploadedImages) && uploadedImages.length > 0) {
-        // Log but don't send full base64 to logs
-        console.log("Processing images for analysis:", uploadedImages.map(img => ({
-          hasBase64: !!img.base64,
-          base64Length: img.base64 ? img.base64.length : 0,
-          hasContext: !!img.context,
-          contextLength: img.context ? img.context.length : 0
-        })));
-        
-        // Just pass the images through, we'll optimize in the Edge Function
-        processedImages = uploadedImages;
+      if (!promptText?.trim()) {
+        throw new Error("Prompt text is required");
       }
+
+      console.log("Calling analyze-prompt edge function with:", {
+        promptLength: promptText.length,
+        hasImages: !!uploadedImages && uploadedImages.length > 0,
+        hasSmartContext: !!smartContext?.context,
+        hasWebsiteContext: !!websiteContext?.url,
+        model: "gpt-4o"
+      });
 
       const { data, error } = await supabase.functions.invoke("analyze-prompt", {
         body: {
@@ -80,128 +60,103 @@ export const usePromptAnalysis = (
           userId: user?.id || null,
           promptId: currentPromptId,
           websiteData: websiteContext || null,
-          imageData: processedImages,
+          imageData: uploadedImages,
           smartContextData: smartContext || null,
-          inputTypes,
-          template: currentTemplate,  // Pass the template to the edge function
-          model: "gpt-4o" // Pass model parameter explicitly
+          template: currentTemplate,
+          model: "gpt-4o"
         },
       });
 
       if (error) {
-        console.error("Error analyzing prompt:", error);
-        setCurrentLoadingMessage(`Error: ${error.message}`);
-        return;
-      }
-
-      if (data.error) {
-        console.error("API error:", data.error);
-        setCurrentLoadingMessage(`API Error: ${data.error}`);
-        return;
-      }
-
-      if (data) {
-        console.log("Analysis result:", {
-          questionsCount: data.questions?.length || 0,
-          preFilledCount: data.questions?.filter((q: Question) => q.answer?.startsWith("PRE-FILLED:")).length || 0,
-          imageBasedCount: data.questions?.filter((q: Question) => 
-            q.answer?.includes("(from image analysis)") || q.answer?.includes("image")
-          ).length || 0,
-          variablesCount: data.variables?.length || 0,
-          debug: data.debug
+        console.error("Edge function error:", error);
+        toast({
+          title: "Analysis failed",
+          description: "There was an error analyzing your prompt. Please try again.",
+          variant: "destructive",
         });
-        
-        // Process questions to ensure they have proper categories based on template pillars
-        if (data.questions && Array.isArray(data.questions) && currentTemplate?.pillars) {
-          const pillarsMap = new Map();
-          currentTemplate.pillars.forEach((pillar: any) => {
-            pillarsMap.set(pillar.title.toLowerCase(), pillar.title);
-          });
-          
-          // Ensure questions have proper category names matching the exact pillar titles
-          data.questions = data.questions.map((q: Question) => {
-            if (q.category) {
-              const matchedPillar = currentTemplate.pillars.find((pillar: any) => 
-                pillar.title.toLowerCase() === q.category.toLowerCase() ||
-                q.category.toLowerCase().includes(pillar.title.toLowerCase()) ||
-                pillar.title.toLowerCase().includes(q.category.toLowerCase())
-              );
-              
-              if (matchedPillar) {
-                return { ...q, category: matchedPillar.title };
-              }
-            }
-            return q;
-          });
-        }
-        
-        // Add detailed logging for variables
-        if (data.variables && data.variables.length > 0) {
-          console.log("Extracted variables:", data.variables.map((v: Variable) => ({
-            id: v.id,
-            name: v.name,
-            value: v.value?.substring(0, 30) + (v.value?.length > 30 ? '...' : ''),
-            category: v.category,
-            isRelevant: v.isRelevant,
-            code: v.code
-          })));
-          
-          // Process variables to ensure they have proper categories based on template pillars
-          if (currentTemplate?.pillars) {
-            data.variables = data.variables.map((v: Variable) => {
-              if (v.category) {
-                const matchedPillar = currentTemplate.pillars.find((pillar: any) => 
-                  pillar.title.toLowerCase() === v.category.toLowerCase() ||
-                  v.category.toLowerCase().includes(pillar.title.toLowerCase()) ||
-                  pillar.title.toLowerCase().includes(v.category.toLowerCase())
-                );
-                
-                if (matchedPillar) {
-                  return { ...v, category: matchedPillar.title };
-                }
-              }
-              return v;
-            });
-          }
-        } else {
-          console.warn("No variables were extracted from the analysis");
-        }
-        
-        setQuestions(data.questions || []);
-        
-        // Ensure variables are properly initialized even if none were returned
-        if (data.variables && Array.isArray(data.variables)) {
-          // Make sure all variables have required fields
-          const processedVariables = data.variables.map((v: any, index: number) => ({
-            id: v.id || `var-${index}`,
-            name: v.name || `Variable ${index + 1}`,
-            value: v.value || '',
-            isRelevant: v.isRelevant === undefined ? true : v.isRelevant,
-            category: v.category || 'Other',
-            code: v.code || `VAR_${index + 1}`
-          }));
-          setVariables(processedVariables);
-        } else {
-          console.log("No variables found in analysis result, initializing empty array");
-          setVariables([]);
-        }
-        
-        setMasterCommand(data.masterCommand || "");
-        setFinalPrompt(data.enhancedPrompt || "");
+        return;
+      }
+
+      if (!data) {
+        console.error("No data returned from analysis");
+        toast({
+          title: "Analysis incomplete",
+          description: "No analysis results were returned. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("Analysis results:", {
+        hasQuestions: Array.isArray(data.questions),
+        questionsCount: data.questions?.length || 0,
+        hasVariables: Array.isArray(data.variables),
+        variablesCount: data.variables?.length || 0,
+        hasMasterCommand: !!data.masterCommand,
+        hasEnhancedPrompt: !!data.enhancedPrompt
+      });
+
+      // Process questions to ensure they're valid
+      if (Array.isArray(data.questions) && data.questions.length > 0) {
+        const processedQuestions = data.questions.map((q: any) => ({
+          id: q.id || `q-${Math.random()}`,
+          text: q.text || "",
+          answer: q.answer || "",
+          isRelevant: q.isRelevant === null ? null : Boolean(q.isRelevant),
+          category: q.category || "General"
+        }));
+        console.log(`Setting ${processedQuestions.length} processed questions`);
+        setQuestions(processedQuestions);
+      } else {
+        console.warn("No questions in analysis result");
+        setQuestions([]);
+      }
+
+      // Process variables to ensure they're valid
+      if (Array.isArray(data.variables)) {
+        const processedVariables = data.variables.map((v: any, index: number) => ({
+          id: v.id || `var-${index + 1}`,
+          name: v.name || `Variable ${index + 1}`,
+          value: v.value || "",
+          isRelevant: v.isRelevant === null ? null : Boolean(v.isRelevant),
+          category: v.category || "General",
+          code: v.code || `VAR_${index + 1}`
+        }));
+        console.log(`Setting ${processedVariables.length} processed variables`);
+        setVariables(processedVariables);
+      } else {
+        console.warn("No variables in analysis result");
+        setVariables([]);
+      }
+
+      setMasterCommand(data.masterCommand || "");
+      setFinalPrompt(data.enhancedPrompt || "");
+
+      // Only proceed to step 2 if we have valid questions
+      if (Array.isArray(data.questions) && data.questions.length > 0) {
+        console.log("Analysis successful, moving to step 2");
         setCurrentStep(2);
       } else {
-        console.warn("No data returned from analysis");
-        setCurrentLoadingMessage("No data received from analysis.");
+        console.warn("Not moving to step 2 - no valid questions");
+        toast({
+          title: "Analysis incomplete",
+          description: "Could not generate questions for your prompt. Please try again or modify your prompt.",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error("Error in handleAnalyze:", err);
-      setCurrentLoadingMessage(`An unexpected error occurred: ${err}`);
+      toast({
+        title: "Analysis failed",
+        description: err instanceof Error ? err.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
       setCurrentLoadingMessage("");
     }
   };
-  
+
   /**
    * Enhanced prompt with GPT with standardized parameter order
    * @param originalPrompt The original prompt text to enhance

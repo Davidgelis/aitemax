@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -15,6 +16,9 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Starting analyze-prompt function");
+    
+    const requestBody = await req.json();
     const { 
       promptText, 
       primaryToggle, 
@@ -24,9 +28,9 @@ serve(async (req) => {
       imageData,
       smartContextData,
       model = 'gpt-4o'
-    } = await req.json();
+    } = requestBody;
     
-    console.log("Starting analyze-prompt with:", {
+    console.log("Request received with:", {
       promptLength: promptText?.length,
       hasImageData: !!imageData,
       hasSmartContext: !!smartContextData?.context,
@@ -52,7 +56,6 @@ serve(async (req) => {
       console.log("Processing image data");
       
       if (Array.isArray(imageData) && imageData.length > 0 && imageData[0]?.base64) {
-        // Strip data URL prefix if present
         imageBase64 = imageData[0].base64.replace(/^data:image\/[a-z]+;base64,/, '');
         imageContext = imageData[0].context || '';
         enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT: ${imageContext}`;
@@ -60,9 +63,7 @@ serve(async (req) => {
     }
     
     // Add smart context if available
-    let smartContext = '';
     if (smartContextData?.context) {
-      smartContext = smartContextData.context;
       enhancedContext = `${enhancedContext}\n\nADDITIONAL CONTEXT:\n${smartContextData.context}`;
     }
     
@@ -76,19 +77,23 @@ serve(async (req) => {
       throw new Error("OpenAI API key is not configured");
     }
 
-    // Get AI analysis with all context
+    console.log("Calling OpenAI API for analysis");
+    
     const { content } = await analyzePromptWithAI(
       enhancedContext,
       systemPrompt,
       apiKey,
-      smartContext,
+      smartContextData?.context || '',
       imageBase64,
       model
     );
 
+    console.log("Received response from OpenAI, parsing content");
+
     let parsedContent;
     try {
       parsedContent = JSON.parse(content);
+      console.log("Successfully parsed JSON response");
     } catch (error) {
       console.error("Failed to parse content:", error);
       throw new Error(`Invalid response format: ${error.message}`);
@@ -99,17 +104,19 @@ serve(async (req) => {
     let variables = [];
 
     if (Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0) {
+      console.log("Extracting questions from AI response");
       questions = extractQuestions(content, enhancedContext);
     } else {
-      console.log("No questions in AI response, generating from template");
+      console.log("Generating questions from template");
       questions = generateContextQuestionsForPrompt(enhancedContext, template);
     }
     
     // Enhanced variable extraction with context awareness
     if (Array.isArray(parsedContent?.variables) && parsedContent.variables.length > 0) {
+      console.log("Extracting variables from AI response");
       variables = extractVariables(content, enhancedContext);
     } else {
-      console.log("No variables in AI response, generating from context");
+      console.log("Generating variables from context");
       variables = generateContextualVariablesForPrompt(
         enhancedContext,
         template,
@@ -120,6 +127,13 @@ serve(async (req) => {
     
     const masterCommand = extractMasterCommand(content);
     const enhancedPrompt = extractEnhancedPrompt(content);
+
+    console.log("Analysis complete, returning results:", {
+      questionsCount: questions.length,
+      variablesCount: variables.length,
+      hasMasterCommand: !!masterCommand,
+      hasEnhancedPrompt: !!enhancedPrompt
+    });
 
     return new Response(
       JSON.stringify({
@@ -141,7 +155,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in analyze-prompt function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
