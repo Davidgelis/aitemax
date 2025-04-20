@@ -1,3 +1,4 @@
+
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -22,10 +23,8 @@ export async function analyzePromptWithAI(
     // Validate and clean base64 string if provided
     let cleanBase64 = null;
     if (imageBase64) {
-      // Clean base64 string (remove prefix if present and spaces)
       cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '').replace(/\s/g, '');
       
-      // Validate base64 format using RegEx
       if (!/^[A-Za-z0-9+/=]+$/.test(cleanBase64)) {
         throw new Error("Invalid base64 format");
       }
@@ -33,28 +32,42 @@ export async function analyzePromptWithAI(
       console.log("Valid image data detected, length:", cleanBase64.length);
     }
     
-    // Enhance the system message to focus on variable extraction
-    const enhancedSystemMessage = `${systemMessage}\n\nIMPORTANT: When analyzing the prompt, focus on:
-1. Identifying explicit variables from the user's input
-2. Extracting key parameters that might need to be adjustable
-3. Understanding the relationships between different parts of the request
-4. Looking for specific values that might need to be customized
-5. Considering both explicit and implicit variables that would make the prompt more flexible\n\n`;
+    // Enhanced system message focused on identifying customizable elements
+    const enhancedSystemMessage = `${systemMessage}\n\n
+IMPORTANT INSTRUCTIONS FOR VARIABLE EXTRACTION:
+1. Identify key customizable elements in the user's request
+2. Create variables for any elements that could be modified or customized
+3. Focus on concrete, actionable parameters from the user's intent
+4. Consider common variations of the requested elements
+5. Extract specific characteristics or properties mentioned
+
+For example:
+- If user asks about "image of a dog", create variables like:
+  * Dog Breed
+  * Dog Color
+  * Background Setting
+  * Dog Action/Pose
+- If user asks about "writing blog post", create variables like:
+  * Topic Focus
+  * Article Length
+  * Writing Style
+  * Target Audience
+
+Always return variables in JSON format with 'name', 'value', and 'category' fields.\n\n`;
     
-    // Prepare messages array for the API call
+    // Prepare messages array
     const messages = [
-      { role: 'system', content: enhancedSystemMessage },
+      { role: 'system', content: enhancedSystemMessage }
     ];
     
     // Build user message with text and optionally include image
     let userContent: any;
     
     if (cleanBase64) {
-      // If we have an image, use a content array with both text and image
       userContent = [
         {
           type: "text",
-          text: `Analyze this prompt: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`
+          text: `Analyze this prompt and identify customizable elements: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`
         },
         {
           type: "image_url",
@@ -65,13 +78,12 @@ export async function analyzePromptWithAI(
         }
       ];
     } else {
-      // Text-only message
-      userContent = `Analyze this prompt: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`;
+      userContent = `Analyze this prompt and identify customizable elements: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`;
     }
     
     messages.push({ role: 'user', content: userContent });
     
-    // Make a single API call with all content
+    // Make API call with enhanced focus on variable extraction
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -79,9 +91,9 @@ export async function analyzePromptWithAI(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: model, // Use the provided model
+        model: model,
         messages: messages,
-        temperature: 0.5,
+        temperature: 0.7, // Slightly increased for more creative variable suggestions
         max_tokens: 2000,
         response_format: { type: "json_object" }
       }),
@@ -100,7 +112,7 @@ export async function analyzePromptWithAI(
     };
     
   } catch (error) {
-    console.error("Error in analyzePromptWithAI:", error.message);
+    console.error("Error in analyzePromptWithAI:", error);
     throw error;
   }
 }

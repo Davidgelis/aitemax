@@ -221,6 +221,75 @@ function generateDefaultQuestions(promptText: string): Question[] {
   return questions;
 }
 
+function extractVariablesFromText(text: string): Array<{ name: string; value: string }> {
+  const variables: Array<{ name: string; value: string }> = [];
+  
+  // Extract key elements based on common patterns in user requests
+  const patterns = [
+    // Direct mentions of properties
+    /(?:with|has|in|of)\s+(?:a|an|the)?\s*([a-zA-Z\s]+)\s+([a-zA-Z\s]+)/gi,
+    
+    // Style or characteristic mentions
+    /(?:style|type|kind|color|size|format)\s+(?:of|is|should be)?\s*([a-zA-Z\s]+)/gi,
+    
+    // Action or state descriptions
+    /(?:doing|performing|making|creating)\s+(?:a|an|the)?\s*([a-zA-Z\s]+)/gi,
+    
+    // Target or audience mentions
+    /(?:for|targeting|aimed at)\s+(?:a|an|the)?\s*([a-zA-Z\s]+)/gi
+  ];
+
+  patterns.forEach(pattern => {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      // Extract and clean variable names
+      const rawName = match[1]?.trim();
+      if (rawName && rawName.length > 2) {
+        // Convert to title case and clean up
+        const name = rawName
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+          
+        // Add if not already present
+        if (!variables.some(v => v.name === name)) {
+          variables.push({ name, value: '' });
+        }
+      }
+    }
+  });
+
+  // Add common customizable elements based on intent
+  if (text.toLowerCase().includes('image')) {
+    const imageVariables = [
+      { name: 'Style', value: '' },
+      { name: 'Mood', value: '' },
+      { name: 'Background', value: '' }
+    ];
+    imageVariables.forEach(v => {
+      if (!variables.some(existing => existing.name === v.name)) {
+        variables.push(v);
+      }
+    });
+  }
+
+  // Add content-specific variables
+  if (text.toLowerCase().includes('write') || text.toLowerCase().includes('text')) {
+    const contentVariables = [
+      { name: 'Tone', value: '' },
+      { name: 'Length', value: '' },
+      { name: 'Format', value: '' }
+    ];
+    contentVariables.forEach(v => {
+      if (!variables.some(existing => existing.name === v.name)) {
+        variables.push(v);
+      }
+    });
+  }
+
+  return variables;
+}
+
 /**
  * Generates contextual variables for a prompt with improved organization
  */
@@ -230,25 +299,21 @@ export function generateContextualVariablesForPrompt(
   imageAnalysis: any = null,
   smartContext: any = null
 ): Variable[] {
-  console.log("Generating contextual variables with:", {
-    hasTemplate: !!template,
-    hasImageAnalysis: !!imageAnalysis,
-    hasSmartContext: !!smartContext
-  });
+  console.log("Generating contextual variables with enhanced intent detection");
 
   const variables: Variable[] = [];
   let variableCounter = 1;
 
-  // First, try to extract variables from the prompt text
+  // Extract variables from prompt text with enhanced patterns
   const promptVariables = extractVariablesFromText(promptText);
   if (promptVariables.length > 0) {
-    console.log(`Found ${promptVariables.length} variables in prompt text`);
+    console.log(`Found ${promptVariables.length} variables from prompt intent`);
     variables.push(...promptVariables.map((v, i) => ({
       id: `v-${variableCounter + i}`,
       name: v.name,
       value: v.value,
       isRelevant: true,
-      category: 'From Prompt',
+      category: 'Intent Variables',
       code: `VAR_${variableCounter + i}`
     })));
     variableCounter += promptVariables.length;
@@ -311,33 +376,6 @@ export function generateContextualVariablesForPrompt(
     console.log("No variables found, using defaults");
     return generateDefaultVariables();
   }
-
-  return variables;
-}
-
-function extractVariablesFromText(text: string): Array<{ name: string; value: string }> {
-  const variables = [];
-  
-  // Look for explicit variable declarations in the text
-  // Example patterns: "Set X to Y", "X should be Y", "Use X as Y"
-  const patterns = [
-    /(?:set|make|use)\s+([a-zA-Z\s]+)\s+(?:to|as|=)\s+([^,.]+)/gi,
-    /([a-zA-Z\s]+)\s+(?:should|must|will)\s+be\s+([^,.]+)/gi,
-    /([a-zA-Z\s]+):\s*([^,.]+)/gi
-  ];
-
-  patterns.forEach(pattern => {
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      const name = match[1].trim();
-      const value = match[2].trim();
-      
-      // Only add if we have both name and value
-      if (name && value) {
-        variables.push({ name, value });
-      }
-    }
-  });
 
   return variables;
 }
