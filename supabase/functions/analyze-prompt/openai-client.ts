@@ -1,3 +1,5 @@
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -17,11 +19,57 @@ export async function analyzePromptWithAI(
 
   let structuredContext = {
     imageAnalysis: null,
-    smartContext: smartContext || null,
+    smartContext: null,
     promptText
   };
   
-  // First, analyze the image if provided using gpt-4o
+  // Process smart context first if available
+  if (smartContext) {
+    console.log("Processing smart context for enhanced analysis");
+    try {
+      const smartContextResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: `Analyze the provided context and extract structured information in JSON format. Include:
+              - key_points: Main points or requirements
+              - technical_details: Any technical specifications
+              - preferences: Style or format preferences
+              - constraints: Any limitations or restrictions
+              - metadata: Any other relevant contextual information
+              Return ONLY valid JSON.`
+            },
+            {
+              role: 'user',
+              content: smartContext
+            }
+          ],
+          response_format: { type: "json_object" }
+        }),
+      });
+
+      const smartData = await smartContextResponse.json();
+      if (smartData.choices?.[0]?.message?.content) {
+        try {
+          structuredContext.smartContext = JSON.parse(smartData.choices[0].message.content);
+          console.log("Structured smart context:", structuredContext.smartContext);
+        } catch (parseError) {
+          console.error("Failed to parse smart context JSON:", parseError);
+        }
+      }
+    } catch (error) {
+      console.error("Error processing smart context:", error);
+    }
+  }
+  
+  // Process image if available
   if (imageBase64) {
     console.log("Analyzing image with gpt-4o...");
     try {
@@ -80,7 +128,7 @@ export async function analyzePromptWithAI(
     }
   }
 
-  // Build comprehensive context with metadata
+  // Build comprehensive context with metadata for better question pre-filling
   const enhancedContext = {
     userInput: {
       prompt: promptText,
@@ -88,22 +136,21 @@ export async function analyzePromptWithAI(
     },
     context: {
       image: structuredContext.imageAnalysis,
-      smart: smartContext ? {
-        content: smartContext,
-        type: "user-provided"
+      smart: structuredContext.smartContext ? {
+        content: structuredContext.smartContext,
+        type: "structured",
+        source: "user-provided"
       } : null
     },
     instructions: {
       primary: "Generate comprehensive questions and pre-fill answers using available context",
       format: "Return valid JSON with questions array, variables array, masterCommand, and enhancedPrompt"
+    },
+    metadata: {
+      hasSmartContext: !!structuredContext.smartContext,
+      hasImageAnalysis: !!structuredContext.imageAnalysis
     }
   };
-
-  console.log("Sending enhanced context to OpenAI:", {
-    hasImageAnalysis: !!structuredContext.imageAnalysis,
-    hasSmartContext: !!smartContext,
-    promptLength: promptText.length
-  });
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

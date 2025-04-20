@@ -1,7 +1,7 @@
 import { Question, Variable } from '../types.ts';
 
 export function extractQuestions(aiResponse: string, originalPrompt: string): Question[] {
-  console.log("Starting question extraction");
+  console.log("Starting question extraction with enhanced context handling");
   
   try {
     // Try to parse the response as JSON first
@@ -11,13 +11,30 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       
       if (Array.isArray(parsedResponse.questions)) {
         console.log(`Found ${parsedResponse.questions.length} questions in JSON`);
-        return parsedResponse.questions.map((q: any, index: number) => ({
-          id: q.id || `q-${index + 1}`,
-          text: q.text || '',
-          answer: q.answer || '',
-          isRelevant: typeof q.isRelevant === 'boolean' ? q.isRelevant : null,
-          category: q.category || 'General'
-        }));
+        return parsedResponse.questions.map((q: any, index: number) => {
+          // Enhanced answer processing
+          let answer = q.answer || '';
+          let contextSource = q.contextSource;
+          
+          // Validate pre-filled answer format
+          if (answer.startsWith('PRE-FILLED:')) {
+            // Ensure source attribution is present
+            if (!answer.includes('(from')) {
+              if (contextSource) {
+                answer = `${answer} (from ${contextSource})`;
+              }
+            }
+            console.log(`Pre-filled answer found for question ${q.id || index + 1} from source: ${contextSource || 'unknown'}`);
+          }
+          
+          return {
+            id: q.id || `q-${index + 1}`,
+            text: q.text || '',
+            answer,
+            isRelevant: typeof q.isRelevant === 'boolean' ? q.isRelevant : null,
+            category: q.category || 'General'
+          };
+        });
       }
     } catch (jsonError) {
       console.error("JSON parsing failed:", jsonError);
