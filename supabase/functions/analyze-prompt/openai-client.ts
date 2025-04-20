@@ -33,16 +33,16 @@ export async function analyzePromptWithAI(
     
     // Build user content first
     let userContent: string | Array<any>;
-    if (imageBase64) {
+    if (cleanBase64) {
       userContent = [
         {
           type: "text",
-          text: `Analyze this prompt and identify customizable elements, providing detailed image analysis with rich descriptions: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`
+          text: `Analyze this prompt and identify customizable elements: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`
         },
         {
           type: "image_url",
           image_url: {
-            url: `data:image/jpeg;base64,${imageBase64}`,
+            url: `data:image/jpeg;base64,${cleanBase64}`,
             detail: "high"
           }
         }
@@ -51,10 +51,11 @@ export async function analyzePromptWithAI(
       userContent = `Analyze this prompt and identify customizable elements: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`;
     }
 
+    // Prepare messages array after userContent is defined
     const messages = [
       { 
         role: 'system', 
-        content: `${systemMessage}\n\nWhen analyzing images, provide rich, detailed descriptions covering style, composition, technical aspects, and subject matter. Each description should be comprehensive yet concise, staying under 1000 characters. Focus on visual elements, artistic techniques, color palettes, lighting, mood, and technical execution.` 
+        content: systemMessage 
       },
       {
         role: 'user',
