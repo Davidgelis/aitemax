@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 /**
@@ -227,51 +226,162 @@ function generateDefaultQuestions(promptText: string): Question[] {
  */
 export function generateContextualVariablesForPrompt(
   promptText: string,
-  template: any = null
+  template: any = null,
+  imageAnalysis: any = null,
+  smartContext: any = null
 ): Variable[] {
-  // Default variables if no template provided or invalid template
-  if (!template || !template.pillars || !Array.isArray(template.pillars) || template.pillars.length === 0) {
-    console.log("No valid template found, using default variables");
-    return generateDefaultVariables();
-  }
-  
+  console.log("Generating contextual variables with:", {
+    hasTemplate: !!template,
+    hasImageAnalysis: !!imageAnalysis,
+    hasSmartContext: !!smartContext
+  });
+
   const variables: Variable[] = [];
   let variableCounter = 1;
-  
-  console.log(`Generating variables based on ${template.pillars.length} pillars from template: ${template.name}`);
-  
-  // Generate 1-2 variables per pillar based on the pillar description
-  template.pillars.forEach((pillar: any) => {
-    if (!pillar || !pillar.title || !pillar.description) {
-      console.log("Skipping invalid pillar for variables", pillar);
-      return;
+
+  // First, try to extract variables from the prompt text
+  const promptVariables = extractVariablesFromText(promptText);
+  if (promptVariables.length > 0) {
+    console.log(`Found ${promptVariables.length} variables in prompt text`);
+    variables.push(...promptVariables.map((v, i) => ({
+      id: `v-${variableCounter + i}`,
+      name: v.name,
+      value: v.value,
+      isRelevant: true,
+      category: 'From Prompt',
+      code: `VAR_${variableCounter + i}`
+    })));
+    variableCounter += promptVariables.length;
+  }
+
+  // Extract variables from image analysis if available
+  if (imageAnalysis) {
+    const imageVariables = extractImageVariables(imageAnalysis);
+    if (imageVariables.length > 0) {
+      console.log(`Found ${imageVariables.length} variables from image analysis`);
+      variables.push(...imageVariables.map((v, i) => ({
+        id: `v-${variableCounter + i}`,
+        name: v.name,
+        value: v.value,
+        isRelevant: true,
+        category: 'Image Analysis',
+        code: `VAR_${variableCounter + i}`
+      })));
+      variableCounter += imageVariables.length;
     }
-    
-    const pillarTitle = pillar.title;
-    const pillarDescription = pillar.description;
-    
-    console.log(`Generating variables for pillar: ${pillarTitle}`);
-    
-    // Generate variables specific to this pillar
-    const pillarVariables = generateVariablesForPillar(
-      promptText,
-      pillarTitle,
-      pillarDescription,
-      variableCounter
-    );
-    
-    console.log(`Generated ${pillarVariables.length} variables for pillar ${pillarTitle}`);
-    
-    variables.push(...pillarVariables);
-    variableCounter += pillarVariables.length;
-  });
-  
-  // If we couldn't generate any variables from pillars, fall back to defaults
+  }
+
+  // Extract variables from smart context if available
+  if (smartContext?.context) {
+    const smartContextVariables = extractSmartContextVariables(smartContext.context);
+    if (smartContextVariables.length > 0) {
+      console.log(`Found ${smartContextVariables.length} variables from smart context`);
+      variables.push(...smartContextVariables.map((v, i) => ({
+        id: `v-${variableCounter + i}`,
+        name: v.name,
+        value: v.value,
+        isRelevant: true,
+        category: 'Smart Context',
+        code: `VAR_${variableCounter + i}`
+      })));
+      variableCounter += smartContextVariables.length;
+    }
+  }
+
+  // If we still don't have any variables and we have a template, use it as fallback
+  if (variables.length === 0 && template?.pillars) {
+    console.log("Using template pillars as fallback for variables");
+    template.pillars.forEach((pillar: any) => {
+      if (!pillar || !pillar.title) return;
+      
+      const pillarVariables = generateVariablesForPillar(
+        promptText,
+        pillar.title,
+        pillar.description || '',
+        variableCounter
+      );
+      
+      variables.push(...pillarVariables);
+      variableCounter += pillarVariables.length;
+    });
+  }
+
+  // If we still have no variables, provide minimal defaults
   if (variables.length === 0) {
-    console.log("Failed to generate pillar-based variables, using defaults");
+    console.log("No variables found, using defaults");
     return generateDefaultVariables();
   }
+
+  return variables;
+}
+
+function extractVariablesFromText(text: string): Array<{ name: string; value: string }> {
+  const variables = [];
   
+  // Look for explicit variable declarations in the text
+  // Example patterns: "Set X to Y", "X should be Y", "Use X as Y"
+  const patterns = [
+    /(?:set|make|use)\s+([a-zA-Z\s]+)\s+(?:to|as|=)\s+([^,.]+)/gi,
+    /([a-zA-Z\s]+)\s+(?:should|must|will)\s+be\s+([^,.]+)/gi,
+    /([a-zA-Z\s]+):\s*([^,.]+)/gi
+  ];
+
+  patterns.forEach(pattern => {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      const name = match[1].trim();
+      const value = match[2].trim();
+      
+      // Only add if we have both name and value
+      if (name && value) {
+        variables.push({ name, value });
+      }
+    }
+  });
+
+  return variables;
+}
+
+function extractImageVariables(imageAnalysis: any): Array<{ name: string; value: string }> {
+  const variables = [];
+
+  if (!imageAnalysis) return variables;
+
+  // Extract color information
+  if (imageAnalysis.style?.colors?.length > 0) {
+    variables.push({
+      name: 'Primary Color',
+      value: imageAnalysis.style.colors[0]
+    });
+  }
+
+  // Extract subject information
+  if (imageAnalysis.subjects?.length > 0) {
+    variables.push({
+      name: 'Main Subject',
+      value: imageAnalysis.subjects[0]
+    });
+  }
+
+  return variables;
+}
+
+function extractSmartContextVariables(context: string): Array<{ name: string; value: string }> {
+  const variables = [];
+  
+  // Look for key-value pairs in the context
+  const keyValuePattern = /([a-zA-Z\s]+):\s*([^,.]+)/gi;
+  let match;
+  
+  while ((match = keyValuePattern.exec(context)) !== null) {
+    const name = match[1].trim();
+    const value = match[2].trim();
+    
+    if (name && value) {
+      variables.push({ name, value });
+    }
+  }
+
   return variables;
 }
 

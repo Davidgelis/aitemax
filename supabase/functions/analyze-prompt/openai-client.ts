@@ -1,4 +1,3 @@
-
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -34,9 +33,17 @@ export async function analyzePromptWithAI(
       console.log("Valid image data detected, length:", cleanBase64.length);
     }
     
+    // Enhance the system message to focus on variable extraction
+    const enhancedSystemMessage = `${systemMessage}\n\nIMPORTANT: When analyzing the prompt, focus on:
+1. Identifying explicit variables from the user's input
+2. Extracting key parameters that might need to be adjustable
+3. Understanding the relationships between different parts of the request
+4. Looking for specific values that might need to be customized
+5. Considering both explicit and implicit variables that would make the prompt more flexible\n\n`;
+    
     // Prepare messages array for the API call
     const messages = [
-      { role: 'system', content: systemMessage },
+      { role: 'system', content: enhancedSystemMessage },
     ];
     
     // Build user message with text and optionally include image

@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -24,7 +23,7 @@ serve(async (req) => {
       websiteData,
       imageData,
       smartContextData,
-      model = 'gpt-4o' // Default to gpt-4o if not specified
+      model = 'gpt-4o'
     } = await req.json();
     
     console.log("Starting analyze-prompt with:", {
@@ -43,7 +42,7 @@ serve(async (req) => {
 
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
     
-    // Build the enhanced context by combining all available contexts
+    // Build the enhanced context
     let enhancedContext = promptText;
     let imageBase64 = null;
     let imageContext = '';
@@ -61,7 +60,9 @@ serve(async (req) => {
     }
     
     // Add smart context if available
+    let smartContext = '';
     if (smartContextData?.context) {
+      smartContext = smartContextData.context;
       enhancedContext = `${enhancedContext}\n\nADDITIONAL CONTEXT:\n${smartContextData.context}`;
     }
     
@@ -75,13 +76,14 @@ serve(async (req) => {
       throw new Error("OpenAI API key is not configured");
     }
 
+    // Get AI analysis with all context
     const { content } = await analyzePromptWithAI(
       enhancedContext,
       systemPrompt,
       apiKey,
-      smartContextData?.context || "",
+      smartContext,
       imageBase64,
-      model // Pass the model parameter to the API call
+      model
     );
 
     let parsedContent;
@@ -92,8 +94,10 @@ serve(async (req) => {
       throw new Error(`Invalid response format: ${error.message}`);
     }
 
-    // Extract or generate questions based on the AI response and template
-    let questions;
+    // Extract or generate questions and variables based on the AI response
+    let questions = [];
+    let variables = [];
+
     if (Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0) {
       questions = extractQuestions(content, enhancedContext);
     } else {
@@ -101,13 +105,17 @@ serve(async (req) => {
       questions = generateContextQuestionsForPrompt(enhancedContext, template);
     }
     
-    // Extract or generate variables based on the AI response and template
-    let variables;
+    // Enhanced variable extraction with context awareness
     if (Array.isArray(parsedContent?.variables) && parsedContent.variables.length > 0) {
       variables = extractVariables(content, enhancedContext);
     } else {
-      console.log("No variables in AI response, generating from template");
-      variables = generateContextualVariablesForPrompt(enhancedContext, template);
+      console.log("No variables in AI response, generating from context");
+      variables = generateContextualVariablesForPrompt(
+        enhancedContext,
+        template,
+        parsedContent?.imageAnalysis || null,
+        smartContextData
+      );
     }
     
     const masterCommand = extractMasterCommand(content);
