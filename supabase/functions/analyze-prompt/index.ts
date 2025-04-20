@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -67,15 +68,21 @@ serve(async (req) => {
       console.log("Processing image data with validation");
       
       if (Array.isArray(imageData) && imageData.length > 0 && imageData[0]?.base64) {
-        imageBase64 = imageData[0].base64.replace(/^data:image\/[a-z]+;base64,/, '');
-        imageContext = imageData[0].context || '';
-        enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT: ${imageContext}`;
-        console.log("Successfully processed image data:", {
-          hasBase64: !!imageBase64,
-          base64Length: imageBase64 ? imageBase64.length : 0,
-          hasContext: !!imageContext,
-          contextLength: imageContext.length
-        });
+        try {
+          imageBase64 = imageData[0].base64.replace(/^data:image\/[a-z]+;base64,/, '');
+          imageContext = imageData[0].context || '';
+          enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT: ${imageContext}`;
+          console.log("Successfully processed image data:", {
+            hasBase64: !!imageBase64,
+            base64Length: imageBase64 ? imageBase64.length : 0,
+            hasContext: !!imageContext,
+            contextLength: imageContext.length
+          });
+        } catch (imageErr) {
+          console.error("Error processing image:", imageErr);
+          imageBase64 = null;
+          imageContext = '';
+        }
       } else {
         console.log("Image data validation failed:", {
           isArray: Array.isArray(imageData),
@@ -123,13 +130,21 @@ serve(async (req) => {
       });
     } catch (error) {
       console.error("Failed to parse content:", error);
-      throw new Error(`Invalid response format: ${error.message}`);
+      // Provide fallback content when parsing fails
+      parsedContent = {
+        questions: [],
+        variables: [],
+        masterCommand: "",
+        enhancedPrompt: enhancedContext,
+        error: error.message
+      };
     }
 
-    // Prefer AI-generated questions when they're available and focus on user intent
+    // Check if we need to use fallback questions
     let questions = [];
+    const useAIQuestions = Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0;
     
-    if (Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0) {
+    if (useAIQuestions) {
       // Check if the questions are focused on intent rather than just pillars
       const directPillarQuestions = parsedContent.questions.filter(q => 
         q.text.includes("regarding") && template?.pillars?.some(p => q.text.includes(p.title))
@@ -200,13 +215,19 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in analyze-prompt function:', error);
+    
+    // Return a more graceful error response
     return new Response(
       JSON.stringify({ 
         error: error.message,
         stack: error.stack,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        questions: [],
+        variables: [],
+        masterCommand: "",
+        enhancedPrompt: ""
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   }
 });

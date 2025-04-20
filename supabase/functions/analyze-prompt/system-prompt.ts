@@ -40,16 +40,25 @@ Image Analysis Guidelines:
 1. Only analyze aspects specifically requested by the user
 2. Provide clear, factual descriptions of requested elements
 3. Focus on describing what exists, not suggesting changes
-4. Keep descriptions objective and detailed`;
+4. Keep descriptions objective and detailed
+
+Error Handling:
+If you encounter any errors or limitations in processing the request, still return a valid JSON object with empty arrays for questions and variables rather than failing completely.`;
 
   // Add template-specific instructions
   if (template && Array.isArray(template.pillars) && template.pillars.length > 0) {
     systemPrompt += `\n\nTemplate Pillars (use these for question categories):\n`;
-    template.pillars.forEach((pillar: any) => {
-      if (pillar && pillar.title && pillar.description) {
-        systemPrompt += `\n- "${pillar.title}": ${pillar.description}\n`;
-      }
-    });
+    try {
+      template.pillars.forEach((pillar: any) => {
+        if (pillar && pillar.title && pillar.description) {
+          systemPrompt += `\n- "${pillar.title}": ${pillar.description}\n`;
+        }
+      });
+    } catch (error) {
+      console.error("Error processing template pillars:", error);
+      // Add a fallback pillar if there's an error
+      systemPrompt += `\n- "General": General questions about the prompt\n`;
+    }
   }
 
   // Add toggle-specific focus

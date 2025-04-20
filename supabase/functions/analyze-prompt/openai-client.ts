@@ -1,3 +1,4 @@
+
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -24,13 +25,25 @@ export async function analyzePromptWithAI(
     let imageInstructions = null;
     
     if (imageBase64) {
-      cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '').replace(/\s/g, '');
-      
-      // Extract user's analysis instructions from the prompt
-      const instructionsMatch = promptText.match(/Image Analysis Instructions:\s*([^]*?)(?:\n\n|$)/i);
-      imageInstructions = instructionsMatch ? instructionsMatch[1].trim() : null;
-      
-      console.log("Image analysis instructions detected:", imageInstructions);
+      try {
+        cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '').replace(/\s/g, '');
+        
+        // Extract user's analysis instructions from the prompt
+        const instructionsMatch = promptText.match(/Image Analysis Instructions:\s*([^]*?)(?:\n\n|$)/i);
+        imageInstructions = instructionsMatch ? instructionsMatch[1].trim() : null;
+        
+        // Validate base64 string
+        const isValidBase64 = /^[A-Za-z0-9+/=]+$/.test(cleanBase64);
+        if (!isValidBase64) {
+          console.error("Invalid base64 string for image");
+          cleanBase64 = null; // Don't use the invalid image
+        } else {
+          console.log("Image analysis instructions detected:", imageInstructions);
+        }
+      } catch (error) {
+        console.error("Error processing image data:", error);
+        cleanBase64 = null; // Reset on error
+      }
     }
     
     let userContent: string | Array<any>;
@@ -85,6 +98,26 @@ export async function analyzePromptWithAI(
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`OpenAI API error (${response.status}):`, errorText);
+      
+      // Provide a fallback response for common error scenarios
+      if (response.status === 413 || response.status === 429 || response.status === 400) {
+        console.log("Providing fallback response due to API error");
+        return {
+          content: JSON.stringify({
+            questions: [],
+            variables: [],
+            masterCommand: "",
+            enhancedPrompt: promptText,
+            error: `API Error (${response.status}): ${errorText.substring(0, 100)}`
+          }),
+          usage: {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0
+          }
+        };
+      }
+      
       throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
     }
 
@@ -98,6 +131,21 @@ export async function analyzePromptWithAI(
     
   } catch (error) {
     console.error("Error in analyzePromptWithAI:", error);
-    throw error;
+    
+    // Provide a fallback response for unhandled errors
+    return {
+      content: JSON.stringify({
+        questions: [],
+        variables: [],
+        masterCommand: "",
+        enhancedPrompt: promptText,
+        error: `Error: ${error.message || "Unknown error occurred"}`
+      }),
+      usage: {
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0
+      }
+    };
   }
 }
