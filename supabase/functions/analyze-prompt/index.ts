@@ -33,6 +33,7 @@ serve(async (req) => {
     console.log("Request received with:", {
       promptLength: promptText?.length,
       hasImageData: !!imageData,
+      imageDataLength: imageData?.length,
       hasSmartContext: !!smartContextData?.context,
       hasWebsiteData: !!websiteData?.url,
       templateName: template?.name || 'none',
@@ -48,12 +49,11 @@ serve(async (req) => {
     const isPromptSimple = promptText.length < 50 || promptText.split(' ').length < 10;
     console.log(`Prompt simplicity check: ${isPromptSimple ? 'Simple prompt' : 'Complex prompt'}`);
 
-    // Validate template structure
-    if (!template || !template.pillars || !Array.isArray(template.pillars) || template.pillars.length === 0) {
-      console.log("Warning: Invalid or missing template structure", template);
-    } else {
-      console.log(`Template has ${template.pillars.length} pillars:`, 
-        template.pillars.map((p: any) => p.title || "Unnamed").join(", "));
+    // Enhanced image data validation
+    let hasValidImageData = false;
+    if (Array.isArray(imageData) && imageData.length > 0) {
+      hasValidImageData = imageData.some(img => img && img.base64 && img.context);
+      console.log(`Image data validation: ${hasValidImageData ? 'Valid' : 'Invalid'}`);
     }
 
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
@@ -63,14 +63,18 @@ serve(async (req) => {
     let imageBase64 = null;
     let imageContext = '';
     
-    // Process image data with enhanced validation
+    // Enhanced image processing with better logging
     if (imageData) {
-      console.log("Processing image data");
+      console.log("Processing image data with validation");
       
       if (Array.isArray(imageData) && imageData.length > 0 && imageData[0]?.base64) {
         imageBase64 = imageData[0].base64.replace(/^data:image\/[a-z]+;base64,/, '');
         imageContext = imageData[0].context || '';
         enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT: ${imageContext}`;
+        console.log("Successfully processed image data:", {
+          hasBase64: !!imageBase64,
+          hasContext: !!imageContext
+        });
       }
     }
     
@@ -111,47 +115,31 @@ serve(async (req) => {
       throw new Error(`Invalid response format: ${error.message}`);
     }
 
-    // For simple prompts, ONLY generate variables, not questions
+    // Generate questions based on context and complexity
     let questions = [];
-    if (!isPromptSimple && template && template.pillars && Array.isArray(template.pillars) && template.pillars.length > 0) {
-      console.log("Generating questions from template pillars");
-      questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, parsedContent?.imageAnalysis);
-      console.log(`Generated ${questions.length} questions from template pillars`);
-    } 
-    // Only use AI-generated questions for complex prompts and as fallback
-    else if (!isPromptSimple && Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0) {
-      console.log("Using AI-generated questions as fallback");
-      questions = extractQuestions(content, enhancedContext);
+    const shouldGenerateQuestions = !isPromptSimple || hasValidImageData;
+    
+    if (shouldGenerateQuestions) {
+      console.log("Generating questions with context");
+      if (template && template.pillars && Array.isArray(template.pillars) && template.pillars.length > 0) {
+        questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, parsedContent?.imageAnalysis);
+      } else if (Array.isArray(parsedContent?.questions)) {
+        questions = extractQuestions(content, enhancedContext);
+      }
+      console.log(`Generated ${questions.length} questions`);
     } else {
-      console.log("Simple prompt or no template - not generating questions");
-      questions = [];
+      console.log("Skipping question generation for simple prompt");
     }
     
-    // Always generate variables, with single word answers for simple prompts
-    let variables = [];
-    if (isPromptSimple) {
-      console.log("Simple prompt detected - generating concise single-word variables");
-      // For simple prompts, generate more concise variables with single-word values
-      variables = generateContextualVariablesForPrompt(
-        enhancedContext,
-        template,
-        parsedContent?.imageAnalysis || null,
-        smartContextData,
-        true // Flag to indicate we want concise, single-word variables
-      );
-    } else if (Array.isArray(parsedContent?.variables) && parsedContent.variables.length > 0) {
-      console.log("Extracting variables from AI response");
-      variables = extractVariables(content, enhancedContext);
-    } else {
-      console.log("Generating variables from context");
-      variables = generateContextualVariablesForPrompt(
-        enhancedContext,
-        template,
-        parsedContent?.imageAnalysis || null,
-        smartContextData
-      );
-    }
-    
+    // Always generate variables with appropriate complexity
+    let variables = generateContextualVariablesForPrompt(
+      enhancedContext,
+      template,
+      parsedContent?.imageAnalysis,
+      smartContextData,
+      isPromptSimple && !hasValidImageData // Flag for concise variables
+    );
+
     const masterCommand = extractMasterCommand(content);
     const enhancedPrompt = extractEnhancedPrompt(content);
 
@@ -159,7 +147,9 @@ serve(async (req) => {
       questionsCount: questions.length,
       variablesCount: variables.length,
       hasMasterCommand: !!masterCommand,
-      hasEnhancedPrompt: !!enhancedPrompt
+      hasEnhancedPrompt: !!enhancedPrompt,
+      isPromptSimple,
+      hasValidImageData
     });
 
     return new Response(
@@ -174,7 +164,8 @@ serve(async (req) => {
           model,
           templateUsed: template?.name || "none",
           pillarsCount: template?.pillars?.length || 0,
-          isPromptSimple
+          isPromptSimple,
+          hasValidImageData
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

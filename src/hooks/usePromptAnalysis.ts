@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -33,7 +32,6 @@ export const usePromptAnalysis = (
     setCurrentLoadingMessage("Analyzing your prompt...");
 
     try {
-      // Get the current template - CRITICAL for question generation
       const currentTemplate = getCurrentTemplate();
       console.log("Using template for question generation:", {
         templateId: currentTemplate?.id,
@@ -41,17 +39,15 @@ export const usePromptAnalysis = (
         pillarsCount: currentTemplate?.pillars?.length || 0
       });
 
-      // Template validation
-      if (!currentTemplate || !currentTemplate.pillars || !Array.isArray(currentTemplate.pillars) || currentTemplate.pillars.length === 0) {
+      if (!currentTemplate || !currentTemplate.pillars || !Array.isArray(currentTemplate.pillars)) {
         console.warn("Invalid template structure:", currentTemplate);
         toast({
-          title: "Template warning",
-          description: "The selected template may not be properly configured. Questions might not be generated correctly.",
-          variant: "default" // Changed from "warning" to "default"
+          title: "Template issue",
+          description: "The template configuration might affect question generation.",
+          variant: "default"
         });
       }
 
-      // Add more robust input validation
       if (!promptText?.trim()) {
         throw new Error("Prompt text is required");
       }
@@ -59,6 +55,11 @@ export const usePromptAnalysis = (
       console.log("Calling analyze-prompt edge function with:", {
         promptLength: promptText.length,
         hasImages: !!uploadedImages && uploadedImages.length > 0,
+        imagesData: uploadedImages?.map(img => ({
+          id: img.id,
+          hasBase64: !!img.base64,
+          hasContext: !!img.context
+        })),
         hasSmartContext: !!smartContext?.context,
         hasWebsiteContext: !!websiteContext?.url,
         model: "gpt-4o"
@@ -71,10 +72,10 @@ export const usePromptAnalysis = (
           secondaryToggle: selectedSecondary,
           userId: user?.id || null,
           promptId: currentPromptId,
-          websiteData: websiteContext || null,
+          websiteData: websiteContext,
           imageData: uploadedImages,
-          smartContextData: smartContext || null,
-          template: currentTemplate, // Passing the full template is critical
+          smartContextData: smartContext,
+          template: currentTemplate,
           model: "gpt-4o"
         },
       });
@@ -104,46 +105,28 @@ export const usePromptAnalysis = (
         questionsCount: data.questions?.length || 0,
         hasVariables: Array.isArray(data.variables),
         variablesCount: data.variables?.length || 0,
-        hasMasterCommand: !!data.masterCommand,
-        hasEnhancedPrompt: !!data.enhancedPrompt,
         debug: data.debug
       });
 
-      // Process questions to ensure they're valid and based on template pillars
       if (Array.isArray(data.questions) && data.questions.length > 0) {
-        const processedQuestions = data.questions.map((q: any) => ({
-          id: q.id || `q-${Math.random()}`,
-          text: q.text || "",
-          answer: q.answer || "",
-          isRelevant: q.isRelevant === null ? true : Boolean(q.isRelevant), // Default to true for template questions
-          category: q.category || "General"
-        }));
-        console.log(`Setting ${processedQuestions.length} processed questions from template pillars`);
-        setQuestions(processedQuestions);
-      } else {
-        console.warn("No questions in analysis result");
+        console.log(`Setting ${data.questions.length} questions`);
+        setQuestions(data.questions);
+      } else if (data.debug?.hasValidImageData || !data.debug?.isPromptSimple) {
+        console.warn("No questions generated for complex prompt or image data");
         toast({
-          title: "Template issue",
-          description: "Could not generate questions from the selected template. Please try a different template.",
-          variant: "default" // Changed from "warning" to "default"
+          title: "Analysis note",
+          description: "Could not generate relevant questions. You can still proceed with variables.",
+          variant: "default"
         });
         setQuestions([]);
-        setIsLoading(false);
-        return; // Stop here as we need questions to proceed
+      } else {
+        console.log("No questions needed for simple prompt");
+        setQuestions([]);
       }
 
-      // Process variables to ensure they're valid
       if (Array.isArray(data.variables)) {
-        const processedVariables = data.variables.map((v: any, index: number) => ({
-          id: v.id || `var-${index + 1}`,
-          name: v.name || `Variable ${index + 1}`,
-          value: v.value || "",
-          isRelevant: v.isRelevant === null ? true : Boolean(v.isRelevant),
-          category: v.category || "General",
-          code: v.code || `VAR_${index + 1}`
-        }));
-        console.log(`Setting ${processedVariables.length} processed variables`);
-        setVariables(processedVariables);
+        console.log(`Setting ${data.variables.length} variables`);
+        setVariables(data.variables);
       } else {
         console.warn("No variables in analysis result");
         setVariables([]);
@@ -152,15 +135,15 @@ export const usePromptAnalysis = (
       setMasterCommand(data.masterCommand || "");
       setFinalPrompt(data.enhancedPrompt || "");
 
-      // Only proceed to step 2 if we have valid questions from the template
-      if (Array.isArray(data.questions) && data.questions.length > 0) {
+      // Only proceed to step 2 if we have valid content
+      if ((data.questions && data.questions.length > 0) || (data.variables && data.variables.length > 0)) {
         console.log("Analysis successful, moving to step 2");
         setCurrentStep(2);
       } else {
-        console.warn("Not moving to step 2 - no valid questions from template");
+        console.warn("Not enough content to proceed to step 2");
         toast({
           title: "Analysis incomplete",
-          description: "Could not generate questions from the selected template. Please try a different template.",
+          description: "Could not generate enough content from your prompt. Please try adding more details.",
           variant: "destructive",
         });
       }
