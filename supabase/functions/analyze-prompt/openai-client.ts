@@ -34,6 +34,11 @@ export async function analyzePromptWithAI(
         imageBase64 = imageBase64.split(',')[1];
         console.log("Cleaned base64 string for image analysis");
       }
+
+      // Validate base64 format
+      if (!/^[A-Za-z0-9+/=]+$/.test(imageBase64)) {
+        throw new Error("Invalid base64 format");
+      }
       
       const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -73,8 +78,8 @@ export async function analyzePromptWithAI(
               ]
             }
           ],
-          max_tokens: 1000, // Limit response size
-          temperature: 0.3, // More deterministic responses
+          max_tokens: 1000,
+          temperature: 0.3,
           response_format: { type: "json_object" }
         }),
       });
@@ -110,8 +115,7 @@ export async function analyzePromptWithAI(
       }
     } catch (error) {
       console.error("Error in image analysis:", error);
-      // Continue without image analysis rather than failing completely
-      console.log("Proceeding without image analysis");
+      throw new Error(`Image analysis failed: ${error.message}`);
     }
   }
 
@@ -192,3 +196,4 @@ export async function analyzePromptWithAI(
     throw error;
   }
 }
+
