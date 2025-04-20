@@ -2,15 +2,13 @@ import { Question, Variable } from '../types.ts';
 
 /**
  * Generates context-specific questions based on the template pillars
- * @param promptText The original prompt text
- * @param template The template with pillars to use for generating questions
- * @returns An array of questions organized by pillar categories
  */
 export function generateContextQuestionsForPrompt(
   promptText: string,
-  template: any = null
+  template: any = null,
+  smartContext: any = null,
+  imageAnalysis: any = null
 ): Question[] {
-  // Validate template structure before proceeding
   if (!template || !template.pillars || !Array.isArray(template.pillars) || template.pillars.length === 0) {
     console.log("No valid template found, using default questions");
     return generateDefaultQuestions(promptText);
@@ -21,7 +19,7 @@ export function generateContextQuestionsForPrompt(
 
   console.log(`Generating questions based on ${template.pillars.length} pillars from template: ${template.name}`);
   
-  // Generate 3-4 questions per pillar based on the pillar description
+  // Generate up to 3 questions per pillar
   template.pillars.forEach((pillar: any) => {
     if (!pillar || !pillar.title || !pillar.description) {
       console.log("Skipping invalid pillar", pillar);
@@ -33,7 +31,7 @@ export function generateContextQuestionsForPrompt(
     
     console.log(`Generating questions for pillar: ${pillarTitle}`);
     
-    // Generate questions specific to this pillar using its description for context
+    // Generate up to 3 focused questions per pillar
     const pillarQuestions = generateQuestionsForPillar(
       promptText,
       pillarTitle,
@@ -41,23 +39,18 @@ export function generateContextQuestionsForPrompt(
       questionIdCounter
     );
     
-    console.log(`Generated ${pillarQuestions.length} questions for pillar ${pillarTitle}`);
-    
     questions.push(...pillarQuestions);
     questionIdCounter += pillarQuestions.length;
   });
 
-  // If we couldn't generate any questions from pillars, fall back to defaults
-  if (questions.length === 0) {
-    console.log("Failed to generate pillar-based questions, using defaults");
-    return generateDefaultQuestions(promptText);
-  }
+  // Pre-fill answers based on available context
+  const prefilledQuestions = prefillQuestionAnswers(questions, promptText, smartContext, imageAnalysis);
 
-  return questions;
+  return prefilledQuestions;
 }
 
 /**
- * Generate questions for a specific pillar based on its description
+ * Generate up to 3 focused questions for a specific pillar
  */
 function generateQuestionsForPillar(
   promptText: string,
@@ -65,58 +58,49 @@ function generateQuestionsForPillar(
   pillarDescription: string,
   startId: number
 ): Question[] {
-  // Extract key focus areas from the pillar description
-  const focusAreas = extractFocusAreasFromDescription(pillarDescription);
-  console.log(`Extracted focus areas for ${pillarTitle}:`, focusAreas);
-  
-  // Generate 3-4 questions based on the pillar focus
+  // Extract key aspects from pillar description
+  const keyAspects = extractKeyAspects(pillarDescription);
   const questions: Question[] = [];
-  const questionsToGenerate = Math.min(Math.max(focusAreas.length + 1, 3), 4);
   
-  // Basic question templates that can be adapted for different pillars
+  // Generate a maximum of 3 questions
+  const maxQuestions = Math.min(3, keyAspects.length + 1);
+  
+  // Question templates mapped to pillar types
   const questionTemplates = {
     "Task": [
-      "What is the main {focus} you want to achieve?",
-      "How would you define the scope of the {focus}?",
-      "What are the key deliverables for this {focus}?",
-      "What does success look like for this {focus}?"
+      "What specific {aspect} needs to be achieved?",
+      "How would you define the scope of the {aspect}?",
+      "What are the key deliverables for the {aspect}?"
     ],
     "Persona": [
-      "Who is the target audience for this {focus}?",
-      "What role or perspective should be adopted for the {focus}?",
-      "What level of expertise should be demonstrated in the {focus}?",
-      "How would you describe the ideal voice for this {focus}?"
+      "Who is the target audience for the {aspect}?",
+      "What role should be adopted for the {aspect}?",
+      "What expertise level is needed for the {aspect}?"
     ],
     "Conditions": [
-      "What tone or style should be used for the {focus}?",
-      "Are there any specific constraints for the {focus}?",
-      "What is the desired length or format for the {focus}?",
-      "What mood or emotional impact should the {focus} have?"
+      "What style should be used for the {aspect}?",
+      "Are there specific constraints for the {aspect}?",
+      "What is the desired format for the {aspect}?"
     ],
     "Instructions": [
-      "What specific steps or processes should be included in the {focus}?",
-      "How should the {focus} be structured or organized?",
-      "What methodology should be used for the {focus}?",
-      "What guidance is needed for implementing the {focus}?"
+      "What steps are needed for the {aspect}?",
+      "How should the {aspect} be structured?",
+      "What methods should be used for the {aspect}?"
     ]
   };
   
-  // Choose the right question template category based on pillar title
   const templateCategory = Object.keys(questionTemplates).find(
-    category => pillarTitle.toLowerCase().includes(category.toLowerCase()) || 
-               category.toLowerCase().includes(pillarTitle.toLowerCase())
+    category => pillarTitle.toLowerCase().includes(category.toLowerCase())
   ) || "Task";
   
-  const selectedTemplates = questionTemplates[templateCategory];
+  const templates = questionTemplates[templateCategory];
   
-  for (let i = 0; i < questionsToGenerate; i++) {
-    const focus = i < focusAreas.length ? focusAreas[i] : pillarTitle.toLowerCase();
-    const template = selectedTemplates[i % selectedTemplates.length];
-    const text = template.replace('{focus}', focus);
-    
+  for (let i = 0; i < maxQuestions; i++) {
+    const aspect = keyAspects[i] || pillarTitle.toLowerCase();
+    const template = templates[i % templates.length];
     questions.push({
       id: `q-${startId + i}`,
-      text,
+      text: template.replace('{aspect}', aspect),
       answer: "",
       isRelevant: null,
       category: pillarTitle
@@ -127,36 +111,129 @@ function generateQuestionsForPillar(
 }
 
 /**
- * Extract key focus areas from a pillar description
+ * Extract key aspects from a pillar description
  */
-function extractFocusAreasFromDescription(description: string): string[] {
-  // Split description into sentences
-  const sentences = description.split(/[.!?]/).filter(s => s.trim().length > 0);
+function extractKeyAspects(description: string): string[] {
+  const sentences = description.split(/[.!?]/).filter(s => s.trim());
+  const keyPhrases = [];
   
-  // Extract key nouns and phrases
-  const focusAreas: string[] = [];
+  const stopwords = ['the', 'a', 'an', 'is', 'are', 'and', 'or', 'to', 'that', 'this'];
   
-  sentences.forEach(sentence => {
+  for (const sentence of sentences) {
     const words = sentence.trim().split(/\s+/);
-    
-    // Look for important words by avoiding common words/stopwords
-    const stopwords = ['the', 'a', 'an', 'is', 'are', 'and', 'or', 'to', 'that', 'this', 'in', 'for', 'with', 'by', 'on', 'as', 'it', 'be', 'not', 'of'];
     const keyWords = words.filter(word => 
       word.length > 3 && !stopwords.includes(word.toLowerCase())
     );
     
     if (keyWords.length > 0) {
-      // Use up to 3 consecutive words as a focus area
-      const focusPhrase = keyWords.slice(0, Math.min(3, keyWords.length)).join(' ').toLowerCase();
-      if (focusPhrase && !focusAreas.includes(focusPhrase)) {
-        focusAreas.push(focusPhrase);
+      const phrase = keyWords.slice(0, 2).join(' ').toLowerCase();
+      if (!keyPhrases.includes(phrase)) {
+        keyPhrases.push(phrase);
       }
     }
-  });
+  }
   
-  return focusAreas.slice(0, 4); // Return up to 4 focus areas
+  return keyPhrases.slice(0, 3);
 }
 
+/**
+ * Pre-fill question answers based on available context
+ */
+function prefillQuestionAnswers(
+  questions: Question[],
+  promptText: string,
+  smartContext: any,
+  imageAnalysis: any
+): Question[] {
+  return questions.map(question => {
+    const q = { ...question };
+    
+    // Try to match question with smart context
+    if (smartContext?.context) {
+      const contextMatch = findContextMatch(q.text, smartContext.context);
+      if (contextMatch) {
+        q.answer = formatContextAnswer(contextMatch);
+        q.contextSource = "smartContext";
+      }
+    }
+    
+    // Try to match with image analysis if no smart context match
+    if (!q.answer && imageAnalysis) {
+      const imageMatch = findImageMatch(q.text, imageAnalysis);
+      if (imageMatch) {
+        q.answer = formatImageAnswer(imageMatch);
+        q.contextSource = "image";
+      }
+    }
+    
+    return q;
+  });
+}
+
+/**
+ * Find matching context for a question
+ */
+function findContextMatch(questionText: string, context: string): string | null {
+  // Convert question to keywords
+  const keywords = questionText.toLowerCase()
+    .replace(/[?.!]/g, '')
+    .split(' ')
+    .filter(word => word.length > 3);
+    
+  // Look for context segments that match multiple keywords
+  const contextSegments = context.split(/[.!?]\s+/);
+  
+  for (const segment of contextSegments) {
+    const segmentLower = segment.toLowerCase();
+    const matchingKeywords = keywords.filter(keyword => 
+      segmentLower.includes(keyword)
+    );
+    
+    if (matchingKeywords.length >= 2) {
+      return segment.trim();
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Format context answer into a concise paragraph
+ */
+function formatContextAnswer(context: string): string {
+  // Limit to ~100 words
+  const words = context.split(/\s+/);
+  const limitedWords = words.slice(0, 100);
+  let formattedAnswer = limitedWords.join(' ');
+  
+  // Add ellipsis if truncated
+  if (words.length > 100) {
+    formattedAnswer += '...';
+  }
+  
+  return formattedAnswer;
+}
+
+/**
+ * Find matching information from image analysis
+ */
+function findImageMatch(questionText: string, imageAnalysis: any): string | null {
+  // Implementation specific to your image analysis structure
+  return null;
+}
+
+/**
+ * Format image-based answer
+ */
+function formatImageAnswer(imageInfo: string): string {
+  return `Based on image analysis: ${imageInfo}`;
+}
+
+import { Question, Variable } from '../types.ts';
+
+/**
+ * Generates context-specific variables for prompt analysis.
+ */
 function generateContextualVariablesForPrompt(
   promptText: string,
   template: any = null,
