@@ -23,6 +23,68 @@ export async function analyzePromptWithAI(
     promptText
   };
   
+  // Process image if available
+  if (imageBase64) {
+    console.log("Analyzing image with gpt-4o...");
+    try {
+      const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: `Analyze this image and extract detailed structured information in JSON format. Include:
+              - description: Comprehensive description of the image
+              - subjects: Main subjects/elements with detailed attributes
+              - style: Visual style characteristics, colors, composition
+              - technical: Resolution, quality, lighting, perspective
+              - context: Mood, setting, intended purpose
+              - potential_use: Suggested applications or uses
+              Return ONLY valid JSON with these exact fields.`
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: "text",
+                  text: "Analyze this image in detail:"
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:image/jpeg;base64,${imageBase64}`
+                  }
+                }
+              ]
+            }
+          ],
+          response_format: { type: "json_object" }
+        }),
+      });
+
+      const analysisData = await imageAnalysisResponse.json();
+      console.log("Raw image analysis response:", analysisData);
+      
+      if (analysisData.choices?.[0]?.message?.content) {
+        try {
+          structuredContext.imageAnalysis = JSON.parse(analysisData.choices[0].message.content);
+          console.log("Structured image analysis:", structuredContext.imageAnalysis);
+        } catch (parseError) {
+          console.error("Failed to parse image analysis JSON:", parseError);
+          structuredContext.imageAnalysis = { error: "Failed to parse analysis" };
+        }
+      }
+    } catch (error) {
+      console.error("Error analyzing image:", error);
+      structuredContext.imageAnalysis = { error: "Failed to analyze image" };
+    }
+  }
+
   // Process smart context first if available
   if (smartContext) {
     console.log("Processing smart context for enhanced analysis");
@@ -68,65 +130,6 @@ export async function analyzePromptWithAI(
       console.error("Error processing smart context:", error);
     }
   }
-  
-  // Process image if available
-  if (imageBase64) {
-    console.log("Analyzing image with gpt-4o...");
-    try {
-      const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: `Analyze this image and extract structured information in JSON format. Include:
-              - description: Detailed description of the image
-              - subjects: Main subjects/elements in the image
-              - style: Visual style and characteristics
-              - technical: Technical aspects (resolution, quality, etc)
-              - context: Any contextual information that might be relevant
-              Return ONLY valid JSON.`
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: "text",
-                  text: "Analyze this image in detail:"
-                },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: `data:image/jpeg;base64,${imageBase64}`
-                  }
-                }
-              ]
-            }
-          ],
-          response_format: { type: "json_object" }
-        }),
-      });
-
-      const analysisData = await imageAnalysisResponse.json();
-      if (analysisData.choices?.[0]?.message?.content) {
-        try {
-          structuredContext.imageAnalysis = JSON.parse(analysisData.choices[0].message.content);
-          console.log("Structured image analysis:", structuredContext.imageAnalysis);
-        } catch (parseError) {
-          console.error("Failed to parse image analysis JSON:", parseError);
-          structuredContext.imageAnalysis = { error: "Failed to parse analysis" };
-        }
-      }
-    } catch (error) {
-      console.error("Error analyzing image:", error);
-      structuredContext.imageAnalysis = { error: "Failed to analyze image" };
-    }
-  }
 
   // Build comprehensive context with metadata for better question pre-filling
   const enhancedContext = {
@@ -143,12 +146,12 @@ export async function analyzePromptWithAI(
       } : null
     },
     instructions: {
-      primary: "Generate comprehensive questions and pre-fill answers using available context",
+      primary: "Generate comprehensive questions and pre-fill answers using all available context",
       format: "Return valid JSON with questions array, variables array, masterCommand, and enhancedPrompt"
     },
     metadata: {
-      hasSmartContext: !!structuredContext.smartContext,
-      hasImageAnalysis: !!structuredContext.imageAnalysis
+      hasImageAnalysis: !!structuredContext.imageAnalysis && !structuredContext.imageAnalysis.error,
+      hasSmartContext: !!structuredContext.smartContext
     }
   };
 

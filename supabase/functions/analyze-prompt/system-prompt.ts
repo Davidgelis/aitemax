@@ -10,7 +10,7 @@ CONTEXT ANALYSIS RULES:
 1. Thoroughly analyze all provided context sources in the input JSON:
    - User's original prompt
    - Smart context data (structured JSON with key_points, technical_details, preferences, constraints)
-   - Image analysis results (if available)
+   - Image analysis results (if available - including description, subjects, style, technical details)
 2. Extract key information and intent from each context source
 3. Look for implicit requirements and connections between contexts
 4. Map context data to appropriate question categories
@@ -33,6 +33,11 @@ QUESTION GENERATION AND PRE-FILLING RULES:
      - "(from prompt)" for prompt-derived answers
 5. Ensure each pre-filled answer includes specific data points from the context
 6. Validate pre-filled answers against context data
+7. IMPORTANT: When image analysis is available, use its data to pre-fill relevant questions about:
+   - Visual style and characteristics
+   - Subject matter and composition
+   - Technical aspects
+   - Contextual elements
 
 OUTPUT FORMAT:
 You MUST return a valid JSON object with this exact structure:
@@ -44,7 +49,7 @@ You MUST return a valid JSON object with this exact structure:
       "text": string,
       "answer": string (must start with "PRE-FILLED: " if pre-filled, must include source suffix),
       "isRelevant": boolean,
-      "contextSource": string (optional, indicates which context source was used)
+      "contextSource": string (indicate which context source was used)
     }
   ],
   "variables": [],
