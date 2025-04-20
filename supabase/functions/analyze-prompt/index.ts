@@ -73,8 +73,15 @@ serve(async (req) => {
         enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT: ${imageContext}`;
         console.log("Successfully processed image data:", {
           hasBase64: !!imageBase64,
+          base64Length: imageBase64 ? imageBase64.length : 0,
           hasContext: !!imageContext,
           contextLength: imageContext.length
+        });
+      } else {
+        console.log("Image data validation failed:", {
+          isArray: Array.isArray(imageData),
+          length: Array.isArray(imageData) ? imageData.length : 0,
+          firstItemHasBase64: Array.isArray(imageData) && imageData.length > 0 ? !!imageData[0]?.base64 : false
         });
       }
     }
@@ -112,6 +119,7 @@ serve(async (req) => {
       parsedContent = JSON.parse(content);
       console.log("Successfully parsed JSON response", {
         hasImageAnalysis: !!parsedContent.imageAnalysis,
+        imageAnalysisFields: parsedContent.imageAnalysis ? Object.keys(parsedContent.imageAnalysis).join(", ") : "none",
         hasQuestions: !!parsedContent.questions
       });
     } catch (error) {
@@ -163,7 +171,8 @@ serve(async (req) => {
       hasMasterCommand: !!masterCommand,
       hasEnhancedPrompt: !!enhancedPrompt,
       isPromptSimple,
-      hasValidImageData
+      hasValidImageData,
+      imageAnalysisAvailable: !!parsedContent?.imageAnalysis
     });
 
     return new Response(

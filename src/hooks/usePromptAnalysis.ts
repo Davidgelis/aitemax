@@ -63,6 +63,7 @@ export const usePromptAnalysis = (
         imagesData: uploadedImages?.map(img => ({
           id: img.id,
           hasBase64: !!img.base64,
+          base64Length: img.base64 ? img.base64.length : 0,
           hasContext: !!img.context
         })),
         hasValidImageData,
@@ -123,7 +124,7 @@ export const usePromptAnalysis = (
         if (prefilledQuestions.length > 0) {
           console.log(`Setting ${data.questions.length} questions with ${prefilledQuestions.length} prefilled answers`);
           prefilledQuestions.forEach(q => 
-            console.log(`Prefilled Q: "${q.text.substring(0, 30)}..." with "${q.answer.substring(0, 30)}..."`));
+            console.log(`Prefilled Q: "${q.text.substring(0, 30)}..." with "${q.answer ? q.answer.substring(0, 30) : 'empty'}..."`));
         } else {
           console.log(`Setting ${data.questions.length} questions with no prefilled answers`);
         }
@@ -152,7 +153,7 @@ export const usePromptAnalysis = (
         if (prefilledVars.length > 0) {
           console.log(`Setting ${data.variables.length} variables with ${prefilledVars.length} prefilled values`);
           prefilledVars.forEach(v => 
-            console.log(`Prefilled Var: "${v.name}" with "${v.value.substring(0, 30)}..."`));
+            console.log(`Prefilled Var: "${v.name}" with "${v.value ? v.value.substring(0, 30) : 'empty'}..."`));
         } else {
           console.log(`Setting ${data.variables.length} variables with no prefilled values`);
         }

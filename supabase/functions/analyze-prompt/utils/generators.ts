@@ -92,7 +92,7 @@ function generateImageSpecificQuestions(imageAnalysis: any): Question[] {
     {
       id: "q-img-3",
       text: "What style or aesthetic does this image represent?",
-      answer: imageAnalysis?.style?.description || "",
+      answer: imageAnalysis?.style?.description || imageAnalysis?.artisticStyle || "",
       isRelevant: true,
       category: "Image Style",
       contextSource: "image"
@@ -270,6 +270,7 @@ function prefillQuestionAnswers(
   console.log("Prefilling question answers with available context", {
     hasSmartContext: !!smartContext?.context,
     hasImageAnalysis: !!imageAnalysis,
+    imageAnalysisFields: imageAnalysis ? Object.keys(imageAnalysis).join(", ") : "none",
     questionCount: questions.length
   });
   
@@ -292,7 +293,7 @@ function prefillQuestionAnswers(
       if (imageMatch) {
         q.answer = formatImageAnswer(imageMatch);
         q.contextSource = "image";
-        console.log(`Prefilled question "${q.text.substring(0, 30)}..." from image analysis`);
+        console.log(`Prefilled question "${q.text.substring(0, 30)}..." from image analysis with: "${q.answer.substring(0, 30)}..."`);
       }
     }
     
@@ -350,15 +351,21 @@ function formatContextAnswer(context: string): string {
 function findImageMatch(questionText: string, imageAnalysis: any): string | null {
   if (!imageAnalysis) return null;
   
+  console.log(`Finding image match for question: "${questionText.substring(0, 30)}..." with available fields: ${Object.keys(imageAnalysis).join(", ")}`);
+  
   const questionLower = questionText.toLowerCase();
   
   // Check for subject/content related questions
   if (questionLower.includes('subject') || 
       questionLower.includes('about') || 
       questionLower.includes('content') ||
-      questionLower.includes('element')) {
+      questionLower.includes('element') ||
+      questionLower.includes('object')) {
     if (imageAnalysis.subjects && imageAnalysis.subjects.length > 0) {
       return `The image contains: ${imageAnalysis.subjects.join(', ')}`;
+    }
+    if (imageAnalysis.mainSubject) {
+      return imageAnalysis.mainSubject;
     }
     if (imageAnalysis.description) {
       return imageAnalysis.description;
@@ -372,6 +379,9 @@ function findImageMatch(questionText: string, imageAnalysis: any): string | null
       questionLower.includes('aesthetic')) {
     if (imageAnalysis.style?.description) {
       return imageAnalysis.style.description;
+    }
+    if (imageAnalysis.artisticStyle) {
+      return imageAnalysis.artisticStyle;
     }
     if (imageAnalysis.style?.colors && imageAnalysis.style.colors.length > 0) {
       return `The image has a ${imageAnalysis.style.colors.join(', ')} color scheme`;
@@ -409,6 +419,7 @@ export function generateContextualVariablesForPrompt(
     promptLength: promptText?.length,
     hasTemplate: !!template,
     hasImageAnalysis: !!imageAnalysis,
+    imageAnalysisFields: imageAnalysis ? Object.keys(imageAnalysis).join(", ") : "none",
     hasSmartContext: !!smartContext?.context,
     isSimplePrompt: isSimple
   });
@@ -478,7 +489,7 @@ export function generateContextualVariablesForPrompt(
 
   // Prioritize image analysis prefilling if available
   if (imageAnalysis) {
-    console.log("Prefilling variables from image analysis");
+    console.log("Prefilling variables from image analysis with fields:", Object.keys(imageAnalysis).join(", "));
     prefillFromImageAnalysis(variables, imageAnalysis);
   }
 
@@ -511,15 +522,30 @@ function prefillFromImageAnalysis(variables: Variable[], analysis: any) {
     { analysisKey: "style.colors", varName: "Color Scheme", transform: (val: string[]) => val.join(", ") },
     { analysisKey: "subjects", varName: "Main Subject", transform: (val: string[]) => val.length > 0 ? val[0] : "" },
     { analysisKey: "style.description", varName: "Style/Aesthetic", transform: (val: string) => val },
+    { analysisKey: "artisticStyle", varName: "Style/Aesthetic", transform: (val: string) => val },
     { analysisKey: "format", varName: "Format/Medium", transform: (val: string) => val },
     { analysisKey: "dimensions", varName: "Dimensions/Size", transform: (val: any) => `${val.width}x${val.height}` },
     { analysisKey: "style.mood", varName: "Tone/Mood", transform: (val: string) => val },
-    { analysisKey: "quality", varName: "Resolution/Quality", transform: (val: string) => val }
+    { analysisKey: "mood", varName: "Tone/Mood", transform: (val: string) => val },
+    { analysisKey: "quality", varName: "Resolution/Quality", transform: (val: string) => val },
+    { analysisKey: "mainSubject", varName: "Main Subject", transform: (val: string) => val }
   ];
   
   mappings.forEach(mapping => {
     const variableToFill = variables.find(v => v.name === mapping.varName);
     if (!variableToFill) return;
+    
+    // Direct property access first for non-nested properties
+    if (!mapping.analysisKey.includes('.') && analysis[mapping.analysisKey]) {
+      try {
+        variableToFill.value = mapping.transform(analysis[mapping.analysisKey]);
+        variableToFill.contextSource = "image";
+        console.log(`Prefilled "${mapping.varName}" with "${variableToFill.value}" from image analysis (direct property)`);
+        return;
+      } catch (error) {
+        console.error(`Error transforming direct value for ${mapping.varName}:`, error);
+      }
+    }
     
     // Extract the value from potentially nested path
     const path = mapping.analysisKey.split('.');
@@ -533,7 +559,7 @@ function prefillFromImageAnalysis(variables: Variable[], analysis: any) {
       try {
         variableToFill.value = mapping.transform(value);
         variableToFill.contextSource = "image";
-        console.log(`Prefilled "${mapping.varName}" with "${variableToFill.value}" from image analysis`);
+        console.log(`Prefilled "${mapping.varName}" with "${variableToFill.value}" from image analysis (nested path)`);
       } catch (error) {
         console.error(`Error transforming value for ${mapping.varName}:`, error);
       }
@@ -546,6 +572,7 @@ function prefillFromImageAnalysis(variables: Variable[], analysis: any) {
     if (subjectVar) {
       subjectVar.value = analysis.description.split(' ').slice(0, 3).join(' ');
       subjectVar.contextSource = "image";
+      console.log(`Prefilled "Main Subject" with "${subjectVar.value}" from description`);
     }
   }
   
@@ -554,6 +581,7 @@ function prefillFromImageAnalysis(variables: Variable[], analysis: any) {
     if (purposeVar) {
       purposeVar.value = analysis.purpose;
       purposeVar.contextSource = "image";
+      console.log(`Prefilled "Purpose/Intent" with "${purposeVar.value}"`);
     }
   }
 }

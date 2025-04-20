@@ -66,12 +66,32 @@ export const ImageUploader = ({
   const handleAddContext = (context: string) => {
     if (!currentImage) return;
     
+    console.log("Adding context to image:", {
+      imageId: currentImage.id,
+      fileName: currentImage.file.name,
+      contextLength: context.length,
+      contextPreview: context.substring(0, 30) + "..."
+    });
+    
     // Update the image with context
     const updatedImages = images.map(img => 
       img.id === currentImage.id 
         ? { ...img, context } 
         : img
     );
+    
+    // Log the update to help debugging
+    const updatedImage = updatedImages.find(img => img.id === currentImage.id);
+    if (updatedImage) {
+      console.log("Image updated with context:", {
+        imageId: updatedImage.id,
+        fileName: updatedImage.file.name,
+        hasContext: !!updatedImage.context,
+        contextLength: updatedImage.context ? updatedImage.context.length : 0,
+        hasBase64: !!updatedImage.base64,
+        base64Length: updatedImage.base64 ? updatedImage.base64.length : 0
+      });
+    }
     
     onImagesChange(updatedImages);
     
