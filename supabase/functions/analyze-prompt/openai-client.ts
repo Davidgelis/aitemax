@@ -1,4 +1,3 @@
-
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -32,13 +31,13 @@ export async function analyzePromptWithAI(
       console.log(`Valid image data detected, length: ${cleanBase64.length}`);
     }
     
-    // Enhanced user content construction with specific image analysis instructions
+    // Enhanced user content construction with specific instructions for detailed answers
     let userContent: string | Array<any>;
     if (cleanBase64) {
       userContent = [
         {
           type: "text",
-          text: `Analyze this prompt and provide detailed insights: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}\n\nFor any images provided, create a detailed analysis (under 1000 characters) describing the subject, style, composition, and other visual elements that could be relevant to understanding the user's intent. Use this analysis to pre-fill appropriate questions about how the user wants to use these visual elements.`
+          text: `Analyze this prompt and provide detailed insights: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}\n\nFor any images provided:\n1. Create a detailed analysis describing the subject, style, composition, and visual elements\n2. Use this analysis to pre-fill detailed paragraph answers (200-1000 characters) about how these elements relate to the user's goals\n3. Generate questions that explore how the visual elements should be incorporated`
         },
         {
           type: "image_url",
@@ -49,7 +48,7 @@ export async function analyzePromptWithAI(
         }
       ];
     } else {
-      userContent = `Analyze this prompt and provide detailed insights: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}`;
+      userContent = `Analyze this prompt and provide detailed insights: ${promptText}${smartContext ? `\n\nAdditional context: ${smartContext}` : ''}\n\nProvide detailed paragraph answers (200-1000 characters) that explain the reasoning and implications when pre-filling questions.`;
     }
 
     // Prepare messages array after userContent is defined

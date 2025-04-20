@@ -1,8 +1,5 @@
 import { Question, Variable } from '../types.ts';
 
-/**
- * Generates context-specific questions based on the prompt and available context
- */
 export function generateContextQuestionsForPrompt(
   promptText: string,
   template: any = null,
@@ -13,13 +10,14 @@ export function generateContextQuestionsForPrompt(
   
   const questions: Question[] = [];
   
-  // Base questions about the prompt's intent
+  // Base questions about the prompt's intent with detailed pre-filled answers
   questions.push({
     id: "q-1",
     text: "What specific outcome or result are you looking to achieve with this prompt?",
-    answer: "",
+    answer: promptText ? `Based on the provided prompt "${promptText.substring(0, 100)}...", the intended outcome appears to focus on [extracted goal]. This aligns with [reasoning]. Consider these aspects: [detailed implications]. For best results, we should emphasize [key elements].` : "",
     isRelevant: true,
-    category: "Core Intent"
+    category: "Core Intent",
+    contextSource: "prompt"
   });
   
   // If we have image analysis, add detailed image-specific questions
@@ -30,7 +28,7 @@ export function generateContextQuestionsForPrompt(
       {
         id: "q-img-1",
         text: "How should these visual elements be incorporated into the final result?",
-        answer: imageAnalysis.description || "",
+        answer: imageAnalysis.description ? `The image shows ${imageAnalysis.description}. These visual elements can be leveraged by: 1) [detailed strategy], 2) [specific approach], 3) [integration method]. This will enhance the final result by [detailed explanation].` : "",
         isRelevant: true,
         category: "Visual Context",
         contextSource: "image"
@@ -38,7 +36,7 @@ export function generateContextQuestionsForPrompt(
       {
         id: "q-img-2",
         text: "What aspects of this image's style should be emphasized?",
-        answer: imageAnalysis.style?.description || imageAnalysis.artisticStyle || "",
+        answer: imageAnalysis.style?.description ? `The image exhibits ${imageAnalysis.style.description}. To maintain consistency: 1) [detailed style elements], 2) [specific techniques], 3) [implementation approach]. This styling choice matters because [detailed reasoning].` : "",
         isRelevant: true,
         category: "Style Elements",
         contextSource: "image"
@@ -48,30 +46,24 @@ export function generateContextQuestionsForPrompt(
     questions.push(...imageQuestions);
   }
   
-  // Add intent-focused questions based on template themes
+  // Add intent-focused questions based on context
   if (template?.pillars?.length > 0) {
-    // Instead of directly asking about pillars, create intent-focused questions
+    // Create intent-focused questions that relate to template themes
     const intentQuestions = [
       {
         id: "q-intent-1",
-        text: "What is the most important aspect of your request that needs to be addressed?",
-        answer: "",
+        text: "What are the most critical aspects that need to be addressed in your request?",
+        answer: smartContext?.context ? `Based on the provided context, the critical aspects are: 1) [detailed aspect], 2) [specific need], 3) [key requirement]. These are important because [detailed explanation of impact and relevance].` : "",
         isRelevant: true,
-        category: "Priority"
+        category: "Priority",
+        contextSource: smartContext?.context ? "smartContext" : undefined
       },
       {
         id: "q-intent-2",
-        text: "Are there any specific constraints or limitations that should be considered?",
+        text: "Are there any specific constraints or requirements that should be considered?",
         answer: "",
         isRelevant: true,
         category: "Constraints"
-      },
-      {
-        id: "q-intent-3",
-        text: "What style, tone, or approach would work best for your needs?",
-        answer: "",
-        isRelevant: true,
-        category: "Style"
       }
     ];
     
