@@ -98,12 +98,6 @@ function generateQuestionsForPillar(
       "How should the {focus} be structured or organized?",
       "What methodology should be used for the {focus}?",
       "What guidance is needed for implementing the {focus}?"
-    ],
-    "Generic": [
-      "What is the purpose of the {focus}?",
-      "How would you describe the ideal {focus}?",
-      "What aspects of the {focus} are most important?",
-      "What specific elements should be included in the {focus}?"
     ]
   };
   
@@ -111,18 +105,12 @@ function generateQuestionsForPillar(
   const templateCategory = Object.keys(questionTemplates).find(
     category => pillarTitle.toLowerCase().includes(category.toLowerCase()) || 
                category.toLowerCase().includes(pillarTitle.toLowerCase())
-  ) || "Generic";
-  
-  console.log(`Using question template category "${templateCategory}" for pillar "${pillarTitle}"`);
+  ) || "Task";
   
   const selectedTemplates = questionTemplates[templateCategory];
   
-  // Use focus areas to create specific questions
   for (let i = 0; i < questionsToGenerate; i++) {
-    // If we have a focus area, use it; otherwise use the pillar title
     const focus = i < focusAreas.length ? focusAreas[i] : pillarTitle.toLowerCase();
-    
-    // Get a question template and replace the focus placeholder
     const template = selectedTemplates[i % selectedTemplates.length];
     const text = template.replace('{focus}', focus);
     
@@ -169,131 +157,7 @@ function extractFocusAreasFromDescription(description: string): string[] {
   return focusAreas.slice(0, 4); // Return up to 4 focus areas
 }
 
-/**
- * Generate default questions when no template is available
- */
-function generateDefaultQuestions(promptText: string): Question[] {
-  const questions: Question[] = [
-    {
-      id: "q-1",
-      text: "What is the main objective or goal you want to achieve?",
-      answer: "",
-      isRelevant: null,
-      category: "Task"
-    },
-    {
-      id: "q-2",
-      text: "Who is the intended audience for this content?",
-      answer: "",
-      isRelevant: null,
-      category: "Persona"
-    },
-    {
-      id: "q-3",
-      text: "What tone or style would you prefer for the output?",
-      answer: "",
-      isRelevant: null,
-      category: "Conditions"
-    },
-    {
-      id: "q-4",
-      text: "Are there any specific examples or references you'd like to include?",
-      answer: "",
-      isRelevant: null,
-      category: "Instructions"
-    },
-    {
-      id: "q-5",
-      text: "What level of detail or length do you want for the output?",
-      answer: "",
-      isRelevant: null,
-      category: "Conditions"
-    },
-    {
-      id: "q-6",
-      text: "Are there any specific topics or aspects you want to emphasize?",
-      answer: "",
-      isRelevant: null,
-      category: "Task"
-    }
-  ];
-  
-  return questions;
-}
-
-function extractVariablesFromText(text: string): Array<{ name: string; value: string }> {
-  const variables: Array<{ name: string; value: string }> = [];
-  
-  // Extract key elements based on common patterns in user requests
-  const patterns = [
-    // Direct mentions of properties
-    /(?:with|has|in|of)\s+(?:a|an|the)?\s*([a-zA-Z\s]+)\s+([a-zA-Z\s]+)/gi,
-    
-    // Style or characteristic mentions
-    /(?:style|type|kind|color|size|format)\s+(?:of|is|should be)?\s*([a-zA-Z\s]+)/gi,
-    
-    // Action or state descriptions
-    /(?:doing|performing|making|creating)\s+(?:a|an|the)?\s*([a-zA-Z\s]+)/gi,
-    
-    // Target or audience mentions
-    /(?:for|targeting|aimed at)\s+(?:a|an|the)?\s*([a-zA-Z\s]+)/gi
-  ];
-
-  patterns.forEach(pattern => {
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      // Extract and clean variable names
-      const rawName = match[1]?.trim();
-      if (rawName && rawName.length > 2) {
-        // Convert to title case and clean up
-        const name = rawName
-          .split(' ')
-          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-          .join(' ');
-          
-        // Add if not already present
-        if (!variables.some(v => v.name === name)) {
-          variables.push({ name, value: '' });
-        }
-      }
-    }
-  });
-
-  // Add common customizable elements based on intent
-  if (text.toLowerCase().includes('image')) {
-    const imageVariables = [
-      { name: 'Style', value: '' },
-      { name: 'Mood', value: '' },
-      { name: 'Background', value: '' }
-    ];
-    imageVariables.forEach(v => {
-      if (!variables.some(existing => existing.name === v.name)) {
-        variables.push(v);
-      }
-    });
-  }
-
-  // Add content-specific variables
-  if (text.toLowerCase().includes('write') || text.toLowerCase().includes('text')) {
-    const contentVariables = [
-      { name: 'Tone', value: '' },
-      { name: 'Length', value: '' },
-      { name: 'Format', value: '' }
-    ];
-    contentVariables.forEach(v => {
-      if (!variables.some(existing => existing.name === v.name)) {
-        variables.push(v);
-      }
-    });
-  }
-
-  return variables;
-}
-
-/**
- * Generates contextual variables for a prompt with improved organization
- */
-export function generateContextualVariablesForPrompt(
+function generateContextualVariablesForPrompt(
   promptText: string,
   template: any = null,
   imageAnalysis: any = null,
@@ -304,240 +168,125 @@ export function generateContextualVariablesForPrompt(
   const variables: Variable[] = [];
   let variableCounter = 1;
 
-  // Extract variables from prompt text with enhanced patterns
-  const promptVariables = extractVariablesFromText(promptText);
-  if (promptVariables.length > 0) {
-    console.log(`Found ${promptVariables.length} variables from prompt intent`);
-    variables.push(...promptVariables.map((v, i) => ({
-      id: `v-${variableCounter + i}`,
-      name: v.name,
-      value: v.value,
-      isRelevant: true,
-      category: 'Intent Variables',
-      code: `VAR_${variableCounter + i}`
-    })));
-    variableCounter += promptVariables.length;
-  }
+  // Core Task Variables (always include these)
+  const coreVariables = [
+    { name: "Format/Medium", value: "", category: "Core Task" },
+    { name: "Output Type", value: "", category: "Core Task" },
+    { name: "Main Subject", value: "", category: "Core Task" }
+  ];
 
-  // Extract variables from image analysis if available
-  if (imageAnalysis) {
-    const imageVariables = extractImageVariables(imageAnalysis);
-    if (imageVariables.length > 0) {
-      console.log(`Found ${imageVariables.length} variables from image analysis`);
-      variables.push(...imageVariables.map((v, i) => ({
-        id: `v-${variableCounter + i}`,
-        name: v.name,
-        value: v.value,
-        isRelevant: true,
-        category: 'Image Analysis',
-        code: `VAR_${variableCounter + i}`
-      })));
-      variableCounter += imageVariables.length;
-    }
-  }
+  // Technical Variables
+  const technicalVariables = [
+    { name: "Dimensions/Size", value: "", category: "Technical" },
+    { name: "Resolution/Quality", value: "", category: "Technical" },
+    { name: "Technical Constraints", value: "", category: "Technical" }
+  ];
 
-  // Extract variables from smart context if available
-  if (smartContext?.context) {
-    const smartContextVariables = extractSmartContextVariables(smartContext.context);
-    if (smartContextVariables.length > 0) {
-      console.log(`Found ${smartContextVariables.length} variables from smart context`);
-      variables.push(...smartContextVariables.map((v, i) => ({
-        id: `v-${variableCounter + i}`,
-        name: v.name,
-        value: v.value,
-        isRelevant: true,
-        category: 'Smart Context',
-        code: `VAR_${variableCounter + i}`
-      })));
-      variableCounter += smartContextVariables.length;
-    }
-  }
+  // Style Variables
+  const styleVariables = [
+    { name: "Style/Aesthetic", value: "", category: "Style" },
+    { name: "Tone/Mood", value: "", category: "Style" },
+    { name: "Color Scheme", value: "", category: "Style" }
+  ];
 
-  // If we still don't have any variables and we have a template, use it as fallback
-  if (variables.length === 0 && template?.pillars) {
-    console.log("Using template pillars as fallback for variables");
-    template.pillars.forEach((pillar: any) => {
-      if (!pillar || !pillar.title) return;
-      
-      const pillarVariables = generateVariablesForPillar(
-        promptText,
-        pillar.title,
-        pillar.description || '',
-        variableCounter
-      );
-      
-      variables.push(...pillarVariables);
-      variableCounter += pillarVariables.length;
-    });
-  }
+  // Context Variables
+  const contextVariables = [
+    { name: "Target Audience", value: "", category: "Context" },
+    { name: "Purpose/Intent", value: "", category: "Context" },
+    { name: "Usage Context", value: "", category: "Context" }
+  ];
 
-  // If we still have no variables, provide minimal defaults
-  if (variables.length === 0) {
-    console.log("No variables found, using defaults");
-    return generateDefaultVariables();
-  }
+  // Combine all base variables
+  const allBaseVariables = [
+    ...coreVariables,
+    ...technicalVariables,
+    ...styleVariables,
+    ...contextVariables
+  ];
 
-  return variables;
-}
-
-function extractImageVariables(imageAnalysis: any): Array<{ name: string; value: string }> {
-  const variables = [];
-
-  if (!imageAnalysis) return variables;
-
-  // Extract color information
-  if (imageAnalysis.style?.colors?.length > 0) {
-    variables.push({
-      name: 'Primary Color',
-      value: imageAnalysis.style.colors[0]
-    });
-  }
-
-  // Extract subject information
-  if (imageAnalysis.subjects?.length > 0) {
-    variables.push({
-      name: 'Main Subject',
-      value: imageAnalysis.subjects[0]
-    });
-  }
-
-  return variables;
-}
-
-function extractSmartContextVariables(context: string): Array<{ name: string; value: string }> {
-  const variables = [];
+  // Add base variables with proper IDs and codes
+  variables.push(...allBaseVariables.map((v, i) => ({
+    id: `v-${variableCounter + i}`,
+    name: v.name,
+    value: v.value,
+    isRelevant: true,
+    category: v.category,
+    code: `VAR_${variableCounter + i}`
+  })));
   
-  // Look for key-value pairs in the context
+  variableCounter += allBaseVariables.length;
+
+  // Extract and pre-fill values from available context
+  if (imageAnalysis) {
+    prefillFromImageAnalysis(variables, imageAnalysis);
+  }
+
+  if (smartContext?.context) {
+    prefillFromSmartContext(variables, smartContext.context);
+  }
+
+  // Extract explicit values from prompt text
+  prefillFromPromptText(variables, promptText);
+
+  return variables;
+}
+
+function prefillFromImageAnalysis(variables: Variable[], imageAnalysis: any) {
+  if (imageAnalysis.style?.colors?.length > 0) {
+    const color = imageAnalysis.style.colors[0];
+    const colorVar = variables.find(v => v.name === "Color Scheme");
+    if (colorVar) {
+      colorVar.value = color;
+    }
+  }
+
+  if (imageAnalysis.subjects?.length > 0) {
+    const subject = imageAnalysis.subjects[0];
+    const subjectVar = variables.find(v => v.name === "Main Subject");
+    if (subjectVar) {
+      subjectVar.value = subject;
+    }
+  }
+}
+
+function prefillFromSmartContext(variables: Variable[], context: string) {
   const keyValuePattern = /([a-zA-Z\s]+):\s*([^,.]+)/gi;
   let match;
-  
+
   while ((match = keyValuePattern.exec(context)) !== null) {
     const name = match[1].trim();
     const value = match[2].trim();
-    
-    if (name && value) {
-      variables.push({ name, value });
+
+    const variable = variables.find(v => v.name === name);
+    if (variable) {
+      variable.value = value;
     }
   }
-
-  return variables;
 }
 
-/**
- * Generate variables for a specific pillar
- */
-function generateVariablesForPillar(
-  promptText: string,
-  pillarTitle: string,
-  pillarDescription: string,
-  startId: number
-): Variable[] {
-  // Determine key variable types based on the pillar
-  const variableTypes = determineVariableTypesForPillar(pillarTitle, pillarDescription);
-  console.log(`Determined variable types for ${pillarTitle}:`, variableTypes);
-  
-  const variables: Variable[] = [];
-  
-  // Generate 1-2 variables per pillar
-  const variablesToGenerate = Math.min(2, Math.max(variableTypes.length, 1));
-  
-  for (let i = 0; i < variablesToGenerate; i++) {
-    const variableType = i < variableTypes.length ? variableTypes[i] : `${pillarTitle} Parameter`;
-    
-    variables.push({
-      id: `v-${startId + i}`,
-      name: variableType,
-      value: "",
-      isRelevant: null,
-      category: pillarTitle,
-      code: `VAR_${startId + i}`
-    });
-  }
-  
-  return variables;
-}
+function prefillFromPromptText(variables: Variable[], promptText: string) {
+  const patterns = [
+    /(?:with|has|in|of)\s+(?:a|an|the)?\s*([a-zA-Z\s]+)\s+([a-zA-Z\s]+)/gi,
+    /(?:style|type|kind|color|size|format)\s+(?:of|is|should be)?\s*([a-zA-Z\s]+)/gi,
+    /(?:doing|performing|making|creating)\s+(?:a|an|the)?\s*([a-zA-Z\s]+)/gi,
+    /(?:for|targeting|aimed at)\s+(?:a|an|the)?\s*([a-zA-Z\s]+)/gi
+  ];
 
-/**
- * Determine variable types for a specific pillar
- */
-function determineVariableTypesForPillar(pillarTitle: string, pillarDescription: string): string[] {
-  // Define common variable types by pillar category
-  const commonVariablesByPillar: {[key: string]: string[]} = {
-    "Task": ["Objective", "Goal", "Task Type", "Deliverable", "Format"],
-    "Persona": ["Audience", "Character", "Role", "Expertise Level", "Perspective"],
-    "Conditions": ["Tone", "Style", "Length", "Constraints", "Requirements"],
-    "Instructions": ["Guidance", "Steps", "Process", "Methodology", "Approach"]
-  };
-  
-  // Get variables for this pillar or use generic ones
-  const pillarLower = pillarTitle.toLowerCase();
-  
-  // Find the closest matching pillar category
-  let bestMatch = "";
-  let bestScore = 0;
-  
-  Object.keys(commonVariablesByPillar).forEach(key => {
-    const keyLower = key.toLowerCase();
-    if (pillarLower.includes(keyLower) || keyLower.includes(pillarLower)) {
-      const score = Math.max(pillarLower.length, keyLower.length);
-      if (score > bestScore) {
-        bestScore = score;
-        bestMatch = key;
+  patterns.forEach(pattern => {
+    let match;
+    while ((match = pattern.exec(promptText)) !== null) {
+      const name = match[1]?.trim();
+      const value = match[2]?.trim();
+
+      if (name && value) {
+        const variable = variables.find(v => v.name === name);
+        if (variable) {
+          variable.value = value;
+        }
       }
     }
   });
-  
-  // Use the best matching pillar variables or extract from description
-  let variableTypes: string[] = [];
-  
-  if (bestMatch) {
-    // Get variables from the matching category
-    variableTypes = commonVariablesByPillar[bestMatch];
-  } else {
-    // Extract potential variable names from the description
-    const words = pillarDescription.split(/\s+/);
-    const nouns = words.filter(word => word.length > 3 && /^[A-Z][a-z]+$/.test(word));
-    
-    if (nouns.length > 0) {
-      variableTypes = nouns.slice(0, 3);
-    } else {
-      variableTypes = ["Format", "Context", "Parameter"];
-    }
-  }
-  
-  return variableTypes;
 }
 
-/**
- * Generate default variables when no template is available
- */
-function generateDefaultVariables(): Variable[] {
-  const variables: Variable[] = [
-    {
-      id: "v-1",
-      name: "Input",
-      value: "",
-      isRelevant: null,
-      category: "General",
-      code: "VAR_1"
-    },
-    {
-      id: "v-2",
-      name: "Output Format",
-      value: "",
-      isRelevant: null,
-      category: "General",
-      code: "VAR_2"
-    },
-    {
-      id: "v-3",
-      name: "Context",
-      value: "",
-      isRelevant: null,
-      category: "General",
-      code: "VAR_3"
-    }
-  ];
-  
-  return variables;
-}
+// Export the functions
+export { generateContextualVariablesForPrompt };
