@@ -47,6 +47,10 @@ export const StepTwo = ({
   // Count pre-filled questions
   const prefilledCount = questions.filter(q => q.answer).length;
   const hasPrefilledQuestions = prefilledCount > 0;
+  
+  // Check for image analysis questions
+  const imageAnalysisQuestions = questions.filter(q => q.contextSource === "image" || q.category === "Image Analysis");
+  const hasImageAnalysis = imageAnalysisQuestions.length > 0;
 
   return (
     <div className="border rounded-xl p-6 bg-card">
@@ -55,11 +59,18 @@ export const StepTwo = ({
           <p className="text-card-foreground">
             {t.steps.questionsToAnswer}
           </p>
-          {hasPrefilledQuestions && (
-            <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded-md">
-              {prefilledCount} {t.steps.prefilledAnswers}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {hasPrefilledQuestions && (
+              <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded-md">
+                {prefilledCount} {t.steps.prefilledAnswers}
+              </span>
+            )}
+            {hasImageAnalysis && (
+              <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                {imageAnalysisQuestions.length} from image
+              </span>
+            )}
+          </div>
         </div>
         
         <QuestionList 

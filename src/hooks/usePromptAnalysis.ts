@@ -23,6 +23,74 @@ export const usePromptAnalysis = (
   const { getCurrentTemplate } = useTemplateManagement();
   const { toast } = useToast();
 
+  // Function to extract image analysis questions from answers
+  const extractQuestionsFromImageAnalysis = (questions: Question[]): Question[] => {
+    const numberedQuestionRegex = /\d+\s*:\s*(.*?)(?=\d+\s*:|$)/g;
+    const extractedQuestions: Question[] = [];
+    
+    // First check if any answers contain numbered questions (0: Question? 1: Question?)
+    const questionsWithNumberedAnswers = questions.filter(q => {
+      return q.answer && 
+        (q.answer.includes("0:") || q.answer.includes("1:") || 
+        q.answer.match(/\d+\.\s+[^.?!]*\?/g));
+    });
+    
+    console.log("Found questions with numbered patterns:", questionsWithNumberedAnswers.length);
+    
+    if (questionsWithNumberedAnswers.length > 0) {
+      // Process each question with numbered answers
+      questionsWithNumberedAnswers.forEach(q => {
+        if (!q.answer) return;
+        
+        // Parse out the numbered questions
+        let match;
+        const numberedPattern = /(\d+)\s*:\s*(.*?)(?=\d+\s*:|$)/g;
+        while ((match = numberedPattern.exec(q.answer)) !== null) {
+          const questionNum = match[1];
+          const questionText = match[2].trim();
+          
+          if (questionText && questionText.length > 10) {
+            extractedQuestions.push({
+              id: `img-${q.id}-${questionNum}`,
+              text: questionText,
+              answer: "",
+              isRelevant: true,
+              category: q.category || "Image Analysis",
+              contextSource: "image"
+            });
+          }
+        }
+        
+        // Also check for numbered list format (1. Question?)
+        const numberedListPattern = /(\d+)\.\s+([^.?!]*\?)/g;
+        while ((match = numberedListPattern.exec(q.answer)) !== null) {
+          const questionNum = match[1];
+          const questionText = match[2].trim();
+          
+          if (questionText && questionText.length > 10) {
+            extractedQuestions.push({
+              id: `img-${q.id}-list-${questionNum}`,
+              text: questionText,
+              answer: "",
+              isRelevant: true,
+              category: q.category || "Image Analysis",
+              contextSource: "image"
+            });
+          }
+        }
+        
+        // Clean the original question's answer
+        const firstLine = q.answer.split('\n')[0];
+        q.answer = firstLine.replace(/based on image analysis:/i, '').trim();
+      });
+      
+      console.log(`Extracted ${extractedQuestions.length} questions from image analysis`);
+    }
+    
+    // Return the original questions plus any extracted questions
+    return [...questions, ...extractedQuestions];
+  };
+
   const handleAnalyze = async (
     uploadedImages: any[] | null = null,
     websiteContext: { url: string; instructions: string } | null = null,
@@ -123,10 +191,15 @@ export const usePromptAnalysis = (
 
       // Check for data before setting questions
       if (Array.isArray(data.questions) && data.questions.length > 0) {
+        // Process questions to extract any embedded questions in answers
+        const processedQuestions = data.debug?.hasValidImageData ? 
+          extractQuestionsFromImageAnalysis(data.questions) : 
+          data.questions;
+        
         // Log prefilled questions to help debugging
-        const prefilledQuestions = data.questions.filter(q => q.answer);
+        const prefilledQuestions = processedQuestions.filter(q => q.answer);
         if (prefilledQuestions.length > 0) {
-          console.log(`Setting ${data.questions.length} questions with ${prefilledQuestions.length} prefilled answers`);
+          console.log(`Setting ${processedQuestions.length} questions with ${prefilledQuestions.length} prefilled answers`);
           
           // Log pillar coverage
           const pillarCoverage = prefilledQuestions.reduce((acc, q) => {
@@ -140,10 +213,10 @@ export const usePromptAnalysis = (
           prefilledQuestions.slice(0, 3).forEach(q => 
             console.log(`Prefilled Q: "${q.text.substring(0, 30)}..." with "${q.answer ? q.answer.substring(0, 30) : 'empty'}..."`));
         } else {
-          console.log(`Setting ${data.questions.length} questions with no prefilled answers`);
+          console.log(`Setting ${processedQuestions.length} questions with no prefilled answers`);
         }
         
-        setQuestions(data.questions);
+        setQuestions(processedQuestions);
       } else if (data.debug?.hasValidImageData) {
         console.warn("No questions generated despite valid image data");
         toast({

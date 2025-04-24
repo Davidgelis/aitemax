@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,15 @@ export const useQuestionsAndVariables = (
   useEffect(() => {
     console.log("Variables in useQuestionsAndVariables:", variables);
   }, [variables]);
+  
+  // Debug questions whenever they change, especially image-based ones
+  useEffect(() => {
+    const imageQuestions = questions.filter(q => q.contextSource === "image" || q.category === "Image Analysis");
+    if (imageQuestions.length > 0) {
+      console.log("Image-based questions:", imageQuestions.length);
+      imageQuestions.forEach(q => console.log(`- ${q.text.substring(0, 50)}...`));
+    }
+  }, [questions]);
 
   const handleQuestionAnswer = (questionId: string, answer: string) => {
     setQuestions(

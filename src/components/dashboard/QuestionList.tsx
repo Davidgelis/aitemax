@@ -62,27 +62,47 @@ export const QuestionList = ({
     return a.localeCompare(b);
   });
 
-  // Function to clean question text - removing prefixes and asterisks
+  // Function to clean question text - removing prefixes, asterisks, and numbered question patterns
   const cleanQuestionText = (text: string): string => {
+    if (!text) return "";
+    
+    // First, remove any leading numbered pattern like "0: " or "1: " that appears in image analysis
+    let cleanedText = text.replace(/^\s*\d+\s*:\s*/i, '');
+    
     // Remove category prefixes with asterisks like "**Task**:" or "Task:"
-    return text.replace(/^\s*(\*\*)?(?:Task|Persona|Conditions|Instructions)(\*\*)?\s*:\s*/i, '')
-      // Also remove any remaining asterisks
-      .replace(/\*\*/g, '')
-      // Remove "questions:" prefix that might appear in image analysis
-      .replace(/^questions:\s*/i, '');
+    cleanedText = cleanedText.replace(/^\s*(\*\*)?(?:Task|Persona|Conditions|Instructions)(\*\*)?\s*:\s*/i, '');
+    
+    // Also remove any remaining asterisks
+    cleanedText = cleanedText.replace(/\*\*/g, '');
+    
+    // Remove "questions:" prefix that might appear in image analysis
+    cleanedText = cleanedText.replace(/^questions:\s*/i, '');
+    
+    // Remove "Based on image analysis:" prefix if present
+    cleanedText = cleanedText.replace(/^Based on image analysis:\s*/i, '');
+    
+    return cleanedText.trim();
   };
 
   // Function to clean answer text - removing any nested questions
   const cleanAnswerText = (answer: string): string => {
     if (!answer) return "";
     
+    // Extract only the first paragraph if it contains multiple numbered questions
+    if (answer.includes("\n0:") || answer.includes("\n1:")) {
+      const firstParagraph = answer.split("\n")[0];
+      return firstParagraph.trim();
+    }
+    
     // Remove any numbered question patterns
-    return answer.replace(/\d+\.\s+[^.?!]*\?/g, '')
+    const cleanedAnswer = answer.replace(/\d+\.\s+[^.?!]*\?/g, '')
       // Remove the "Based on image analysis: questions:" prefix if present
-      .replace(/^Based on image analysis:\s*questions:\s*/i, 'Based on image analysis: ')
+      .replace(/^Based on image analysis:\s*questions:\s*/i, '')
       // Remove just "questions:" prefix if present
       .replace(/^questions:\s*/i, '')
       .trim();
+      
+    return cleanedAnswer;
   };
 
   // Function to open the response editing sheet
@@ -260,7 +280,7 @@ export const QuestionList = ({
           </SheetHeader>
           <div className="py-6 space-y-4">
             <div className="text-base font-medium">
-              {editingQuestion?.text}
+              {editingQuestion?.text && cleanQuestionText(editingQuestion.text)}
             </div>
             <div className="relative">
               <textarea 
