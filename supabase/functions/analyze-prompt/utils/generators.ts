@@ -55,10 +55,10 @@ export function generateContextQuestionsForPrompt(
     });
   }
 
-  // If we have image analysis, use it to pre-fill relevant answers
+  // If we have image analysis, use it to pre-fill relevant answers with detailed information
   if (imageAnalysis) {
     questions.forEach(question => {
-      const relevantImageInfo = findRelevantImageInfo(question, imageAnalysis);
+      const relevantImageInfo = findDetailedRelevantImageInfo(question, imageAnalysis);
       if (relevantImageInfo) {
         question.answer = relevantImageInfo;
         question.contextSource = 'image';
@@ -69,27 +69,139 @@ export function generateContextQuestionsForPrompt(
   return questions;
 }
 
-// Helper function to find relevant image analysis information for a question
-function findRelevantImageInfo(question: Question, imageAnalysis: any): string | null {
+// Enhanced function to find detailed relevant image analysis information for a question
+function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): string | null {
   const questionText = question.text.toLowerCase();
   const category = question.category.toLowerCase();
 
-  // Map of question keywords to image analysis fields
-  const analysisMapping: { [key: string]: string[] } = {
-    style: ['style', 'artistic', 'aesthetic'],
-    color: ['colors', 'palette', 'tones'],
-    composition: ['composition', 'layout', 'arrangement'],
-    subject: ['subject', 'main element', 'focus'],
-    mood: ['mood', 'atmosphere', 'feeling']
+  // Map of question keywords to image analysis fields with more comprehensive extraction
+  const analysisMapping: { [key: string]: {fields: string[], format: (data: any) => string} } = {
+    style: {
+      fields: ['style', 'artisticStyle', 'aesthetic', 'description'],
+      format: (data) => {
+        const elements = [];
+        if (data.style?.description) elements.push(`Style: ${data.style.description}`);
+        if (data.artisticStyle) elements.push(`Artistic style: ${data.artisticStyle}`);
+        if (data.aesthetic) elements.push(`Aesthetic: ${data.aesthetic}`);
+        if (data.style?.elements) elements.push(`Style elements: ${data.style.elements.join(', ')}`);
+        if (data.description) elements.push(`Visual description: ${data.description}`);
+        
+        return elements.length ? elements.join('. ') : null;
+      }
+    },
+    color: {
+      fields: ['colors', 'palette', 'tones', 'style.colors'],
+      format: (data) => {
+        const elements = [];
+        if (data.style?.colors && Array.isArray(data.style.colors)) {
+          elements.push(`Color palette includes: ${data.style.colors.join(', ')}`);
+        }
+        if (data.colors && Array.isArray(data.colors)) {
+          elements.push(`Colors present: ${data.colors.join(', ')}`);
+        }
+        if (data.palette) elements.push(`Color scheme: ${data.palette}`);
+        if (data.style?.colorProfile) elements.push(`Color profile: ${data.style.colorProfile}`);
+        
+        return elements.length ? elements.join('. ') : null;
+      }
+    },
+    composition: {
+      fields: ['composition', 'layout', 'arrangement', 'structure'],
+      format: (data) => {
+        const elements = [];
+        if (data.composition) elements.push(`Composition: ${data.composition}`);
+        if (data.layout) elements.push(`Layout: ${data.layout}`);
+        if (data.structure) elements.push(`Structure: ${data.structure}`);
+        if (data.arrangement) elements.push(`Arrangement: ${data.arrangement}`);
+        
+        return elements.length ? elements.join('. ') : null;
+      }
+    },
+    subject: {
+      fields: ['subject', 'mainSubject', 'subjects', 'objects', 'description', 'mainElements'],
+      format: (data) => {
+        const elements = [];
+        if (data.subject) elements.push(`Subject: ${data.subject}`);
+        if (data.mainSubject) elements.push(`Main subject: ${data.mainSubject}`);
+        if (data.subjects && Array.isArray(data.subjects)) {
+          elements.push(`Subjects identified: ${data.subjects.join(', ')}`);
+        }
+        if (data.objects && Array.isArray(data.objects)) {
+          elements.push(`Objects present: ${data.objects.join(', ')}`);
+        }
+        if (data.mainElements && Array.isArray(data.mainElements)) {
+          elements.push(`Key elements: ${data.mainElements.join(', ')}`);
+        }
+        if (elements.length === 0 && data.description) {
+          elements.push(`Visual description: ${data.description}`);
+        }
+        
+        return elements.length ? elements.join('. ') : null;
+      }
+    },
+    mood: {
+      fields: ['mood', 'atmosphere', 'feeling', 'style.mood'],
+      format: (data) => {
+        const elements = [];
+        if (data.mood) elements.push(`Mood: ${data.mood}`);
+        if (data.style?.mood) elements.push(`Style mood: ${data.style.mood}`);
+        if (data.atmosphere) elements.push(`Atmosphere: ${data.atmosphere}`);
+        if (data.feeling) elements.push(`Feeling: ${data.feeling}`);
+        
+        return elements.length ? elements.join('. ') : null;
+      }
+    },
+    purpose: {
+      fields: ['purpose', 'intent', 'goal', 'usage'],
+      format: (data) => {
+        const elements = [];
+        if (data.purpose) elements.push(`Purpose: ${data.purpose}`);
+        if (data.intent) elements.push(`Intent: ${data.intent}`);
+        if (data.usage) elements.push(`Usage context: ${data.usage}`);
+        
+        return elements.length ? elements.join('. ') : null;
+      }
+    }
   };
 
-  // Check each analysis field based on question category and text
-  for (const [key, keywords] of Object.entries(analysisMapping)) {
-    if (keywords.some(word => questionText.includes(word) || category.includes(word))) {
-      const analysisValue = imageAnalysis[key] || imageAnalysis?.style?.[key];
-      if (analysisValue) {
-        return typeof analysisValue === 'string' ? analysisValue : JSON.stringify(analysisValue);
+  // First try to match by category
+  for (const [key, mapping] of Object.entries(analysisMapping)) {
+    if (category.includes(key) || mapping.fields.some(field => category.includes(field))) {
+      const formattedInfo = mapping.format(imageAnalysis);
+      if (formattedInfo) {
+        return formattedInfo;
       }
+    }
+  }
+  
+  // Then try to match by question text
+  for (const [key, mapping] of Object.entries(analysisMapping)) {
+    if (questionText.includes(key) || mapping.fields.some(field => questionText.includes(field))) {
+      const formattedInfo = mapping.format(imageAnalysis);
+      if (formattedInfo) {
+        return formattedInfo;
+      }
+    }
+  }
+
+  // If no specific match found but we have a general description, use that for content-related questions
+  if ((questionText.includes('content') || 
+       questionText.includes('what') || 
+       questionText.includes('describe') || 
+       questionText.includes('show')) && 
+       imageAnalysis.description) {
+    return `Based on image analysis: ${imageAnalysis.description}`;
+  }
+
+  // Comprehensive fallback for context questions
+  if (imageAnalysis.description || imageAnalysis.style || imageAnalysis.subject) {
+    const elements = [];
+    if (imageAnalysis.description) elements.push(imageAnalysis.description);
+    if (imageAnalysis.style?.description) elements.push(`Style: ${imageAnalysis.style.description}`);
+    if (imageAnalysis.subject) elements.push(`Subject: ${imageAnalysis.subject}`);
+    
+    if (elements.length > 0) {
+      return `From image analysis: ${elements.join('. ')}`;
     }
   }
 

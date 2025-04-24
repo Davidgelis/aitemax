@@ -43,7 +43,13 @@ Image Analysis Guidelines:
 1. Only analyze aspects specifically requested by the user
 2. Provide clear, factual descriptions of requested elements
 3. Focus on describing what exists, not suggesting changes
-4. Keep descriptions objective and detailed`;
+4. Keep descriptions objective and detailed
+
+When analyzing images:
+1. Provide comprehensive descriptions of visual elements
+2. Include detailed style, color, composition, and subject information
+3. Extract specific attributes that can be used in prompt enhancement
+4. Be thorough and descriptive in all image insights`;
 
   // Add template-specific instructions if template exists
   if (template && Array.isArray(template.pillars) && template.pillars.length > 0) {
