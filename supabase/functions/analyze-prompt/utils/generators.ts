@@ -1,13 +1,14 @@
-
 import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
   promptText: string,
   template: any = null,
   smartContext: any = null,
-  imageAnalysis: any = null
+  imageAnalysis: any = null,
+  userIntent: string = ''
 ): Question[] {
   console.log("Generating comprehensive context questions based on user intent and template pillars");
+  console.log(`Working with user intent: "${userIntent}"`);
   
   const questions: Question[] = [];
   
@@ -18,13 +19,13 @@ export function generateContextQuestionsForPrompt(
     
     template.pillars.forEach((pillar: any, index: number) => {
       if (pillar && pillar.title) {
-        const pillarQuestions = generateQuestionsForPillar(promptText, pillar, maxQuestionsPerPillar);
+        const pillarQuestions = generateQuestionsForPillar(promptText, pillar, maxQuestionsPerPillar, userIntent);
         questions.push(...pillarQuestions);
       }
     });
   } else {
     // If no template pillars, generate generic context questions
-    const genericQuestions = generateGenericContextQuestions(promptText);
+    const genericQuestions = generateGenericContextQuestions(promptText, userIntent);
     questions.push(...genericQuestions);
   }
 
@@ -33,7 +34,8 @@ export function generateContextQuestionsForPrompt(
     console.log("Filling relevant questions with detailed image analysis data", {
       imageAnalysisFields: typeof imageAnalysis === 'object' ? Object.keys(imageAnalysis) : 'invalid',
       questionsBeforeFilling: questions.length,
-      pillarsInQuestions: [...new Set(questions.map(q => q.category))].join(', ')
+      pillarsInQuestions: [...new Set(questions.map(q => q.category))].join(', '),
+      userIntent
     });
     
     // Log available analysis data for pillars
@@ -54,25 +56,34 @@ export function generateContextQuestionsForPrompt(
     const filledByPillar: Record<string, number> = {};
     
     questions.forEach(question => {
-      // First try direct pillar match
-      const pillarMatch = findPillarBasedImageInfo(question, imageAnalysis);
+      // First check if question is relevant to user intent
+      const isRelevantToIntent = isQuestionRelevantToIntent(question.text, userIntent);
       
-      if (pillarMatch) {
-        question.answer = pillarMatch;
-        question.contextSource = 'image';
-        filledPillars.add(question.category);
+      if (isRelevantToIntent) {
+        // First try direct pillar match
+        const pillarMatch = findPillarBasedImageInfo(question, imageAnalysis, userIntent);
         
-        // Count filled questions per pillar
-        filledByPillar[question.category] = (filledByPillar[question.category] || 0) + 1;
-        
-        console.log(`Prefilled question in "${question.category}" pillar: "${question.text.substring(0, 30)}..."`);
+        if (pillarMatch) {
+          question.answer = pillarMatch;
+          question.contextSource = 'image';
+          filledPillars.add(question.category);
+          
+          // Count filled questions per pillar
+          filledByPillar[question.category] = (filledByPillar[question.category] || 0) + 1;
+          
+          console.log(`Prefilled intent-relevant question in "${question.category}" pillar: "${question.text.substring(0, 30)}..."`);
+        }
+      } else {
+        console.log(`Skipped filling question not relevant to user intent: "${question.text.substring(0, 30)}..."`);
       }
     });
     
-    // For questions still not filled, try with generic matching
+    // For questions still not filled but relevant to intent, try with generic matching
     questions.forEach(question => {
-      if (!question.answer) {
-        const relevantImageInfo = findDetailedRelevantImageInfo(question, imageAnalysis);
+      const isRelevantToIntent = isQuestionRelevantToIntent(question.text, userIntent);
+      
+      if (isRelevantToIntent && !question.answer) {
+        const relevantImageInfo = findDetailedRelevantImageInfo(question, imageAnalysis, userIntent);
         if (relevantImageInfo) {
           question.answer = relevantImageInfo;
           question.contextSource = 'image';
@@ -89,16 +100,76 @@ export function generateContextQuestionsForPrompt(
     console.log(`After filling: ${questions.filter(q => q.answer).length} questions have prefilled answers`);
     console.log(`Pillars with prefilled questions: ${Array.from(filledPillars).join(', ')}`);
     console.log(`Questions filled per pillar:`, filledByPillar);
+    
+    // Look for and mark any duplicate answers
+    const uniqueAnswers = new Set<string>();
+    questions.forEach(question => {
+      if (question.answer) {
+        const simplifiedAnswer = simplifyAnswer(question.answer);
+        if (uniqueAnswers.has(simplifiedAnswer)) {
+          // Mark duplicates to be filtered out later
+          console.log(`Found duplicate prefilled answer in question: "${question.text.substring(0, 30)}..."`);
+          question.isDuplicate = true;
+        } else {
+          uniqueAnswers.add(simplifiedAnswer);
+        }
+      }
+    });
+    
+    // Remove duplicates if requested
+    const filteredQuestions = questions.filter(q => !q.isDuplicate);
+    if (filteredQuestions.length < questions.length) {
+      console.log(`Removed ${questions.length - filteredQuestions.length} questions with duplicate answers`);
+      return filteredQuestions;
+    }
   }
 
   console.log(`Generated ${questions.length} total questions, ${questions.filter(q => q.answer).length} with prefilled answers`);
   return questions;
 }
 
-function generateQuestionsForPillar(promptText: string, pillar: any, maxQuestions: number): Question[] {
+// Helper function to test if a question is relevant to user intent
+function isQuestionRelevantToIntent(questionText: string, userIntent: string): boolean {
+  if (!userIntent) return true; // If no intent provided, consider all questions relevant
+  
+  // Get important words from intent, minimum 3 chars
+  const intentWords = userIntent.toLowerCase().split(/\s+/)
+    .filter(word => word.length > 2)
+    .map(word => word.replace(/[^\w]/g, ''))
+    .filter(Boolean);
+  
+  if (intentWords.length === 0) return true;
+  
+  // Check if any intent word is in the question
+  const questionLower = questionText.toLowerCase();
+  return intentWords.some(word => questionLower.includes(word));
+}
+
+// Simplify an answer for duplicate detection
+function simplifyAnswer(answer: string): string {
+  if (!answer) return '';
+  
+  // Remove "Based on image analysis: " prefix
+  let simplified = answer.replace(/^Based on image analysis:\s*/i, '');
+  
+  // Remove punctuation, normalize spaces
+  simplified = simplified.replace(/[.,;:]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+  
+  // Keep only first 50 chars for comparison
+  return simplified.substring(0, 50);
+}
+
+function generateQuestionsForPillar(promptText: string, pillar: any, maxQuestions: number, userIntent: string = ''): Question[] {
   const questions: Question[] = [];
   const pillarTitle = pillar.title.toLowerCase();
-  const userIntentKeywords = extractKeywords(promptText);
+  
+  // Get keywords from both prompt and user intent for better customization
+  const promptKeywords = extractKeywords(promptText);
+  const intentKeywords = userIntent ? extractKeywords(userIntent) : [];
+  
+  // Combine keywords, prioritizing intent keywords
+  const combinedKeywords = [...new Set([...intentKeywords, ...promptKeywords])];
+  console.log(`Using keywords for ${pillar.title}: ${combinedKeywords.join(', ')}`);
 
   // Base question templates based on pillar type
   const questionTemplates: { [key: string]: string[] } = {
@@ -143,6 +214,18 @@ function generateQuestionsForPillar(promptText: string, pillar: any, maxQuestion
       "Are there any cultural or regional considerations to keep in mind?",
       "What is the intended viewing environment for this?",
       "Are there any broader themes or concepts this should connect to?"
+    ],
+    subject: [
+      "What specific details about the main subject are important?",
+      "What characteristics or features should the subject have?",
+      "How should the subject interact with its surroundings?",
+      "What perspective or viewpoint should be used for the subject?"
+    ],
+    mood: [
+      "What emotional response should this evoke?",
+      "What atmosphere or feeling should dominate the piece?",
+      "Should the mood be consistent throughout or vary in different areas?",
+      "What sensory experiences should this suggest beyond just visual?"
     ]
   };
 
@@ -153,7 +236,7 @@ function generateQuestionsForPillar(promptText: string, pillar: any, maxQuestion
   for (const [key, questions] of Object.entries(questionTemplates)) {
     // First check for direct matches in title or description
     if (pillarTitle.includes(key) || pillar.description.toLowerCase().includes(key)) {
-      relevantQuestions = questions.map(q => customizeQuestionWithIntent(q, userIntentKeywords));
+      relevantQuestions = questions.map(q => customizeQuestionWithIntent(q, combinedKeywords, userIntent));
       break;
     }
   }
@@ -169,12 +252,14 @@ function generateQuestionsForPillar(promptText: string, pillar: any, maxQuestion
         'purpose': ['goal', 'objective', 'aim', 'intent', 'function', 'use'],
         'color': ['palette', 'hue', 'tone', 'shade', 'tint', 'colorful'],
         'composition': ['layout', 'arrangement', 'structure', 'organization', 'positioning'],
-        'context': ['setting', 'environment', 'situation', 'circumstance', 'background']
+        'context': ['setting', 'environment', 'situation', 'circumstance', 'background'],
+        'subject': ['main', 'focus', 'object', 'element', 'topic', 'theme'],
+        'mood': ['feeling', 'emotion', 'atmosphere', 'ambiance', 'tone', 'vibe']
       };
       
       if (relatedTerms[key] && relatedTerms[key].some(term => 
         pillarTitle.includes(term) || pillar.description.toLowerCase().includes(term))) {
-        relevantQuestions = questions.map(q => customizeQuestionWithIntent(q, userIntentKeywords));
+        relevantQuestions = questions.map(q => customizeQuestionWithIntent(q, combinedKeywords, userIntent));
         console.log(`Found semantic match between pillar "${pillarTitle}" and question type "${key}"`);
         break;
       }
@@ -188,7 +273,7 @@ function generateQuestionsForPillar(promptText: string, pillar: any, maxQuestion
       `What are your goals regarding ${pillarTitle}?`,
       `Are there any particular preferences or constraints for ${pillarTitle}?`,
       `How should ${pillarTitle} contribute to the overall output?`
-    ].map(q => customizeQuestionWithIntent(q, userIntentKeywords));
+    ].map(q => customizeQuestionWithIntent(q, combinedKeywords, userIntent));
   }
 
   // Add questions up to the maximum allowed
@@ -221,15 +306,35 @@ function extractKeywords(promptText: string): string[] {
     .slice(0, 5); // Take top 5 keywords
 }
 
-// Customize question with user intent keywords
-function customizeQuestionWithIntent(question: string, keywords: string[]): string {
+// Customize question with user intent keywords - enhanced version
+function customizeQuestionWithIntent(question: string, keywords: string[], userIntent: string = ''): string {
   if (keywords.length === 0) return question;
   
-  // For the first few questions, try to incorporate keywords
-  if (Math.random() > 0.5 && keywords.length > 0) {
-    const keyword = keywords[Math.floor(Math.random() * keywords.length)];
+  // Extract a few important words from user intent if available
+  const intentWords = userIntent
+    ? userIntent.split(' ').filter(w => w.length > 3).slice(0, 2)
+    : [];
+    
+  // For questions that can be customized with the user's intent
+  if (Math.random() > 0.3) {
+    // Use intent words if available, otherwise fall back to keywords
+    const wordsToUse = intentWords.length > 0 ? intentWords : keywords;
+    const keyword = wordsToUse[Math.floor(Math.random() * wordsToUse.length)];
+    
     if (question.includes("?")) {
-      return question.replace("?", ` for your ${keyword}?`);
+      // Replace various templates in the question with the keyword
+      if (question.includes("this creation")) {
+        return question.replace("this creation", `your ${keyword}`);
+      }
+      else if (question.includes("the final result")) {
+        return question.replace("the final result", `the ${keyword}`);
+      }
+      else if (question.includes(" this ")) {
+        return question.replace(" this ", ` the ${keyword} `);
+      }
+      else {
+        return question.replace("?", ` for your ${keyword}?`);
+      }
     }
   }
   
@@ -237,7 +342,7 @@ function customizeQuestionWithIntent(question: string, keywords: string[]): stri
 }
 
 // Generate generic context questions when no template is available
-function generateGenericContextQuestions(promptText: string): Question[] {
+function generateGenericContextQuestions(promptText: string, userIntent: string = ''): Question[] {
   const questions: Question[] = [];
   const categories = [
     { name: "Style", questions: [
@@ -262,11 +367,20 @@ function generateGenericContextQuestions(promptText: string): Question[] {
     ]}
   ];
   
-  const keywords = extractKeywords(promptText);
+  // Get keywords from both prompt and user intent for better customization
+  const promptKeywords = extractKeywords(promptText);
+  const intentKeywords = userIntent ? extractKeywords(userIntent) : [];
+  
+  // Combine keywords, prioritizing intent keywords
+  const combinedKeywords = [...new Set([...intentKeywords, ...promptKeywords])];
+  
   let questionCount = 0;
   
   categories.forEach(category => {
-    const categoryQuestions = category.questions.map(q => customizeQuestionWithIntent(q, keywords));
+    const categoryQuestions = category.questions.map(q => 
+      customizeQuestionWithIntent(q, combinedKeywords, userIntent)
+    );
+    
     for (let i = 0; i < Math.min(3, categoryQuestions.length); i++) {
       questions.push({
         id: `q-${category.name.toLowerCase()}-${i + 1}`,
@@ -284,8 +398,8 @@ function generateGenericContextQuestions(promptText: string): Question[] {
   return questions;
 }
 
-// New function: find pillar-based image analysis information
-function findPillarBasedImageInfo(question: Question, imageAnalysis: any): string | null {
+// New function: find pillar-based image analysis information with intent matching
+function findPillarBasedImageInfo(question: Question, imageAnalysis: any, userIntent: string = ''): string | null {
   if (!imageAnalysis || typeof imageAnalysis !== 'object') {
     console.log("No valid image analysis data available for pillar matching");
     return null;
@@ -294,7 +408,16 @@ function findPillarBasedImageInfo(question: Question, imageAnalysis: any): strin
   const category = question.category.toLowerCase();
   const questionText = question.text.toLowerCase();
   
-  console.log(`Searching for pillar-based image analysis for "${category}" category`);
+  // Check if the question is relevant to the user's intent
+  const isRelevantToIntent = userIntent ? 
+    isQuestionRelevantToIntent(questionText, userIntent) : true;
+  
+  if (!isRelevantToIntent) {
+    console.log(`Question not relevant to user intent "${userIntent.substring(0, 30)}...": "${questionText.substring(0, 30)}..."`);
+    return null;
+  }
+  
+  console.log(`Searching for pillar-based image analysis for "${category}" category relevant to intent: "${userIntent}"`);
   
   // First look for direct pillar match in the image analysis
   for (const [key, data] of Object.entries(imageAnalysis)) {
@@ -344,18 +467,29 @@ function findPillarBasedImageInfo(question: Question, imageAnalysis: any): strin
   }
   
   // If we still can't find a match, check for semantic similarity between question text and analysis
-  if (questionText.includes('style') || questionText.includes('look') || questionText.includes('aesthetic')) {
-    if (imageAnalysis.style || imageAnalysis.artisticStyle) {
-      console.log(`Found style information for question about "${category}" using question text match`);
-      return `Based on image analysis: ${imageAnalysis.style || imageAnalysis.artisticStyle}`;
-    }
-  }
+  const questionKeywords = extractQuestionSemanticKeywords(questionText);
   
-  if (questionText.includes('color') || questionText.includes('palette') || questionText.includes('tone')) {
-    if (imageAnalysis.colors || imageAnalysis.palette || (imageAnalysis.style && imageAnalysis.style.colors)) {
-      const colorInfo = imageAnalysis.colors || imageAnalysis.palette || imageAnalysis.style.colors;
-      console.log(`Found color information for question about "${category}" using question text match`);
-      return `Based on image analysis: ${typeof colorInfo === 'string' ? colorInfo : JSON.stringify(colorInfo)}`;
+  for (const [key, data] of Object.entries(imageAnalysis)) {
+    // Check if any of the question keywords match this analysis section
+    const sectionMatchesQuestion = questionKeywords.some(keyword => 
+      key.toLowerCase().includes(keyword)
+    );
+    
+    if (sectionMatchesQuestion) {
+      console.log(`Found semantic match between question keywords and section "${key}"`);
+      
+      if (typeof data === 'string') {
+        return `Based on image analysis: ${data}`;
+      } else if (typeof data === 'object' && data !== null) {
+        const formattedData = Object.entries(data)
+          .filter(([k, v]) => v !== null && v !== undefined && v !== '')
+          .map(([k, v]) => `${k}: ${v}`)
+          .join('. ');
+          
+        if (formattedData) {
+          return `Based on image analysis: ${formattedData}`;
+        }
+      }
     }
   }
   
@@ -363,7 +497,32 @@ function findPillarBasedImageInfo(question: Question, imageAnalysis: any): strin
   return null;
 }
 
-function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): string | null {
+// Extract key semantic concepts from a question
+function extractQuestionSemanticKeywords(questionText: string): string[] {
+  const semanticMapping: {[key: string]: string[]} = {
+    'style': ['artistic', 'aesthetic', 'look', 'visual', 'appearance', 'stylization', 'design'],
+    'color': ['palette', 'scheme', 'hue', 'tone', 'shade', 'tint', 'colorful', 'colors'],
+    'composition': ['arrangement', 'layout', 'hierarchy', 'elements', 'structure', 'focal', 'balance'],
+    'mood': ['feeling', 'atmosphere', 'emotion', 'convey', 'tone', 'ambience', 'vibe'],
+    'technical': ['dimensions', 'resolution', 'format', 'quality', 'specifications', 'constraints', 'platform'],
+    'subject': ['main', 'content', 'elements', 'features', 'details', 'object', 'focus'],
+    'purpose': ['intended', 'audience', 'message', 'communicate', 'goal', 'action', 'use'],
+    'context': ['environment', 'displayed', 'cultural', 'regional', 'viewing', 'themes', 'concepts']
+  };
+  
+  const results = [];
+  
+  // Check each semantic category
+  for (const [category, keywords] of Object.entries(semanticMapping)) {
+    if (keywords.some(keyword => questionText.includes(keyword))) {
+      results.push(category);
+    }
+  }
+  
+  return results.length > 0 ? results : ['general'];
+}
+
+function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any, userIntent: string = ''): string | null {
   if (!imageAnalysis) {
     console.log("No image analysis data available");
     return null;
@@ -372,9 +531,18 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): 
   const questionText = question.text.toLowerCase();
   const category = question.category.toLowerCase();
   
+  // Check if the question is relevant to the user's intent
+  const isRelevantToIntent = userIntent ? 
+    isQuestionRelevantToIntent(questionText, userIntent) : true;
+  
+  if (!isRelevantToIntent) {
+    console.log(`Question not relevant to user intent for generic matching: "${questionText.substring(0, 30)}..."`);
+    return null;
+  }
+  
   console.log(`Finding image info for question category: "${category}", text: "${questionText.substring(0, 30)}..."`);
 
-  const analysisMapping: { [key: string]: {fields: string[], format: (data: any) => string} } = {
+  const analysisMapping: { [key: string]: {fields: string[], format: (data: any) => string | null} } = {
     style: {
       fields: ['style', 'artisticStyle', 'aesthetic', 'description', 'techniques', 'influences'],
       format: (data) => {
@@ -492,7 +660,7 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): 
         const formattedInfo = mapping.format(imageAnalysis);
         if (formattedInfo) {
           console.log(`Found match by category word "${categoryWord}" -> "${key}"`);
-          return formattedInfo;
+          return `Based on image analysis: ${formattedInfo}`;
         }
       }
     }
@@ -505,7 +673,7 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): 
       const formattedInfo = mapping.format(imageAnalysis);
       if (formattedInfo) {
         console.log(`Found match by partial category match "${key}"`);
-        return formattedInfo;
+        return `Based on image analysis: ${formattedInfo}`;
       }
     }
   }
@@ -516,7 +684,7 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): 
       const formattedInfo = mapping.format(imageAnalysis);
       if (formattedInfo) {
         console.log(`Found match by question text for "${key}"`);
-        return formattedInfo;
+        return `Based on image analysis: ${formattedInfo}`;
       }
     }
   }

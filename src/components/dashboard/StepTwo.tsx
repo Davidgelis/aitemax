@@ -44,12 +44,23 @@ export const StepTwo = ({
   const { currentLanguage } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
 
+  // Count pre-filled questions
+  const prefilledCount = questions.filter(q => q.answer).length;
+  const hasPrefilledQuestions = prefilledCount > 0;
+
   return (
     <div className="border rounded-xl p-6 bg-card">
       <div className="mb-6">
-        <p className="text-card-foreground mb-4">
-          {t.steps.questionsToAnswer}
-        </p>
+        <div className="flex justify-between items-center mb-4">
+          <p className="text-card-foreground">
+            {t.steps.questionsToAnswer}
+          </p>
+          {hasPrefilledQuestions && (
+            <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded-md">
+              {prefilledCount} {t.steps.prefilledAnswers}
+            </span>
+          )}
+        </div>
         
         <QuestionList 
           questions={questions}

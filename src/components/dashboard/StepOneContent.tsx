@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
@@ -61,6 +60,26 @@ export const StepOneContent = ({
   const { currentLanguage } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
   
+  // Extract user intent from prompt for better context display
+  const extractUserIntent = (text: string): string => {
+    if (!text || text.length < 10) return '';
+    
+    // For short prompts, return the whole prompt
+    if (text.length < 60) return text;
+    
+    // Otherwise extract first sentence or first 8-10 words
+    const firstSentence = text.split(/[.!?]/).filter(s => s.trim().length > 0)[0];
+    
+    if (firstSentence && firstSentence.length < 80) {
+      return firstSentence.trim();
+    }
+    
+    // Fall back to first 8-10 words
+    return text.split(' ').slice(0, 10).join(' ');
+  };
+  
+  const userIntent = extractUserIntent(promptText);
+  
   const handleAnalyzeWithAuth = () => {
     if (!user) {
       // Store current prompt in sessionStorage before redirecting
@@ -115,6 +134,7 @@ export const StepOneContent = ({
   const handleAnalyzeWithContext = () => {
     console.log("StepOneContent: Analyzing with GPT-4o:", {
       promptText,
+      userIntent,
       uploadedImages: uploadedImages.length,
       uploadedImagesData: uploadedImages.map(img => ({
         id: img.id,
@@ -144,7 +164,7 @@ export const StepOneContent = ({
     setDialogOpen(open);
     
     // If dialog is closing, make sure we reset the prevent step change flag
-    // but with a slight delay to ensure any context dialogs have time to open
+    // but with a slight delay to ensure any context dialog actions
     if (!open) {
       console.log("StepOneContent: Image dialog closing, will reset prevent step flag soon");
       // Use a small timeout to ensure the flag is reset after any context dialog actions
@@ -192,7 +212,14 @@ export const StepOneContent = ({
 
       {uploadedImages.length > 0 && (
         <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
-          <h3 className="text-sm font-medium text-[#545454] mb-2">{t.steps.uploadedImages}</h3>
+          <h3 className="text-sm font-medium text-[#545454] mb-2">
+            {t.steps.uploadedImages} 
+            {userIntent && (
+              <span className="ml-1 text-green-700">
+                • {t.steps.analyzeFor}: <span className="italic">"{userIntent}"</span>
+              </span>
+            )}
+          </h3>
           <div className="flex flex-col gap-2">
             {uploadedImages.map((img, index) => (
               <div key={img.id || index} className="flex flex-col">

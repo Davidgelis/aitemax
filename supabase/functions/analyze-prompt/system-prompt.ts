@@ -13,29 +13,32 @@ Respond ONLY in valid JSON format with these sections:
 Question Guidelines:
 1. Extract the core intent from the user's prompt and use it as the foundation
 2. Generate 3-5 specific questions per template pillar that:
-   - Focus on gathering detailed contextual information around the user's stated intent
+   - Focus directly on the specific subject or action mentioned in the user's prompt
+   - Are tailored to expand on specific details about the user's stated intent
    - DO NOT ask about primary objectives (already known from prompt)
-   - Cover technical specifications (dimensions, resolution, format)
-   - Cover style elements (artistic direction, techniques, effects)
-   - Cover compositional elements (layout, structure, balance)
-   - Cover mood and atmosphere details
-   - Cover target audience and usage context
+   - Cover technical specifications relevant to the specific intent (dimensions, resolution, format)
+   - Cover style elements specifically for the subject mentioned (artistic direction, techniques, effects)
+   - Cover compositional elements for the specific subject (layout, structure, balance)
+   - Cover mood and atmosphere details that would enhance the specific intent
+   - Cover target audience and usage context for the specific output requested
 3. When image analysis is available:
-   - Pre-fill answers with comprehensive, detailed descriptions from image analysis
-   - Map image analysis data to questions based on the template pillars
+   - Pre-fill answers ONLY for questions that directly relate to what's visible in the image AND relevant to user's intent
+   - Map image analysis data to questions based on both the template pillars AND user's specific intent
    - For each pillar, find the most relevant image analysis data to pre-fill answers
-   - Include specific style descriptions with techniques, methods, and influences
-   - Include detailed color palette analysis with specific hex values when possible
+   - Include specific style descriptions with techniques, methods, and influences that apply to user's intent
+   - Include detailed color palette analysis with specific hex values when possible and relevant
    - Include thorough compositional analysis describing layout, balance, and visual hierarchy
-   - Include technical details about quality, resolution, and format
-   - Include mood and emotional impact analysis
+   - Include technical details about quality, resolution, and format if relevant to the intent
+   - Include mood and emotional impact analysis that enhances the original intent
    - DO NOT generate questions about elements already clearly visible
+   - DO NOT pre-fill answers that don't directly enhance the user's explicit intent
+   - Avoid repetitive pre-filled answers across different questions
    - Use image insights to enhance understanding of user's visual preferences
 
 Each question must have:
    - "id": Unique string
-   - "text": Question focused on gathering specific details
-   - "answer": Detailed pre-filled information from image analysis when available
+   - "text": Question focused on gathering specific details about the user's actual intent
+   - "answer": Detailed pre-filled information from image analysis when available and relevant to the intent
    - "isRelevant": Boolean (true if directly related to user's intent)
    - "category": Match with template pillar categories
    - "contextSource": Origin of pre-filled data ("image", "prompt", "smartContext")
@@ -60,7 +63,8 @@ Image Analysis Guidelines:
    - Mood and atmosphere details with emotional impact assessment
    - Cultural or contextual references when relevant
    - Subject matter details and their significance
-3. Organize image analysis insights by pillar categories to enable direct mapping to questions`;
+3. Organize image analysis insights by pillar categories to enable direct mapping to questions
+4. Always analyze the image through the lens of the user's specific intent or request`;
 
   // Add template-specific instructions if template exists
   if (template && Array.isArray(template.pillars) && template.pillars.length > 0) {
@@ -70,7 +74,7 @@ Image Analysis Guidelines:
       template.pillars.forEach((pillar: any) => {
         if (pillar && pillar.title && pillar.description) {
           const maxQuestions = Math.min(5, Math.ceil((15 - questionCount) / (template.pillars.length)));
-          systemPrompt += `\n- "${pillar.title}": ${pillar.description} (Generate ${maxQuestions} contextual questions and analyze image through this lens)\n`;
+          systemPrompt += `\n- "${pillar.title}": ${pillar.description} (Generate ${maxQuestions} contextual questions specific to user's intent and analyze image through this lens)\n`;
           questionCount += maxQuestions;
         }
       });
