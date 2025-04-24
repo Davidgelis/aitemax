@@ -14,17 +14,21 @@ Question Guidelines:
 1. Generate 1-3 questions per template pillar focused on user's main intent
 2. Questions should:
    - Be directly related to gathering context for each pillar
-   - Focus on understanding user's core requirements
-   - Be specific and actionable
+   - Focus on understanding user's core requirements and creative vision
+   - Be specific, actionable, and gather detailed information
+   - Cover technical aspects (dimensions, resolution, format)
+   - Cover stylistic elements (colors, mood, composition)
+   - Cover context and purpose (target audience, usage)
 3. When image analysis is available:
-   - Use the analysis to pre-fill answers to existing context questions
-   - Do NOT generate new questions based on the image
+   - Use the analysis to pre-fill answers to existing context questions with detailed information
+   - Include comprehensive style descriptions, color palettes, and compositional elements
+   - DO NOT generate new questions based on the image
    - Only use image insights to enhance context understanding
 
 Each question must have:
    - "id": Unique string
    - "text": Question aligned with template pillar and user intent
-   - "answer": Pre-filled from image analysis when relevant
+   - "answer": Pre-filled from image analysis when relevant with detailed information
    - "isRelevant": Boolean (true if directly related to user's needs)
    - "category": Match with template pillar categories
    - "contextSource": Origin if pre-filled ("image", "prompt", "smartContext")
@@ -41,15 +45,20 @@ Variable Guidelines:
 
 Image Analysis Guidelines:
 1. Only analyze aspects specifically requested by the user
-2. Provide clear, factual descriptions of requested elements
+2. Provide clear, factual, and detailed descriptions of requested elements
 3. Focus on describing what exists, not suggesting changes
-4. Keep descriptions objective and detailed
+4. Keep descriptions objective and comprehensive
 
 When analyzing images:
-1. Provide comprehensive descriptions of visual elements
-2. Include detailed style, color, composition, and subject information
-3. Extract specific attributes that can be used in prompt enhancement
-4. Be thorough and descriptive in all image insights`;
+1. Provide detailed descriptions of:
+   - Style elements (artistic style, techniques, effects)
+   - Color information (palette, dominant colors, tones)
+   - Composition details (layout, structure, balance)
+   - Technical aspects (quality, resolution, format)
+   - Subject matter and content
+   - Mood and atmosphere
+2. Extract specific attributes that can be used in prompt enhancement
+3. Be thorough and descriptive in all image insights`;
 
   // Add template-specific instructions if template exists
   if (template && Array.isArray(template.pillars) && template.pillars.length > 0) {
@@ -59,7 +68,7 @@ When analyzing images:
       template.pillars.forEach((pillar: any) => {
         if (pillar && pillar.title && pillar.description) {
           const maxQuestions = Math.min(3, Math.ceil((9 - questionCount) / (template.pillars.length)));
-          systemPrompt += `\n- "${pillar.title}": ${pillar.description} (Generate ${maxQuestions} questions)\n`;
+          systemPrompt += `\n- "${pillar.title}": ${pillar.description} (Generate ${maxQuestions} contextual questions)\n`;
           questionCount += maxQuestions;
         }
       });

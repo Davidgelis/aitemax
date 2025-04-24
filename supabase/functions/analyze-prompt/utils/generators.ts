@@ -1,3 +1,4 @@
+
 import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
@@ -16,46 +17,13 @@ export function generateContextQuestionsForPrompt(
     
     template.pillars.forEach((pillar: any, index: number) => {
       if (pillar && pillar.title) {
-        // Generate base question for the pillar
-        const baseQuestion: Question = {
-          id: `q-${pillar.title.toLowerCase()}-1`,
-          text: `What are your specific requirements for ${pillar.title.toLowerCase()}?`,
-          answer: "",
-          isRelevant: true,
-          category: pillar.title,
-          contextSource: undefined
-        };
-
-        // Add the base question
-        questions.push(baseQuestion);
-
-        // Add up to 2 more context-gathering questions if needed
-        if (maxQuestionsPerPillar > 1) {
-          questions.push({
-            id: `q-${pillar.title.toLowerCase()}-2`,
-            text: `What are your goals for ${pillar.title.toLowerCase()}?`,
-            answer: "",
-            isRelevant: true,
-            category: pillar.title,
-            contextSource: undefined
-          });
-        }
-
-        if (maxQuestionsPerPillar > 2) {
-          questions.push({
-            id: `q-${pillar.title.toLowerCase()}-3`,
-            text: `Are there any specific constraints or requirements for ${pillar.title.toLowerCase()}?`,
-            answer: "",
-            isRelevant: true,
-            category: pillar.title,
-            contextSource: undefined
-          });
-        }
+        const pillarQuestions = generateQuestionsForPillar(pillar, maxQuestionsPerPillar);
+        questions.push(...pillarQuestions);
       }
     });
   }
 
-  // If we have image analysis, use it to pre-fill relevant answers with detailed information
+  // If we have image analysis, use it to pre-fill relevant answers
   if (imageAnalysis) {
     questions.forEach(question => {
       const relevantImageInfo = findDetailedRelevantImageInfo(question, imageAnalysis);
@@ -63,6 +31,79 @@ export function generateContextQuestionsForPrompt(
         question.answer = relevantImageInfo;
         question.contextSource = 'image';
       }
+    });
+  }
+
+  return questions;
+}
+
+function generateQuestionsForPillar(pillar: any, maxQuestions: number): Question[] {
+  const questions: Question[] = [];
+  const pillarTitle = pillar.title.toLowerCase();
+
+  // Base question templates based on pillar type
+  const questionTemplates: { [key: string]: string[] } = {
+    style: [
+      "What artistic style or aesthetic are you looking to achieve?",
+      "Are there specific visual elements or techniques you want to incorporate?",
+      "What mood or atmosphere should the final result convey?"
+    ],
+    technical: [
+      "What are your specific requirements for dimensions and resolution?",
+      "Are there any technical constraints or format requirements?",
+      "What level of detail or quality are you aiming for?"
+    ],
+    content: [
+      "What are the main elements or subjects that should be included?",
+      "How should these elements be arranged or composed?",
+      "Are there any specific details or features that must be emphasized?"
+    ],
+    purpose: [
+      "What is the intended use or purpose of this creation?",
+      "Who is your target audience?",
+      "What message or feeling should it communicate?"
+    ],
+    color: [
+      "What color palette or scheme would you like to use?",
+      "Are there specific colors that must be included or avoided?",
+      "What kind of color harmony are you aiming for?"
+    ],
+    composition: [
+      "How should the elements be arranged in the space?",
+      "What kind of visual hierarchy do you want to establish?",
+      "Are there specific compositional techniques you'd like to use?"
+    ]
+  };
+
+  // Select appropriate questions based on pillar type
+  let relevantQuestions: string[] = [];
+  
+  // Try to match pillar title with question templates
+  for (const [key, questions] of Object.entries(questionTemplates)) {
+    if (pillarTitle.includes(key) || pillar.description.toLowerCase().includes(key)) {
+      relevantQuestions = questions;
+      break;
+    }
+  }
+
+  // If no specific match found, use generic questions
+  if (relevantQuestions.length === 0) {
+    relevantQuestions = [
+      `What are your specific requirements for ${pillarTitle}?`,
+      `What are your goals regarding ${pillarTitle}?`,
+      `Are there any particular preferences or constraints for ${pillarTitle}?`
+    ];
+  }
+
+  // Add questions up to the maximum allowed
+  for (let i = 0; i < Math.min(maxQuestions, relevantQuestions.length); i++) {
+    questions.push({
+      id: `q-${pillarTitle}-${i + 1}`,
+      text: relevantQuestions[i],
+      answer: "",
+      isRelevant: true,
+      category: pillar.title,
+      contextSource: undefined
     });
   }
 
