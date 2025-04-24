@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -45,258 +46,122 @@ serve(async (req) => {
       throw new Error("Prompt text is required");
     }
     
-    // Extract core user intent for better question tailoring and pre-filling
-    const userIntent = extractUserIntent(promptText);
-    const missingInfoCategories = identifyMissingInformation(promptText);
-    
-    console.log(`Extracted user intent: "${userIntent}"`);
-    console.log(`Missing information categories: ${missingInfoCategories.join(', ')}`);
-    
-    // Check if prompt is too short/simple for questions
-    const isPromptSimple = promptText.length < 50 || promptText.split(' ').length < 10;
-    console.log(`Prompt simplicity check: ${isPromptSimple ? 'Simple prompt' : 'Complex prompt'}`);
-
-    // Enhanced image data validation
-    let hasValidImageData = false;
-    if (Array.isArray(imageData) && imageData.length > 0) {
-      hasValidImageData = imageData.some(img => img && img.base64 && img.context);
-      console.log(`Image data validation: ${hasValidImageData ? 'Valid' : 'Invalid'}, Images with context: ${imageData.filter(img => img.context).length}`);
-      
-      // Log image context to help with intent matching
-      if (hasValidImageData) {
-        imageData.forEach((img, i) => {
-          if (img.context) {
-            console.log(`Image ${i+1} context: "${img.context.substring(0, 100)}..."`);
-          }
-        });
-      }
-    }
-
-    // Create system prompt with emphasis on the user's original intent
-    const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
-    
-    // Build the enhanced context
-    let enhancedContext = promptText;
-    let imageBase64 = null;
-    let imageContext = '';
-    
-    // Enhanced image processing with better logging
-    if (imageData) {
-      console.log("Processing image data with intent-based validation");
-      
-      if (Array.isArray(imageData) && imageData.length > 0 && imageData[0]?.base64) {
-        try {
-          imageBase64 = imageData[0].base64.replace(/^data:image\/[a-z]+;base64,/, '');
-          imageContext = imageData[0].context || '';
-          enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT: ${imageContext}`;
-          console.log("Successfully processed image data:", {
-            hasBase64: !!imageBase64,
-            base64Length: imageBase64 ? imageBase64.length : 0,
-            hasContext: !!imageContext,
-            contextLength: imageContext.length,
-            intentFromContext: extractUserIntent(imageContext)
-          });
-        } catch (imageErr) {
-          console.error("Error processing image:", imageErr);
-          imageBase64 = null;
-          imageContext = '';
-        }
-      } else {
-        console.log("Image data validation failed:", {
-          isArray: Array.isArray(imageData),
-          length: Array.isArray(imageData) ? imageData.length : 0,
-          firstItemHasBase64: Array.isArray(imageData) && imageData.length > 0 ? !!imageData[0]?.base64 : false
-        });
-      }
-    }
-    
-    // Add missing information categories to the context
-    enhancedContext = `${enhancedContext}\n\nMISSING INFORMATION CATEGORIES: ${missingInfoCategories.join(', ')}`;
-    
-    // Add smart context if available
-    if (smartContextData?.context) {
-      enhancedContext = `${enhancedContext}\n\nADDITIONAL CONTEXT:\n${smartContextData.context}`;
-    }
-    
-    // Add website context if available
-    if (websiteData?.url) {
-      enhancedContext = `${enhancedContext}\n\nWEBSITE CONTEXT:\nURL: ${websiteData.url}\n${websiteData.instructions || ''}`;
-    }
-
-    const apiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!apiKey) {
-      throw new Error("OpenAI API key is not configured");
-    }
-
-    console.log("Calling OpenAI API with prompt-focused analysis");
-    
-    const { content } = await analyzePromptWithAI(
-      enhancedContext,
-      systemPrompt,
-      apiKey,
-      smartContextData?.context || '',
-      imageBase64,
-      model
-    );
-
-    console.log("Received response from OpenAI, parsing content with prompt-based analysis");
-
-    let parsedContent;
-    let imageAnalysis = null;
+    // Initialize empty arrays for questions and variables
+    let questions = [];
+    let variables = [];
+    let masterCommand = "";
+    let enhancedPrompt = promptText;
     
     try {
-      parsedContent = JSON.parse(content);
-      imageAnalysis = parsedContent.imageAnalysis;
+      // Safely extract user intent with error handling
+      const userIntent = extractUserIntent(promptText || '');
+      const missingInfoCategories = identifyMissingInformation(promptText || '');
       
-      console.log("Successfully parsed JSON response", {
-        hasImageAnalysis: !!imageAnalysis,
-        imageAnalysisPillars: imageAnalysis ? Object.keys(imageAnalysis).join(", ") : "none",
-        questionsCount: parsedContent.questions ? parsedContent.questions.length : 0,
-        prefilledQuestionsCount: parsedContent.questions ? parsedContent.questions.filter(q => q.answer).length : 0
-      });
-    } catch (error) {
-      console.error("Failed to parse content:", error);
-      // Provide fallback content when parsing fails
-      parsedContent = {
-        questions: [],
-        variables: [],
-        masterCommand: "",
-        enhancedPrompt: enhancedContext,
-        error: error.message
-      };
-    }
-
-    // Generate intent-specific questions based on user prompt and template pillars
-    let questions = generateContextQuestionsForPrompt(
-      enhancedContext,
-      template,
-      smartContextData,
-      imageAnalysis,
-      userIntent
-    );
-    
-    console.log(`Generated ${questions.length} intent-based questions from template pillars (${questions.filter(q => q.answer).length} with pre-filled answers)`);
-
-    // Check if the AI-generated questions address the missing information categories
-    const aiQuestionsAddressMissingInfo = Array.isArray(parsedContent?.questions) && 
-      parsedContent.questions.some(q => 
-        missingInfoCategories.some(category => 
-          q.text.toLowerCase().includes(category.toLowerCase())
-        )
-      );
-
-    // If we have AI-generated questions that address missing info, use them
-    const useAIQuestions = Array.isArray(parsedContent?.questions) && 
-                           parsedContent.questions.length > 0 &&
-                           (aiQuestionsAddressMissingInfo || parsedContent.questions.filter(q => q.answer).length > 0);
-    
-    if (useAIQuestions) {
-      // Check if the AI questions match user intent
-      const aiQuestionsMatchIntent = parsedContent.questions.some(q => 
-        isQuestionRelatedToIntent(q.text, userIntent)
-      );
+      console.log(`Extracted user intent: "${userIntent}"`);
+      console.log(`Missing information categories: ${missingInfoCategories.join(', ')}`);
       
-      // Log analysis of AI questions
-      console.log("AI question quality analysis:", {
-        addressesMissingInfo: aiQuestionsAddressMissingInfo,
-        matchesUserIntent: aiQuestionsMatchIntent,
-        prefilledCount: parsedContent.questions.filter(q => q.answer).length,
-        totalCount: parsedContent.questions.length,
-        categories: parsedContent.questions.reduce((acc: Record<string, number>, q: any) => {
-          acc[q.category] = (acc[q.category] || 0) + 1;
-          return acc;
-        }, {})
-      });
+      // Check if prompt is too short/simple for questions
+      const isPromptSimple = (promptText?.length || 0) < 50 || (promptText?.split(' ').length || 0) < 10;
+      console.log(`Prompt simplicity check: ${isPromptSimple ? 'Simple prompt' : 'Complex prompt'}`);
+
+      // Enhanced image data validation
+      let hasValidImageData = false;
+      if (Array.isArray(imageData) && imageData.length > 0) {
+        hasValidImageData = imageData.some(img => img && img.base64 && img.context);
+        console.log(`Image data validation: ${hasValidImageData ? 'Valid' : 'Invalid'}`);
+      }
+
+      // Create system prompt
+      const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
       
-      if (aiQuestionsMatchIntent || aiQuestionsAddressMissingInfo) {
-        console.log("Using AI-generated questions due to better prompt-based matching");
-        
-        // Remove duplicate or very similar questions
-        const uniqueQuestions = new Map();
-        parsedContent.questions.forEach(q => {
-          const simplifiedText = simplifyQuestionText(q.text);
-          if (!uniqueQuestions.has(simplifiedText)) {
-            uniqueQuestions.set(simplifiedText, q);
-          } else {
-            // Keep the question with an answer if present
-            const existingQuestion = uniqueQuestions.get(simplifiedText);
-            if (!existingQuestion.answer && q.answer) {
-              uniqueQuestions.set(simplifiedText, q);
-            }
+      // Build the enhanced context safely
+      let enhancedContext = promptText || '';
+      let imageBase64 = null;
+      let imageContext = '';
+      
+      // Enhanced image processing with better logging and error handling
+      if (imageData && Array.isArray(imageData) && imageData.length > 0) {
+        try {
+          const firstImage = imageData[0];
+          if (firstImage?.base64) {
+            imageBase64 = firstImage.base64.replace(/^data:image\/[a-z]+;base64,/, '');
+            imageContext = firstImage.context || '';
+            enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT: ${imageContext}`;
           }
-        });
-        
-        questions = Array.from(uniqueQuestions.values());
-        console.log(`Using ${questions.length} AI questions after deduplication`);
+        } catch (imageErr) {
+          console.error("Error processing image:", imageErr);
+        }
+      }
+      
+      // Add missing information categories to the context
+      if (missingInfoCategories.length > 0) {
+        enhancedContext = `${enhancedContext}\n\nMISSING INFORMATION CATEGORIES: ${missingInfoCategories.join(', ')}`;
+      }
+      
+      // Add smart context if available
+      if (smartContextData?.context) {
+        enhancedContext = `${enhancedContext}\n\nADDITIONAL CONTEXT:\n${smartContextData.context}`;
+      }
+      
+      // Add website context if available
+      if (websiteData?.url) {
+        enhancedContext = `${enhancedContext}\n\nWEBSITE CONTEXT:\nURL: ${websiteData.url}\n${websiteData.instructions || ''}`;
+      }
+
+      const apiKey = Deno.env.get('OPENAI_API_KEY');
+      if (!apiKey) {
+        throw new Error("OpenAI API key is not configured");
+      }
+
+      // Call OpenAI API with enhanced error handling
+      const { content } = await analyzePromptWithAI(
+        enhancedContext,
+        systemPrompt,
+        apiKey,
+        smartContextData?.context || '',
+        imageBase64,
+        model
+      );
+
+      // Generate fallback questions if no AI response
+      if (!content) {
+        console.log("No content from AI, generating fallback questions");
+        questions = generateDefaultQuestions(promptText, template);
       } else {
-        console.log("Using locally generated questions for better prompt-based coverage");
-        // Keep our locally generated questions but enhance with any pre-filled answers
-        const aiAnswers = new Map(parsedContent.questions.filter(q => q.answer).map(q => [simplifyQuestionText(q.text), q.answer]));
-        
-        // Try to apply any pre-filled answers from AI to our local questions
-        questions = questions.map(q => {
-          const simplifiedText = simplifyQuestionText(q.text);
-          const aiAnswer = aiAnswers.get(simplifiedText);
-          if (!q.answer && aiAnswer) {
-            q.answer = aiAnswer;
+        try {
+          const parsedContent = JSON.parse(content);
+          
+          // Use AI-generated questions if they exist and are valid
+          if (Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0) {
+            questions = parsedContent.questions;
+          } else {
+            questions = generateDefaultQuestions(promptText, template);
           }
-          return q;
-        });
+          
+          // Use AI-generated variables if they exist
+          if (Array.isArray(parsedContent?.variables)) {
+            variables = parsedContent.variables;
+          }
+          
+          masterCommand = parsedContent?.masterCommand || "";
+          enhancedPrompt = parsedContent?.enhancedPrompt || promptText;
+          
+        } catch (parseError) {
+          console.error("Failed to parse AI response:", parseError);
+          questions = generateDefaultQuestions(promptText, template);
+        }
       }
-    }
-    
-    // Generate variables with appropriate detail level
-    let variables = generateContextualVariablesForPrompt(
-      enhancedContext,
-      template,
-      imageAnalysis,
-      smartContextData,
-      isPromptSimple && !hasValidImageData // Flag for concise variables
-    );
-
-    // If we have AI-generated variables that seem to address the prompt, consider using them
-    if (Array.isArray(parsedContent?.variables) && parsedContent.variables.length > 0) {
-      const aiVariablesMatchPrompt = parsedContent.variables.some(v => 
-        userIntent.split(' ').some(word => 
-          v.name.toLowerCase().includes(word.toLowerCase()) || 
-          (v.value && v.value.toLowerCase().includes(word.toLowerCase()))
-        )
-      );
       
-      if (aiVariablesMatchPrompt) {
-        console.log("Using AI-generated variables due to better prompt matching");
-        variables = parsedContent.variables;
+      // Ensure we have at least some questions to proceed
+      if (questions.length === 0) {
+        questions = generateDefaultQuestions(promptText, template);
       }
+      
+    } catch (analysisError) {
+      console.error("Error in prompt analysis:", analysisError);
+      // Ensure we have fallback questions even if analysis fails
+      questions = generateDefaultQuestions(promptText, template);
     }
-
-    const masterCommand = extractMasterCommand(content);
-    const enhancedPrompt = extractEnhancedPrompt(content);
-
-    // Log prefilled questions by pillar to help with debugging
-    const prefilledByPillar = questions
-      .filter(q => q.answer)
-      .reduce((acc, q) => {
-        acc[q.category] = (acc[q.category] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-    console.log("Analysis complete, returning results:", {
-      questionsCount: questions.length,
-      variablesCount: variables.length,
-      prefilled: questions.filter(q => q.answer).length,
-      prefilledByPillar,
-      hasMasterCommand: !!masterCommand,
-      hasEnhancedPrompt: !!enhancedPrompt,
-      isPromptSimple,
-      hasValidImageData,
-      imageAnalysisAvailable: !!imageAnalysis,
-      originalIntent: userIntent,
-      missingInfoCategories,
-      pillarsCovered: questions.reduce((acc, q) => {
-        if (!acc.includes(q.category)) acc.push(q.category);
-        return acc;
-      }, []).join(', ')
-    });
 
     return new Response(
       JSON.stringify({
@@ -305,24 +170,9 @@ serve(async (req) => {
         masterCommand,
         enhancedPrompt,
         debug: {
-          hasImageData: !!imageBase64,
-          imageProcessingStatus: imageBase64 ? "processed" : "not available",
-          model,
-          templateUsed: template?.name || "none",
-          pillarsCount: template?.pillars?.length || 0,
           questionsGenerated: questions.length,
           questionsPrefilled: questions.filter(q => q.answer).length,
-          userIntent,
-          missingInfoCategories,
-          isPromptSimple,
-          hasValidImageData,
-          imageAnalysisAvailable: !!imageAnalysis,
-          sourceOfQuestions: useAIQuestions ? "AI" : "local",
-          prefilledByPillar,
-          pillarsCovered: questions.reduce((acc, q) => {
-            if (!acc.includes(q.category)) acc.push(q.category);
-            return acc;
-          }, []).join(', ')
+          variablesGenerated: variables.length
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -331,144 +181,160 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in analyze-prompt function:', error);
     
-    // Return a more graceful error response
+    // Generate default questions even in case of error
+    const defaultQuestions = generateDefaultQuestions(requestBody?.promptText || '', requestBody?.template);
+    
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        stack: error.stack,
-        timestamp: new Date().toISOString(),
-        questions: [],
+      JSON.stringify({
+        questions: defaultQuestions,
         variables: [],
         masterCommand: "",
-        enhancedPrompt: ""
+        enhancedPrompt: requestBody?.promptText || "",
+        error: error.message,
+        debug: {
+          errorOccurred: true,
+          questionsGenerated: defaultQuestions.length,
+          errorMessage: error.message
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   }
 });
 
-// Helper function to extract the core user intent from prompt text
+// Helper function to extract user intent safely
 function extractUserIntent(promptText: string): string {
   if (!promptText) return '';
   
-  // Try to extract an action + object pattern
-  const actionObjectPattern = /(?:create|generate|make|design|draw|produce)\s+(?:a|an|the)?\s*([a-z\s]+)/i;
-  const match = promptText.match(actionObjectPattern);
-  
-  if (match && match[1]) {
-    // Return the first 5-10 words to capture the core intent
-    return match[1].trim().split(/\s+/).slice(0, 10).join(' ');
+  try {
+    if (promptText.length < 60) return promptText;
+    
+    const firstSentence = promptText.split(/[.!?]/).find(s => s.trim().length > 0);
+    if (firstSentence && firstSentence.length < 80) {
+      return firstSentence.trim();
+    }
+    
+    return promptText.split(' ').slice(0, 10).join(' ');
+  } catch (error) {
+    console.error("Error extracting user intent:", error);
+    return promptText.substring(0, 100);
   }
-  
-  // Fallback: just return the first 5-8 words
-  return promptText.split(/\s+/).slice(0, 8).join(' ').toLowerCase();
 }
 
-// Function to identify missing information categories in a prompt
+// Helper function to identify missing information safely
 function identifyMissingInformation(promptText: string): string[] {
-  const missingCategories = [];
-  const promptLower = promptText.toLowerCase();
+  if (!promptText) return [];
   
-  // Check for missing details about objects
-  const objects = extractObjectsFromPrompt(promptText);
-  objects.forEach(obj => {
-    // Check for color information
-    if (!promptLower.includes(`${obj.toLowerCase()} color`) && 
-        !promptLower.includes(`color of the ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`red ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`blue ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`green ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`yellow ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`black ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`white ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`brown ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`purple ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`orange ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`pink ${obj.toLowerCase()}`)) {
-      missingCategories.push(`${obj} color`);
-    }
+  try {
+    const missingCategories = [];
+    const promptLower = promptText.toLowerCase();
     
-    // Check for size information
-    if (!promptLower.includes(`${obj.toLowerCase()} size`) && 
-        !promptLower.includes(`size of the ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`big ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`small ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`large ${obj.toLowerCase()}`) &&
-        !promptLower.includes(`tiny ${obj.toLowerCase()}`)) {
-      missingCategories.push(`${obj} size`);
-    }
+    // Extract objects safely
+    const objects = extractObjectsFromPrompt(promptText);
     
-    // Check for specific type/breed (for animals)
-    if ((obj.toLowerCase() === 'dog' || obj.toLowerCase() === 'cat') &&
-        !promptLower.includes('breed') &&
-        !promptLower.includes('labrador') &&
-        !promptLower.includes('poodle') &&
-        !promptLower.includes('retriever') &&
-        !promptLower.includes('shepherd') &&
-        !promptLower.includes('terrier') &&
-        !promptLower.includes('bulldog') &&
-        !promptLower.includes('siamese') &&
-        !promptLower.includes('persian')) {
-      missingCategories.push(`${obj} breed`);
-    }
-  });
-  
-  // Check for missing background/setting
-  if (!promptLower.includes('background') && 
-      !promptLower.includes('setting') && 
-      !promptLower.includes('environment') &&
-      !promptLower.includes('scene')) {
-    missingCategories.push('background');
+    objects.forEach(obj => {
+      if (obj && typeof obj === 'string') {
+        const objLower = obj.toLowerCase();
+        
+        // Check for color information safely
+        if (!promptLower.includes(`${objLower} color`) &&
+            !hasColorMentioned(promptLower, objLower)) {
+          missingCategories.push(`${obj} color`);
+        }
+        
+        // Check for size information safely
+        if (!promptLower.includes(`${objLower} size`) &&
+            !hasSizeMentioned(promptLower, objLower)) {
+          missingCategories.push(`${obj} size`);
+        }
+      }
+    });
+    
+    // Add basic missing categories
+    if (!promptLower.includes('background')) missingCategories.push('background');
+    if (!promptLower.includes('time of day')) missingCategories.push('time of day');
+    
+    return missingCategories;
+  } catch (error) {
+    console.error("Error identifying missing information:", error);
+    return [];
   }
-  
-  // Check for missing time of day
-  if (!promptLower.includes('day') && 
-      !promptLower.includes('night') && 
-      !promptLower.includes('morning') &&
-      !promptLower.includes('evening') &&
-      !promptLower.includes('afternoon')) {
-    missingCategories.push('time of day');
-  }
-  
-  // Check for missing action specifics
-  if ((promptLower.includes('playing') || 
-       promptLower.includes('running') || 
-       promptLower.includes('jumping') ||
-       promptLower.includes('doing')) &&
-      !promptLower.includes('how')) {
-    missingCategories.push('action details');
-  }
-  
-  return missingCategories;
+}
+
+function hasColorMentioned(text: string, obj: string): boolean {
+  const colors = ['red', 'blue', 'green', 'yellow', 'black', 'white', 'brown'];
+  return colors.some(color => text.includes(`${color} ${obj}`));
+}
+
+function hasSizeMentioned(text: string, obj: string): boolean {
+  const sizes = ['big', 'small', 'large', 'tiny', 'huge'];
+  return sizes.some(size => text.includes(`${size} ${obj}`));
 }
 
 function extractObjectsFromPrompt(promptText: string): string[] {
-  const commonObjects = ['dog', 'cat', 'person', 'man', 'woman', 'child', 'house', 'car', 'ball', 'tree', 'flower'];
-  const words = promptText.toLowerCase().split(/\s+/);
-  
-  return commonObjects.filter(obj => words.includes(obj));
+  try {
+    const commonObjects = ['dog', 'cat', 'person', 'house', 'car', 'tree'];
+    const words = promptText.toLowerCase().split(/\s+/);
+    return commonObjects.filter(obj => words.includes(obj));
+  } catch (error) {
+    console.error("Error extracting objects:", error);
+    return [];
+  }
 }
 
-// Check if a question is related to the user's intent
-function isQuestionRelatedToIntent(questionText: string, userIntent: string): boolean {
-  if (!userIntent) return true;
-  
-  const intentWords = userIntent.toLowerCase().split(/\s+/)
-    .filter(w => w.length > 3) // Only use meaningful words
-    .map(w => w.replace(/[^a-z]/g, '')); // Clean up the words
-  
-  // Check if any intent words are in the question
-  return intentWords.some(word => 
-    questionText.toLowerCase().includes(word)
-  );
-}
-
-// Helper function to simplify question text for comparison
-function simplifyQuestionText(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/\([^)]*\)/g, '') // Remove examples in parentheses
-    .replace(/[^\w\s]/g, '')   // Remove punctuation
-    .replace(/\s+/g, ' ')      // Normalize whitespace
-    .trim();
+// Function to generate default questions when AI analysis fails
+function generateDefaultQuestions(promptText: string, template: any): any[] {
+  try {
+    const defaultQuestions = [];
+    
+    // Get template pillars or use default ones
+    const pillars = template?.pillars || [
+      { title: "SUBJECT & COMPOSITION", description: "Core elements and their arrangement" },
+      { title: "STYLE & AESTHETIC", description: "Visual style and artistic choices" },
+      { title: "ENVIRONMENT & CONTEXT", description: "Setting and surroundings" },
+      { title: "MOOD & INTENTION", description: "Emotional impact and purpose" }
+    ];
+    
+    // Generate one basic question per pillar
+    pillars.forEach((pillar: any) => {
+      if (pillar?.title) {
+        defaultQuestions.push({
+          id: crypto.randomUUID(),
+          text: `What are your requirements for ${pillar.title.toLowerCase()}?`,
+          category: pillar.title,
+          isRelevant: true,
+          answer: ""
+        });
+      }
+    });
+    
+    // Add some general questions
+    defaultQuestions.push({
+      id: crypto.randomUUID(),
+      text: "What is the main focus or subject?",
+      category: "SUBJECT & COMPOSITION",
+      isRelevant: true,
+      answer: ""
+    });
+    
+    defaultQuestions.push({
+      id: crypto.randomUUID(),
+      text: "Are there any specific elements that must be included?",
+      category: "STYLE & AESTHETIC",
+      isRelevant: true,
+      answer: ""
+    });
+    
+    return defaultQuestions;
+  } catch (error) {
+    console.error("Error generating default questions:", error);
+    // Return absolute minimum set of questions if everything else fails
+    return [{
+      id: crypto.randomUUID(),
+      text: "What are the key elements you want to include?",
+      category: "GENERAL",
+      isRelevant: true,
+      answer: ""
+    }];
+  }
 }
