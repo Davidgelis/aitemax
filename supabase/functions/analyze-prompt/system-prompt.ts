@@ -16,6 +16,8 @@ Question Generation Guidelines:
 3. Add brief examples in parentheses after each question
 4. Focus on gathering context through familiar concepts
 5. Use analogies and comparisons when helpful
+6. Always look for gaps in the user's original prompt and ask questions to fill those gaps
+7. If the user mentions specific objects, ask for details about those objects (color, size, style, etc.)
 
 For example:
 Instead of: "Specify the RGB color values for the background"
@@ -27,6 +29,7 @@ Question Writing Rules:
 3. Use everyday comparisons
 4. Avoid technical jargon
 5. Keep questions short and clear
+6. For each object mentioned in the prompt, ask about its appearance and characteristics
 
 Variable Guidelines:
 1. Extract simple attributes that can be answered in 1-3 words
