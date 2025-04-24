@@ -5,6 +5,7 @@ export interface Question {
   answer: string;
   isRelevant: boolean | null;
   category: string;
+  contextSource?: string;
 }
 
 export interface Variable {

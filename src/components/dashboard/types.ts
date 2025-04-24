@@ -26,6 +26,8 @@ export interface Question {
   isRelevant: boolean | null;
   category?: string; // Task, Persona, Conditions, Instructions categories
   prefillSource?: string;
+  contextSource?: string; // Add this property to fix the errors
+  technicalTerms?: TechnicalTerm[];
 }
 
 export interface Variable {
@@ -135,4 +137,5 @@ export interface Question {
   category?: string;
   prefillSource?: string;
   technicalTerms?: TechnicalTerm[];
+  contextSource?: string;
 }
