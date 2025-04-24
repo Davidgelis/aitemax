@@ -73,11 +73,27 @@ export const VariableList = ({
     onVariableRelevance(variableId, newRelevance);
   };
 
+  // Helper to safely access translation keys
+  const getTranslation = (key: string, fallback: string): string => {
+    const parts = key.split('.');
+    let result: any = t;
+    
+    for (const part of parts) {
+      if (result && typeof result === 'object' && part in result) {
+        result = result[part];
+      } else {
+        return fallback;
+      }
+    }
+    
+    return typeof result === 'string' ? result : fallback;
+  };
+
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <h3 className="text-lg font-medium">{t.variables.title}</h3>
+          <h3 className="text-lg font-medium">{getTranslation('steps.variablesTitle', 'Variables')}</h3>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -86,7 +102,7 @@ export const VariableList = ({
                 </div>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                <p>{t.variables.tooltip}</p>
+                <p>{getTranslation('steps.variablesTooltip', 'Custom variables that can be used in your prompt')}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -94,23 +110,23 @@ export const VariableList = ({
         <button 
           onClick={onAddVariable}
           className="flex items-center gap-1 text-sm bg-accent/10 hover:bg-accent/20 p-2 rounded-md transition-colors"
-          title={t.variables.addNew}
+          title={getTranslation('steps.addNewVariable', 'Add New Variable')}
         >
           <Plus className="h-4 w-4" />
-          <span>{t.variables.addNew}</span>
+          <span>{getTranslation('steps.addNew', 'Add New')}</span>
         </button>
       </div>
       
       <div ref={containerRef} className="max-h-[285px] overflow-y-auto pr-2">
         {relevantVariables.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-6 border border-dashed rounded-lg bg-gray-50/50 text-muted-foreground">
-            <p className="text-center text-sm mb-2">{t.variables.empty}</p>
+            <p className="text-center text-sm mb-2">{getTranslation('steps.noVariables', 'No variables defined yet')}</p>
             <button 
               onClick={onAddVariable}
               className="flex items-center gap-1 text-sm bg-accent/10 hover:bg-accent/20 p-2 rounded-md transition-colors mt-2"
             >
               <Plus className="h-4 w-4" />
-              <span>{t.variables.createFirst}</span>
+              <span>{getTranslation('steps.createFirstVariable', 'Create your first variable')}</span>
             </button>
           </div>
         ) : (
@@ -133,7 +149,7 @@ export const VariableList = ({
                       <div className={`flex flex-col gap-1 ${!isComplete ? 'opacity-70' : ''}`}>
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-card-foreground">
-                            {hasName ? variable.name : t.variables.unnamed}
+                            {hasName ? variable.name : getTranslation('steps.unnamed', 'Unnamed')}
                           </span>
                           {!isComplete && (
                             <TooltipProvider>
@@ -144,7 +160,7 @@ export const VariableList = ({
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>{t.variables.incomplete}</p>
+                                  <p>{getTranslation('steps.incompleteVariable', 'This variable is incomplete')}</p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
@@ -152,14 +168,14 @@ export const VariableList = ({
                           <Edit className="w-4 h-4 opacity-0 group-hover:opacity-80 text-primary" />
                         </div>
                         <div className="text-sm text-muted-foreground line-clamp-1">
-                          {hasValue ? variable.value : t.variables.noValue}
+                          {hasValue ? variable.value : getTranslation('steps.noValue', 'No value set')}
                         </div>
                       </div>
                     </div>
                     <button 
                       onClick={() => setVariableToDelete(variable.id)}
                       className="p-2 rounded-full hover:bg-red-50 hover:text-red-600 transition-colors"
-                      title={t.variables.delete}
+                      title={getTranslation('steps.delete', 'Delete')}
                     >
                       <X className="h-5 w-5" />
                     </button>
@@ -175,12 +191,12 @@ export const VariableList = ({
       <Dialog open={!!variableToDelete} onOpenChange={(open) => !open && setVariableToDelete(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t.variables.confirmDelete}</DialogTitle>
+            <DialogTitle>{getTranslation('steps.confirmDelete', 'Confirm Delete')}</DialogTitle>
           </DialogHeader>
-          <p>{t.variables.deleteWarning}</p>
+          <p>{getTranslation('steps.deleteWarning', 'Are you sure you want to delete this variable? This action cannot be undone.')}</p>
           <DialogFooter>
             <DialogClose asChild>
-              <button className="px-4 py-2 border rounded-md">{t.common.cancel}</button>
+              <button className="px-4 py-2 border rounded-md">{getTranslation('steps.cancel', 'Cancel')}</button>
             </DialogClose>
             <button 
               onClick={() => {
@@ -189,7 +205,7 @@ export const VariableList = ({
               }}
               className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
             >
-              {t.variables.delete}
+              {getTranslation('steps.delete', 'Delete')}
             </button>
           </DialogFooter>
         </DialogContent>
@@ -204,33 +220,33 @@ export const VariableList = ({
       }}>
         <SheetContent className="w-[90%] sm:max-w-[500px] z-50 bg-white">
           <SheetHeader>
-            <SheetTitle>{t.variables.edit}</SheetTitle>
+            <SheetTitle>{getTranslation('steps.editVariable', 'Edit Variable')}</SheetTitle>
             <SheetDescription>
-              {t.variables.editDescription}
+              {getTranslation('steps.editVariableDescription', 'Edit your variable name and value here')}
             </SheetDescription>
           </SheetHeader>
           <div className="py-6 space-y-4">
             <div className="space-y-2">
               <label htmlFor="variable-name" className="text-sm font-medium">
-                {t.variables.name}
+                {getTranslation('steps.name', 'Name')}
               </label>
               <input
                 id="variable-name"
                 value={variableName}
                 onChange={(e) => setVariableName(e.target.value)}
-                placeholder={t.variables.namePlaceholder}
+                placeholder={getTranslation('steps.namePlaceholder', 'Enter variable name')}
                 className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
             <div className="space-y-2">
               <label htmlFor="variable-value" className="text-sm font-medium">
-                {t.variables.value}
+                {getTranslation('steps.value', 'Value')}
               </label>
               <textarea
                 id="variable-value"
                 value={variableValue}
                 onChange={(e) => setVariableValue(e.target.value)}
-                placeholder={t.variables.valuePlaceholder}
+                placeholder={getTranslation('steps.valuePlaceholder', 'Enter variable value')}
                 rows={4}
                 className="w-full p-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring"
               />
@@ -240,7 +256,7 @@ export const VariableList = ({
                 onClick={handleSaveVariable}
                 className="aurora-button"
               >
-                {t.common.save}
+                {getTranslation('steps.save', 'Save')}
               </button>
             </div>
           </div>
