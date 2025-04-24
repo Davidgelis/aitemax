@@ -11,17 +11,20 @@ Respond ONLY in valid JSON format with these sections:
 - "imageAnalysis": (Optional) Object with image insights
 
 Question Guidelines:
-1. Generate questions focused on user intent and template pillars
-2. When using image analysis for questions:
-   - Generate questions based on user's specific image analysis requests
-   - Write clear, factual descriptions as answers (200-1000 characters)
-   - Focus on describing actual visual elements that match user's intent
-   - Stay within the scope of what was specifically requested
+1. Generate 1-3 questions per template pillar focused on user's main intent
+2. Questions should:
+   - Be directly related to gathering context for each pillar
+   - Focus on understanding user's core requirements
+   - Be specific and actionable
+3. When image analysis is available:
+   - Use the analysis to pre-fill answers to existing context questions
+   - Do NOT generate new questions based on the image
+   - Only use image insights to enhance context understanding
 
 Each question must have:
    - "id": Unique string
-   - "text": Question aligned with template pillars and user intent
-   - "answer": Detailed description when matching user's analysis request
+   - "text": Question aligned with template pillar and user intent
+   - "answer": Pre-filled from image analysis when relevant
    - "isRelevant": Boolean (true if directly related to user's needs)
    - "category": Match with template pillar categories
    - "contextSource": Origin if pre-filled ("image", "prompt", "smartContext")
@@ -46,15 +49,17 @@ Image Analysis Guidelines:
   if (template && Array.isArray(template.pillars) && template.pillars.length > 0) {
     systemPrompt += `\n\nTemplate Pillars (use these for question categories):\n`;
     try {
+      let questionCount = 0;
       template.pillars.forEach((pillar: any) => {
         if (pillar && pillar.title && pillar.description) {
-          systemPrompt += `\n- "${pillar.title}": ${pillar.description}\n`;
+          const maxQuestions = Math.min(3, Math.ceil((9 - questionCount) / (template.pillars.length)));
+          systemPrompt += `\n- "${pillar.title}": ${pillar.description} (Generate ${maxQuestions} questions)\n`;
+          questionCount += maxQuestions;
         }
       });
     } catch (error) {
       console.error("Error processing template pillars:", error);
-      // Add a fallback pillar if there's an error
-      systemPrompt += `\n- "General": General questions about the prompt\n`;
+      systemPrompt += `\n- "General": General questions about the prompt (Generate up to 3 questions)\n`;
     }
   }
 

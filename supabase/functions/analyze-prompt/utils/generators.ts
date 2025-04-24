@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
@@ -7,80 +6,94 @@ export function generateContextQuestionsForPrompt(
   smartContext: any = null,
   imageAnalysis: any = null
 ): Question[] {
-  console.log("Generating context-specific questions based on user prompt and template pillars");
+  console.log("Generating context-specific questions based on template pillars");
   
   const questions: Question[] = [];
   
-  // Only generate questions based on template pillars
   if (template?.pillars?.length > 0) {
+    // Calculate max questions per pillar to ensure we don't exceed total
+    const maxQuestionsPerPillar = Math.min(3, Math.ceil(9 / template.pillars.length));
+    
     template.pillars.forEach((pillar: any, index: number) => {
       if (pillar && pillar.title) {
-        questions.push({
-          id: `q-${index + 1}`,
-          text: `How does your request align with the ${pillar.title.toLowerCase()} requirements?`,
-          answer: "", // Only prefill if matches user's analysis request
+        // Generate base question for the pillar
+        const baseQuestion: Question = {
+          id: `q-${pillar.title.toLowerCase()}-1`,
+          text: `What are your specific requirements for ${pillar.title.toLowerCase()}?`,
+          answer: "",
           isRelevant: true,
           category: pillar.title,
           contextSource: undefined
-        });
+        };
+
+        // Add the base question
+        questions.push(baseQuestion);
+
+        // Add up to 2 more context-gathering questions if needed
+        if (maxQuestionsPerPillar > 1) {
+          questions.push({
+            id: `q-${pillar.title.toLowerCase()}-2`,
+            text: `What are your goals for ${pillar.title.toLowerCase()}?`,
+            answer: "",
+            isRelevant: true,
+            category: pillar.title,
+            contextSource: undefined
+          });
+        }
+
+        if (maxQuestionsPerPillar > 2) {
+          questions.push({
+            id: `q-${pillar.title.toLowerCase()}-3`,
+            text: `Are there any specific constraints or requirements for ${pillar.title.toLowerCase()}?`,
+            answer: "",
+            isRelevant: true,
+            category: pillar.title,
+            contextSource: undefined
+          });
+        }
       }
     });
   }
 
-  // If we have image analysis and specific user instructions
-  if (imageAnalysis && imageAnalysis.userInstructions) {
-    console.log("Processing image analysis with user instructions:", imageAnalysis.userInstructions);
-    
-    // Only add image-specific questions that match user's requested analysis
-    const userRequestedElements = imageAnalysis.userInstructions.toLowerCase();
-    
-    if (userRequestedElements.includes('style') || userRequestedElements.includes('artistic')) {
-      questions.push({
-        id: 'q-style',
-        text: 'What is the artistic style of the image?',
-        answer: imageAnalysis.style || imageAnalysis.artisticStyle || '',
-        isRelevant: true,
-        category: 'Style Elements',
-        contextSource: 'image'
-      });
-    }
-    
-    if (userRequestedElements.includes('color') || userRequestedElements.includes('palette')) {
-      questions.push({
-        id: 'q-color',
-        text: 'What are the main colors used in the image?',
-        answer: imageAnalysis.colors || '',
-        isRelevant: true,
-        category: 'Visual Elements',
-        contextSource: 'image'
-      });
-    }
-    
-    if (userRequestedElements.includes('composition') || userRequestedElements.includes('layout')) {
-      questions.push({
-        id: 'q-composition',
-        text: 'How is the image composed?',
-        answer: imageAnalysis.composition || '',
-        isRelevant: true,
-        category: 'Composition',
-        contextSource: 'image'
-      });
-    }
-  }
-
-  // Ensure we have a good mix of questions
-  while (questions.length < 4) {
-    questions.push({
-      id: `q-${questions.length + 1}`,
-      text: `What are your specific requirements for this aspect of the ${template?.name || 'project'}?`,
-      answer: '',
-      isRelevant: true,
-      category: 'Requirements',
-      contextSource: undefined
+  // If we have image analysis, use it to pre-fill relevant answers
+  if (imageAnalysis) {
+    questions.forEach(question => {
+      const relevantImageInfo = findRelevantImageInfo(question, imageAnalysis);
+      if (relevantImageInfo) {
+        question.answer = relevantImageInfo;
+        question.contextSource = 'image';
+      }
     });
   }
 
   return questions;
+}
+
+// Helper function to find relevant image analysis information for a question
+function findRelevantImageInfo(question: Question, imageAnalysis: any): string | null {
+  const questionText = question.text.toLowerCase();
+  const category = question.category.toLowerCase();
+
+  // Map of question keywords to image analysis fields
+  const analysisMapping: { [key: string]: string[] } = {
+    style: ['style', 'artistic', 'aesthetic'],
+    color: ['colors', 'palette', 'tones'],
+    composition: ['composition', 'layout', 'arrangement'],
+    subject: ['subject', 'main element', 'focus'],
+    mood: ['mood', 'atmosphere', 'feeling']
+  };
+
+  // Check each analysis field based on question category and text
+  for (const [key, keywords] of Object.entries(analysisMapping)) {
+    if (keywords.some(word => questionText.includes(word) || category.includes(word))) {
+      const analysisValue = imageAnalysis[key] || imageAnalysis?.style?.[key];
+      if (analysisValue) {
+        return typeof analysisValue === 'string' ? analysisValue : JSON.stringify(analysisValue);
+      }
+    }
+  }
+
+  return null;
 }
 
 /**
