@@ -31,20 +31,64 @@ export function generateContextQuestionsForPrompt(
   // Step 2: Only after generating all questions, fill relevant ones with image analysis data
   if (imageAnalysis) {
     console.log("Filling relevant questions with detailed image analysis data", {
-      imageAnalysisFields: Object.keys(imageAnalysis),
-      questionsBeforeFilling: questions.length
+      imageAnalysisFields: typeof imageAnalysis === 'object' ? Object.keys(imageAnalysis) : 'invalid',
+      questionsBeforeFilling: questions.length,
+      pillarsInQuestions: [...new Set(questions.map(q => q.category))].join(', ')
     });
     
+    // Log available analysis data for pillars
+    if (typeof imageAnalysis === 'object') {
+      const pillarSpecificData = Object.keys(imageAnalysis).filter(key => {
+        return questions.some(q => q.category.toLowerCase() === key.toLowerCase() || 
+                                 q.category.toLowerCase().includes(key.toLowerCase()) ||
+                                 key.toLowerCase().includes(q.category.toLowerCase()));
+      });
+      
+      console.log(`Image analysis data available for pillars: ${pillarSpecificData.join(', ')}`);
+    }
+    
+    // First try to match questions with pillar-specific image analysis
+    const filledPillars = new Set<string>();
+    
+    // Track how many questions are filled per pillar for logging
+    const filledByPillar: Record<string, number> = {};
+    
     questions.forEach(question => {
-      const relevantImageInfo = findDetailedRelevantImageInfo(question, imageAnalysis);
-      if (relevantImageInfo) {
-        question.answer = relevantImageInfo;
+      // First try direct pillar match
+      const pillarMatch = findPillarBasedImageInfo(question, imageAnalysis);
+      
+      if (pillarMatch) {
+        question.answer = pillarMatch;
         question.contextSource = 'image';
-        console.log(`Prefilled question "${question.text.substring(0, 30)}..." with image analysis data`);
+        filledPillars.add(question.category);
+        
+        // Count filled questions per pillar
+        filledByPillar[question.category] = (filledByPillar[question.category] || 0) + 1;
+        
+        console.log(`Prefilled question in "${question.category}" pillar: "${question.text.substring(0, 30)}..."`);
+      }
+    });
+    
+    // For questions still not filled, try with generic matching
+    questions.forEach(question => {
+      if (!question.answer) {
+        const relevantImageInfo = findDetailedRelevantImageInfo(question, imageAnalysis);
+        if (relevantImageInfo) {
+          question.answer = relevantImageInfo;
+          question.contextSource = 'image';
+          filledPillars.add(question.category);
+          
+          // Count filled questions per pillar
+          filledByPillar[question.category] = (filledByPillar[question.category] || 0) + 1;
+          
+          console.log(`Prefilled question with generic match in "${question.category}" pillar: "${question.text.substring(0, 30)}..."`);
+        }
       }
     });
     
     console.log(`After filling: ${questions.filter(q => q.answer).length} questions have prefilled answers`);
+    console.log(`Pillars with prefilled questions: ${Array.from(filledPillars).join(', ')}`);
+    console.log(`Questions filled per pillar:`, filledByPillar);
   }
 
   console.log(`Generated ${questions.length} total questions, ${questions.filter(q => q.answer).length} with prefilled answers`);
@@ -105,11 +149,35 @@ function generateQuestionsForPillar(promptText: string, pillar: any, maxQuestion
   // Customize questions based on user intent keywords
   let relevantQuestions: string[] = [];
   
-  // Try to match pillar title with question templates
+  // Match pillar title with question templates, trying multiple approaches
   for (const [key, questions] of Object.entries(questionTemplates)) {
+    // First check for direct matches in title or description
     if (pillarTitle.includes(key) || pillar.description.toLowerCase().includes(key)) {
       relevantQuestions = questions.map(q => customizeQuestionWithIntent(q, userIntentKeywords));
       break;
+    }
+  }
+  
+  // If still no specific match found, check for semantic similarity
+  if (relevantQuestions.length === 0) {
+    for (const [key, questions] of Object.entries(questionTemplates)) {
+      // Check for partial matches or related terms
+      const relatedTerms: {[key: string]: string[]} = {
+        'style': ['design', 'look', 'appearance', 'aesthetic', 'artistic', 'visual'],
+        'technical': ['specs', 'requirements', 'format', 'size', 'dimensions', 'quality'],
+        'content': ['elements', 'subjects', 'components', 'material', 'objects'],
+        'purpose': ['goal', 'objective', 'aim', 'intent', 'function', 'use'],
+        'color': ['palette', 'hue', 'tone', 'shade', 'tint', 'colorful'],
+        'composition': ['layout', 'arrangement', 'structure', 'organization', 'positioning'],
+        'context': ['setting', 'environment', 'situation', 'circumstance', 'background']
+      };
+      
+      if (relatedTerms[key] && relatedTerms[key].some(term => 
+        pillarTitle.includes(term) || pillar.description.toLowerCase().includes(term))) {
+        relevantQuestions = questions.map(q => customizeQuestionWithIntent(q, userIntentKeywords));
+        console.log(`Found semantic match between pillar "${pillarTitle}" and question type "${key}"`);
+        break;
+      }
     }
   }
 
@@ -214,6 +282,85 @@ function generateGenericContextQuestions(promptText: string): Question[] {
   });
   
   return questions;
+}
+
+// New function: find pillar-based image analysis information
+function findPillarBasedImageInfo(question: Question, imageAnalysis: any): string | null {
+  if (!imageAnalysis || typeof imageAnalysis !== 'object') {
+    console.log("No valid image analysis data available for pillar matching");
+    return null;
+  }
+  
+  const category = question.category.toLowerCase();
+  const questionText = question.text.toLowerCase();
+  
+  console.log(`Searching for pillar-based image analysis for "${category}" category`);
+  
+  // First look for direct pillar match in the image analysis
+  for (const [key, data] of Object.entries(imageAnalysis)) {
+    if (key.toLowerCase() === category || 
+        category.includes(key.toLowerCase()) || 
+        key.toLowerCase().includes(category)) {
+      
+      console.log(`Found direct pillar match between question category "${category}" and analysis section "${key}"`);
+      
+      if (typeof data === 'string') {
+        return `Based on image analysis: ${data}`;
+      } else if (typeof data === 'object' && data !== null) {
+        // Convert object to formatted text
+        const formattedData = Object.entries(data)
+          .filter(([k, v]) => v !== null && v !== undefined && v !== '')
+          .map(([k, v]) => `${k}: ${v}`)
+          .join('. ');
+          
+        if (formattedData) {
+          return `Based on image analysis: ${formattedData}`;
+        }
+      }
+    }
+  }
+  
+  // If no direct match, try looking for content about this pillar inside other pillars
+  // This handles cases where the analysis structure doesn't match our pillars 1:1
+  for (const [key, data] of Object.entries(imageAnalysis)) {
+    if (typeof data === 'object' && data !== null) {
+      // Check if any keys in this section match our category
+      const matchingKeys = Object.keys(data).filter(k => 
+        k.toLowerCase() === category || 
+        k.toLowerCase().includes(category) || 
+        category.includes(k.toLowerCase())
+      );
+      
+      if (matchingKeys.length > 0) {
+        console.log(`Found match in nested data for "${category}" within section "${key}"`);
+        
+        // Extract relevant data for this category
+        const relevantData = matchingKeys.map(k => `${k}: ${data[k]}`).join('. ');
+        if (relevantData) {
+          return `Based on image analysis: ${relevantData}`;
+        }
+      }
+    }
+  }
+  
+  // If we still can't find a match, check for semantic similarity between question text and analysis
+  if (questionText.includes('style') || questionText.includes('look') || questionText.includes('aesthetic')) {
+    if (imageAnalysis.style || imageAnalysis.artisticStyle) {
+      console.log(`Found style information for question about "${category}" using question text match`);
+      return `Based on image analysis: ${imageAnalysis.style || imageAnalysis.artisticStyle}`;
+    }
+  }
+  
+  if (questionText.includes('color') || questionText.includes('palette') || questionText.includes('tone')) {
+    if (imageAnalysis.colors || imageAnalysis.palette || (imageAnalysis.style && imageAnalysis.style.colors)) {
+      const colorInfo = imageAnalysis.colors || imageAnalysis.palette || imageAnalysis.style.colors;
+      console.log(`Found color information for question about "${category}" using question text match`);
+      return `Based on image analysis: ${typeof colorInfo === 'string' ? colorInfo : JSON.stringify(colorInfo)}`;
+    }
+  }
+  
+  console.log(`No pillar-based match found for "${category}" in image analysis`);
+  return null;
 }
 
 function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): string | null {
@@ -572,6 +719,41 @@ function prefillFromImageAnalysis(variables: Variable[], analysis: any) {
       console.log(`Prefilled "Purpose/Intent" with "${purposeVar.value}"`);
     }
   }
+  
+  // Check for pillar-specific variables
+  Object.entries(analysis).forEach(([key, value]) => {
+    if (typeof value === 'object' && value !== null) {
+      // Check if this pillar has variable data
+      console.log(`Checking pillar "${key}" for variable data`);
+      
+      if (key.toLowerCase().includes('style') || key.toLowerCase().includes('visual')) {
+        const styleVar = variables.find(v => v.name === "Style/Aesthetic");
+        if (styleVar && !styleVar.value && value.description) {
+          styleVar.value = value.description;
+          styleVar.contextSource = "image";
+          console.log(`Prefilled "Style/Aesthetic" with "${styleVar.value}" from pillar "${key}"`);
+        }
+      }
+      
+      if (key.toLowerCase().includes('color') || key.toLowerCase().includes('palette')) {
+        const colorVar = variables.find(v => v.name === "Color Scheme");
+        if (colorVar && !colorVar.value) {
+          if (Array.isArray(value)) {
+            colorVar.value = value.join(', ');
+          } else if (typeof value === 'string') {
+            colorVar.value = value;
+          } else if (value.palette) {
+            colorVar.value = value.palette;
+          }
+          
+          if (colorVar.value) {
+            colorVar.contextSource = "image";
+            console.log(`Prefilled "Color Scheme" with "${colorVar.value}" from pillar "${key}"`);
+          }
+        }
+      }
+    }
+  });
 }
 
 function prefillFromSmartContext(variables: Variable[], context: string, usageInstructions: string) {

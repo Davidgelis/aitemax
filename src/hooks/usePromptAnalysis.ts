@@ -37,7 +37,8 @@ export const usePromptAnalysis = (
       console.log("Using template for question generation:", {
         templateId: currentTemplate?.id,
         templateName: currentTemplate?.name,
-        pillarsCount: currentTemplate?.pillars?.length || 0
+        pillarsCount: currentTemplate?.pillars?.length || 0,
+        pillars: currentTemplate?.pillars?.map(p => p.title).join(', ') || 'none'
       });
 
       // Check for template but don't block analysis for images
@@ -59,12 +60,13 @@ export const usePromptAnalysis = (
 
       console.log("Calling analyze-prompt edge function with:", {
         promptLength: promptText.length,
-        hasImages: hasImages,
+        hasImages,
         imagesData: uploadedImages?.map(img => ({
           id: img.id,
           hasBase64: !!img.base64,
           base64Length: img.base64 ? img.base64.length : 0,
-          hasContext: !!img.context
+          hasContext: !!img.context,
+          contextText: img.context ? img.context.substring(0, 30) + '...' : 'none'
         })),
         hasValidImageData,
         hasSmartContext: !!smartContext?.context,
@@ -110,10 +112,12 @@ export const usePromptAnalysis = (
       console.log("Analysis results:", {
         hasQuestions: Array.isArray(data.questions),
         questionsCount: data.questions?.length || 0,
+        prefilledCount: data.questions?.filter(q => q.answer)?.length || 0,
         hasVariables: Array.isArray(data.variables),
         variablesCount: data.variables?.length || 0,
         hasValidImageData: data.debug?.hasValidImageData,
         imageAnalysisAvailable: data.debug?.imageAnalysisAvailable,
+        pillarsCovered: data.debug?.pillarsCovered || 'none',
         debug: data.debug
       });
 
@@ -123,7 +127,17 @@ export const usePromptAnalysis = (
         const prefilledQuestions = data.questions.filter(q => q.answer);
         if (prefilledQuestions.length > 0) {
           console.log(`Setting ${data.questions.length} questions with ${prefilledQuestions.length} prefilled answers`);
-          prefilledQuestions.forEach(q => 
+          
+          // Log pillar coverage
+          const pillarCoverage = prefilledQuestions.reduce((acc, q) => {
+            acc[q.category] = (acc[q.category] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          
+          console.log("Prefilled questions by pillar:", pillarCoverage);
+          
+          // Log first few prefilled questions
+          prefilledQuestions.slice(0, 3).forEach(q => 
             console.log(`Prefilled Q: "${q.text.substring(0, 30)}..." with "${q.answer ? q.answer.substring(0, 30) : 'empty'}..."`));
         } else {
           console.log(`Setting ${data.questions.length} questions with no prefilled answers`);
@@ -152,7 +166,17 @@ export const usePromptAnalysis = (
         const prefilledVars = data.variables.filter(v => v.value);
         if (prefilledVars.length > 0) {
           console.log(`Setting ${data.variables.length} variables with ${prefilledVars.length} prefilled values`);
-          prefilledVars.forEach(v => 
+          
+          // Log variable categories
+          const varCategoryCoverage = prefilledVars.reduce((acc, v) => {
+            acc[v.category] = (acc[v.category] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          
+          console.log("Prefilled variables by category:", varCategoryCoverage);
+          
+          // Log example prefilled variables
+          prefilledVars.slice(0, 3).forEach(v => 
             console.log(`Prefilled Var: "${v.name}" with "${v.value ? v.value.substring(0, 30) : 'empty'}..."`));
         } else {
           console.log(`Setting ${data.variables.length} variables with no prefilled values`);
@@ -180,7 +204,8 @@ export const usePromptAnalysis = (
         console.log("Analysis successful, moving to step 2", {
           hasQuestions: data.questions && data.questions.length > 0,
           hasPrefilledVars,
-          hasValidImageData: data.debug?.hasValidImageData
+          hasValidImageData: data.debug?.hasValidImageData,
+          pillarsCovered: data.debug?.pillarsCovered || 'none'
         });
         setCurrentStep(2);
       } else if (data.variables && data.variables.length > 0) {
@@ -236,6 +261,7 @@ export const usePromptAnalysis = (
           id: selectedTemplate.id,
           name: selectedTemplate.name,
           pillarsCount: selectedTemplate.pillars?.length || 0,
+          pillars: selectedTemplate.pillars?.map(p => p.title).join(', ') || 'none',
           characterLimit: selectedTemplate.characterLimit || "default",
           temperature: selectedTemplate.temperature || "default"
         } : "No template provided");

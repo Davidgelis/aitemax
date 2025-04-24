@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -16,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Starting analyze-prompt function with enhanced question generation and image analysis");
+    console.log("Starting analyze-prompt function with enhanced pillar-based question generation and image analysis");
     
     const requestBody = await req.json();
     const { 
@@ -107,7 +106,7 @@ serve(async (req) => {
       throw new Error("OpenAI API key is not configured");
     }
 
-    console.log("Calling OpenAI API for intent analysis and image processing");
+    console.log("Calling OpenAI API for intent analysis and pillar-based image processing");
     
     const { content } = await analyzePromptWithAI(
       enhancedContext,
@@ -118,7 +117,7 @@ serve(async (req) => {
       model
     );
 
-    console.log("Received response from OpenAI, parsing content with enhanced analysis");
+    console.log("Received response from OpenAI, parsing content with enhanced pillar-based analysis");
 
     let parsedContent;
     let imageAnalysis = null;
@@ -129,7 +128,7 @@ serve(async (req) => {
       
       console.log("Successfully parsed JSON response", {
         hasImageAnalysis: !!imageAnalysis,
-        imageAnalysisFields: imageAnalysis ? Object.keys(imageAnalysis).join(", ") : "none",
+        imageAnalysisPillars: imageAnalysis ? Object.keys(imageAnalysis).join(", ") : "none",
         questionsCount: parsedContent.questions ? parsedContent.questions.length : 0,
         prefilledQuestionsCount: parsedContent.questions ? parsedContent.questions.filter(q => q.answer).length : 0
       });
@@ -145,8 +144,8 @@ serve(async (req) => {
       };
     }
 
-    // First, generate comprehensive questions based on user intent from prompt
-    // This ensures we have good coverage of all template pillars
+    // First, generate comprehensive questions based on all template pillars regardless of image content
+    // This ensures we have good coverage of all pillars even if image doesn't have data for them
     let questions = generateContextQuestionsForPrompt(
       enhancedContext,
       template,
@@ -154,24 +153,28 @@ serve(async (req) => {
       imageAnalysis
     );
     
-    console.log(`Generated ${questions.length} intent-based questions (${questions.filter(q => q.answer).length} with pre-filled answers)`);
+    console.log(`Generated ${questions.length} intent-based questions from template pillars (${questions.filter(q => q.answer).length} with pre-filled answers)`);
 
     // If we have AI-generated questions with good coverage, consider using them instead
+    // But only if they have good pillar coverage and pre-filled answers
     const useAIQuestions = Array.isArray(parsedContent?.questions) && 
                            parsedContent.questions.length >= questions.length &&
                            parsedContent.questions.filter(q => q.answer).length >= questions.filter(q => q.answer).length;
     
     if (useAIQuestions) {
-      // Check if the AI questions have good coverage and aren't too generic
-      const aiQuestionsQuality = parsedContent.questions.some(q => 
-        q.text.includes("specific") || q.text.includes("detail") || q.text.includes("prefer")
-      );
+      // Check if the AI questions have good coverage across pillars
+      const aiQuestionsHaveGoodPillarCoverage = template?.pillars?.length > 0 ?
+        template.pillars.every(pillar => 
+          parsedContent.questions.some(q => 
+            q.category === pillar.title || q.category.includes(pillar.title)
+          )
+        ) : true;
       
-      if (aiQuestionsQuality) {
-        console.log("Using AI-generated questions due to better quality and coverage");
+      if (aiQuestionsHaveGoodPillarCoverage) {
+        console.log("Using AI-generated questions due to better pillar coverage and pre-filled answers");
         questions = parsedContent.questions;
       } else {
-        console.log("Using locally generated questions for better specificity");
+        console.log("Using locally generated questions for better pillar-based coverage");
         // Keep our locally generated questions
       }
     }
@@ -196,7 +199,11 @@ serve(async (req) => {
       hasEnhancedPrompt: !!enhancedPrompt,
       isPromptSimple,
       hasValidImageData,
-      imageAnalysisAvailable: !!imageAnalysis
+      imageAnalysisAvailable: !!imageAnalysis,
+      pillarsCovered: questions.reduce((acc, q) => {
+        if (!acc.includes(q.category)) acc.push(q.category);
+        return acc;
+      }, []).join(', ')
     });
 
     return new Response(
@@ -216,7 +223,11 @@ serve(async (req) => {
           isPromptSimple,
           hasValidImageData,
           imageAnalysisAvailable: !!imageAnalysis,
-          sourceOfQuestions: useAIQuestions ? "AI" : "local"
+          sourceOfQuestions: useAIQuestions ? "AI" : "local",
+          pillarsCovered: questions.reduce((acc, q) => {
+            if (!acc.includes(q.category)) acc.push(q.category);
+            return acc;
+          }, []).join(', ')
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

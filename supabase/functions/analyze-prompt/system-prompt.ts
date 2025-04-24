@@ -8,7 +8,7 @@ Respond ONLY in valid JSON format with these sections:
 - "variables": Array of variable objects
 - "masterCommand": String with master command
 - "enhancedPrompt": String with enhanced prompt
-- "imageAnalysis": (Optional) Object with image insights
+- "imageAnalysis": (Optional) Object with image insights structured by template pillars
 
 Question Guidelines:
 1. Extract the core intent from the user's prompt and use it as the foundation
@@ -21,7 +21,9 @@ Question Guidelines:
    - Cover mood and atmosphere details
    - Cover target audience and usage context
 3. When image analysis is available:
-   - Pre-fill answers with comprehensive, detailed descriptions
+   - Pre-fill answers with comprehensive, detailed descriptions from image analysis
+   - Map image analysis data to questions based on the template pillars
+   - For each pillar, find the most relevant image analysis data to pre-fill answers
    - Include specific style descriptions with techniques, methods, and influences
    - Include detailed color palette analysis with specific hex values when possible
    - Include thorough compositional analysis describing layout, balance, and visual hierarchy
@@ -49,25 +51,26 @@ Variable Guidelines:
    - "code": Template code
 
 Image Analysis Guidelines:
-1. Provide exhaustive analysis of visual elements
-2. Include:
+1. Provide exhaustive analysis of visual elements, structured by template pillars
+2. For EACH template pillar, include relevant analysis such as:
    - Detailed artistic style analysis with specific techniques, methods, and influences
    - Comprehensive color analysis with specific colors, relationships, and harmony principles
    - Technical specifications including quality assessment, resolution, and format details
    - Compositional analysis describing layout principles, visual hierarchy, and balance
    - Mood and atmosphere details with emotional impact assessment
    - Cultural or contextual references when relevant
-   - Subject matter details and their significance`;
+   - Subject matter details and their significance
+3. Organize image analysis insights by pillar categories to enable direct mapping to questions`;
 
   // Add template-specific instructions if template exists
   if (template && Array.isArray(template.pillars) && template.pillars.length > 0) {
-    systemPrompt += `\n\nTemplate Pillars (use these for question categories):\n`;
+    systemPrompt += `\n\nTemplate Pillars (use these for question categories and to structure image analysis):\n`;
     try {
       let questionCount = 0;
       template.pillars.forEach((pillar: any) => {
         if (pillar && pillar.title && pillar.description) {
           const maxQuestions = Math.min(5, Math.ceil((15 - questionCount) / (template.pillars.length)));
-          systemPrompt += `\n- "${pillar.title}": ${pillar.description} (Generate ${maxQuestions} contextual questions)\n`;
+          systemPrompt += `\n- "${pillar.title}": ${pillar.description} (Generate ${maxQuestions} contextual questions and analyze image through this lens)\n`;
           questionCount += maxQuestions;
         }
       });

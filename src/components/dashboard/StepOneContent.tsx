@@ -85,7 +85,8 @@ export const StepOneContent = ({
       id: img.id,
       hasBase64: !!img.base64,
       base64Length: img.base64 ? img.base64.length : 0,
-      hasContext: !!img.context
+      hasContext: !!img.context,
+      contextText: img.context ? img.context.substring(0, 30) + '...' : 'none'
     })));
     
     // Pass the images up to the parent component without triggering analysis
@@ -112,20 +113,21 @@ export const StepOneContent = ({
   };
 
   const handleAnalyzeWithContext = () => {
-    console.log("StepOneContent: Analyzing with GPT-4.1:", {
+    console.log("StepOneContent: Analyzing with GPT-4o:", {
       promptText,
       uploadedImages: uploadedImages.length,
       uploadedImagesData: uploadedImages.map(img => ({
         id: img.id,
         hasBase64: !!img.base64,
         base64Length: img.base64 ? img.base64.length : 0,
-        hasContext: !!img.context
+        hasContext: !!img.context,
+        contextText: img.context ? img.context.substring(0, 30) + '...' : 'none'
       })),
       websiteContext,
       smartContext: smartContext ? "Provided" : "None",
       selectedPrimary,
       selectedSecondary,
-      model: "gpt-4.1" // Using gpt-4.1 as specified
+      model: "gpt-4o" 
     });
     
     onAnalyze();
@@ -178,7 +180,7 @@ export const StepOneContent = ({
               <button 
                 onClick={handleOpenUploadDialog}
                 className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
-                title="Upload and analyze images with GPT-4.1"
+                title="Upload and analyze images with GPT-4o"
               >
                 <span className="truncate ml-1">{t.steps.imageSmartScan}</span>
                 <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
@@ -191,6 +193,30 @@ export const StepOneContent = ({
       {uploadedImages.length > 0 && (
         <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
           <h3 className="text-sm font-medium text-[#545454] mb-2">{t.steps.uploadedImages}</h3>
+          <div className="flex flex-col gap-2">
+            {uploadedImages.map((img, index) => (
+              <div key={img.id || index} className="flex flex-col">
+                <div className="flex items-center">
+                  <div className="w-16 h-16 overflow-hidden rounded-md mr-3 flex-shrink-0">
+                    {img.base64 && (
+                      <img 
+                        src={img.base64} 
+                        alt="Uploaded" 
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {img.context && (
+                      <p className="text-xs text-[#545454] italic line-clamp-2">
+                        <span className="font-medium">Context:</span> {img.context}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
           <ImageUploader
             images={uploadedImages}
             onImagesChange={handleImagesChange}
