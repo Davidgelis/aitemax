@@ -1,4 +1,3 @@
-
 export const dashboardTranslations = {
   en: {
     prompts: {
@@ -44,6 +43,8 @@ export const dashboardTranslations = {
       
       analyzing: "Analyzing...",
       analyze: "Analyze",
+      analyzeFor: "Analyzing for", // Added missing key
+      prefilledAnswers: "pre-filled answers", // Added missing key
       
       toggleSections: {
         jsonLoadingTitle: "Reload JSON structure",
@@ -151,6 +152,8 @@ export const dashboardTranslations = {
       
       analyzing: "Analizando...",
       analyze: "Analizar",
+      analyzeFor: "Analizando para", // Added missing key
+      prefilledAnswers: "respuestas pre-llenadas", // Added missing key
       
       toggleSections: {
         jsonLoadingTitle: "Recargar estructura JSON",
@@ -199,8 +202,7 @@ export const dashboardTranslations = {
     },
     promptActions: {
       editPrompt: "Editar Prompt",
-      regeneratePrompt: "Regenerar Prompt",
-      formatPrompt: "Formatear Prompt",
+      regeneratePrompt: "Formatear Prompt",
     },
     toggles: {
       jsonLoadingTitle: "Recargar estructura JSON",
@@ -258,6 +260,8 @@ export const dashboardTranslations = {
       
       analyzing: "Analysiere...",
       analyze: "Analysieren",
+      analyzeFor: "Analyse für", // Added missing key
+      prefilledAnswers: "vorausgefüllte Antworten", // Added missing key
       
       toggleSections: {
         jsonLoadingTitle: "JSON-Struktur neu laden",
