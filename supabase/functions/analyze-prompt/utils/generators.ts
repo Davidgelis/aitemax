@@ -1,3 +1,4 @@
+
 import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
@@ -6,24 +7,30 @@ export function generateContextQuestionsForPrompt(
   smartContext: any = null,
   imageAnalysis: any = null
 ): Question[] {
-  console.log("Generating context-specific questions based on template pillars");
+  console.log("Generating comprehensive context questions based on user intent and template pillars");
   
   const questions: Question[] = [];
   
+  // Step 1: Generate a complete set of questions based on user intent and template pillars
   if (template?.pillars?.length > 0) {
-    // Calculate max questions per pillar to ensure we don't exceed total
-    const maxQuestionsPerPillar = Math.min(3, Math.ceil(9 / template.pillars.length));
+    // Calculate max questions per pillar to ensure good coverage
+    const maxQuestionsPerPillar = Math.min(4, Math.ceil(12 / template.pillars.length));
     
     template.pillars.forEach((pillar: any, index: number) => {
       if (pillar && pillar.title) {
-        const pillarQuestions = generateQuestionsForPillar(pillar, maxQuestionsPerPillar);
+        const pillarQuestions = generateQuestionsForPillar(promptText, pillar, maxQuestionsPerPillar);
         questions.push(...pillarQuestions);
       }
     });
+  } else {
+    // If no template pillars, generate generic context questions
+    const genericQuestions = generateGenericContextQuestions(promptText);
+    questions.push(...genericQuestions);
   }
 
-  // If we have image analysis, use it to pre-fill relevant answers
+  // Step 2: Only after generating all questions, fill relevant ones with image analysis data
   if (imageAnalysis) {
+    console.log("Filling relevant questions with detailed image analysis data");
     questions.forEach(question => {
       const relevantImageInfo = findDetailedRelevantImageInfo(question, imageAnalysis);
       if (relevantImageInfo) {
@@ -33,54 +40,68 @@ export function generateContextQuestionsForPrompt(
     });
   }
 
+  console.log(`Generated ${questions.length} total questions, ${questions.filter(q => q.answer).length} with prefilled answers`);
   return questions;
 }
 
-function generateQuestionsForPillar(pillar: any, maxQuestions: number): Question[] {
+function generateQuestionsForPillar(promptText: string, pillar: any, maxQuestions: number): Question[] {
   const questions: Question[] = [];
   const pillarTitle = pillar.title.toLowerCase();
+  const userIntentKeywords = extractKeywords(promptText);
 
   // Base question templates based on pillar type
   const questionTemplates: { [key: string]: string[] } = {
     style: [
       "What artistic style or aesthetic are you looking to achieve?",
       "Are there specific visual elements or techniques you want to incorporate?",
-      "What mood or atmosphere should the final result convey?"
+      "What mood or atmosphere should the final result convey?",
+      "What level of stylization or realism do you prefer?"
     ],
     technical: [
       "What are your specific requirements for dimensions and resolution?",
       "Are there any technical constraints or format requirements?",
-      "What level of detail or quality are you aiming for?"
+      "What level of detail or quality are you aiming for?",
+      "What platform or medium will this be used for?"
     ],
     content: [
       "What are the main elements or subjects that should be included?",
       "How should these elements be arranged or composed?",
-      "Are there any specific details or features that must be emphasized?"
+      "Are there any specific details or features that must be emphasized?",
+      "What narrative or story should the content convey?"
     ],
     purpose: [
       "What is the intended use or purpose of this creation?",
       "Who is your target audience?",
-      "What message or feeling should it communicate?"
+      "What message or feeling should it communicate?",
+      "What action do you want viewers to take after seeing this?"
     ],
     color: [
       "What color palette or scheme would you like to use?",
       "Are there specific colors that must be included or avoided?",
-      "What kind of color harmony are you aiming for?"
+      "What kind of color harmony are you aiming for?",
+      "How should color be used to emphasize important elements?"
     ],
     composition: [
       "How should the elements be arranged in the space?",
       "What kind of visual hierarchy do you want to establish?",
-      "Are there specific compositional techniques you'd like to use?"
+      "Are there specific compositional techniques you'd like to use?",
+      "What focal point or emphasis do you want in the composition?"
+    ],
+    context: [
+      "In what context will this creation be used or displayed?",
+      "Are there any cultural or regional considerations to keep in mind?",
+      "What is the intended viewing environment for this?",
+      "Are there any broader themes or concepts this should connect to?"
     ]
   };
 
-  // Select appropriate questions based on pillar type
+  // Customize questions based on user intent keywords
   let relevantQuestions: string[] = [];
   
   // Try to match pillar title with question templates
   for (const [key, questions] of Object.entries(questionTemplates)) {
     if (pillarTitle.includes(key) || pillar.description.toLowerCase().includes(key)) {
-      relevantQuestions = questions;
+      relevantQuestions = questions.map(q => customizeQuestionWithIntent(q, userIntentKeywords));
       break;
     }
   }
@@ -90,8 +111,9 @@ function generateQuestionsForPillar(pillar: any, maxQuestions: number): Question
     relevantQuestions = [
       `What are your specific requirements for ${pillarTitle}?`,
       `What are your goals regarding ${pillarTitle}?`,
-      `Are there any particular preferences or constraints for ${pillarTitle}?`
-    ];
+      `Are there any particular preferences or constraints for ${pillarTitle}?`,
+      `How should ${pillarTitle} contribute to the overall output?`
+    ].map(q => customizeQuestionWithIntent(q, userIntentKeywords));
   }
 
   // Add questions up to the maximum allowed
@@ -109,6 +131,84 @@ function generateQuestionsForPillar(pillar: any, maxQuestions: number): Question
   return questions;
 }
 
+// Extract keywords from prompt text to customize questions
+function extractKeywords(promptText: string): string[] {
+  if (!promptText) return [];
+  
+  // Extract nouns and important words
+  const words = promptText.toLowerCase().split(/\s+/);
+  const stopWords = ['a', 'an', 'the', 'and', 'or', 'but', 'for', 'with', 'in', 'on', 'at', 'to', 'of'];
+  
+  return words
+    .filter(word => word.length > 2 && !stopWords.includes(word))
+    .map(word => word.replace(/[^\w]/g, ''))
+    .filter(word => word.length > 2)
+    .slice(0, 5); // Take top 5 keywords
+}
+
+// Customize question with user intent keywords
+function customizeQuestionWithIntent(question: string, keywords: string[]): string {
+  if (keywords.length === 0) return question;
+  
+  // For the first few questions, try to incorporate keywords
+  if (Math.random() > 0.5 && keywords.length > 0) {
+    const keyword = keywords[Math.floor(Math.random() * keywords.length)];
+    if (question.includes("?")) {
+      return question.replace("?", ` for your ${keyword}?`);
+    }
+  }
+  
+  return question;
+}
+
+// Generate generic context questions when no template is available
+function generateGenericContextQuestions(promptText: string): Question[] {
+  const questions: Question[] = [];
+  const categories = [
+    { name: "Style", questions: [
+      "What artistic style or aesthetic are you looking to achieve?",
+      "What visual style would you prefer for the output?",
+      "Are there any specific design elements you want to include?"
+    ]},
+    { name: "Technical", questions: [
+      "What dimensions or format do you need for the output?",
+      "Are there any technical specifications or constraints?",
+      "What level of detail or quality do you require?"
+    ]},
+    { name: "Content", questions: [
+      "What key elements should be included in the output?",
+      "How should the main subject be presented or emphasized?",
+      "What details are most important for your needs?"
+    ]},
+    { name: "Purpose", questions: [
+      "What is the intended use of this output?",
+      "Who is your target audience?",
+      "What message or feeling should this convey?"
+    ]}
+  ];
+  
+  const keywords = extractKeywords(promptText);
+  let questionCount = 0;
+  
+  categories.forEach(category => {
+    const categoryQuestions = category.questions.map(q => customizeQuestionWithIntent(q, keywords));
+    for (let i = 0; i < Math.min(3, categoryQuestions.length); i++) {
+      questions.push({
+        id: `q-${category.name.toLowerCase()}-${i + 1}`,
+        text: categoryQuestions[i],
+        answer: "",
+        isRelevant: true,
+        category: category.name,
+        contextSource: undefined
+      });
+      questionCount++;
+      if (questionCount >= 12) break;
+    }
+  });
+  
+  return questions;
+}
+
 function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): string | null {
   const questionText = question.text.toLowerCase();
   const category = question.category.toLowerCase();
@@ -119,11 +219,11 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): 
       format: (data) => {
         const elements = [];
         if (data.style?.description) elements.push(`Artistic style: ${data.style.description}`);
-        if (data.style?.techniques) elements.push(`Techniques used: ${data.style.techniques.join(', ')}`);
-        if (data.style?.influences) elements.push(`Artistic influences: ${data.style.influences.join(', ')}`);
+        if (data.style?.techniques) elements.push(`Techniques used: ${Array.isArray(data.style.techniques) ? data.style.techniques.join(', ') : data.style.techniques}`);
+        if (data.style?.influences) elements.push(`Artistic influences: ${Array.isArray(data.style.influences) ? data.style.influences.join(', ') : data.style.influences}`);
         if (data.artisticStyle) elements.push(`Overall style characteristics: ${data.artisticStyle}`);
         if (data.aesthetic) elements.push(`Aesthetic qualities: ${data.aesthetic}`);
-        if (data.style?.elements) elements.push(`Key style elements: ${data.style.elements.join(', ')}`);
+        if (data.style?.elements) elements.push(`Key style elements: ${Array.isArray(data.style.elements) ? data.style.elements.join(', ') : data.style.elements}`);
         if (data.description) elements.push(`Visual style description: ${data.description}`);
         
         return elements.length ? elements.join('. ') : null;
@@ -135,10 +235,16 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): 
         const elements = [];
         if (data.style?.colors && Array.isArray(data.style.colors)) {
           elements.push(`Color palette: ${data.style.colors.join(', ')}`);
+        } else if (data.style?.colors) {
+          elements.push(`Color palette: ${data.style.colors}`);
         }
+        
         if (data.dominantColors && Array.isArray(data.dominantColors)) {
           elements.push(`Dominant colors: ${data.dominantColors.join(', ')}`);
+        } else if (data.dominantColors) {
+          elements.push(`Dominant colors: ${data.dominantColors}`);
         }
+        
         if (data.colorHarmony) elements.push(`Color harmony: ${data.colorHarmony}`);
         if (data.palette) elements.push(`Color scheme: ${data.palette}`);
         if (data.tones) elements.push(`Tonal qualities: ${data.tones}`);
@@ -195,6 +301,19 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): 
         if (data.context?.cultural) elements.push(`Cultural context: ${data.context.cultural}`);
         if (data.context?.audience) elements.push(`Target audience: ${data.context.audience}`);
         if (data.purpose) elements.push(`Intended purpose: ${data.purpose}`);
+        
+        return elements.length ? elements.join('. ') : null;
+      }
+    },
+    content: {
+      fields: ['subject', 'elements', 'objects', 'components', 'details'],
+      format: (data) => {
+        const elements = [];
+        if (data.subject) elements.push(`Main subject: ${data.subject}`);
+        if (data.elements) elements.push(`Visual elements: ${Array.isArray(data.elements) ? data.elements.join(', ') : data.elements}`);
+        if (data.objects) elements.push(`Key objects: ${Array.isArray(data.objects) ? data.objects.join(', ') : data.objects}`);
+        if (data.components) elements.push(`Component details: ${Array.isArray(data.components) ? data.components.join(', ') : data.components}`);
+        if (data.details) elements.push(`Specific details: ${data.details}`);
         
         return elements.length ? elements.join('. ') : null;
       }

@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Starting analyze-prompt function with enhanced image analysis");
+    console.log("Starting analyze-prompt function with enhanced question generation and image analysis");
     
     const requestBody = await req.json();
     const { 
@@ -106,7 +106,7 @@ serve(async (req) => {
       throw new Error("OpenAI API key is not configured");
     }
 
-    console.log("Calling OpenAI API for analysis");
+    console.log("Calling OpenAI API for intent analysis and image processing");
     
     const { content } = await analyzePromptWithAI(
       enhancedContext,
@@ -125,7 +125,8 @@ serve(async (req) => {
       console.log("Successfully parsed JSON response", {
         hasImageAnalysis: !!parsedContent.imageAnalysis,
         imageAnalysisFields: parsedContent.imageAnalysis ? Object.keys(parsedContent.imageAnalysis).join(", ") : "none",
-        hasQuestions: !!parsedContent.questions
+        questionsCount: parsedContent.questions ? parsedContent.questions.length : 0,
+        prefilledQuestionsCount: parsedContent.questions ? parsedContent.questions.filter(q => q.answer).length : 0
       });
     } catch (error) {
       console.error("Failed to parse content:", error);
@@ -139,38 +140,38 @@ serve(async (req) => {
       };
     }
 
-    // Check if we need to use fallback questions
-    let questions = [];
-    const useAIQuestions = Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0;
+    // First, generate comprehensive questions based on user intent from prompt
+    // This ensures we have good coverage of all template pillars
+    let questions = generateContextQuestionsForPrompt(
+      enhancedContext,
+      template,
+      smartContextData,
+      parsedContent?.imageAnalysis
+    );
+    
+    console.log(`Generated ${questions.length} intent-based questions (${questions.filter(q => q.answer).length} with pre-filled answers)`);
+
+    // If we have AI-generated questions with good coverage, consider using them instead
+    const useAIQuestions = Array.isArray(parsedContent?.questions) && 
+                           parsedContent.questions.length >= questions.length &&
+                           parsedContent.questions.filter(q => q.answer).length >= questions.filter(q => q.answer).length;
     
     if (useAIQuestions) {
-      // Check if the questions are focused on intent rather than just pillars
-      const directPillarQuestions = parsedContent.questions.filter(q => 
-        q.text.includes("regarding") && template?.pillars?.some(p => q.text.includes(p.title))
+      // Check if the AI questions have good coverage and aren't too generic
+      const aiQuestionsQuality = parsedContent.questions.some(q => 
+        q.text.includes("specific") || q.text.includes("detail") || q.text.includes("prefer")
       );
       
-      // If there are no direct pillar questions or the ratio is acceptable, use AI questions
-      if (directPillarQuestions.length === 0 || directPillarQuestions.length < parsedContent.questions.length / 2) {
-        console.log("Using AI-generated questions that focus on user intent");
+      if (aiQuestionsQuality) {
+        console.log("Using AI-generated questions due to better quality and coverage");
         questions = parsedContent.questions;
       } else {
-        // Otherwise, generate our own intent-focused questions
-        console.log("Generating intent-focused questions as fallback");
-        questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, parsedContent?.imageAnalysis);
+        console.log("Using locally generated questions for better specificity");
+        // Keep our locally generated questions
       }
-    } else if (hasValidImageData && parsedContent?.imageAnalysis) {
-      // For image analysis with valid data, generate questions based on the image
-      console.log("Generating questions based on image analysis");
-      questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, parsedContent.imageAnalysis);
-    } else if (!isPromptSimple) {
-      // For complex prompts without images, generate intent-focused questions
-      console.log("Generating intent-focused questions for complex prompt");
-      questions = generateContextQuestionsForPrompt(enhancedContext, template, smartContextData, null);
-    } else {
-      console.log("Skipping question generation for simple prompt without image");
     }
     
-    // Always generate variables with appropriate complexity
+    // Generate variables with appropriate detail level
     let variables = generateContextualVariablesForPrompt(
       enhancedContext,
       template,
@@ -185,6 +186,7 @@ serve(async (req) => {
     console.log("Analysis complete, returning results:", {
       questionsCount: questions.length,
       variablesCount: variables.length,
+      prefilled: questions.filter(q => q.answer).length,
       hasMasterCommand: !!masterCommand,
       hasEnhancedPrompt: !!enhancedPrompt,
       isPromptSimple,
@@ -204,9 +206,12 @@ serve(async (req) => {
           model,
           templateUsed: template?.name || "none",
           pillarsCount: template?.pillars?.length || 0,
+          questionsGenerated: questions.length,
+          questionsPrefilled: questions.filter(q => q.answer).length,
           isPromptSimple,
           hasValidImageData,
-          imageAnalysisAvailable: !!parsedContent?.imageAnalysis
+          imageAnalysisAvailable: !!parsedContent?.imageAnalysis,
+          sourceOfQuestions: useAIQuestions ? "AI" : "local"
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

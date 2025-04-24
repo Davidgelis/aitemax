@@ -156,7 +156,9 @@ export const ImageUploader = ({
                 <p className="text-xs font-medium text-[#545454] truncate">{image.file.name}</p>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-[#545454]/70 truncate">
-                    {image.context ? 'Context added' : 'No context added'}
+                    {image.context 
+                      ? `Context: ${image.context.substring(0, 25)}${image.context.length > 25 ? '...' : ''}`
+                      : 'No context added - required for analysis'}
                   </span>
                   {image.context && (
                     <TooltipProvider>
@@ -167,7 +169,7 @@ export const ImageUploader = ({
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{image.context}</p>
+                          <p className="max-w-xs whitespace-pre-wrap">{image.context}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
