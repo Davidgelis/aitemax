@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
@@ -110,95 +109,92 @@ function generateQuestionsForPillar(pillar: any, maxQuestions: number): Question
   return questions;
 }
 
-// Enhanced function to find detailed relevant image analysis information for a question
 function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): string | null {
   const questionText = question.text.toLowerCase();
   const category = question.category.toLowerCase();
 
-  // Map of question keywords to image analysis fields with more comprehensive extraction
   const analysisMapping: { [key: string]: {fields: string[], format: (data: any) => string} } = {
     style: {
-      fields: ['style', 'artisticStyle', 'aesthetic', 'description'],
+      fields: ['style', 'artisticStyle', 'aesthetic', 'description', 'techniques', 'influences'],
       format: (data) => {
         const elements = [];
-        if (data.style?.description) elements.push(`Style: ${data.style.description}`);
-        if (data.artisticStyle) elements.push(`Artistic style: ${data.artisticStyle}`);
-        if (data.aesthetic) elements.push(`Aesthetic: ${data.aesthetic}`);
-        if (data.style?.elements) elements.push(`Style elements: ${data.style.elements.join(', ')}`);
-        if (data.description) elements.push(`Visual description: ${data.description}`);
+        if (data.style?.description) elements.push(`Artistic style: ${data.style.description}`);
+        if (data.style?.techniques) elements.push(`Techniques used: ${data.style.techniques.join(', ')}`);
+        if (data.style?.influences) elements.push(`Artistic influences: ${data.style.influences.join(', ')}`);
+        if (data.artisticStyle) elements.push(`Overall style characteristics: ${data.artisticStyle}`);
+        if (data.aesthetic) elements.push(`Aesthetic qualities: ${data.aesthetic}`);
+        if (data.style?.elements) elements.push(`Key style elements: ${data.style.elements.join(', ')}`);
+        if (data.description) elements.push(`Visual style description: ${data.description}`);
         
         return elements.length ? elements.join('. ') : null;
       }
     },
     color: {
-      fields: ['colors', 'palette', 'tones', 'style.colors'],
+      fields: ['colors', 'palette', 'tones', 'style.colors', 'colorHarmony', 'dominantColors'],
       format: (data) => {
         const elements = [];
         if (data.style?.colors && Array.isArray(data.style.colors)) {
-          elements.push(`Color palette includes: ${data.style.colors.join(', ')}`);
+          elements.push(`Color palette: ${data.style.colors.join(', ')}`);
         }
-        if (data.colors && Array.isArray(data.colors)) {
-          elements.push(`Colors present: ${data.colors.join(', ')}`);
+        if (data.dominantColors && Array.isArray(data.dominantColors)) {
+          elements.push(`Dominant colors: ${data.dominantColors.join(', ')}`);
         }
+        if (data.colorHarmony) elements.push(`Color harmony: ${data.colorHarmony}`);
         if (data.palette) elements.push(`Color scheme: ${data.palette}`);
-        if (data.style?.colorProfile) elements.push(`Color profile: ${data.style.colorProfile}`);
+        if (data.tones) elements.push(`Tonal qualities: ${data.tones}`);
+        if (data.style?.colorProfile) elements.push(`Color profile and mood: ${data.style.colorProfile}`);
         
         return elements.length ? elements.join('. ') : null;
       }
     },
     composition: {
-      fields: ['composition', 'layout', 'arrangement', 'structure'],
+      fields: ['composition', 'layout', 'arrangement', 'structure', 'visualHierarchy', 'balance'],
       format: (data) => {
         const elements = [];
-        if (data.composition) elements.push(`Composition: ${data.composition}`);
-        if (data.layout) elements.push(`Layout: ${data.layout}`);
-        if (data.structure) elements.push(`Structure: ${data.structure}`);
-        if (data.arrangement) elements.push(`Arrangement: ${data.arrangement}`);
+        if (data.composition) elements.push(`Composition style: ${data.composition}`);
+        if (data.visualHierarchy) elements.push(`Visual hierarchy: ${data.visualHierarchy}`);
+        if (data.balance) elements.push(`Visual balance: ${data.balance}`);
+        if (data.layout) elements.push(`Layout structure: ${data.layout}`);
+        if (data.arrangement) elements.push(`Element arrangement: ${data.arrangement}`);
+        if (data.structure) elements.push(`Overall structure: ${data.structure}`);
         
         return elements.length ? elements.join('. ') : null;
       }
     },
-    subject: {
-      fields: ['subject', 'mainSubject', 'subjects', 'objects', 'description', 'mainElements'],
+    technical: {
+      fields: ['technical', 'quality', 'resolution', 'format', 'dimensions'],
       format: (data) => {
         const elements = [];
-        if (data.subject) elements.push(`Subject: ${data.subject}`);
-        if (data.mainSubject) elements.push(`Main subject: ${data.mainSubject}`);
-        if (data.subjects && Array.isArray(data.subjects)) {
-          elements.push(`Subjects identified: ${data.subjects.join(', ')}`);
-        }
-        if (data.objects && Array.isArray(data.objects)) {
-          elements.push(`Objects present: ${data.objects.join(', ')}`);
-        }
-        if (data.mainElements && Array.isArray(data.mainElements)) {
-          elements.push(`Key elements: ${data.mainElements.join(', ')}`);
-        }
-        if (elements.length === 0 && data.description) {
-          elements.push(`Visual description: ${data.description}`);
-        }
+        if (data.technical?.quality) elements.push(`Image quality: ${data.technical.quality}`);
+        if (data.technical?.resolution) elements.push(`Resolution: ${data.technical.resolution}`);
+        if (data.technical?.format) elements.push(`Format: ${data.technical.format}`);
+        if (data.technical?.dimensions) elements.push(`Dimensions: ${data.technical.dimensions}`);
+        if (data.technical?.specifications) elements.push(`Technical specifications: ${data.technical.specifications}`);
         
         return elements.length ? elements.join('. ') : null;
       }
     },
     mood: {
-      fields: ['mood', 'atmosphere', 'feeling', 'style.mood'],
+      fields: ['mood', 'atmosphere', 'feeling', 'emotional', 'style.mood'],
       format: (data) => {
         const elements = [];
-        if (data.mood) elements.push(`Mood: ${data.mood}`);
-        if (data.style?.mood) elements.push(`Style mood: ${data.style.mood}`);
+        if (data.mood) elements.push(`Overall mood: ${data.mood}`);
         if (data.atmosphere) elements.push(`Atmosphere: ${data.atmosphere}`);
-        if (data.feeling) elements.push(`Feeling: ${data.feeling}`);
+        if (data.emotional?.impact) elements.push(`Emotional impact: ${data.emotional.impact}`);
+        if (data.style?.mood) elements.push(`Stylistic mood: ${data.style.mood}`);
+        if (data.feeling) elements.push(`Evoked feelings: ${data.feeling}`);
         
         return elements.length ? elements.join('. ') : null;
       }
     },
-    purpose: {
-      fields: ['purpose', 'intent', 'goal', 'usage'],
+    context: {
+      fields: ['context', 'usage', 'purpose', 'audience', 'cultural'],
       format: (data) => {
         const elements = [];
-        if (data.purpose) elements.push(`Purpose: ${data.purpose}`);
-        if (data.intent) elements.push(`Intent: ${data.intent}`);
-        if (data.usage) elements.push(`Usage context: ${data.usage}`);
+        if (data.context?.usage) elements.push(`Usage context: ${data.context.usage}`);
+        if (data.context?.cultural) elements.push(`Cultural context: ${data.context.cultural}`);
+        if (data.context?.audience) elements.push(`Target audience: ${data.context.audience}`);
+        if (data.purpose) elements.push(`Intended purpose: ${data.purpose}`);
         
         return elements.length ? elements.join('. ') : null;
       }
@@ -225,25 +221,9 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): 
     }
   }
 
-  // If no specific match found but we have a general description, use that for content-related questions
-  if ((questionText.includes('content') || 
-       questionText.includes('what') || 
-       questionText.includes('describe') || 
-       questionText.includes('show')) && 
-       imageAnalysis.description) {
+  // Fallback for detailed visual description
+  if (imageAnalysis.description) {
     return `Based on image analysis: ${imageAnalysis.description}`;
-  }
-
-  // Comprehensive fallback for context questions
-  if (imageAnalysis.description || imageAnalysis.style || imageAnalysis.subject) {
-    const elements = [];
-    if (imageAnalysis.description) elements.push(imageAnalysis.description);
-    if (imageAnalysis.style?.description) elements.push(`Style: ${imageAnalysis.style.description}`);
-    if (imageAnalysis.subject) elements.push(`Subject: ${imageAnalysis.subject}`);
-    
-    if (elements.length > 0) {
-      return `From image analysis: ${elements.join('. ')}`;
-    }
   }
 
   return null;

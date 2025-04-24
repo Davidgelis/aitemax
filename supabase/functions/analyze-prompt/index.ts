@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Starting analyze-prompt function");
+    console.log("Starting analyze-prompt function with enhanced image analysis");
     
     const requestBody = await req.json();
     const { 
@@ -26,7 +26,7 @@ serve(async (req) => {
       websiteData,
       imageData,
       smartContextData,
-      model = 'gpt-4.1'  // Updated default model
+      model = 'gpt-4o'
     } = requestBody;
     
     console.log("Request received with:", {
@@ -117,7 +117,7 @@ serve(async (req) => {
       model
     );
 
-    console.log("Received response from OpenAI, parsing content");
+    console.log("Received response from OpenAI, parsing content with enhanced analysis");
 
     let parsedContent;
     try {
