@@ -3,7 +3,7 @@
  * Utility functions for generating questions and variables from context
  */
 
-import { classifyGapType } from './extractors';
+import { classifyGapType } from './extractors.ts';
 
 // Generate context-aware questions based on user prompt, template, and contexts
 export const generateContextQuestionsForPrompt = (
