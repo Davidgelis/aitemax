@@ -30,14 +30,21 @@ export function generateContextQuestionsForPrompt(
 
   // Step 2: Only after generating all questions, fill relevant ones with image analysis data
   if (imageAnalysis) {
-    console.log("Filling relevant questions with detailed image analysis data");
+    console.log("Filling relevant questions with detailed image analysis data", {
+      imageAnalysisFields: Object.keys(imageAnalysis),
+      questionsBeforeFilling: questions.length
+    });
+    
     questions.forEach(question => {
       const relevantImageInfo = findDetailedRelevantImageInfo(question, imageAnalysis);
       if (relevantImageInfo) {
         question.answer = relevantImageInfo;
         question.contextSource = 'image';
+        console.log(`Prefilled question "${question.text.substring(0, 30)}..." with image analysis data`);
       }
     });
+    
+    console.log(`After filling: ${questions.filter(q => q.answer).length} questions have prefilled answers`);
   }
 
   console.log(`Generated ${questions.length} total questions, ${questions.filter(q => q.answer).length} with prefilled answers`);
@@ -210,8 +217,15 @@ function generateGenericContextQuestions(promptText: string): Question[] {
 }
 
 function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): string | null {
+  if (!imageAnalysis) {
+    console.log("No image analysis data available");
+    return null;
+  }
+  
   const questionText = question.text.toLowerCase();
   const category = question.category.toLowerCase();
+  
+  console.log(`Finding image info for question category: "${category}", text: "${questionText.substring(0, 30)}..."`);
 
   const analysisMapping: { [key: string]: {fields: string[], format: (data: any) => string} } = {
     style: {
@@ -320,31 +334,62 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any): 
     }
   };
 
-  // First try to match by category
+  // First try to match by exact category match
+  const categoryWords = category.replace(/&/g, ' ').split(/\s+/).map(w => w.trim().toLowerCase()).filter(Boolean);
+  
+  // Try each category word for matching
+  for (const categoryWord of categoryWords) {
+    console.log(`Checking category word: "${categoryWord}"`);
+    for (const [key, mapping] of Object.entries(analysisMapping)) {
+      if (categoryWord === key || mapping.fields.includes(categoryWord)) {
+        const formattedInfo = mapping.format(imageAnalysis);
+        if (formattedInfo) {
+          console.log(`Found match by category word "${categoryWord}" -> "${key}"`);
+          return formattedInfo;
+        }
+      }
+    }
+  }
+  
+  // Then try with broader category matching
   for (const [key, mapping] of Object.entries(analysisMapping)) {
-    if (category.includes(key) || mapping.fields.some(field => category.includes(field))) {
+    if (categoryWords.some(word => key.includes(word)) || 
+        mapping.fields.some(field => categoryWords.some(word => field.includes(word)))) {
       const formattedInfo = mapping.format(imageAnalysis);
       if (formattedInfo) {
+        console.log(`Found match by partial category match "${key}"`);
         return formattedInfo;
       }
     }
   }
   
-  // Then try to match by question text
+  // If no matches by category, try by question text
   for (const [key, mapping] of Object.entries(analysisMapping)) {
     if (questionText.includes(key) || mapping.fields.some(field => questionText.includes(field))) {
       const formattedInfo = mapping.format(imageAnalysis);
       if (formattedInfo) {
+        console.log(`Found match by question text for "${key}"`);
         return formattedInfo;
       }
     }
   }
 
-  // Fallback for detailed visual description
+  // Final attempt - check if we have a description field
   if (imageAnalysis.description) {
-    return `Based on image analysis: ${imageAnalysis.description}`;
+    // Only use description as fallback for certain question types
+    if (questionText.includes("style") || 
+        questionText.includes("look") || 
+        questionText.includes("visual") || 
+        questionText.includes("appear") ||
+        categoryWords.includes("style") ||
+        categoryWords.includes("aesthetic") ||
+        categoryWords.includes("visual")) {
+      console.log("Using description as fallback");
+      return `Based on image analysis: ${imageAnalysis.description}`;
+    }
   }
 
+  console.log("No matching image analysis data found for this question");
   return null;
 }
 

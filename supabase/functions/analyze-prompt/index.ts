@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -120,11 +121,15 @@ serve(async (req) => {
     console.log("Received response from OpenAI, parsing content with enhanced analysis");
 
     let parsedContent;
+    let imageAnalysis = null;
+    
     try {
       parsedContent = JSON.parse(content);
+      imageAnalysis = parsedContent.imageAnalysis;
+      
       console.log("Successfully parsed JSON response", {
-        hasImageAnalysis: !!parsedContent.imageAnalysis,
-        imageAnalysisFields: parsedContent.imageAnalysis ? Object.keys(parsedContent.imageAnalysis).join(", ") : "none",
+        hasImageAnalysis: !!imageAnalysis,
+        imageAnalysisFields: imageAnalysis ? Object.keys(imageAnalysis).join(", ") : "none",
         questionsCount: parsedContent.questions ? parsedContent.questions.length : 0,
         prefilledQuestionsCount: parsedContent.questions ? parsedContent.questions.filter(q => q.answer).length : 0
       });
@@ -146,7 +151,7 @@ serve(async (req) => {
       enhancedContext,
       template,
       smartContextData,
-      parsedContent?.imageAnalysis
+      imageAnalysis
     );
     
     console.log(`Generated ${questions.length} intent-based questions (${questions.filter(q => q.answer).length} with pre-filled answers)`);
@@ -175,7 +180,7 @@ serve(async (req) => {
     let variables = generateContextualVariablesForPrompt(
       enhancedContext,
       template,
-      parsedContent?.imageAnalysis,
+      imageAnalysis,
       smartContextData,
       isPromptSimple && !hasValidImageData // Flag for concise variables
     );
@@ -191,7 +196,7 @@ serve(async (req) => {
       hasEnhancedPrompt: !!enhancedPrompt,
       isPromptSimple,
       hasValidImageData,
-      imageAnalysisAvailable: !!parsedContent?.imageAnalysis
+      imageAnalysisAvailable: !!imageAnalysis
     });
 
     return new Response(
@@ -210,7 +215,7 @@ serve(async (req) => {
           questionsPrefilled: questions.filter(q => q.answer).length,
           isPromptSimple,
           hasValidImageData,
-          imageAnalysisAvailable: !!parsedContent?.imageAnalysis,
+          imageAnalysisAvailable: !!imageAnalysis,
           sourceOfQuestions: useAIQuestions ? "AI" : "local"
         }
       }),
