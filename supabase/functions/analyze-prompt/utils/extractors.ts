@@ -1,7 +1,7 @@
 import { Question, Variable } from '../types.ts';
 
 export function extractQuestions(aiResponse: string, originalPrompt: string): Question[] {
-  console.log("Starting question extraction with enhanced context handling");
+  console.log("Starting question extraction with enhanced user-friendly context");
   
   try {
     try {
@@ -11,41 +11,25 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
       if (Array.isArray(parsedResponse.questions)) {
         console.log(`Found ${parsedResponse.questions.length} questions in JSON`);
         
-        // Check for image-based pre-fills
-        const imageBasedQuestions = parsedResponse.questions.filter((q: any) => 
-          q.answer?.includes("(from image analysis)") || q.contextSource === "image"
-        );
-        console.log(`Found ${imageBasedQuestions.length} questions with image-based pre-fills`);
-        
         return parsedResponse.questions.map((q: any, index: number) => {
-          let answer = q.answer || '';
-          let contextSource = q.contextSource || '';
+          let text = q.text || '';
           
-          // Enhance pre-filled answers with contextual information
-          if (answer.startsWith('PRE-FILLED:')) {
-            // Extract entity information from the question text
-            const entityMatch = q.text.match(/(?:about|for|of)\s+(?:the|a|an)?\s+([a-zA-Z\s]+)(?:\?|$)/i);
-            const entity = entityMatch ? entityMatch[1].trim().toLowerCase() : null;
-            
-            // Ensure source attribution is present and add contextual markers
-            if (!answer.includes('(from')) {
-              if (contextSource === 'image') {
-                answer = `${answer} (from image analysis${entity ? ` of ${entity}` : ''})`;
-              } else if (contextSource === 'smartContext' || contextSource === 'smart') {
-                answer = `${answer} (from smart context${entity ? ` about ${entity}` : ''})`;
-              } else if (contextSource === 'prompt') {
-                answer = `${answer} (from prompt${entity ? ` mentioning ${entity}` : ''})`;
-              }
+          // Add examples if they're not already present
+          if (!text.includes('(') && !text.includes(')')) {
+            const examples = generateSimpleExamples(text);
+            if (examples) {
+              text += ` (${examples})`;
             }
-            
-            console.log(`Enhanced pre-filled answer for question ${q.id || index + 1} about ${entity || 'general topic'}`);
           }
+          
+          // Simplify technical terms in the question
+          text = simplifyTechnicalTerms(text);
           
           return {
             id: q.id || `q-${index + 1}`,
-            text: q.text || '',
-            answer,
-            isRelevant: typeof q.isRelevant === 'boolean' ? q.isRelevant : null,
+            text,
+            answer: q.answer || '',
+            isRelevant: typeof q.isRelevant === 'boolean' ? q.isRelevant : true,
             category: q.category || 'General'
           };
         });
@@ -60,6 +44,42 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
     console.error("Error in question extraction:", error);
     return [];
   }
+}
+
+function generateSimpleExamples(question: string): string {
+  // Add simple examples based on question content
+  if (question.toLowerCase().includes('color')) {
+    return 'like "sunny yellow" or "ocean blue"';
+  } else if (question.toLowerCase().includes('size')) {
+    return 'like "as big as an apple" or "about the size of a phone"';
+  } else if (question.toLowerCase().includes('style')) {
+    return 'like "modern and sleek" or "warm and cozy"';
+  } else if (question.toLowerCase().includes('shape')) {
+    return 'like "round like a ball" or "long like a pencil"';
+  }
+  return '';
+}
+
+function simplifyTechnicalTerms(text: string): string {
+  const simplifications: Record<string, string> = {
+    'rgb': 'color',
+    'resolution': 'image quality',
+    'opacity': 'see-through level',
+    'gradient': 'color blend',
+    'dimensions': 'size',
+    'parameters': 'settings',
+    'configuration': 'setup',
+    'interface': 'screen layout',
+    'functionality': 'features'
+  };
+
+  let simplifiedText = text;
+  Object.entries(simplifications).forEach(([technical, simple]) => {
+    const regex = new RegExp(`\\b${technical}\\b`, 'gi');
+    simplifiedText = simplifiedText.replace(regex, simple);
+  });
+
+  return simplifiedText;
 }
 
 export function extractVariables(aiResponse: string, originalPrompt: string): Variable[] {
