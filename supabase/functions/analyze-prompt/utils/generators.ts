@@ -423,7 +423,7 @@ function generateGenericContextQuestions(promptText: string, userIntent: string 
   return questions;
 }
 
-// New function: find pillar-based image analysis information with intent matching
+// Modified function: find pillar-based image analysis information without numbered sub-questions
 function findPillarBasedImageInfo(question: Question, imageAnalysis: any, userIntent: string = ''): string | null {
   if (!imageAnalysis || typeof imageAnalysis !== 'object') {
     console.log("No valid image analysis data available for pillar matching");
@@ -453,11 +453,13 @@ function findPillarBasedImageInfo(question: Question, imageAnalysis: any, userIn
       console.log(`Found direct pillar match between question category "${category}" and analysis section "${key}"`);
       
       if (typeof data === 'string') {
-        return `Based on image analysis: ${data}`;
+        // Remove any numbered questions/patterns like "1. question? 2. another question?"
+        const cleanedData = data.replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+        return cleanedData ? `Based on image analysis: ${cleanedData}` : null;
       } else if (typeof data === 'object' && data !== null) {
-        // Convert object to formatted text
+        // Convert object to formatted text, filtering out any elements that look like questions
         const formattedData = Object.entries(data)
-          .filter(([k, v]) => v !== null && v !== undefined && v !== '')
+          .filter(([k, v]) => v !== null && v !== undefined && v !== '' && !String(v).match(/\d+\.\s+[^.?!]*\?/))
           .map(([k, v]) => `${k}: ${v}`)
           .join('. ');
           
@@ -469,7 +471,6 @@ function findPillarBasedImageInfo(question: Question, imageAnalysis: any, userIn
   }
   
   // If no direct match, try looking for content about this pillar inside other pillars
-  // This handles cases where the analysis structure doesn't match our pillars 1:1
   for (const [key, data] of Object.entries(imageAnalysis)) {
     if (typeof data === 'object' && data !== null) {
       // Check if any keys in this section match our category
@@ -482,8 +483,18 @@ function findPillarBasedImageInfo(question: Question, imageAnalysis: any, userIn
       if (matchingKeys.length > 0) {
         console.log(`Found match in nested data for "${category}" within section "${key}"`);
         
-        // Extract relevant data for this category
-        const relevantData = matchingKeys.map(k => `${k}: ${data[k]}`).join('. ');
+        // Extract relevant data for this category, removing any numbered questions patterns
+        const relevantData = matchingKeys
+          .map(k => {
+            if (typeof data[k] === 'string') {
+              const cleanedValue = String(data[k]).replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+              return cleanedValue ? `${k}: ${cleanedValue}` : null;
+            }
+            return `${k}: ${data[k]}`;
+          })
+          .filter(Boolean)
+          .join('. ');
+          
         if (relevantData) {
           return `Based on image analysis: ${relevantData}`;
         }
@@ -504,10 +515,17 @@ function findPillarBasedImageInfo(question: Question, imageAnalysis: any, userIn
       console.log(`Found semantic match between question keywords and section "${key}"`);
       
       if (typeof data === 'string') {
-        return `Based on image analysis: ${data}`;
+        // Clean any numbered questions patterns
+        const cleanedData = String(data).replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+        return cleanedData ? `Based on image analysis: ${cleanedData}` : null;
       } else if (typeof data === 'object' && data !== null) {
         const formattedData = Object.entries(data)
-          .filter(([k, v]) => v !== null && v !== undefined && v !== '')
+          .filter(([k, v]) => {
+            if (v === null || v === undefined || v === '') return false;
+            // Filter out entries that look like numbered questions
+            if (typeof v === 'string' && v.match(/\d+\.\s+[^.?!]*\?/)) return false;
+            return true;
+          })
           .map(([k, v]) => `${k}: ${v}`)
           .join('. ');
           
@@ -684,8 +702,12 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any, u
       if (categoryWord === key || mapping.fields.includes(categoryWord)) {
         const formattedInfo = mapping.format(imageAnalysis);
         if (formattedInfo) {
-          console.log(`Found match by category word "${categoryWord}" -> "${key}"`);
-          return `Based on image analysis: ${formattedInfo}`;
+          // Clean any numbered questions that might be in the formatted info
+          const cleanedInfo = formattedInfo.replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+          if (cleanedInfo) {
+            console.log(`Found match by category word "${categoryWord}" -> "${key}"`);
+            return `Based on image analysis: ${cleanedInfo}`;
+          }
         }
       }
     }
@@ -697,8 +719,12 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any, u
         mapping.fields.some(field => categoryWords.some(word => field.includes(word)))) {
       const formattedInfo = mapping.format(imageAnalysis);
       if (formattedInfo) {
-        console.log(`Found match by partial category match "${key}"`);
-        return `Based on image analysis: ${formattedInfo}`;
+        // Clean any numbered questions
+        const cleanedInfo = formattedInfo.replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+        if (cleanedInfo) {
+          console.log(`Found match by partial category match "${key}"`);
+          return `Based on image analysis: ${cleanedInfo}`;
+        }
       }
     }
   }
@@ -708,8 +734,12 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any, u
     if (questionText.includes(key) || mapping.fields.some(field => questionText.includes(field))) {
       const formattedInfo = mapping.format(imageAnalysis);
       if (formattedInfo) {
-        console.log(`Found match by question text for "${key}"`);
-        return `Based on image analysis: ${formattedInfo}`;
+        // Clean any numbered questions
+        const cleanedInfo = formattedInfo.replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+        if (cleanedInfo) {
+          console.log(`Found match by question text for "${key}"`);
+          return `Based on image analysis: ${cleanedInfo}`;
+        }
       }
     }
   }
@@ -724,8 +754,12 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any, u
         categoryWords.includes("style") ||
         categoryWords.includes("aesthetic") ||
         categoryWords.includes("visual")) {
-      console.log("Using description as fallback");
-      return `Based on image analysis: ${imageAnalysis.description}`;
+      // Clean any numbered questions from the description
+      const cleanedDescription = imageAnalysis.description.replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+      if (cleanedDescription) {
+        console.log("Using description as fallback");
+        return `Based on image analysis: ${cleanedDescription}`;
+      }
     }
   }
 

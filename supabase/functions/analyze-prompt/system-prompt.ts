@@ -18,6 +18,7 @@ Question Generation Guidelines:
 5. If specific objects/subjects are mentioned, prioritize questions about their key characteristics
 6. Ensure questions naturally flow from the user's intent to template requirements
 7. Avoid technical jargon unless explicitly mentioned in the original prompt
+8. IMPORTANT: Each insight or detail should be a separate question entity - never use numbered sub-questions (like "1. Question? 2. Another question?") within a single answer field
 
 Intent-Based Question Writing:
 1. Extract the main action/request from the prompt first (e.g., "create", "design", "generate")
@@ -45,7 +46,9 @@ Variable Guidelines:
         }
       });
       
-      systemPrompt += `\nImportant: Always prioritize questions that directly relate to the user's intent. Each pillar's questions should feel like natural follow-ups to the original request.`;
+      systemPrompt += `\nImportant: Always prioritize questions that directly relate to the user's intent. Each pillar's questions should feel like natural follow-ups to the original request. 
+      
+When analyzing images, extract each insight as a separate question entity rather than including multiple questions within a single answer.`;
     } catch (error) {
       console.error("Error processing template pillars:", error);
       systemPrompt += `\n- "General": Focus on user's core intent (Generate up to 3 contextual questions)\n`;

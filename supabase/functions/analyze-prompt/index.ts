@@ -141,6 +141,24 @@ serve(async (req) => {
       parsedContent = JSON.parse(content);
       imageAnalysis = parsedContent.imageAnalysis;
       
+      // Process image analysis to remove any numbered sub-questions format
+      if (imageAnalysis && typeof imageAnalysis === 'object') {
+        // Clean up any fields that might have numbered questions
+        Object.keys(imageAnalysis).forEach(key => {
+          if (typeof imageAnalysis[key] === 'string') {
+            // Remove numbered questions pattern from string fields
+            imageAnalysis[key] = imageAnalysis[key].replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+          } else if (typeof imageAnalysis[key] === 'object' && imageAnalysis[key] !== null) {
+            // Clean nested object fields
+            Object.keys(imageAnalysis[key]).forEach(nestedKey => {
+              if (typeof imageAnalysis[key][nestedKey] === 'string') {
+                imageAnalysis[key][nestedKey] = imageAnalysis[key][nestedKey].replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+              }
+            });
+          }
+        });
+      }
+      
       console.log("Successfully parsed JSON response", {
         hasImageAnalysis: !!imageAnalysis,
         imageAnalysisPillars: imageAnalysis ? Object.keys(imageAnalysis).join(", ") : "none",
@@ -277,7 +295,8 @@ serve(async (req) => {
           pillarsCovered: questions.reduce((acc, q) => {
             if (!acc.includes(q.category)) acc.push(q.category);
             return acc;
-          }, []).join(', ')
+          }, []).join(', '),
+          cleanedNumberedQuestions: true // Add this flag to indicate we're cleaning numbered questions
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
