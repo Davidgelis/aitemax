@@ -39,7 +39,6 @@ export const StepTwo = ({
   onContinue,
   questionsContainerRef,
   variablesContainerRef,
-  originalPrompt
 }: StepTwoProps) => {
   const { currentLanguage } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
@@ -47,21 +46,9 @@ export const StepTwo = ({
   // Count pre-filled questions
   const prefilledCount = questions.filter(q => q.answer).length;
   const hasPrefilledQuestions = prefilledCount > 0;
-  
-  // Show original prompt for context
-  const shortenedPrompt = originalPrompt && originalPrompt.length > 100 
-    ? originalPrompt.substring(0, 100) + "..." 
-    : originalPrompt;
 
   return (
     <div className="border rounded-xl p-6 bg-card">
-      {originalPrompt && (
-        <div className="mb-4 p-3 bg-muted/30 rounded-md">
-          <p className="text-sm font-medium mb-1">{t.steps.originalPrompt}:</p>
-          <p className="text-sm italic text-muted-foreground">{shortenedPrompt}</p>
-        </div>
-      )}
-      
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <p className="text-card-foreground">
@@ -79,7 +66,7 @@ export const StepTwo = ({
           onQuestionRelevance={onQuestionRelevance}
           onQuestionAnswer={onQuestionAnswer}
           containerRef={questionsContainerRef}
-          originalPrompt={originalPrompt}
+          originalPrompt=""
         />
       </div>
 
@@ -93,7 +80,7 @@ export const StepTwo = ({
           variableToDelete={variableToDelete}
           setVariableToDelete={setVariableToDelete}
           containerRef={variablesContainerRef}
-          originalPrompt={originalPrompt}
+          originalPrompt=""
         />
       </div>
 
