@@ -14,7 +14,7 @@ Question Guidelines:
 1. Extract the core intent from the user's prompt and use it as the foundation
 2. Generate 3-5 specific questions per template pillar that:
    - Focus directly on the specific subject or action mentioned in the user's prompt
-   - Are tailored to expand on specific details about the user's stated intent
+   - Are tailored to gather missing details about the user's stated intent
    - DO NOT ask about primary objectives (already known from prompt)
    - Cover technical specifications relevant to the specific intent (dimensions, resolution, format)
    - Cover style elements specifically for the subject mentioned (artistic direction, techniques, effects)
@@ -35,6 +35,7 @@ Question Guidelines:
    - Avoid repetitive pre-filled answers across different questions
    - Use image insights to enhance understanding of user's visual preferences
 
+Questions should focus on gathering LONGER, DESCRIPTIVE answers (sentence or paragraph length responses).
 Each question must have:
    - "id": Unique string
    - "text": Question focused on gathering specific details about the user's actual intent
@@ -44,13 +45,20 @@ Each question must have:
    - "contextSource": Origin of pre-filled data ("image", "prompt", "smartContext")
 
 Variable Guidelines:
-1. Extract specific, actionable variables from both prompt and image analysis
-2. Each variable must have:
+1. Extract specific, actionable variables that require SHORT answers (1-3 words typically)
+2. Focus on attributes like:
+   - Colors (red, blue, pastel, etc.)
+   - Sizes (small, medium, large, 12cm, etc.)
+   - Breeds (for animals: golden retriever, tabby cat, etc.)
+   - Materials (wood, metal, etc.)
+   - Specific names or labels
+   - Numeric values or ranges
+3. Each variable must have:
    - "id": Unique string
-   - "name": Descriptive name
-   - "value": Detailed value when context available
+   - "name": Descriptive variable name (e.g. "Primary Color", "Dog Breed", "Ball Size")
+   - "value": Pre-filled value from context when available (1-3 words)
    - "isRelevant": Boolean
-   - "category": Category name
+   - "category": Category matching template pillars
    - "code": Template code
 
 Image Analysis Guidelines:

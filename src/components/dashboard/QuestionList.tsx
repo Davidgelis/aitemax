@@ -1,277 +1,328 @@
-import { X, FileText, Edit } from "lucide-react";
-import { Question } from "./types";
-import { RefObject, useState } from "react";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { placeholderTestQuestions } from "./constants";
-
-interface QuestionListProps {
-  questions: Question[];
-  onQuestionRelevance: (questionId: string, isRelevant: boolean) => void;
-  onQuestionAnswer: (questionId: string, answer: string) => void;
-  containerRef: RefObject<HTMLDivElement>;
-  originalPrompt?: string;
-}
-
-export const QuestionList = ({
-  questions,
-  onQuestionRelevance,
-  onQuestionAnswer,
-  containerRef,
-  originalPrompt
-}: QuestionListProps) => {
-  const [showPromptSheet, setShowPromptSheet] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
-  const [editResponseSheet, setEditResponseSheet] = useState(false);
-  const [currentAnswer, setCurrentAnswer] = useState("");
-  const maxCharacterLimit = 1000; // Set the character limit to 1000
-
-  console.log('Incoming questions:', questions);
-  console.log('Placeholder questions:', placeholderTestQuestions);
-
-  // Display placeholder test questions if no questions are provided
-  const displayQuestions = questions.length > 0 ? questions : placeholderTestQuestions;
-
-  // Group questions by category
-  const groupedQuestions: Record<string, Question[]> = {};
-  
-  // Sort categories to ensure consistent order
-  displayQuestions.forEach(question => {
-    console.log('Processing question:', question);
-    const category = question.category || 'Other';
-    console.log('Category for question:', category);
-    
-    if (!groupedQuestions[category]) {
-      groupedQuestions[category] = [];
-    }
-    groupedQuestions[category].push(question);
-  });
-
-  console.log('Grouped questions:', groupedQuestions);
-
-  // Sort categories alphabetically, but keep certain pillars first
-  const pillarOrder = ['Task', 'Persona', 'Conditions', 'Instructions'];
-  const categories = Object.keys(groupedQuestions).sort((a, b) => {
-    const aIndex = pillarOrder.indexOf(a);
-    const bIndex = pillarOrder.indexOf(b);
-    
-    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-    if (aIndex !== -1) return -1;
-    if (bIndex !== -1) return 1;
-    return a.localeCompare(b);
-  });
-
-  // Function to clean question text - removing prefixes and asterisks
-  const cleanQuestionText = (text: string): string => {
-    // Remove category prefixes with asterisks like "**Task**:" or "Task:"
-    return text.replace(/^\s*(\*\*)?(?:Task|Persona|Conditions|Instructions)(\*\*)?\s*:\s*/i, '')
-      // Also remove any remaining asterisks
-      .replace(/\*\*/g, '');
-  };
-
-  // Function to open the response editing sheet
-  const handleEditResponse = (question: Question) => {
-    if (question.isRelevant === false) return;
-    
-    setEditingQuestion({...question});
-    setCurrentAnswer(question.answer || '');
-    setEditResponseSheet(true);
-    
-    // Automatically mark as relevant when editing
-    if (question.isRelevant === null) {
-      onQuestionRelevance(question.id, true);
-    }
-  };
-
-  // Function to save the edited response
-  const handleSaveResponse = () => {
-    if (editingQuestion) {
-      onQuestionAnswer(editingQuestion.id, currentAnswer);
-      setEditResponseSheet(false);
-      setEditingQuestion(null);
-    }
-  };
-  
-  // Function to toggle question relevance
-  const handleToggleRelevance = (questionId: string, currentIsRelevant: boolean | null) => {
-    // If currently irrelevant (false), make it relevant (true)
-    // If currently relevant (true) or undecided (null), make it irrelevant (false)
-    const newRelevance = currentIsRelevant === false ? true : false;
-    onQuestionRelevance(questionId, newRelevance);
-  };
-
-  // Function to get the first 10 words of the answer
-  const getAnswerPreview = (answer: string) => {
-    if (!answer) return "";
-    const words = answer.split(' ');
-    return words.slice(0, 10).join(' ') + (words.length > 10 ? '...' : '');
-  };
-
-  const renderTechnicalTerms = (question: Question) => {
-    if (!question.technicalTerms || question.technicalTerms.length === 0) return null;
-
-    return (
-      <div className="ml-11 mt-2 space-y-2">
-        {question.technicalTerms.map((term, index) => (
-          <TooltipProvider key={index}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="inline-flex items-center gap-2 text-xs bg-accent/10 px-2 py-1 rounded-full cursor-help">
-                  <span className="font-medium">{term.term}</span>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[300px]">
-                <div className="space-y-2">
-                  <p className="font-medium">{term.explanation}</p>
-                  <p className="text-sm text-muted-foreground">{term.example}</p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ))}
-      </div>
-    );
-  };
-  
-  return (
-    <div className="mb-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-medium">Questions</h3>
-        {originalPrompt && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button 
-                  onClick={() => setShowPromptSheet(true)} 
-                  className="flex items-center gap-1 text-sm hover:bg-[#33fea6]/20 p-2 rounded-full transition-colors" 
-                  title="View submitted prompt"
-                >
-                  <FileText className="w-6 h-6 text-[#33fea6]" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>View the submitted prompt</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-      </div>
+export const dashboardTranslations = {
+  en: {
+    prompts: {
+      newPrompt: "New Prompt",
+      savePrompt: "Save Prompt",
+      renamePrompt: "Rename Prompt",
+      duplicatePrompt: "Duplicate Prompt",
+      deletePrompt: "Delete Prompt",
+      analyzing: "Analyzing...",
+      analyze: "Analyze",
+    },
+    userActions: {
+      unsavedChanges: "Unsaved Changes",
+      saving: "Saving",
+      allChangesSaved: "All Changes Saved",
+      session: "Session",
+      refreshSession: "Refresh Session",
+      saveDraft: "Save Draft",
+    },
+    steps: {
+      imageSmartScan: "Image Smart Scan",
+      uploadedImages: "Uploaded Images",
+      smartContextAdded: "Smart Context Added",
+      promptTextPlaceholder: "Enter your prompt here...",
       
-      <div ref={containerRef} className="max-h-[285px] overflow-y-auto pr-2 space-y-6">
-        {categories.map(category => (
-          <div key={category} className="space-y-4">
-            <h4 className="font-medium text-sm text-accent bg-accent/5 p-2 rounded-md">
-              {category}
-              <span className="text-xs text-muted-foreground ml-2">
-                ({groupedQuestions[category].length})
-              </span>
-            </h4>
-            
-            {groupedQuestions[category].map((question, index) => (
-              <div key={question.id} className="p-4 border rounded-lg bg-background">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between group">
-                    <div 
-                      className={`flex-grow flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors
-                                ${question.isRelevant === false ? 'opacity-60' : ''}
-                                ${question.answer && question.isRelevant !== false ? 'bg-[#33fea6]/20' : 'hover:bg-[#33fea6]/20'}`}
-                      onClick={() => handleEditResponse(question)}
-                    >
-                      <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
-                        {index + 1}
-                      </div>
-                      <span className="text-card-foreground">{cleanQuestionText(question.text)}</span>
-                      {question.isRelevant !== false && (
-                        <Edit className="w-4 h-4 ml-2 opacity-0 group-hover:opacity-80 text-[#33fea6]" />
-                      )}
-                    </div>
-                    <button 
-                      onClick={() => handleToggleRelevance(question.id, question.isRelevant)} 
-                      className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${question.isRelevant === false ? 'bg-[#33fea6]/20' : ''}`}
-                      title={question.isRelevant === false ? "Mark as relevant" : "Mark as not relevant"}
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                  
-                  {/* Add technical terms display */}
-                  {question.isRelevant !== false && renderTechnicalTerms(question)}
-                  
-                  {question.isRelevant !== false && question.answer && (
-                    <div className="pl-8 pr-2 text-sm text-gray-600 line-clamp-2 italic bg-gray-50 p-2 rounded">
-                      {getAnswerPreview(question.answer)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-
-      {/* Original Prompt Sheet */}
-      <Sheet open={showPromptSheet} onOpenChange={setShowPromptSheet}>
-        <SheetContent className="w-[90%] sm:max-w-[600px] md:max-w-[800px] z-50 bg-white">
-          <SheetHeader>
-            <SheetTitle>Submitted Prompt</SheetTitle>
-            <SheetDescription>
-              This is the original prompt you submitted for analysis.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="py-6">
-            <div className="w-full min-h-[40vh] p-4 text-sm rounded-md border bg-gray-50/80 text-card-foreground overflow-y-auto whitespace-pre-wrap">
-              {originalPrompt}
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Response Editing Sheet */}
-      <Sheet open={editResponseSheet} onOpenChange={(open) => {
-        if (!open) {
-          handleSaveResponse();
-        }
-        setEditResponseSheet(open);
-      }}>
-        <SheetContent className="w-[90%] sm:max-w-[500px] z-50 bg-white">
-          <SheetHeader>
-            <SheetTitle>Edit Response</SheetTitle>
-            <SheetDescription>
-              Provide your answer to this question
-            </SheetDescription>
-          </SheetHeader>
-          <div className="py-6 space-y-4">
-            <div className="text-base font-medium">
-              {editingQuestion?.text}
-            </div>
-            <div className="relative">
-              <textarea 
-                value={currentAnswer} 
-                onChange={(e) => {
-                  // Limit input to maxCharacterLimit characters
-                  if (e.target.value.length <= maxCharacterLimit) {
-                    setCurrentAnswer(e.target.value);
-                  }
-                }} 
-                placeholder="Type your answer here..." 
-                className="w-full p-4 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[200px] focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent" 
-                maxLength={maxCharacterLimit}
-              />
-              <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
-                {currentAnswer.length}/{maxCharacterLimit}
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <button 
-                onClick={handleSaveResponse}
-                className="aurora-button"
-              >
-                Save Response
-              </button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-    </div>
-  );
+      step1: "Step 1: Create Prompt",
+      step2: "Step 2: Answer Questions",
+      step3: "Step 3: Final Prompt",
+      
+      step1Label: "Create Prompt",
+      step2Label: "Answer Questions",
+      step3Label: "Final Prompt",
+      
+      step1AriaLabel: "Go to step 1: Create Prompt",
+      step2AriaLabel: "Go to step 2: Answer Questions",
+      step3AriaLabel: "Go to step 3: Final Prompt",
+      
+      step: "Step",
+      
+      questionsToAnswer: "Please answer the following questions to improve your prompt:",
+      continue: "Continue",
+      continueButtonInfo: "Answer all relevant questions to proceed",
+      
+      analyzing: "Analyzing...",
+      analyze: "Analyze",
+      analyzeFor: "Analyzing for", // Added missing key
+      prefilledAnswers: "pre-filled answers", // Added missing key
+      
+      toggleSections: {
+        jsonLoadingTitle: "Reload JSON structure",
+        tryAgain: "Try again",
+        jsonLoadingSubtitle: "Processing your prompt...",
+        jsonError: "Error generating JSON:",
+        createVariable: "Create Variable",
+        createVariableMode: "Select text segments to create a variable",
+        exitVariableMode: "Exit variable creation mode",
+        variableCount: "Create Variable",
+        editPrompt: "Edit Prompt",
+        finalPromptTitle: "Final Prompt"
+      },
+      
+      variableActions: {
+        selectionAdded: "Selection added",
+        selectionError: "Selection error",
+        noSelection: "No selection",
+        limitReached: "Variable limit reached",
+        created: "Variable created",
+        deleted: "Variable deleted"
+      },
+      
+      promptActions: {
+        cancel: "Cancel",
+        saveChanges: "Save Changes",
+        changesSaved: "Changes saved"
+      }
+    },
+    sidebar: {
+      savedPrompts: "Saved Prompts",
+      drafts: "Drafts",
+      newPrompt: "New Prompt",
+      searchPrompts: "Search Prompts...",
+    },
+    finalPrompt: {
+      copyPrompt: "Copy Prompt",
+      savePrompt: "Save Prompt",
+    },
+    variableActions: {
+      addVariable: "Add Variable",
+      deleteVariable: "Delete Variable",
+      editVariable: "Edit Variable",
+      confirmDelete: "Confirm Delete",
+      cancel: "Cancel",
+    },
+    promptActions: {
+      editPrompt: "Edit Prompt",
+      regeneratePrompt: "Regenerate Prompt",
+      formatPrompt: "Format Prompt",
+    },
+    toggles: {
+      jsonLoadingTitle: "Reload JSON structure",
+      tryAgain: "Try again",
+      primary: {
+        // Add any primary toggles here
+      },
+      secondary: {
+        // Add any secondary toggles here
+      }
+    },
+    backToDashboard: "Back to Dashboard"
+  },
+  es: {
+    prompts: {
+      newPrompt: "Nuevo Prompt",
+      savePrompt: "Guardar Prompt",
+      renamePrompt: "Renombrar Prompt",
+      duplicatePrompt: "Duplicar Prompt",
+      deletePrompt: "Eliminar Prompt",
+      analyzing: "Analizando...",
+      analyze: "Analizar",
+    },
+    userActions: {
+      unsavedChanges: "Cambios No Guardados",
+      saving: "Guardando",
+      allChangesSaved: "Todos Los Cambios Guardados",
+      session: "Sesión",
+      refreshSession: "Refrescar Sesión",
+      saveDraft: "Guardar Borrador",
+    },
+    steps: {
+      imageSmartScan: "Image Smart Scan",
+      uploadedImages: "Imágenes Subidas",
+      smartContextAdded: "Contexto Inteligente Añadido",
+      promptTextPlaceholder: "Introduce tu prompt aquí...",
+      
+      step1: "Paso 1: Crear Prompt",
+      step2: "Paso 2: Responder Preguntas",
+      step3: "Paso 3: Prompt Final",
+      
+      step1Label: "Crear Prompt",
+      step2Label: "Responder Preguntas",
+      step3Label: "Prompt Final",
+      
+      step1AriaLabel: "Ir al paso 1: Crear Prompt",
+      step2AriaLabel: "Ir al paso 2: Responder Preguntas",
+      step3AriaLabel: "Ir al paso 3: Prompt Final",
+      
+      step: "Paso",
+      
+      questionsToAnswer: "Por favor responde las siguientes preguntas para mejorar tu prompt:",
+      continue: "Continuar",
+      continueButtonInfo: "Responde todas las preguntas relevantes para continuar",
+      
+      analyzing: "Analizando...",
+      analyze: "Analizar",
+      analyzeFor: "Analizando para", // Added missing key
+      prefilledAnswers: "respuestas pre-llenadas", // Added missing key
+      
+      toggleSections: {
+        jsonLoadingTitle: "Recargar estructura JSON",
+        tryAgain: "Intentar de nuevo",
+        jsonLoadingSubtitle: "Procesando tu prompt...",
+        jsonError: "Error generando JSON:",
+        createVariable: "Crear Variable",
+        createVariableMode: "Selecciona segmentos de texto para crear una variable",
+        exitVariableMode: "Salir del modo de creación de variables",
+        variableCount: "Crear Variable",
+        editPrompt: "Editar Prompt",
+        finalPromptTitle: "Prompt Final"
+      },
+      
+      variableActions: {
+        selectionAdded: "Selección añadida",
+        selectionError: "Error de selección",
+        noSelection: "Sin selección",
+        limitReached: "Límite de variables alcanzado",
+        created: "Variable creada",
+        deleted: "Variable eliminada"
+      },
+      
+      promptActions: {
+        cancel: "Cancelar",
+        saveChanges: "Guardar Cambios",
+        changesSaved: "Cambios guardados"
+      }
+    },
+    sidebar: {
+      savedPrompts: "Prompts Guardados",
+      drafts: "Borradores",
+      newPrompt: "Nuevo Prompt",
+      searchPrompts: "Buscar Prompts...",
+    },
+    finalPrompt: {
+      copyPrompt: "Copiar Prompt",
+      savePrompt: "Guardar Prompt",
+    },
+    variableActions: {
+      addVariable: "Añadir Variable",
+      deleteVariable: "Eliminar Variable",
+      editVariable: "Editar Variable",
+      confirmDelete: "Confirmar Eliminación",
+      cancel: "Cancelar",
+    },
+    promptActions: {
+      editPrompt: "Editar Prompt",
+      regeneratePrompt: "Formatear Prompt",
+    },
+    toggles: {
+      jsonLoadingTitle: "Recargar estructura JSON",
+      tryAgain: "Intentar de nuevo",
+      primary: {
+        // Add any primary toggles here
+      },
+      secondary: {
+        // Add any secondary toggles here
+      }
+    },
+    backToDashboard: "Volver al Dashboard"
+  },
+  de: {
+    prompts: {
+      newPrompt: "Neuer Prompt",
+      savePrompt: "Prompt Speichern",
+      renamePrompt: "Prompt Umbenennen",
+      duplicatePrompt: "Prompt Duplizieren",
+      deletePrompt: "Prompt Löschen",
+      analyzing: "Analysiere...",
+      analyze: "Analysieren",
+    },
+    userActions: {
+      unsavedChanges: "Ungespeicherte Änderungen",
+      saving: "Speichern",
+      allChangesSaved: "Alle Änderungen gespeichert",
+      session: "Sitzung",
+      refreshSession: "Sitzung aktualisieren",
+      saveDraft: "Entwurf speichern",
+    },
+    steps: {
+      imageSmartScan: "Image Smart Scan",
+      uploadedImages: "Hochgeladene Bilder",
+      smartContextAdded: "Intelligenter Kontext Hinzugefügt",
+      promptTextPlaceholder: "Gib hier deinen Prompt ein...",
+      
+      step1: "Schritt 1: Prompt Erstellen",
+      step2: "Schritt 2: Fragen Beantworten",
+      step3: "Schritt 3: Endgültiger Prompt",
+      
+      step1Label: "Prompt Erstellen",
+      step2Label: "Fragen Beantworten",
+      step3Label: "Endgültiger Prompt",
+      
+      step1AriaLabel: "Zu Schritt 1 gehen: Prompt Erstellen",
+      step2AriaLabel: "Zu Schritt 2 gehen: Fragen Beantworten",
+      step3AriaLabel: "Zu Schritt 3 gehen: Endgültiger Prompt",
+      
+      step: "Schritt",
+      
+      questionsToAnswer: "Bitte beantworte die folgenden Fragen, um deinen Prompt zu verbessern:",
+      continue: "Weiter",
+      continueButtonInfo: "Beantworte alle relevanten Fragen, um fortzufahren",
+      
+      analyzing: "Analysiere...",
+      analyze: "Analysieren",
+      analyzeFor: "Analyse für", // Added missing key
+      prefilledAnswers: "vorausgefüllte Antworten", // Added missing key
+      
+      toggleSections: {
+        jsonLoadingTitle: "JSON-Struktur neu laden",
+        tryAgain: "Erneut versuchen",
+        jsonLoadingSubtitle: "Verarbeite deinen Prompt...",
+        jsonError: "Fehler beim Generieren von JSON:",
+        createVariable: "Variable erstellen",
+        createVariableMode: "Wähle Textsegmente aus, um eine Variable zu erstellen",
+        exitVariableMode: "Variablenerstellungsmodus verlassen",
+        variableCount: "Variable erstellen",
+        editPrompt: "Prompt bearbeiten",
+        finalPromptTitle: "Endgültiger Prompt"
+      },
+      
+      variableActions: {
+        selectionAdded: "Auswahl hinzugefügt",
+        selectionError: "Auswahlsfehler",
+        noSelection: "Keine Auswahl",
+        limitReached: "Variablenlimit erreicht",
+        created: "Variable erstellt",
+        deleted: "Variable gelöscht"
+      },
+      
+      promptActions: {
+        cancel: "Abbrechen",
+        saveChanges: "Änderungen speichern",
+        changesSaved: "Änderungen gespeichert"
+      }
+    },
+    sidebar: {
+      savedPrompts: "Gespeicherte Prompts",
+      drafts: "Entwürfe",
+      newPrompt: "Neuer Prompt",
+      searchPrompts: "Prompts suchen...",
+    },
+    finalPrompt: {
+      copyPrompt: "Prompt Kopieren",
+      savePrompt: "Prompt Speichern",
+    },
+    variableActions: {
+      addVariable: "Variable Hinzufügen",
+      deleteVariable: "Variable Löschen",
+      editVariable: "Variable Bearbeiten",
+      confirmDelete: "Löschen Bestätigen",
+      cancel: "Abbrechen",
+    },
+    promptActions: {
+      editPrompt: "Prompt Bearbeiten",
+      regeneratePrompt: "Prompt Neu Generieren",
+      formatPrompt: "Prompt Formatieren",
+    },
+    toggles: {
+      jsonLoadingTitle: "JSON-Struktur neu laden",
+      tryAgain: "Erneut versuchen",
+      primary: {
+        // Add any primary toggles here
+      },
+      secondary: {
+        // Add any secondary toggles here
+      }
+    },
+    backToDashboard: "Zurück zum Dashboard"
+  },
 };
