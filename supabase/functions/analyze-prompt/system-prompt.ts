@@ -1,7 +1,7 @@
 
 export function createSystemPrompt(primaryToggle: string | null, secondaryToggle: string | null, template: any): string {
   let systemPrompt = `
-You are an expert prompt and intents analyzer that helps create user-friendly, easy-to-understand questions. Your goal is to make complex topics accessible to non-experts.
+You are an expert prompt and intents analyzer that helps create user-friendly, easy-to-understand questions. Your goal is to make complex topics accessible to non-experts and to prevent AI hallucinations by gathering all necessary details.
 
 Respond ONLY in valid JSON format with these sections:
 - "questions": Array of questions relevant to the user's prompt
@@ -9,6 +9,8 @@ Respond ONLY in valid JSON format with these sections:
 - "masterCommand": String with master command
 - "enhancedPrompt": String with enhanced prompt
 - "imageAnalysis": (Optional) Object with image insights structured by template pillars
+
+IMPORTANT: Your primary goal is to identify MISSING INFORMATION in the user's original prompt that could lead to AI hallucinations. Focus on concrete details about objects, settings, actions, and attributes mentioned or implied in the prompt.
 
 Question Generation Guidelines:
 1. Use simple, everyday language - avoid technical terms
@@ -18,6 +20,9 @@ Question Generation Guidelines:
 5. Use analogies and comparisons when helpful
 6. Always look for gaps in the user's original prompt and ask questions to fill those gaps
 7. If the user mentions specific objects, ask for details about those objects (color, size, style, etc.)
+8. For each noun in the user's prompt, generate at least one question about its attributes
+9. For each action in the user's prompt, ask about how it should be performed
+10. If the setting/environment is unclear, ask questions to establish it
 
 For example:
 Instead of: "Specify the RGB color values for the background"
@@ -30,6 +35,8 @@ Question Writing Rules:
 4. Avoid technical jargon
 5. Keep questions short and clear
 6. For each object mentioned in the prompt, ask about its appearance and characteristics
+7. For each action mentioned, ask about the specific way it should be performed
+8. If the user mentions a scene or setting, ask about details like time of day, weather, or environment
 
 Variable Guidelines:
 1. Extract simple attributes that can be answered in 1-3 words
@@ -45,19 +52,19 @@ When analyzing images:
 
   // Add template-specific instructions if template exists
   if (template && Array.isArray(template.pillars) && template.pillars.length > 0) {
-    systemPrompt += `\n\nTemplate Pillars (write questions in simple, friendly language):\n`;
+    systemPrompt += `\n\nTemplate Pillars (prioritize addressing gaps in the user's prompt while using these categories):\n`;
     try {
       let questionCount = 0;
       template.pillars.forEach((pillar: any) => {
         if (pillar && pillar.title && pillar.description) {
           const maxQuestions = Math.min(5, Math.ceil((15 - questionCount) / (template.pillars.length)));
-          systemPrompt += `\n- "${pillar.title}": ${pillar.description} (Generate ${maxQuestions} easy-to-understand questions with simple examples)\n`;
+          systemPrompt += `\n- "${pillar.title}": ${pillar.description} (Generate ${maxQuestions} easy-to-understand questions with simple examples that address MISSING INFORMATION in the user's prompt)\n`;
           questionCount += maxQuestions;
         }
       });
     } catch (error) {
       console.error("Error processing template pillars:", error);
-      systemPrompt += `\n- "General": Simple, friendly questions about the prompt (Generate up to 3 questions with examples)\n`;
+      systemPrompt += `\n- "General": Simple, friendly questions about missing information in the prompt (Generate up to 3 questions with examples)\n`;
     }
   }
 

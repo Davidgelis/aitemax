@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Starting analyze-prompt function with enhanced pillar-based question generation and image analysis");
+    console.log("Starting analyze-prompt function with enhanced prompt-based question generation");
     
     const requestBody = await req.json();
     const { 
@@ -47,7 +47,10 @@ serve(async (req) => {
     
     // Extract core user intent for better question tailoring and pre-filling
     const userIntent = extractUserIntent(promptText);
+    const missingInfoCategories = identifyMissingInformation(promptText);
+    
     console.log(`Extracted user intent: "${userIntent}"`);
+    console.log(`Missing information categories: ${missingInfoCategories.join(', ')}`);
     
     // Check if prompt is too short/simple for questions
     const isPromptSimple = promptText.length < 50 || promptText.split(' ').length < 10;
@@ -69,6 +72,7 @@ serve(async (req) => {
       }
     }
 
+    // Create system prompt with emphasis on the user's original intent
     const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
     
     // Build the enhanced context
@@ -106,6 +110,9 @@ serve(async (req) => {
       }
     }
     
+    // Add missing information categories to the context
+    enhancedContext = `${enhancedContext}\n\nMISSING INFORMATION CATEGORIES: ${missingInfoCategories.join(', ')}`;
+    
     // Add smart context if available
     if (smartContextData?.context) {
       enhancedContext = `${enhancedContext}\n\nADDITIONAL CONTEXT:\n${smartContextData.context}`;
@@ -121,7 +128,7 @@ serve(async (req) => {
       throw new Error("OpenAI API key is not configured");
     }
 
-    console.log("Calling OpenAI API for intent-based analysis and pillar-based image processing");
+    console.log("Calling OpenAI API with prompt-focused analysis");
     
     const { content } = await analyzePromptWithAI(
       enhancedContext,
@@ -132,7 +139,7 @@ serve(async (req) => {
       model
     );
 
-    console.log("Received response from OpenAI, parsing content with enhanced pillar-based analysis");
+    console.log("Received response from OpenAI, parsing content with prompt-based analysis");
 
     let parsedContent;
     let imageAnalysis = null;
@@ -170,50 +177,71 @@ serve(async (req) => {
     
     console.log(`Generated ${questions.length} intent-based questions from template pillars (${questions.filter(q => q.answer).length} with pre-filled answers)`);
 
-    // If we have AI-generated questions with good coverage, consider using them instead
-    // But only if they have good pillar coverage, pre-filled answers, and match user intent
+    // Check if the AI-generated questions address the missing information categories
+    const aiQuestionsAddressMissingInfo = Array.isArray(parsedContent?.questions) && 
+      parsedContent.questions.some(q => 
+        missingInfoCategories.some(category => 
+          q.text.toLowerCase().includes(category.toLowerCase())
+        )
+      );
+
+    // If we have AI-generated questions that address missing info, use them
     const useAIQuestions = Array.isArray(parsedContent?.questions) && 
-                           parsedContent.questions.length >= questions.length &&
-                           parsedContent.questions.filter(q => q.answer).length >= questions.filter(q => q.answer).length;
+                           parsedContent.questions.length > 0 &&
+                           (aiQuestionsAddressMissingInfo || parsedContent.questions.filter(q => q.answer).length > 0);
     
     if (useAIQuestions) {
-      // Check if the AI questions have good coverage across pillars and match user intent
-      const aiQuestionsHaveGoodCoverage = template?.pillars?.length > 0 ?
-        template.pillars.some(pillar => 
-          parsedContent.questions.some(q => 
-            q.category === pillar.title || q.category.includes(pillar.title)
-          )
-        ) : true;
-      
-      // Check if AI-generated questions focus on user intent
+      // Check if the AI questions match user intent
       const aiQuestionsMatchIntent = parsedContent.questions.some(q => 
         isQuestionRelatedToIntent(q.text, userIntent)
       );
       
-      if (aiQuestionsHaveGoodCoverage && aiQuestionsMatchIntent) {
-        console.log("Using AI-generated questions due to better intent matching and pre-filled answers");
+      // Log analysis of AI questions
+      console.log("AI question quality analysis:", {
+        addressesMissingInfo: aiQuestionsAddressMissingInfo,
+        matchesUserIntent: aiQuestionsMatchIntent,
+        prefilledCount: parsedContent.questions.filter(q => q.answer).length,
+        totalCount: parsedContent.questions.length,
+        categories: parsedContent.questions.reduce((acc: Record<string, number>, q: any) => {
+          acc[q.category] = (acc[q.category] || 0) + 1;
+          return acc;
+        }, {})
+      });
+      
+      if (aiQuestionsMatchIntent || aiQuestionsAddressMissingInfo) {
+        console.log("Using AI-generated questions due to better prompt-based matching");
         
-        // Check for repetitive answers and deduplicate as needed
-        const uniqueAnswers = new Set();
+        // Remove duplicate or very similar questions
+        const uniqueQuestions = new Map();
         parsedContent.questions.forEach(q => {
-          if (q.answer) {
-            const simpleAnswer = simplifyAnswer(q.answer);
-            if (uniqueAnswers.has(simpleAnswer)) {
-              // If we have this answer already, mark as duplicate
-              console.log(`Found duplicate pre-filled answer for question: "${q.text.substring(0, 30)}..."`);
-              q.isDuplicate = true;
-            } else {
-              uniqueAnswers.add(simpleAnswer);
+          const simplifiedText = simplifyQuestionText(q.text);
+          if (!uniqueQuestions.has(simplifiedText)) {
+            uniqueQuestions.set(simplifiedText, q);
+          } else {
+            // Keep the question with an answer if present
+            const existingQuestion = uniqueQuestions.get(simplifiedText);
+            if (!existingQuestion.answer && q.answer) {
+              uniqueQuestions.set(simplifiedText, q);
             }
           }
         });
         
-        // Filter out questions with duplicate answers
-        questions = parsedContent.questions.filter(q => !q.isDuplicate);
-        console.log(`Using ${questions.length} AI questions after filtering ${parsedContent.questions.length - questions.length} duplicates`);
+        questions = Array.from(uniqueQuestions.values());
+        console.log(`Using ${questions.length} AI questions after deduplication`);
       } else {
-        console.log("Using locally generated questions for better pillar-based coverage and intent matching");
-        // Keep our locally generated questions
+        console.log("Using locally generated questions for better prompt-based coverage");
+        // Keep our locally generated questions but enhance with any pre-filled answers
+        const aiAnswers = new Map(parsedContent.questions.filter(q => q.answer).map(q => [simplifyQuestionText(q.text), q.answer]));
+        
+        // Try to apply any pre-filled answers from AI to our local questions
+        questions = questions.map(q => {
+          const simplifiedText = simplifyQuestionText(q.text);
+          const aiAnswer = aiAnswers.get(simplifiedText);
+          if (!q.answer && aiAnswer) {
+            q.answer = aiAnswer;
+          }
+          return q;
+        });
       }
     }
     
@@ -225,6 +253,21 @@ serve(async (req) => {
       smartContextData,
       isPromptSimple && !hasValidImageData // Flag for concise variables
     );
+
+    // If we have AI-generated variables that seem to address the prompt, consider using them
+    if (Array.isArray(parsedContent?.variables) && parsedContent.variables.length > 0) {
+      const aiVariablesMatchPrompt = parsedContent.variables.some(v => 
+        userIntent.split(' ').some(word => 
+          v.name.toLowerCase().includes(word.toLowerCase()) || 
+          (v.value && v.value.toLowerCase().includes(word.toLowerCase()))
+        )
+      );
+      
+      if (aiVariablesMatchPrompt) {
+        console.log("Using AI-generated variables due to better prompt matching");
+        variables = parsedContent.variables;
+      }
+    }
 
     const masterCommand = extractMasterCommand(content);
     const enhancedPrompt = extractEnhancedPrompt(content);
@@ -248,6 +291,7 @@ serve(async (req) => {
       hasValidImageData,
       imageAnalysisAvailable: !!imageAnalysis,
       originalIntent: userIntent,
+      missingInfoCategories,
       pillarsCovered: questions.reduce((acc, q) => {
         if (!acc.includes(q.category)) acc.push(q.category);
         return acc;
@@ -269,6 +313,7 @@ serve(async (req) => {
           questionsGenerated: questions.length,
           questionsPrefilled: questions.filter(q => q.answer).length,
           userIntent,
+          missingInfoCategories,
           isPromptSimple,
           hasValidImageData,
           imageAnalysisAvailable: !!imageAnalysis,
@@ -319,6 +364,91 @@ function extractUserIntent(promptText: string): string {
   return promptText.split(/\s+/).slice(0, 8).join(' ').toLowerCase();
 }
 
+// Function to identify missing information categories in a prompt
+function identifyMissingInformation(promptText: string): string[] {
+  const missingCategories = [];
+  const promptLower = promptText.toLowerCase();
+  
+  // Check for missing details about objects
+  const objects = extractObjectsFromPrompt(promptText);
+  objects.forEach(obj => {
+    // Check for color information
+    if (!promptLower.includes(`${obj.toLowerCase()} color`) && 
+        !promptLower.includes(`color of the ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`red ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`blue ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`green ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`yellow ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`black ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`white ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`brown ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`purple ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`orange ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`pink ${obj.toLowerCase()}`)) {
+      missingCategories.push(`${obj} color`);
+    }
+    
+    // Check for size information
+    if (!promptLower.includes(`${obj.toLowerCase()} size`) && 
+        !promptLower.includes(`size of the ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`big ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`small ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`large ${obj.toLowerCase()}`) &&
+        !promptLower.includes(`tiny ${obj.toLowerCase()}`)) {
+      missingCategories.push(`${obj} size`);
+    }
+    
+    // Check for specific type/breed (for animals)
+    if ((obj.toLowerCase() === 'dog' || obj.toLowerCase() === 'cat') &&
+        !promptLower.includes('breed') &&
+        !promptLower.includes('labrador') &&
+        !promptLower.includes('poodle') &&
+        !promptLower.includes('retriever') &&
+        !promptLower.includes('shepherd') &&
+        !promptLower.includes('terrier') &&
+        !promptLower.includes('bulldog') &&
+        !promptLower.includes('siamese') &&
+        !promptLower.includes('persian')) {
+      missingCategories.push(`${obj} breed`);
+    }
+  });
+  
+  // Check for missing background/setting
+  if (!promptLower.includes('background') && 
+      !promptLower.includes('setting') && 
+      !promptLower.includes('environment') &&
+      !promptLower.includes('scene')) {
+    missingCategories.push('background');
+  }
+  
+  // Check for missing time of day
+  if (!promptLower.includes('day') && 
+      !promptLower.includes('night') && 
+      !promptLower.includes('morning') &&
+      !promptLower.includes('evening') &&
+      !promptLower.includes('afternoon')) {
+    missingCategories.push('time of day');
+  }
+  
+  // Check for missing action specifics
+  if ((promptLower.includes('playing') || 
+       promptLower.includes('running') || 
+       promptLower.includes('jumping') ||
+       promptLower.includes('doing')) &&
+      !promptLower.includes('how')) {
+    missingCategories.push('action details');
+  }
+  
+  return missingCategories;
+}
+
+function extractObjectsFromPrompt(promptText: string): string[] {
+  const commonObjects = ['dog', 'cat', 'person', 'man', 'woman', 'child', 'house', 'car', 'ball', 'tree', 'flower'];
+  const words = promptText.toLowerCase().split(/\s+/);
+  
+  return commonObjects.filter(obj => words.includes(obj));
+}
+
 // Check if a question is related to the user's intent
 function isQuestionRelatedToIntent(questionText: string, userIntent: string): boolean {
   if (!userIntent) return true;
@@ -333,16 +463,12 @@ function isQuestionRelatedToIntent(questionText: string, userIntent: string): bo
   );
 }
 
-// Simplify an answer for duplicate detection
-function simplifyAnswer(answer: string): string {
-  if (!answer) return '';
-  
-  // Remove "Based on image analysis: " prefix
-  let simplified = answer.replace(/^Based on image analysis:\s*/i, '');
-  
-  // Remove punctuation, normalize spaces
-  simplified = simplified.replace(/[.,;:]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
-  
-  // Keep only first 50 chars for comparison
-  return simplified.substring(0, 50);
+// Helper function to simplify question text for comparison
+function simplifyQuestionText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, '') // Remove examples in parentheses
+    .replace(/[^\w\s]/g, '')   // Remove punctuation
+    .replace(/\s+/g, ' ')      // Normalize whitespace
+    .trim();
 }
