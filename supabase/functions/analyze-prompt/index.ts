@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -141,22 +142,85 @@ serve(async (req) => {
       parsedContent = JSON.parse(content);
       imageAnalysis = parsedContent.imageAnalysis;
       
-      // Process image analysis to remove any numbered sub-questions format
+      // Process image analysis to remove any numbered sub-questions format and extract them as separate questions
       if (imageAnalysis && typeof imageAnalysis === 'object') {
-        // Clean up any fields that might have numbered questions
+        // New array to store extracted questions
+        const extractedQuestions = [];
+        
+        // Clean up and extract questions from any fields that might have numbered questions
         Object.keys(imageAnalysis).forEach(key => {
           if (typeof imageAnalysis[key] === 'string') {
-            // Remove numbered questions pattern from string fields
-            imageAnalysis[key] = imageAnalysis[key].replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+            // Look for numbered questions pattern in string fields
+            const matches = imageAnalysis[key].match(/\d+\.\s+([^.?!]*\?)/g);
+            if (matches && matches.length > 0) {
+              console.log(`Found ${matches.length} numbered questions in imageAnalysis.${key}`);
+              
+              // Extract each question and add it to our list of extracted questions
+              matches.forEach(match => {
+                const questionText = match.replace(/^\d+\.\s+/, '').trim();
+                if (questionText) {
+                  extractedQuestions.push({
+                    text: questionText,
+                    category: key,
+                    source: 'image_analysis'
+                  });
+                }
+              });
+              
+              // Remove the numbered questions from the original field
+              imageAnalysis[key] = imageAnalysis[key].replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+            }
           } else if (typeof imageAnalysis[key] === 'object' && imageAnalysis[key] !== null) {
-            // Clean nested object fields
+            // Clean nested object fields and extract questions
             Object.keys(imageAnalysis[key]).forEach(nestedKey => {
               if (typeof imageAnalysis[key][nestedKey] === 'string') {
-                imageAnalysis[key][nestedKey] = imageAnalysis[key][nestedKey].replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+                // Look for numbered questions pattern in nested string fields
+                const matches = imageAnalysis[key][nestedKey].match(/\d+\.\s+([^.?!]*\?)/g);
+                if (matches && matches.length > 0) {
+                  console.log(`Found ${matches.length} numbered questions in imageAnalysis.${key}.${nestedKey}`);
+                  
+                  // Extract each question
+                  matches.forEach(match => {
+                    const questionText = match.replace(/^\d+\.\s+/, '').trim();
+                    if (questionText) {
+                      extractedQuestions.push({
+                        text: questionText,
+                        category: key,
+                        source: 'image_analysis'
+                      });
+                    }
+                  });
+                  
+                  // Remove the numbered questions from the original field
+                  imageAnalysis[key][nestedKey] = imageAnalysis[key][nestedKey].replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+                }
               }
             });
           }
         });
+        
+        console.log(`Extracted ${extractedQuestions.length} questions from image analysis`);
+        
+        // Add the extracted questions to the parsedContent.questions array
+        if (extractedQuestions.length > 0) {
+          if (!Array.isArray(parsedContent.questions)) {
+            parsedContent.questions = [];
+          }
+          
+          // Convert the extracted questions to the proper format and add them
+          extractedQuestions.forEach((question, index) => {
+            parsedContent.questions.push({
+              id: `q-img-${index + 1}`,
+              text: question.text,
+              category: question.category,
+              answer: "",
+              isRelevant: true,
+              contextSource: 'image'
+            });
+          });
+          
+          console.log(`Added ${extractedQuestions.length} extracted questions to parsedContent.questions`);
+        }
       }
       
       console.log("Successfully parsed JSON response", {
@@ -191,8 +255,8 @@ serve(async (req) => {
     // If we have AI-generated questions with good coverage, consider using them instead
     // But only if they have good pillar coverage, pre-filled answers, and match user intent
     const useAIQuestions = Array.isArray(parsedContent?.questions) && 
-                           parsedContent.questions.length >= questions.length &&
-                           parsedContent.questions.filter(q => q.answer).length >= questions.filter(q => q.answer).length;
+                          parsedContent.questions.length >= questions.length &&
+                          parsedContent.questions.filter(q => q.answer).length >= questions.filter(q => q.answer).length;
     
     if (useAIQuestions) {
       // Check if the AI questions have good coverage across pillars and match user intent

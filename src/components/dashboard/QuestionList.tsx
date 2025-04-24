@@ -1,3 +1,4 @@
+
 import { X, FileText, Edit } from "lucide-react";
 import { Question } from "./types";
 import { RefObject, useState } from "react";
@@ -66,7 +67,22 @@ export const QuestionList = ({
     // Remove category prefixes with asterisks like "**Task**:" or "Task:"
     return text.replace(/^\s*(\*\*)?(?:Task|Persona|Conditions|Instructions)(\*\*)?\s*:\s*/i, '')
       // Also remove any remaining asterisks
-      .replace(/\*\*/g, '');
+      .replace(/\*\*/g, '')
+      // Remove "questions:" prefix that might appear in image analysis
+      .replace(/^questions:\s*/i, '');
+  };
+
+  // Function to clean answer text - removing any nested questions
+  const cleanAnswerText = (answer: string): string => {
+    if (!answer) return "";
+    
+    // Remove any numbered question patterns
+    return answer.replace(/\d+\.\s+[^.?!]*\?/g, '')
+      // Remove the "Based on image analysis: questions:" prefix if present
+      .replace(/^Based on image analysis:\s*questions:\s*/i, 'Based on image analysis: ')
+      // Remove just "questions:" prefix if present
+      .replace(/^questions:\s*/i, '')
+      .trim();
   };
 
   // Function to open the response editing sheet
@@ -103,7 +119,9 @@ export const QuestionList = ({
   // Function to get the first 10 words of the answer
   const getAnswerPreview = (answer: string) => {
     if (!answer) return "";
-    const words = answer.split(' ');
+    // Clean the answer first to remove any nested questions
+    const cleanedAnswer = cleanAnswerText(answer);
+    const words = cleanedAnswer.split(' ');
     return words.slice(0, 10).join(' ') + (words.length > 10 ? '...' : '');
   };
 
