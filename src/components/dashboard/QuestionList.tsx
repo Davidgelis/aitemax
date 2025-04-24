@@ -1,3 +1,4 @@
+
 import { X, FileText, Edit } from "lucide-react";
 import { Question } from "./types";
 import { RefObject, useState } from "react";
@@ -37,6 +38,8 @@ export const QuestionList = ({
   
   // Sort categories to ensure consistent order
   displayQuestions.forEach(question => {
+    if (!question) return; // Skip if question is undefined
+    
     console.log('Processing question:', question);
     const category = question.category || 'Other';
     console.log('Category for question:', category);
@@ -62,7 +65,10 @@ export const QuestionList = ({
   });
 
   // Function to clean question text - removing prefixes and asterisks
-  const cleanQuestionText = (text: string): string => {
+  const cleanQuestionText = (text: string | undefined): string => {
+    // Return empty string if text is undefined or null
+    if (!text) return "";
+    
     // Remove category prefixes with asterisks like "**Task**:" or "Task:"
     return text.replace(/^\s*(\*\*)?(?:Task|Persona|Conditions|Instructions)(\*\*)?\s*:\s*/i, '')
       // Also remove any remaining asterisks
@@ -71,7 +77,7 @@ export const QuestionList = ({
 
   // Function to open the response editing sheet
   const handleEditResponse = (question: Question) => {
-    if (question.isRelevant === false) return;
+    if (!question || question.isRelevant === false) return;
     
     setEditingQuestion({...question});
     setCurrentAnswer(question.answer || '');
@@ -101,14 +107,14 @@ export const QuestionList = ({
   };
 
   // Function to get the first 10 words of the answer
-  const getAnswerPreview = (answer: string) => {
+  const getAnswerPreview = (answer: string | undefined) => {
     if (!answer) return "";
     const words = answer.split(' ');
     return words.slice(0, 10).join(' ') + (words.length > 10 ? '...' : '');
   };
 
   const renderTechnicalTerms = (question: Question) => {
-    if (!question.technicalTerms || question.technicalTerms.length === 0) return null;
+    if (!question || !question.technicalTerms || question.technicalTerms.length === 0) return null;
 
     return (
       <div className="ml-11 mt-2 space-y-2">
