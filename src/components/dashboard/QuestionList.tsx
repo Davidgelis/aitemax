@@ -1,4 +1,3 @@
-
 import { X, FileText, Edit } from "lucide-react";
 import { Question } from "./types";
 import { RefObject, useState } from "react";
@@ -92,7 +91,7 @@ export const QuestionList = ({
     cleanedText = cleanedText.replace(/^questions:\s*/i, '');
     
     // Remove "Based on image analysis:" prefix if present
-    cleanedText = cleanedText.replace(/^Based on image analysis:\s*/i, '');
+    cleanedText = cleanedText.replace(/^based on image analysis:\s*/i, '');
     
     return cleanedText.trim();
   };
@@ -121,11 +120,17 @@ export const QuestionList = ({
     }
     
     // Remove any numbered question patterns
-    const cleanedAnswer = answer.replace(/\d+\.\s+[^.?!]*\?/g, '')
+    const cleanedAnswer = answer
+      // Remove any numbered patterns like "0: Something"
+      .replace(/\d+\s*:\s*[^\d:]*/g, '')
+      // Remove any numbered list patterns like "1. Something"
+      .replace(/\d+\.\s+[^.?!]*\?/g, '')
       // Remove the "Based on image analysis: questions:" prefix if present
-      .replace(/^Based on image analysis:\s*questions:\s*/i, '')
+      .replace(/^based on image analysis:\s*questions:\s*/i, '')
       // Remove just "questions:" prefix if present
       .replace(/^questions:\s*/i, '')
+      // Remove "Based on image analysis:" prefix if present
+      .replace(/^based on image analysis:\s*/i, '')
       .trim();
       
     return cleanedAnswer;

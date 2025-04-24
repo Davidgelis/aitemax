@@ -18,7 +18,8 @@ Question Generation Guidelines:
 5. If specific objects/subjects are mentioned, prioritize questions about their key characteristics
 6. Ensure questions naturally flow from the user's intent to template requirements
 7. Avoid technical jargon unless explicitly mentioned in the original prompt
-8. IMPORTANT: Each insight or detail should be a separate question entity - never use numbered sub-questions (like "1. Question? 2. Another question?") within a single answer field
+8. CRITICAL: NEVER INCLUDE NUMBERED QUESTIONS WITHIN A SINGLE ANSWER. Each question must be a separate entity in the questions array.
+9. IMPORTANT: Do not include prefixes like "Based on image analysis:" in question text
 
 Intent-Based Question Writing:
 1. Extract the main action/request from the prompt first (e.g., "create", "design", "generate")
@@ -45,13 +46,14 @@ Variable Guidelines:
           const maxQuestions = Math.min(4, Math.ceil((12 - questionCount) / (template.pillars.length)));
           systemPrompt += `\n- "${pillar.title}": Align ${pillar.description} with the user's intent. Generate ${maxQuestions} contextual questions that connect user's goals with ${pillar.title} requirements.\n`;
           systemPrompt += `  ALWAYS MAKE QUESTIONS SPECIFIC TO THE USER'S PROMPT. For example, if the user is asking about "a dog with a red ball" and this pillar is "Conditions", ask "What position should the dog be in while playing with the ball?" NOT generic questions like "What conditions are important for this task?"\n`;
+          systemPrompt += `  CRITICAL: EACH QUESTION MUST BE A SEPARATE ITEM IN THE QUESTIONS ARRAY. NEVER INCLUDE NUMBERED LISTS WITHIN A SINGLE QUESTION.\n`;
           questionCount += maxQuestions;
         }
       });
       
       systemPrompt += `\nImportant: Always prioritize questions that directly relate to the user's intent. Each pillar's questions should feel like natural follow-ups to the original request. 
       
-When analyzing images, extract each insight as a separate question entity rather than including multiple questions within a single answer.`;
+When analyzing images, extract each insight as a separate question entity rather than including multiple questions within a single answer. DO NOT prefix questions with "Based on image analysis:" - just make the question directly related to the image content.`;
     } catch (error) {
       console.error("Error processing template pillars:", error);
       systemPrompt += `\n- "General": Focus on user's core intent (Generate up to 3 contextual questions)\n`;

@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -47,9 +46,15 @@ export const usePromptAnalysis = (
         const numberedPattern = /(\d+)\s*:\s*(.*?)(?=\d+\s*:|$)/g;
         while ((match = numberedPattern.exec(q.answer)) !== null) {
           const questionNum = match[1];
-          const questionText = match[2].trim();
+          let questionText = match[2].trim();
           
-          if (questionText && questionText.length > 10) {
+          // Clean up prefixes like "Based on image analysis:"
+          questionText = questionText
+            .replace(/^based on image analysis:\s*/i, '')
+            .replace(/^questions?:\s*/i, '')
+            .trim();
+          
+          if (questionText && questionText.length > 5) {
             extractedQuestions.push({
               id: `img-${q.id}-${questionNum}`,
               text: questionText,
@@ -65,9 +70,15 @@ export const usePromptAnalysis = (
         const numberedListPattern = /(\d+)\.\s+([^.?!]*\?)/g;
         while ((match = numberedListPattern.exec(q.answer)) !== null) {
           const questionNum = match[1];
-          const questionText = match[2].trim();
+          let questionText = match[2].trim();
           
-          if (questionText && questionText.length > 10) {
+          // Clean up prefixes
+          questionText = questionText
+            .replace(/^based on image analysis:\s*/i, '')
+            .replace(/^questions?:\s*/i, '')
+            .trim();
+          
+          if (questionText && questionText.length > 5) {
             extractedQuestions.push({
               id: `img-${q.id}-list-${questionNum}`,
               text: questionText,
@@ -79,9 +90,9 @@ export const usePromptAnalysis = (
           }
         }
         
-        // Clean the original question's answer
-        const firstLine = q.answer.split('\n')[0];
-        q.answer = firstLine.replace(/based on image analysis:/i, '').trim();
+        // Clean the original question's answer - keep only the first part before any numbered pattern
+        const firstPart = q.answer.split(/\d+\s*:|\d+\.\s+/)[0];
+        q.answer = firstPart ? firstPart.replace(/based on image analysis:/i, '').trim() : '';
       });
       
       console.log(`Extracted ${extractedQuestions.length} questions from image analysis`);
@@ -111,7 +122,14 @@ export const usePromptAnalysis = (
 
       // Check for template but don't block analysis for images
       const hasImages = !!uploadedImages && uploadedImages.length > 0;
-      const hasValidImageData = hasImages && uploadedImages.some(img => img && img.base64 && img.context);
+      
+      // Stricter validation for image data
+      const hasValidImageData = hasImages && uploadedImages.some(img => 
+        img && 
+        img.base64 && 
+        img.base64.length > 100 && // Real image data should be longer than this
+        img.context
+      );
       
       if (!currentTemplate?.pillars?.length && !hasValidImageData) {
         console.warn("Template missing pillars and no image data available");
@@ -191,7 +209,7 @@ export const usePromptAnalysis = (
 
       // Check for data before setting questions
       if (Array.isArray(data.questions) && data.questions.length > 0) {
-        // Process questions to extract any embedded questions in answers
+        // Process questions to extract any embedded questions in answers - only if we have valid image data
         const processedQuestions = data.debug?.hasValidImageData ? 
           extractQuestionsFromImageAnalysis(data.questions) : 
           data.questions;

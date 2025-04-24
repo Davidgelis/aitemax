@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -53,10 +54,17 @@ serve(async (req) => {
     const isPromptSimple = promptText.length < 50 || promptText.split(' ').length < 10;
     console.log(`Prompt simplicity check: ${isPromptSimple ? 'Simple prompt' : 'Complex prompt'}`);
 
-    // Enhanced image data validation
+    // Enhanced image data validation - stricter validation to prevent false positives
     let hasValidImageData = false;
     if (Array.isArray(imageData) && imageData.length > 0) {
-      hasValidImageData = imageData.some(img => img && img.base64 && img.context);
+      // Check that we have valid base64 data (not just an empty string)
+      hasValidImageData = imageData.some(img => 
+        img && 
+        img.base64 && 
+        img.base64.length > 100 && // Real image data should be longer than this
+        img.context
+      );
+      
       console.log(`Image data validation: ${hasValidImageData ? 'Valid' : 'Invalid'}, Images with context: ${imageData.filter(img => img.context).length}`);
       
       // Log image context to help with intent matching
@@ -76,14 +84,22 @@ serve(async (req) => {
     let imageBase64 = null;
     let imageContext = '';
     
-    // Enhanced image processing with better logging
-    if (imageData) {
-      console.log("Processing image data with intent-based validation");
+    // Only process image data if it's actually valid
+    if (hasValidImageData) {
+      console.log("Processing valid image data with intent-based validation");
       
-      if (Array.isArray(imageData) && imageData.length > 0 && imageData[0]?.base64) {
-        try {
-          imageBase64 = imageData[0].base64.replace(/^data:image\/[a-z]+;base64,/, '');
-          imageContext = imageData[0].context || '';
+      try {
+        // Only proceed with first valid image that has both base64 and context
+        const validImage = imageData.find(img => 
+          img && 
+          img.base64 && 
+          img.base64.length > 100 && 
+          img.context
+        );
+        
+        if (validImage) {
+          imageBase64 = validImage.base64.replace(/^data:image\/[a-z]+;base64,/, '');
+          imageContext = validImage.context || '';
           enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT: ${imageContext}`;
           console.log("Successfully processed image data:", {
             hasBase64: !!imageBase64,
@@ -92,18 +108,22 @@ serve(async (req) => {
             contextLength: imageContext.length,
             intentFromContext: extractUserIntent(imageContext)
           });
-        } catch (imageErr) {
-          console.error("Error processing image:", imageErr);
+        } else {
+          console.log("No valid image found after detailed validation");
           imageBase64 = null;
           imageContext = '';
+          hasValidImageData = false;
         }
-      } else {
-        console.log("Image data validation failed:", {
-          isArray: Array.isArray(imageData),
-          length: Array.isArray(imageData) ? imageData.length : 0,
-          firstItemHasBase64: Array.isArray(imageData) && imageData.length > 0 ? !!imageData[0]?.base64 : false
-        });
+      } catch (imageErr) {
+        console.error("Error processing image:", imageErr);
+        imageBase64 = null;
+        imageContext = '';
+        hasValidImageData = false;
       }
+    } else {
+      console.log("No valid image data to process, skipping image analysis");
+      imageBase64 = null;
+      imageContext = '';
     }
     
     // Add smart context if available
@@ -121,18 +141,23 @@ serve(async (req) => {
       throw new Error("OpenAI API key is not configured");
     }
 
-    console.log("Calling OpenAI API for intent-based analysis and pillar-based image processing");
+    console.log("Calling OpenAI API for intent-based analysis", {
+      hasImageData: hasValidImageData,
+      imageProcessingStatus: hasValidImageData ? "sending image to API" : "no image to process",
+      contextLength: enhancedContext.length
+    });
     
+    // Only pass image to OpenAI if we have valid image data
     const { content } = await analyzePromptWithAI(
       enhancedContext,
       systemPrompt,
       apiKey,
       smartContextData?.context || '',
-      imageBase64,
+      hasValidImageData ? imageBase64 : null, // Only pass image if valid
       model
     );
 
-    console.log("Received response from OpenAI, parsing content with enhanced pillar-based analysis");
+    console.log("Received response from OpenAI, parsing content");
 
     let parsedContent;
     let imageAnalysis = null;
@@ -141,58 +166,74 @@ serve(async (req) => {
       parsedContent = JSON.parse(content);
       imageAnalysis = parsedContent.imageAnalysis;
       
-      // Process image analysis to remove any numbered sub-questions format and extract them as separate questions
-      if (imageAnalysis && typeof imageAnalysis === 'object') {
+      // Process image analysis to ensure each item becomes a separate question
+      if (imageAnalysis && typeof imageAnalysis === 'object' && hasValidImageData) {
         // New array to store extracted questions
         const extractedQuestions = [];
         
-        // Clean up and extract questions from any fields that might have numbered questions
+        // Process each field in the image analysis
         Object.keys(imageAnalysis).forEach(key => {
           if (typeof imageAnalysis[key] === 'string') {
-            // Look for numbered questions pattern in string fields
-            const matches = imageAnalysis[key].match(/\d+\.\s+([^.?!]*\?)/g);
-            if (matches && matches.length > 0) {
-              console.log(`Found ${matches.length} numbered questions in imageAnalysis.${key}`);
+            // Look for numbered questions pattern like "0: Question?"
+            const numberedQuestions = extractNumberedQuestions(imageAnalysis[key]);
+            if (numberedQuestions.length > 0) {
+              console.log(`Found ${numberedQuestions.length} numbered questions in imageAnalysis.${key}`);
               
-              // Extract each question and add it to our list of extracted questions
-              matches.forEach(match => {
-                const questionText = match.replace(/^\d+\.\s+/, '').trim();
+              // Add each extracted question to our list
+              numberedQuestions.forEach(questionText => {
                 if (questionText) {
                   extractedQuestions.push({
                     text: questionText,
                     category: key,
-                    source: 'image_analysis'
+                    contextSource: 'image'
                   });
                 }
               });
               
-              // Remove the numbered questions from the original field
+              // Clean up the original field
+              imageAnalysis[key] = imageAnalysis[key].split(/\d+\s*:/).shift() || ''; 
+            }
+            
+            // Also look for numbered list format like "1. Question?"
+            const numberedListQuestions = extractNumberedListQuestions(imageAnalysis[key]);
+            if (numberedListQuestions.length > 0) {
+              console.log(`Found ${numberedListQuestions.length} numbered list questions in imageAnalysis.${key}`);
+              numberedListQuestions.forEach(questionText => {
+                if (questionText) {
+                  extractedQuestions.push({
+                    text: questionText,
+                    category: key,
+                    contextSource: 'image'
+                  });
+                }
+              });
+              
+              // Clean up the original field
               imageAnalysis[key] = imageAnalysis[key].replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
             }
           } else if (typeof imageAnalysis[key] === 'object' && imageAnalysis[key] !== null) {
-            // Clean nested object fields and extract questions
+            // Handle nested objects in image analysis
             Object.keys(imageAnalysis[key]).forEach(nestedKey => {
               if (typeof imageAnalysis[key][nestedKey] === 'string') {
-                // Look for numbered questions pattern in nested string fields
-                const matches = imageAnalysis[key][nestedKey].match(/\d+\.\s+([^.?!]*\?)/g);
-                if (matches && matches.length > 0) {
-                  console.log(`Found ${matches.length} numbered questions in imageAnalysis.${key}.${nestedKey}`);
-                  
-                  // Extract each question
-                  matches.forEach(match => {
-                    const questionText = match.replace(/^\d+\.\s+/, '').trim();
-                    if (questionText) {
-                      extractedQuestions.push({
-                        text: questionText,
-                        category: key,
-                        source: 'image_analysis'
-                      });
-                    }
-                  });
-                  
-                  // Remove the numbered questions from the original field
-                  imageAnalysis[key][nestedKey] = imageAnalysis[key][nestedKey].replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
-                }
+                const numberedQuestions = extractNumberedQuestions(imageAnalysis[key][nestedKey]);
+                const numberedListQuestions = extractNumberedListQuestions(imageAnalysis[key][nestedKey]);
+                
+                // Process both types of numbered formats
+                [...numberedQuestions, ...numberedListQuestions].forEach(questionText => {
+                  if (questionText) {
+                    extractedQuestions.push({
+                      text: questionText,
+                      category: key,
+                      contextSource: 'image'
+                    });
+                  }
+                });
+                
+                // Clean up the original field
+                imageAnalysis[key][nestedKey] = imageAnalysis[key][nestedKey]
+                  .replace(/\d+\s*:\s*[^0-9:]*(?=\d+\s*:|$)/g, '')
+                  .replace(/\d+\.\s+[^.?!]*\?/g, '')
+                  .trim();
               }
             });
           }
@@ -208,9 +249,16 @@ serve(async (req) => {
           
           // Convert the extracted questions to the proper format and add them
           extractedQuestions.forEach((question, index) => {
+            // Remove any prefixes like "Based on image analysis:" from question text
+            let cleanQuestionText = question.text;
+            cleanQuestionText = cleanQuestionText
+              .replace(/^based on image analysis:\s*/i, '')
+              .replace(/^questions?:\s*/i, '')
+              .trim();
+              
             parsedContent.questions.push({
               id: `q-img-${index + 1}`,
-              text: question.text,
+              text: cleanQuestionText,
               category: question.category,
               answer: "",
               isRelevant: true,
@@ -228,6 +276,35 @@ serve(async (req) => {
         questionsCount: parsedContent.questions ? parsedContent.questions.length : 0,
         prefilledQuestionsCount: parsedContent.questions ? parsedContent.questions.filter(q => q.answer).length : 0
       });
+      
+      // Clean up all questions to remove any "Based on image analysis:" prefixes
+      // and any remaining numbered sub-questions that might have slipped through
+      if (Array.isArray(parsedContent.questions)) {
+        parsedContent.questions = parsedContent.questions.map(q => {
+          if (q.text) {
+            q.text = q.text
+              .replace(/^based on image analysis:\s*/i, '')
+              .replace(/^questions?:\s*/i, '')
+              .replace(/^\d+\s*:\s*/, '')
+              .replace(/^\d+\.\s+/, '')
+              .trim();
+          }
+          
+          if (q.answer) {
+            q.answer = q.answer
+              .replace(/^based on image analysis:\s*/i, '')
+              .replace(/^questions?:\s*/i, '')
+              .trim();
+              
+            // If answer contains numbered sub-questions, extract just first response
+            if (q.answer.match(/\d+\s*:/) || q.answer.match(/\d+\.\s+[^.?!]*\?/)) {
+              q.answer = q.answer.split(/\d+\s*:|\d+\.\s+/)[0].trim();
+            }
+          }
+          
+          return q;
+        });
+      }
     } catch (error) {
       console.error("Failed to parse content:", error);
       // Provide fallback content when parsing fails
@@ -359,7 +436,7 @@ serve(async (req) => {
             if (!acc.includes(q.category)) acc.push(q.category);
             return acc;
           }, []).join(', '),
-          cleanedNumberedQuestions: true // Add this flag to indicate we're cleaning numbered questions
+          cleanedNumberedQuestions: true
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -431,4 +508,38 @@ function simplifyAnswer(answer: string): string {
   
   // Keep only first 50 chars for comparison
   return simplified.substring(0, 50);
+}
+
+// Extract numbered questions in format "0: Question? 1: Another question?"
+function extractNumberedQuestions(text: string): string[] {
+  if (!text) return [];
+  
+  const questions = [];
+  const regex = /\d+\s*:\s*([^\d:?]*\?)/g;
+  let match;
+  
+  while ((match = regex.exec(text)) !== null) {
+    if (match[1] && match[1].trim()) {
+      questions.push(match[1].trim());
+    }
+  }
+  
+  return questions;
+}
+
+// Extract numbered list questions in format "1. Question? 2. Another question?"
+function extractNumberedListQuestions(text: string): string[] {
+  if (!text) return [];
+  
+  const questions = [];
+  const regex = /\d+\.\s+([^.?!]*\?)/g;
+  let match;
+  
+  while ((match = regex.exec(text)) !== null) {
+    if (match[1] && match[1].trim()) {
+      questions.push(match[1].trim());
+    }
+  }
+  
+  return questions;
 }
