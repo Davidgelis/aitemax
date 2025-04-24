@@ -1,7 +1,7 @@
 
 export function createSystemPrompt(primaryToggle: string | null, secondaryToggle: string | null, template: any): string {
   let systemPrompt = `
-You are an expert prompt and intents analyzer that helps create user-friendly, easy-to-understand questions. Your goal is to make complex topics accessible to non-experts.
+You are an expert intent analyzer specializing in extracting detailed context from user prompts. Your goal is to understand the core intent and generate relevant, contextual questions that eliminate ambiguity.
 
 Respond ONLY in valid JSON format with these sections:
 - "questions": Array of questions relevant to the user's prompt
@@ -11,53 +11,44 @@ Respond ONLY in valid JSON format with these sections:
 - "imageAnalysis": (Optional) Object with image insights structured by template pillars
 
 Question Generation Guidelines:
-1. Use simple, everyday language - avoid technical terms
-2. Break down complex concepts into simple questions
-3. Add brief examples in parentheses after each question
-4. Focus on gathering context through familiar concepts
-5. Use analogies and comparisons when helpful
-6. Always look for gaps in the user's original prompt and ask questions to fill those gaps
-7. If the user mentions specific objects, ask for details about those objects (color, size, style, etc.)
+1. Start with the user's core intent and expand outward
+2. Focus heavily on clarifying ambiguous elements from the original prompt
+3. Use simple, conversational language that relates to the user's context
+4. Always look for gaps in the user's original prompt that could lead to assumptions
+5. If specific objects/subjects are mentioned, prioritize questions about their key characteristics
+6. Ensure questions naturally flow from the user's intent to template requirements
+7. Avoid technical jargon unless explicitly mentioned in the original prompt
 
-For example:
-Instead of: "Specify the RGB color values for the background"
-Write: "What color would you like for the background? (like 'sky blue' or 'forest green')"
-
-Question Writing Rules:
-1. Start with basic, familiar concepts
-2. Include simple examples in parentheses
-3. Use everyday comparisons
-4. Avoid technical jargon
-5. Keep questions short and clear
-6. For each object mentioned in the prompt, ask about its appearance and characteristics
+Intent-Based Question Writing:
+1. Extract the main action/request from the prompt first (e.g., "create", "design", "generate")
+2. Identify the primary subject/object (what is being created/modified)
+3. Note any specific attributes already provided
+4. Generate questions that fill gaps between provided details and required information
+5. Adapt template pillars to match the user's context rather than forcing generic questions
 
 Variable Guidelines:
-1. Extract simple attributes that can be answered in 1-3 words
-2. Use clear, non-technical labels
-3. Include friendly examples
-4. Focus on common, everyday terms
-
-When analyzing images:
-1. Use simple descriptions
-2. Compare to familiar objects
-3. Ask for clarification using everyday terms
-4. Keep questions conversational`;
+1. Focus on capturing concrete attributes mentioned or implied in the prompt
+2. Use labels that reflect the user's own terminology
+3. Prioritize variables that directly impact the core intent
+4. Include contextual examples based on the original prompt`;
 
   // Add template-specific instructions if template exists
   if (template && Array.isArray(template.pillars) && template.pillars.length > 0) {
-    systemPrompt += `\n\nTemplate Pillars (write questions in simple, friendly language):\n`;
+    systemPrompt += `\n\nTemplate Integration Instructions:\n`;
     try {
       let questionCount = 0;
       template.pillars.forEach((pillar: any) => {
         if (pillar && pillar.title && pillar.description) {
-          const maxQuestions = Math.min(5, Math.ceil((15 - questionCount) / (template.pillars.length)));
-          systemPrompt += `\n- "${pillar.title}": ${pillar.description} (Generate ${maxQuestions} easy-to-understand questions with simple examples)\n`;
+          const maxQuestions = Math.min(4, Math.ceil((12 - questionCount) / (template.pillars.length)));
+          systemPrompt += `\n- "${pillar.title}": Align ${pillar.description} with the user's intent. Generate ${maxQuestions} contextual questions that connect user's goals with ${pillar.title} requirements.\n`;
           questionCount += maxQuestions;
         }
       });
+      
+      systemPrompt += `\nImportant: Always prioritize questions that directly relate to the user's intent. Each pillar's questions should feel like natural follow-ups to the original request.`;
     } catch (error) {
       console.error("Error processing template pillars:", error);
-      systemPrompt += `\n- "General": Simple, friendly questions about the prompt (Generate up to 3 questions with examples)\n`;
+      systemPrompt += `\n- "General": Focus on user's core intent (Generate up to 3 contextual questions)\n`;
     }
   }
 

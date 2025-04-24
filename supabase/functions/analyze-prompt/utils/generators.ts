@@ -163,14 +163,45 @@ function generateQuestionsForPillar(promptText: string, pillar: any, maxQuestion
   const questions: Question[] = [];
   const pillarTitle = pillar.title.toLowerCase();
   
-  // Get keywords from both prompt and user intent for better customization
+  // Extract core intent and keywords
+  const intentWords = userIntent ? extractKeywords(userIntent) : [];
   const promptKeywords = extractKeywords(promptText);
-  const intentKeywords = userIntent ? extractKeywords(userIntent) : [];
   
-  // Combine keywords, prioritizing intent keywords
-  const combinedKeywords = [...new Set([...intentKeywords, ...promptKeywords])];
+  // Prioritize intent keywords over prompt keywords
+  const combinedKeywords = [...new Set([...intentWords, ...promptKeywords])];
   console.log(`Using keywords for ${pillar.title}: ${combinedKeywords.join(', ')}`);
 
+  // Extract main action and subject from prompt
+  const actionMatch = promptText.match(/(?:want to|need to|please)?\s*(create|make|generate|design|draw|build|develop|produce)\s+(?:an?|the)?\s*([^,.]+)/i);
+  const mainAction = actionMatch?.[1] || '';
+  const mainSubject = actionMatch?.[2] || '';
+
+  // Customize question templates based on intent
+  const baseTemplates = getBaseTemplatesForPillar(pillarTitle);
+  const contextualizedTemplates = customizeTemplatesForIntent(baseTemplates, mainAction, mainSubject, combinedKeywords);
+  
+  // Generate questions maintaining the pillar structure but aligned with user intent
+  const relevantQuestions = contextualizedTemplates
+    .map(template => customizeQuestionWithIntent(template, combinedKeywords, userIntent))
+    .filter(Boolean)
+    .slice(0, maxQuestions);
+
+  // Create questions with proper structure
+  relevantQuestions.forEach((questionText, index) => {
+    questions.push({
+      id: `q-${pillarTitle}-${index + 1}`,
+      text: questionText,
+      answer: "",
+      isRelevant: true,
+      category: pillar.title,
+      contextSource: undefined
+    });
+  });
+
+  return questions;
+}
+
+function getBaseTemplatesForPillar(pillarType: string): string[] {
   // Base question templates based on pillar type
   const questionTemplates: { [key: string]: string[] } = {
     style: [
@@ -229,66 +260,60 @@ function generateQuestionsForPillar(promptText: string, pillar: any, maxQuestion
     ]
   };
 
-  // Customize questions based on user intent keywords
-  let relevantQuestions: string[] = [];
-  
-  // Match pillar title with question templates, trying multiple approaches
-  for (const [key, questions] of Object.entries(questionTemplates)) {
-    // First check for direct matches in title or description
-    if (pillarTitle.includes(key) || pillar.description.toLowerCase().includes(key)) {
-      relevantQuestions = questions.map(q => customizeQuestionWithIntent(q, combinedKeywords, userIntent));
-      break;
+  // First check for direct matches in pillar type
+  for (const [key, templates] of Object.entries(questionTemplates)) {
+    if (pillarType.includes(key)) {
+      return templates;
     }
   }
-  
-  // If still no specific match found, check for semantic similarity
-  if (relevantQuestions.length === 0) {
-    for (const [key, questions] of Object.entries(questionTemplates)) {
-      // Check for partial matches or related terms
-      const relatedTerms: {[key: string]: string[]} = {
-        'style': ['design', 'look', 'appearance', 'aesthetic', 'artistic', 'visual'],
-        'technical': ['specs', 'requirements', 'format', 'size', 'dimensions', 'quality'],
-        'content': ['elements', 'subjects', 'components', 'material', 'objects'],
-        'purpose': ['goal', 'objective', 'aim', 'intent', 'function', 'use'],
-        'color': ['palette', 'hue', 'tone', 'shade', 'tint', 'colorful'],
-        'composition': ['layout', 'arrangement', 'structure', 'organization', 'positioning'],
-        'context': ['setting', 'environment', 'situation', 'circumstance', 'background'],
-        'subject': ['main', 'focus', 'object', 'element', 'topic', 'theme'],
-        'mood': ['feeling', 'emotion', 'atmosphere', 'ambiance', 'tone', 'vibe']
-      };
-      
-      if (relatedTerms[key] && relatedTerms[key].some(term => 
-        pillarTitle.includes(term) || pillar.description.toLowerCase().includes(term))) {
-        relevantQuestions = questions.map(q => customizeQuestionWithIntent(q, combinedKeywords, userIntent));
-        console.log(`Found semantic match between pillar "${pillarTitle}" and question type "${key}"`);
-        break;
-      }
+
+  // If no direct match, check for semantic similarity
+  for (const [key, templates] of Object.entries(questionTemplates)) {
+    const relatedTerms: {[key: string]: string[]} = {
+      'style': ['design', 'look', 'appearance', 'aesthetic', 'artistic', 'visual'],
+      'technical': ['specs', 'requirements', 'format', 'size', 'dimensions', 'quality'],
+      'content': ['elements', 'subjects', 'components', 'material', 'objects'],
+      'purpose': ['goal', 'objective', 'aim', 'intent', 'function', 'use'],
+      'color': ['palette', 'hue', 'tone', 'shade', 'tint', 'colorful'],
+      'composition': ['layout', 'arrangement', 'structure', 'organization', 'positioning'],
+      'context': ['setting', 'environment', 'situation', 'circumstance', 'background'],
+      'subject': ['main', 'focus', 'object', 'element', 'topic', 'theme'],
+      'mood': ['feeling', 'emotion', 'atmosphere', 'ambiance', 'tone', 'vibe']
+    };
+    
+    if (relatedTerms[key] && relatedTerms[key].some(term => pillarType.includes(term))) {
+      return templates;
     }
   }
 
   // If no specific match found, use generic questions
-  if (relevantQuestions.length === 0) {
-    relevantQuestions = [
-      `What are your specific requirements for ${pillarTitle}?`,
-      `What are your goals regarding ${pillarTitle}?`,
-      `Are there any particular preferences or constraints for ${pillarTitle}?`,
-      `How should ${pillarTitle} contribute to the overall output?`
-    ].map(q => customizeQuestionWithIntent(q, combinedKeywords, userIntent));
-  }
+  return [
+    `What are your specific requirements for ${pillarType}?`,
+    `What are your goals regarding ${pillarType}?`,
+    `Are there any particular preferences or constraints for ${pillarType}?`,
+    `How should ${pillarType} contribute to the overall output?`
+  ];
+}
 
-  // Add questions up to the maximum allowed
-  for (let i = 0; i < Math.min(maxQuestions, relevantQuestions.length); i++) {
-    questions.push({
-      id: `q-${pillarTitle}-${i + 1}`,
-      text: relevantQuestions[i],
-      answer: "",
-      isRelevant: true,
-      category: pillar.title,
-      contextSource: undefined
+function customizeTemplatesForIntent(templates: string[], action: string, subject: string, keywords: string[]): string[] {
+  return templates.map(template => {
+    let customized = template;
+    
+    if (action && subject) {
+      customized = customized
+        .replace(/this creation/g, `this ${subject}`)
+        .replace(/the final result/g, `the ${subject}`)
+        .replace(/the output/g, `the ${subject}`);
+    }
+    
+    keywords.forEach(keyword => {
+      if (keyword && keyword.length > 3) {
+        customized = customized.replace(/this project/g, `this ${keyword}`);
+      }
     });
-  }
-
-  return questions;
+    
+    return customized;
+  });
 }
 
 // Extract keywords from prompt text to customize questions
