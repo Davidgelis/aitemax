@@ -380,7 +380,6 @@ export const StepController = ({
             onContinue={() => handleStepChange(3)}
             questionsContainerRef={questionsContainerRef}
             variablesContainerRef={variablesContainerRef}
-            originalPrompt={promptText}
           />
         );
 

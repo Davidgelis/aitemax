@@ -21,7 +21,6 @@ interface StepTwoProps {
   onContinue: () => void;
   questionsContainerRef: RefObject<HTMLDivElement>;
   variablesContainerRef: RefObject<HTMLDivElement>;
-  originalPrompt: string;
 }
 
 export const StepTwo = ({
