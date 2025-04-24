@@ -21,6 +21,7 @@ interface StepTwoProps {
   onContinue: () => void;
   questionsContainerRef: RefObject<HTMLDivElement>;
   variablesContainerRef: RefObject<HTMLDivElement>;
+  originalPrompt: string;
 }
 
 export const StepTwo = ({
@@ -38,6 +39,7 @@ export const StepTwo = ({
   onContinue,
   questionsContainerRef,
   variablesContainerRef,
+  originalPrompt
 }: StepTwoProps) => {
   const { currentLanguage } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
@@ -65,7 +67,7 @@ export const StepTwo = ({
           onQuestionRelevance={onQuestionRelevance}
           onQuestionAnswer={onQuestionAnswer}
           containerRef={questionsContainerRef}
-          originalPrompt=""
+          originalPrompt={originalPrompt}
         />
       </div>
 
@@ -79,7 +81,7 @@ export const StepTwo = ({
           variableToDelete={variableToDelete}
           setVariableToDelete={setVariableToDelete}
           containerRef={variablesContainerRef}
-          originalPrompt=""
+          originalPrompt={originalPrompt}
         />
       </div>
 

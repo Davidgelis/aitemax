@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 export function extractQuestions(aiResponse: string, originalPrompt: string): Question[] {
@@ -17,7 +16,7 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
           
           // Add examples if they're not already present
           if (!text.includes('(') && !text.includes(')')) {
-            const examples = generateSimpleExamples(text, originalPrompt);
+            const examples = generateSimpleExamples(text);
             if (examples) {
               text += ` (${examples})`;
             }
@@ -47,50 +46,18 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
   }
 }
 
-function generateSimpleExamples(question: string, originalPrompt: string): string {
-  // Extract relevant entities from original prompt
-  const nouns = extractNouns(originalPrompt);
-  
-  // Add simple examples based on question content and original prompt entities
+function generateSimpleExamples(question: string): string {
+  // Add simple examples based on question content
   if (question.toLowerCase().includes('color')) {
-    if (nouns.some(n => n.toLowerCase().includes('ball'))) {
-      return 'like "bright red" or "blue with white stripes"';
-    } else if (nouns.some(n => n.toLowerCase().includes('dog'))) {
-      return 'like "golden brown" or "black and white spotted"';
-    } else {
-      return 'like "sunny yellow" or "ocean blue"';
-    }
+    return 'like "sunny yellow" or "ocean blue"';
   } else if (question.toLowerCase().includes('size')) {
-    if (nouns.some(n => n.toLowerCase().includes('ball'))) {
-      return 'like "tennis ball sized" or "basketball sized"';
-    } else {
-      return 'like "as big as an apple" or "about the size of a phone"';
-    }
-  } else if (question.toLowerCase().includes('style') || question.toLowerCase().includes('type')) {
-    if (nouns.some(n => n.toLowerCase().includes('dog'))) {
-      return 'like "Golden Retriever" or "German Shepherd"';
-    } else {
-      return 'like "modern and sleek" or "vintage style"';
-    }
+    return 'like "as big as an apple" or "about the size of a phone"';
+  } else if (question.toLowerCase().includes('style')) {
+    return 'like "modern and sleek" or "warm and cozy"';
   } else if (question.toLowerCase().includes('shape')) {
     return 'like "round like a ball" or "long like a pencil"';
-  } else if (question.toLowerCase().includes('background') || question.toLowerCase().includes('setting')) {
-    return 'like "park with trees" or "beach with waves"';
-  } else if (question.toLowerCase().includes('action') || question.toLowerCase().includes('doing')) {
-    if (nouns.some(n => n.toLowerCase().includes('dog'))) {
-      return 'like "jumping to catch" or "running with the ball in mouth"';
-    } else {
-      return 'like "quickly moving" or "sitting still"';
-    }
   }
   return '';
-}
-
-// Extract potential nouns from the prompt text to help with examples
-function extractNouns(promptText: string): string[] {
-  const words = promptText.toLowerCase().split(/\s+/);
-  const commonNouns = ['dog', 'cat', 'person', 'man', 'woman', 'child', 'house', 'car', 'ball', 'tree', 'flower', 'sky', 'water', 'mountain', 'building'];
-  return words.filter(word => commonNouns.includes(word) || commonNouns.some(noun => word.includes(noun)));
 }
 
 function simplifyTechnicalTerms(text: string): string {
@@ -103,14 +70,7 @@ function simplifyTechnicalTerms(text: string): string {
     'parameters': 'settings',
     'configuration': 'setup',
     'interface': 'screen layout',
-    'functionality': 'features',
-    'rendering': 'creating',
-    'algorithm': 'method',
-    'vector': 'direction',
-    'composition': 'arrangement',
-    'perspective': 'viewpoint',
-    'saturation': 'color vividness',
-    'illumination': 'lighting'
+    'functionality': 'features'
   };
 
   let simplifiedText = text;
@@ -190,13 +150,7 @@ function generateContextualVariables(promptText: string): Variable[] {
     // Specific attributes
     { regex: /(?:with|having)\s+([a-zA-Z]+)\s+([a-zA-Z]+)/i, category: 'Attribute' },
     // Quantities
-    { regex: /(\d+)\s+([a-zA-Z]+s?)/i, category: 'Quantity' },
-    // Specific colors
-    { regex: /\b(red|blue|green|yellow|black|white|purple|orange|pink|brown|gray|grey)\s+([a-zA-Z]+)\b/i, category: 'Color' },
-    // Actions with objects
-    { regex: /\b(playing|running|jumping|sitting|standing|eating|drinking|throwing|catching)\s+(?:with)?\s+(?:a|an|the)?\s*([a-zA-Z]+)\b/i, category: 'Action' },
-    // Basic object detection 
-    { regex: /\b(?:a|an|the)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)?)\b/i, category: 'Object' }
+    { regex: /(\d+)\s+([a-zA-Z]+s?)/i, category: 'Quantity' }
   ];
   
   patterns.forEach((pattern, index) => {
@@ -268,10 +222,6 @@ function generateDescriptiveVariableName(value: string, context: string | undefi
     return `Dimension - ${value}`;
   } else if (category === 'Color') {
     return `Color Value - ${value}`;
-  } else if (category === 'Object') {
-    return `${value} - Detail`;
-  } else if (category === 'Action') {
-    return `Action - ${value}`;
   }
   return `${category} - ${value}`;
 }

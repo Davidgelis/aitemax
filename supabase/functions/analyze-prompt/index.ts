@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -16,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Starting analyze-prompt function with enhanced prompt-based question generation");
+    console.log("Starting analyze-prompt function with enhanced pillar-based question generation and image analysis");
     
     const requestBody = await req.json();
     const { 
@@ -46,122 +45,214 @@ serve(async (req) => {
       throw new Error("Prompt text is required");
     }
     
-    // Initialize empty arrays for questions and variables
-    let questions = [];
-    let variables = [];
-    let masterCommand = "";
-    let enhancedPrompt = promptText;
+    // Extract core user intent for better question tailoring and pre-filling
+    const userIntent = extractUserIntent(promptText);
+    console.log(`Extracted user intent: "${userIntent}"`);
     
-    try {
-      // Safely extract user intent with error handling
-      const userIntent = extractUserIntent(promptText || '');
-      const missingInfoCategories = identifyMissingInformation(promptText || '');
-      
-      console.log(`Extracted user intent: "${userIntent}"`);
-      console.log(`Missing information categories: ${missingInfoCategories.join(', ')}`);
-      
-      // Check if prompt is too short/simple for questions
-      const isPromptSimple = (promptText?.length || 0) < 50 || (promptText?.split(' ').length || 0) < 10;
-      console.log(`Prompt simplicity check: ${isPromptSimple ? 'Simple prompt' : 'Complex prompt'}`);
+    // Check if prompt is too short/simple for questions
+    const isPromptSimple = promptText.length < 50 || promptText.split(' ').length < 10;
+    console.log(`Prompt simplicity check: ${isPromptSimple ? 'Simple prompt' : 'Complex prompt'}`);
 
-      // Enhanced image data validation
-      let hasValidImageData = false;
-      if (Array.isArray(imageData) && imageData.length > 0) {
-        hasValidImageData = imageData.some(img => img && img.base64 && img.context);
-        console.log(`Image data validation: ${hasValidImageData ? 'Valid' : 'Invalid'}`);
-      }
-
-      // Create system prompt
-      const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
+    // Enhanced image data validation
+    let hasValidImageData = false;
+    if (Array.isArray(imageData) && imageData.length > 0) {
+      hasValidImageData = imageData.some(img => img && img.base64 && img.context);
+      console.log(`Image data validation: ${hasValidImageData ? 'Valid' : 'Invalid'}, Images with context: ${imageData.filter(img => img.context).length}`);
       
-      // Build the enhanced context safely
-      let enhancedContext = promptText || '';
-      let imageBase64 = null;
-      let imageContext = '';
-      
-      // Enhanced image processing with better logging and error handling
-      if (imageData && Array.isArray(imageData) && imageData.length > 0) {
-        try {
-          const firstImage = imageData[0];
-          if (firstImage?.base64) {
-            imageBase64 = firstImage.base64.replace(/^data:image\/[a-z]+;base64,/, '');
-            imageContext = firstImage.context || '';
-            enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT: ${imageContext}`;
+      // Log image context to help with intent matching
+      if (hasValidImageData) {
+        imageData.forEach((img, i) => {
+          if (img.context) {
+            console.log(`Image ${i+1} context: "${img.context.substring(0, 100)}..."`);
           }
+        });
+      }
+    }
+
+    const systemPrompt = createSystemPrompt(primaryToggle, secondaryToggle, template);
+    
+    // Build the enhanced context
+    let enhancedContext = promptText;
+    let imageBase64 = null;
+    let imageContext = '';
+    
+    // Enhanced image processing with better logging
+    if (imageData) {
+      console.log("Processing image data with intent-based validation");
+      
+      if (Array.isArray(imageData) && imageData.length > 0 && imageData[0]?.base64) {
+        try {
+          imageBase64 = imageData[0].base64.replace(/^data:image\/[a-z]+;base64,/, '');
+          imageContext = imageData[0].context || '';
+          enhancedContext = `${enhancedContext}\n\nIMAGE CONTEXT: ${imageContext}`;
+          console.log("Successfully processed image data:", {
+            hasBase64: !!imageBase64,
+            base64Length: imageBase64 ? imageBase64.length : 0,
+            hasContext: !!imageContext,
+            contextLength: imageContext.length,
+            intentFromContext: extractUserIntent(imageContext)
+          });
         } catch (imageErr) {
           console.error("Error processing image:", imageErr);
+          imageBase64 = null;
+          imageContext = '';
         }
-      }
-      
-      // Add missing information categories to the context
-      if (missingInfoCategories.length > 0) {
-        enhancedContext = `${enhancedContext}\n\nMISSING INFORMATION CATEGORIES: ${missingInfoCategories.join(', ')}`;
-      }
-      
-      // Add smart context if available
-      if (smartContextData?.context) {
-        enhancedContext = `${enhancedContext}\n\nADDITIONAL CONTEXT:\n${smartContextData.context}`;
-      }
-      
-      // Add website context if available
-      if (websiteData?.url) {
-        enhancedContext = `${enhancedContext}\n\nWEBSITE CONTEXT:\nURL: ${websiteData.url}\n${websiteData.instructions || ''}`;
-      }
-
-      const apiKey = Deno.env.get('OPENAI_API_KEY');
-      if (!apiKey) {
-        throw new Error("OpenAI API key is not configured");
-      }
-
-      // Call OpenAI API with enhanced error handling
-      const { content } = await analyzePromptWithAI(
-        enhancedContext,
-        systemPrompt,
-        apiKey,
-        smartContextData?.context || '',
-        imageBase64,
-        model
-      );
-
-      // Generate fallback questions if no AI response
-      if (!content) {
-        console.log("No content from AI, generating fallback questions");
-        questions = generateDefaultQuestions(promptText, template);
       } else {
-        try {
-          const parsedContent = JSON.parse(content);
-          
-          // Use AI-generated questions if they exist and are valid
-          if (Array.isArray(parsedContent?.questions) && parsedContent.questions.length > 0) {
-            questions = parsedContent.questions;
-          } else {
-            questions = generateDefaultQuestions(promptText, template);
-          }
-          
-          // Use AI-generated variables if they exist
-          if (Array.isArray(parsedContent?.variables)) {
-            variables = parsedContent.variables;
-          }
-          
-          masterCommand = parsedContent?.masterCommand || "";
-          enhancedPrompt = parsedContent?.enhancedPrompt || promptText;
-          
-        } catch (parseError) {
-          console.error("Failed to parse AI response:", parseError);
-          questions = generateDefaultQuestions(promptText, template);
-        }
+        console.log("Image data validation failed:", {
+          isArray: Array.isArray(imageData),
+          length: Array.isArray(imageData) ? imageData.length : 0,
+          firstItemHasBase64: Array.isArray(imageData) && imageData.length > 0 ? !!imageData[0]?.base64 : false
+        });
       }
-      
-      // Ensure we have at least some questions to proceed
-      if (questions.length === 0) {
-        questions = generateDefaultQuestions(promptText, template);
-      }
-      
-    } catch (analysisError) {
-      console.error("Error in prompt analysis:", analysisError);
-      // Ensure we have fallback questions even if analysis fails
-      questions = generateDefaultQuestions(promptText, template);
     }
+    
+    // Add smart context if available
+    if (smartContextData?.context) {
+      enhancedContext = `${enhancedContext}\n\nADDITIONAL CONTEXT:\n${smartContextData.context}`;
+    }
+    
+    // Add website context if available
+    if (websiteData?.url) {
+      enhancedContext = `${enhancedContext}\n\nWEBSITE CONTEXT:\nURL: ${websiteData.url}\n${websiteData.instructions || ''}`;
+    }
+
+    const apiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!apiKey) {
+      throw new Error("OpenAI API key is not configured");
+    }
+
+    console.log("Calling OpenAI API for intent-based analysis and pillar-based image processing");
+    
+    const { content } = await analyzePromptWithAI(
+      enhancedContext,
+      systemPrompt,
+      apiKey,
+      smartContextData?.context || '',
+      imageBase64,
+      model
+    );
+
+    console.log("Received response from OpenAI, parsing content with enhanced pillar-based analysis");
+
+    let parsedContent;
+    let imageAnalysis = null;
+    
+    try {
+      parsedContent = JSON.parse(content);
+      imageAnalysis = parsedContent.imageAnalysis;
+      
+      console.log("Successfully parsed JSON response", {
+        hasImageAnalysis: !!imageAnalysis,
+        imageAnalysisPillars: imageAnalysis ? Object.keys(imageAnalysis).join(", ") : "none",
+        questionsCount: parsedContent.questions ? parsedContent.questions.length : 0,
+        prefilledQuestionsCount: parsedContent.questions ? parsedContent.questions.filter(q => q.answer).length : 0
+      });
+    } catch (error) {
+      console.error("Failed to parse content:", error);
+      // Provide fallback content when parsing fails
+      parsedContent = {
+        questions: [],
+        variables: [],
+        masterCommand: "",
+        enhancedPrompt: enhancedContext,
+        error: error.message
+      };
+    }
+
+    // Generate intent-specific questions based on user prompt and template pillars
+    let questions = generateContextQuestionsForPrompt(
+      enhancedContext,
+      template,
+      smartContextData,
+      imageAnalysis,
+      userIntent
+    );
+    
+    console.log(`Generated ${questions.length} intent-based questions from template pillars (${questions.filter(q => q.answer).length} with pre-filled answers)`);
+
+    // If we have AI-generated questions with good coverage, consider using them instead
+    // But only if they have good pillar coverage, pre-filled answers, and match user intent
+    const useAIQuestions = Array.isArray(parsedContent?.questions) && 
+                           parsedContent.questions.length >= questions.length &&
+                           parsedContent.questions.filter(q => q.answer).length >= questions.filter(q => q.answer).length;
+    
+    if (useAIQuestions) {
+      // Check if the AI questions have good coverage across pillars and match user intent
+      const aiQuestionsHaveGoodCoverage = template?.pillars?.length > 0 ?
+        template.pillars.some(pillar => 
+          parsedContent.questions.some(q => 
+            q.category === pillar.title || q.category.includes(pillar.title)
+          )
+        ) : true;
+      
+      // Check if AI-generated questions focus on user intent
+      const aiQuestionsMatchIntent = parsedContent.questions.some(q => 
+        isQuestionRelatedToIntent(q.text, userIntent)
+      );
+      
+      if (aiQuestionsHaveGoodCoverage && aiQuestionsMatchIntent) {
+        console.log("Using AI-generated questions due to better intent matching and pre-filled answers");
+        
+        // Check for repetitive answers and deduplicate as needed
+        const uniqueAnswers = new Set();
+        parsedContent.questions.forEach(q => {
+          if (q.answer) {
+            const simpleAnswer = simplifyAnswer(q.answer);
+            if (uniqueAnswers.has(simpleAnswer)) {
+              // If we have this answer already, mark as duplicate
+              console.log(`Found duplicate pre-filled answer for question: "${q.text.substring(0, 30)}..."`);
+              q.isDuplicate = true;
+            } else {
+              uniqueAnswers.add(simpleAnswer);
+            }
+          }
+        });
+        
+        // Filter out questions with duplicate answers
+        questions = parsedContent.questions.filter(q => !q.isDuplicate);
+        console.log(`Using ${questions.length} AI questions after filtering ${parsedContent.questions.length - questions.length} duplicates`);
+      } else {
+        console.log("Using locally generated questions for better pillar-based coverage and intent matching");
+        // Keep our locally generated questions
+      }
+    }
+    
+    // Generate variables with appropriate detail level
+    let variables = generateContextualVariablesForPrompt(
+      enhancedContext,
+      template,
+      imageAnalysis,
+      smartContextData,
+      isPromptSimple && !hasValidImageData // Flag for concise variables
+    );
+
+    const masterCommand = extractMasterCommand(content);
+    const enhancedPrompt = extractEnhancedPrompt(content);
+
+    // Log prefilled questions by pillar to help with debugging
+    const prefilledByPillar = questions
+      .filter(q => q.answer)
+      .reduce((acc, q) => {
+        acc[q.category] = (acc[q.category] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+    console.log("Analysis complete, returning results:", {
+      questionsCount: questions.length,
+      variablesCount: variables.length,
+      prefilled: questions.filter(q => q.answer).length,
+      prefilledByPillar,
+      hasMasterCommand: !!masterCommand,
+      hasEnhancedPrompt: !!enhancedPrompt,
+      isPromptSimple,
+      hasValidImageData,
+      imageAnalysisAvailable: !!imageAnalysis,
+      originalIntent: userIntent,
+      pillarsCovered: questions.reduce((acc, q) => {
+        if (!acc.includes(q.category)) acc.push(q.category);
+        return acc;
+      }, []).join(', ')
+    });
 
     return new Response(
       JSON.stringify({
@@ -170,9 +261,23 @@ serve(async (req) => {
         masterCommand,
         enhancedPrompt,
         debug: {
+          hasImageData: !!imageBase64,
+          imageProcessingStatus: imageBase64 ? "processed" : "not available",
+          model,
+          templateUsed: template?.name || "none",
+          pillarsCount: template?.pillars?.length || 0,
           questionsGenerated: questions.length,
           questionsPrefilled: questions.filter(q => q.answer).length,
-          variablesGenerated: variables.length
+          userIntent,
+          isPromptSimple,
+          hasValidImageData,
+          imageAnalysisAvailable: !!imageAnalysis,
+          sourceOfQuestions: useAIQuestions ? "AI" : "local",
+          prefilledByPillar,
+          pillarsCovered: questions.reduce((acc, q) => {
+            if (!acc.includes(q.category)) acc.push(q.category);
+            return acc;
+          }, []).join(', ')
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -181,160 +286,63 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in analyze-prompt function:', error);
     
-    // Generate default questions even in case of error
-    const defaultQuestions = generateDefaultQuestions(requestBody?.promptText || '', requestBody?.template);
-    
+    // Return a more graceful error response
     return new Response(
-      JSON.stringify({
-        questions: defaultQuestions,
+      JSON.stringify({ 
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+        questions: [],
         variables: [],
         masterCommand: "",
-        enhancedPrompt: requestBody?.promptText || "",
-        error: error.message,
-        debug: {
-          errorOccurred: true,
-          questionsGenerated: defaultQuestions.length,
-          errorMessage: error.message
-        }
+        enhancedPrompt: ""
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
   }
 });
 
-// Helper function to extract user intent safely
+// Helper function to extract the core user intent from prompt text
 function extractUserIntent(promptText: string): string {
   if (!promptText) return '';
   
-  try {
-    if (promptText.length < 60) return promptText;
-    
-    const firstSentence = promptText.split(/[.!?]/).find(s => s.trim().length > 0);
-    if (firstSentence && firstSentence.length < 80) {
-      return firstSentence.trim();
-    }
-    
-    return promptText.split(' ').slice(0, 10).join(' ');
-  } catch (error) {
-    console.error("Error extracting user intent:", error);
-    return promptText.substring(0, 100);
-  }
-}
-
-// Helper function to identify missing information safely
-function identifyMissingInformation(promptText: string): string[] {
-  if (!promptText) return [];
+  // Try to extract an action + object pattern
+  const actionObjectPattern = /(?:create|generate|make|design|draw|produce)\s+(?:a|an|the)?\s*([a-z\s]+)/i;
+  const match = promptText.match(actionObjectPattern);
   
-  try {
-    const missingCategories = [];
-    const promptLower = promptText.toLowerCase();
-    
-    // Extract objects safely
-    const objects = extractObjectsFromPrompt(promptText);
-    
-    objects.forEach(obj => {
-      if (obj && typeof obj === 'string') {
-        const objLower = obj.toLowerCase();
-        
-        // Check for color information safely
-        if (!promptLower.includes(`${objLower} color`) &&
-            !hasColorMentioned(promptLower, objLower)) {
-          missingCategories.push(`${obj} color`);
-        }
-        
-        // Check for size information safely
-        if (!promptLower.includes(`${objLower} size`) &&
-            !hasSizeMentioned(promptLower, objLower)) {
-          missingCategories.push(`${obj} size`);
-        }
-      }
-    });
-    
-    // Add basic missing categories
-    if (!promptLower.includes('background')) missingCategories.push('background');
-    if (!promptLower.includes('time of day')) missingCategories.push('time of day');
-    
-    return missingCategories;
-  } catch (error) {
-    console.error("Error identifying missing information:", error);
-    return [];
+  if (match && match[1]) {
+    // Return the first 5-10 words to capture the core intent
+    return match[1].trim().split(/\s+/).slice(0, 10).join(' ');
   }
+  
+  // Fallback: just return the first 5-8 words
+  return promptText.split(/\s+/).slice(0, 8).join(' ').toLowerCase();
 }
 
-function hasColorMentioned(text: string, obj: string): boolean {
-  const colors = ['red', 'blue', 'green', 'yellow', 'black', 'white', 'brown'];
-  return colors.some(color => text.includes(`${color} ${obj}`));
+// Check if a question is related to the user's intent
+function isQuestionRelatedToIntent(questionText: string, userIntent: string): boolean {
+  if (!userIntent) return true;
+  
+  const intentWords = userIntent.toLowerCase().split(/\s+/)
+    .filter(w => w.length > 3) // Only use meaningful words
+    .map(w => w.replace(/[^a-z]/g, '')); // Clean up the words
+  
+  // Check if any intent words are in the question
+  return intentWords.some(word => 
+    questionText.toLowerCase().includes(word)
+  );
 }
 
-function hasSizeMentioned(text: string, obj: string): boolean {
-  const sizes = ['big', 'small', 'large', 'tiny', 'huge'];
-  return sizes.some(size => text.includes(`${size} ${obj}`));
-}
-
-function extractObjectsFromPrompt(promptText: string): string[] {
-  try {
-    const commonObjects = ['dog', 'cat', 'person', 'house', 'car', 'tree'];
-    const words = promptText.toLowerCase().split(/\s+/);
-    return commonObjects.filter(obj => words.includes(obj));
-  } catch (error) {
-    console.error("Error extracting objects:", error);
-    return [];
-  }
-}
-
-// Function to generate default questions when AI analysis fails
-function generateDefaultQuestions(promptText: string, template: any): any[] {
-  try {
-    const defaultQuestions = [];
-    
-    // Get template pillars or use default ones
-    const pillars = template?.pillars || [
-      { title: "SUBJECT & COMPOSITION", description: "Core elements and their arrangement" },
-      { title: "STYLE & AESTHETIC", description: "Visual style and artistic choices" },
-      { title: "ENVIRONMENT & CONTEXT", description: "Setting and surroundings" },
-      { title: "MOOD & INTENTION", description: "Emotional impact and purpose" }
-    ];
-    
-    // Generate one basic question per pillar
-    pillars.forEach((pillar: any) => {
-      if (pillar?.title) {
-        defaultQuestions.push({
-          id: crypto.randomUUID(),
-          text: `What are your requirements for ${pillar.title.toLowerCase()}?`,
-          category: pillar.title,
-          isRelevant: true,
-          answer: ""
-        });
-      }
-    });
-    
-    // Add some general questions
-    defaultQuestions.push({
-      id: crypto.randomUUID(),
-      text: "What is the main focus or subject?",
-      category: "SUBJECT & COMPOSITION",
-      isRelevant: true,
-      answer: ""
-    });
-    
-    defaultQuestions.push({
-      id: crypto.randomUUID(),
-      text: "Are there any specific elements that must be included?",
-      category: "STYLE & AESTHETIC",
-      isRelevant: true,
-      answer: ""
-    });
-    
-    return defaultQuestions;
-  } catch (error) {
-    console.error("Error generating default questions:", error);
-    // Return absolute minimum set of questions if everything else fails
-    return [{
-      id: crypto.randomUUID(),
-      text: "What are the key elements you want to include?",
-      category: "GENERAL",
-      isRelevant: true,
-      answer: ""
-    }];
-  }
+// Simplify an answer for duplicate detection
+function simplifyAnswer(answer: string): string {
+  if (!answer) return '';
+  
+  // Remove "Based on image analysis: " prefix
+  let simplified = answer.replace(/^Based on image analysis:\s*/i, '');
+  
+  // Remove punctuation, normalize spaces
+  simplified = simplified.replace(/[.,;:]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+  
+  // Keep only first 50 chars for comparison
+  return simplified.substring(0, 50);
 }

@@ -1,23 +1,22 @@
 
+import { Plus, Trash } from "lucide-react";
 import { Variable } from "./types";
-import { RefObject, useState } from "react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, X, AlertTriangle, Info, Edit } from "lucide-react";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useLanguage } from '@/context/LanguageContext';
-import { dashboardTranslations } from '@/translations/dashboard';
+import { RefObject, useState, useEffect } from "react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { filterCategoryVariables } from "./constants";
+import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 interface VariableListProps {
   variables: Variable[];
-  onVariableChange: (variableId: string, field: keyof Variable, value: string) => void;
+  onVariableChange: (variableId: string, field: keyof Variable, content: string) => void;
   onVariableRelevance: (variableId: string, isRelevant: boolean) => void;
   onAddVariable: () => void;
   onDeleteVariable: () => void;
   variableToDelete: string | null;
   setVariableToDelete: (id: string | null) => void;
   containerRef: RefObject<HTMLDivElement>;
-  originalPrompt?: string;
+  originalPrompt: string;
 }
 
 export const VariableList = ({
@@ -31,237 +30,217 @@ export const VariableList = ({
   containerRef,
   originalPrompt
 }: VariableListProps) => {
-  // Ensure variables is an array and filter out only relevant ones
-  const safeVariables = Array.isArray(variables) ? variables : [];
-  const relevantVariables = safeVariables.filter(v => v && v.isRelevant !== false);
+  // Track which variables have values to highlight them
+  const [highlightedVariables, setHighlightedVariables] = useState<Record<string, boolean>>({});
+  const [variableNames, setVariableNames] = useState<Record<string, string>>({});
+  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+  const [variableCodes, setVariableCodes] = useState<Record<string, string>>({});
+  const { toast } = useToast();
+  const maxCharacterLimit = 100; // Set character limit to 100
   
-  const { currentLanguage } = useLanguage();
-  const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
-
-  const [editingVariable, setEditingVariable] = useState<Variable | null>(null);
-  const [editVariableSheet, setEditVariableSheet] = useState(false);
-  const [variableName, setVariableName] = useState("");
-  const [variableValue, setVariableValue] = useState("");
-
-  const handleEditVariable = (variable: Variable) => {
-    if (!variable) return;
-    
-    setEditingVariable(variable);
-    setVariableName(variable.name || "");
-    setVariableValue(variable.value || "");
-    setEditVariableSheet(true);
-    
-    // Automatically mark as relevant when editing
-    if (variable.isRelevant === null) {
-      onVariableRelevance(variable.id, true);
+  // Filter out category names and empty names for display
+  const filteredVariables = filterCategoryVariables(variables).filter(v => v.name.trim() !== '');
+  
+  // Group variables by category
+  const groupedVariables: Record<string, Variable[]> = {};
+  
+  variables.forEach(variable => {
+    const category = variable.category || 'Other';
+    if (!groupedVariables[category]) {
+      groupedVariables[category] = [];
     }
-  };
+    groupedVariables[category].push(variable);
+  });
 
-  const handleSaveVariable = () => {
-    if (editingVariable) {
-      onVariableChange(editingVariable.id, 'name', variableName);
-      onVariableChange(editingVariable.id, 'value', variableValue);
+  // Get all categories with valid variables
+  const categories = Object.keys(groupedVariables);
+  const hasValidVariables = categories.length > 0 && 
+    categories.some(category => groupedVariables[category].length > 0);
+
+  // Initialize state from props
+  useEffect(() => {
+    const names: Record<string, string> = {};
+    const values: Record<string, string> = {};
+    const codes: Record<string, string> = {};
+    const highlighted: Record<string, boolean> = {};
+    
+    variables.forEach((variable, index) => {
+      names[variable.id] = variable.name || '';
+      values[variable.id] = variable.value || '';
+      codes[variable.id] = variable.code || `VAR_${index + 1}`;
+      highlighted[variable.id] = variable.value && variable.value.trim() !== '';
       
-      // Close the editing sheet
-      setEditVariableSheet(false);
-      setEditingVariable(null);
-    }
-  };
-
-  const handleToggleRelevance = (variableId: string, currentIsRelevant: boolean | null) => {
-    const newRelevance = currentIsRelevant === false ? true : false;
-    onVariableRelevance(variableId, newRelevance);
-  };
-
-  // Helper to safely access translation keys
-  const getTranslation = (key: string, fallback: string): string => {
-    const parts = key.split('.');
-    let result: any = t;
-    
-    for (const part of parts) {
-      if (result && typeof result === 'object' && part in result) {
-        result = result[part];
-      } else {
-        return fallback;
+      // Auto-set relevance based on value
+      if (variable.value && variable.value.trim() !== '' && variable.isRelevant === null) {
+        onVariableRelevance(variable.id, true);
       }
+      
+      // Ensure every variable has a code
+      if (!variable.code) {
+        onVariableChange(variable.id, 'code' as keyof Variable, `VAR_${index + 1}`);
+      }
+    });
+    
+    setVariableNames(names);
+    setVariableValues(values);
+    setVariableCodes(codes);
+    setHighlightedVariables(highlighted);
+  }, [variables]);
+
+  // Handle variable value change with highlighting
+  const handleValueChange = (variableId: string, value: string) => {
+    // Update local state
+    setVariableValues(prev => ({
+      ...prev,
+      [variableId]: value
+    }));
+    
+    setHighlightedVariables(prev => ({
+      ...prev,
+      [variableId]: value.trim() !== ''
+    }));
+    
+    // Mark as relevant when value is added
+    if (value.trim() !== '') {
+      onVariableRelevance(variableId, true);
     }
     
-    return typeof result === 'string' ? result : fallback;
+    // Call the original change handler
+    onVariableChange(variableId, 'value', value);
+  };
+
+  // Handle name change
+  const handleNameChange = (variableId: string, name: string) => {
+    // Update local state
+    setVariableNames(prev => ({
+      ...prev,
+      [variableId]: name
+    }));
+    
+    // Mark as relevant when name is added
+    if (name.trim() !== '') {
+      onVariableRelevance(variableId, true);
+    }
+    
+    onVariableChange(variableId, 'name', name);
+  };
+  
+  // Handle code change
+  const handleCodeChange = (variableId: string, code: string) => {
+    // Update local state
+    setVariableCodes(prev => ({
+      ...prev,
+      [variableId]: code
+    }));
+    
+    // Call the original change handler
+    onVariableChange(variableId, 'code' as keyof Variable, code);
+  };
+
+  // Handle delete (marking as not relevant)
+  const handleDelete = (id: string) => {
+    console.log(`Marking variable ${id} as not relevant`);
+    // Always mark as not relevant before removing
+    onVariableRelevance(id, false);
+    
+    // Add a small delay to ensure state updates before removing
+    setTimeout(() => {
+      onDeleteVariable();
+    }, 50);
   };
 
   return (
-    <div className="mb-6">
+    <>
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-medium">{getTranslation('steps.variablesTitle', 'Variables')}</h3>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="cursor-help">
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>{getTranslation('steps.variablesTooltip', 'Custom variables that can be used in your prompt')}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+        <h3 className="text-lg font-medium">Variables</h3>
         <button 
           onClick={onAddVariable}
-          className="flex items-center gap-1 text-sm bg-accent/10 hover:bg-accent/20 p-2 rounded-md transition-colors"
-          title={getTranslation('steps.addNewVariable', 'Add New Variable')}
+          className="flex items-center gap-1 text-sm text-[#33fea6] hover:text-[#33fea6]/80 transition-colors"
         >
-          <Plus className="h-4 w-4" />
-          <span>{getTranslation('steps.addNew', 'Add New')}</span>
+          <Plus className="w-4 h-4" />
+          Add variable
         </button>
       </div>
       
-      <div ref={containerRef} className="max-h-[285px] overflow-y-auto pr-2">
-        {relevantVariables.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-6 border border-dashed rounded-lg bg-gray-50/50 text-muted-foreground">
-            <p className="text-center text-sm mb-2">{getTranslation('steps.noVariables', 'No variables defined yet')}</p>
-            <button 
-              onClick={onAddVariable}
-              className="flex items-center gap-1 text-sm bg-accent/10 hover:bg-accent/20 p-2 rounded-md transition-colors mt-2"
-            >
-              <Plus className="h-4 w-4" />
-              <span>{getTranslation('steps.createFirstVariable', 'Create your first variable')}</span>
-            </button>
+      <div ref={containerRef} className="max-h-[280px] overflow-y-auto pr-2 space-y-4">
+        {!hasValidVariables && variables.length === 0 && (
+          <div className="text-center text-muted-foreground py-4">
+            No variables available
           </div>
-        ) : (
-          <div className="space-y-4">
-            {relevantVariables.map((variable) => {
-              // Skip rendering if variable is invalid
-              if (!variable || !variable.id) return null;
-              
-              const hasName = variable.name && variable.name.trim() !== "";
-              const hasValue = variable.value && variable.value.trim() !== "";
-              const isComplete = hasName && hasValue;
-              
-              return (
-                <div key={variable.id} className="p-4 border rounded-lg bg-background">
-                  <div className="flex items-center justify-between">
-                    <div 
-                      className="flex-grow flex items-center gap-3 p-2 rounded-md cursor-pointer hover:bg-accent/10 transition-colors group"
-                      onClick={() => handleEditVariable(variable)}
-                    >
-                      <div className={`flex flex-col gap-1 ${!isComplete ? 'opacity-70' : ''}`}>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-card-foreground">
-                            {hasName ? variable.name : getTranslation('steps.unnamed', 'Unnamed')}
-                          </span>
-                          {!isComplete && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div>
-                                    <AlertTriangle className="h-4 w-4 text-amber-500" />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{getTranslation('steps.incompleteVariable', 'This variable is incomplete')}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                          <Edit className="w-4 h-4 opacity-0 group-hover:opacity-80 text-primary" />
-                        </div>
-                        <div className="text-sm text-muted-foreground line-clamp-1">
-                          {hasValue ? variable.value : getTranslation('steps.noValue', 'No value set')}
-                        </div>
-                      </div>
+        )}
+        
+        {variables.length > 0 && (
+          <div className="space-y-3">
+            {variables.map((variable, index) => (
+              <div key={variable.id} className="flex gap-3 items-center">
+                <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
+                  {index + 1}
+                </div>
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Input
+                    type="text"
+                    placeholder="Variable name"
+                    value={variableNames[variable.id] || ""}
+                    onChange={(e) => handleNameChange(variable.id, e.target.value)}
+                    className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
+                    autoComplete="off"
+                    aria-label={`Name for variable ${index + 1}`}
+                  />
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="Value"
+                      value={variableValues[variable.id] || ""}
+                      onChange={(e) => {
+                        // Limit input to maxCharacterLimit characters
+                        if (e.target.value.length <= maxCharacterLimit) {
+                          handleValueChange(variable.id, e.target.value);
+                        }
+                      }}
+                      className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16 ${
+                        highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''
+                      }`}
+                      autoComplete="off"
+                      aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
+                      maxLength={maxCharacterLimit}
+                    />
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
+                      {(variableValues[variable.id] || "").length}/{maxCharacterLimit}
                     </div>
-                    <button 
-                      onClick={() => setVariableToDelete(variable.id)}
-                      className="p-2 rounded-full hover:bg-red-50 hover:text-red-600 transition-colors"
-                      title={getTranslation('steps.delete', 'Delete')}
-                    >
-                      <X className="h-5 w-5" />
-                    </button>
                   </div>
                 </div>
-              );
-            })}
+                <div className="flex">
+                  <AlertDialog open={variableToDelete === variable.id} onOpenChange={(open) => !open && setVariableToDelete(null)}>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        onClick={() => {
+                          setVariableToDelete(variable.id);
+                        }}
+                        className="p-2 rounded-full hover:bg-[#33fea6]/20"
+                        title="Delete variable"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete variable?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this variable? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(variable.id)}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
-      
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={!!variableToDelete} onOpenChange={(open) => !open && setVariableToDelete(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{getTranslation('steps.confirmDelete', 'Confirm Delete')}</DialogTitle>
-          </DialogHeader>
-          <p>{getTranslation('steps.deleteWarning', 'Are you sure you want to delete this variable? This action cannot be undone.')}</p>
-          <DialogFooter>
-            <DialogClose asChild>
-              <button className="px-4 py-2 border rounded-md">{getTranslation('steps.cancel', 'Cancel')}</button>
-            </DialogClose>
-            <button 
-              onClick={() => {
-                onDeleteVariable();
-                setVariableToDelete(null);
-              }}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-            >
-              {getTranslation('steps.delete', 'Delete')}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Variable Editing Sheet */}
-      <Sheet open={editVariableSheet} onOpenChange={(open) => {
-        if (!open) {
-          handleSaveVariable();
-        }
-        setEditVariableSheet(open);
-      }}>
-        <SheetContent className="w-[90%] sm:max-w-[500px] z-50 bg-white">
-          <SheetHeader>
-            <SheetTitle>{getTranslation('steps.editVariable', 'Edit Variable')}</SheetTitle>
-            <SheetDescription>
-              {getTranslation('steps.editVariableDescription', 'Edit your variable name and value here')}
-            </SheetDescription>
-          </SheetHeader>
-          <div className="py-6 space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="variable-name" className="text-sm font-medium">
-                {getTranslation('steps.name', 'Name')}
-              </label>
-              <input
-                id="variable-name"
-                value={variableName}
-                onChange={(e) => setVariableName(e.target.value)}
-                placeholder={getTranslation('steps.namePlaceholder', 'Enter variable name')}
-                className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="variable-value" className="text-sm font-medium">
-                {getTranslation('steps.value', 'Value')}
-              </label>
-              <textarea
-                id="variable-value"
-                value={variableValue}
-                onChange={(e) => setVariableValue(e.target.value)}
-                placeholder={getTranslation('steps.valuePlaceholder', 'Enter variable value')}
-                rows={4}
-                className="w-full p-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-            <div className="flex justify-end">
-              <button 
-                onClick={handleSaveVariable}
-                className="aurora-button"
-              >
-                {getTranslation('steps.save', 'Save')}
-              </button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-    </div>
+    </>
   );
 };
