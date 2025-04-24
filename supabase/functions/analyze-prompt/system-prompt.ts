@@ -1,4 +1,3 @@
-
 export function createSystemPrompt(primaryToggle: string | null, secondaryToggle: string | null, template: any): string {
   let systemPrompt = `
 You are an expert prompt and intents analyzer that helps enhance and structure user prompts that will be used in other AI applications.
@@ -10,61 +9,48 @@ Respond ONLY in valid JSON format with these sections:
 - "enhancedPrompt": String with enhanced prompt
 - "imageAnalysis": (Optional) Object with image insights structured by template pillars
 
-Question Guidelines:
-1. Extract the core intent from the user's prompt and use it as the foundation
-2. Generate 3-5 specific questions per template pillar that:
-   - Focus directly on the specific subject or action mentioned in the user's prompt
-   - Are tailored to expand on specific details about the user's stated intent
-   - DO NOT ask about primary objectives (already known from prompt)
-   - Cover technical specifications relevant to the specific intent (dimensions, resolution, format)
-   - Cover style elements specifically for the subject mentioned (artistic direction, techniques, effects)
-   - Cover compositional elements for the specific subject (layout, structure, balance)
-   - Cover mood and atmosphere details that would enhance the specific intent
-   - Cover target audience and usage context for the specific output requested
-3. When image analysis is available:
-   - Pre-fill answers ONLY for questions that directly relate to what's visible in the image AND relevant to user's intent
-   - Map image analysis data to questions based on both the template pillars AND user's specific intent
-   - For each pillar, find the most relevant image analysis data to pre-fill answers
-   - Include specific style descriptions with techniques, methods, and influences that apply to user's intent
-   - Include detailed color palette analysis with specific hex values when possible and relevant
-   - Include thorough compositional analysis describing layout, balance, and visual hierarchy
-   - Include technical details about quality, resolution, and format if relevant to the intent
-   - Include mood and emotional impact analysis that enhances the original intent
-   - DO NOT generate questions about elements already clearly visible
-   - DO NOT pre-fill answers that don't directly enhance the user's explicit intent
-   - Avoid repetitive pre-filled answers across different questions
-   - Use image insights to enhance understanding of user's visual preferences
-
-Each question must have:
-   - "id": Unique string
-   - "text": Question focused on gathering specific details about the user's actual intent
-   - "answer": Detailed pre-filled information from image analysis when available and relevant to the intent
-   - "isRelevant": Boolean (true if directly related to user's intent)
-   - "category": Match with template pillar categories
-   - "contextSource": Origin of pre-filled data ("image", "prompt", "smartContext")
+Question Generation Guidelines:
+1. Extract the core intent and entities from the user's prompt
+2. For each identified entity, generate context-gathering questions that:
+   - Ask about specific attributes (color, size, style, etc.)
+   - Gather background information for complex entities
+   - Break down composite elements into detailed parts
+   - Cover technical specifications when relevant
+   - Address style and mood elements
+3. Classification rules:
+   - Use variables for simple attributes (1-3 word answers)
+   - Use questions for responses requiring sentences or detailed explanations
+   - Convert broad topics into specific, focused questions
+4. Questions should:
+   - Be specific and targeted to each entity
+   - Avoid yes/no answers
+   - Encourage descriptive responses
+   - Build context around key elements
+   - Cover both technical and creative aspects
 
 Variable Guidelines:
-1. Extract specific, actionable variables from both prompt and image analysis
+1. Extract specific, actionable variables that:
+   - Represent simple attributes (colors, sizes, numbers)
+   - Can be answered in 1-3 words
+   - Have clear, defined values
 2. Each variable must have:
-   - "id": Unique string
-   - "name": Descriptive name
-   - "value": Detailed value when context available
-   - "isRelevant": Boolean
-   - "category": Category name
-   - "code": Template code
+   - Descriptive name including expected format
+   - Clear category classification
+   - Relevance flag
+   - Template code reference
 
-Image Analysis Guidelines:
-1. Provide exhaustive analysis of visual elements, structured by template pillars
-2. For EACH template pillar, include relevant analysis such as:
-   - Detailed artistic style analysis with specific techniques, methods, and influences
-   - Comprehensive color analysis with specific colors, relationships, and harmony principles
-   - Technical specifications including quality assessment, resolution, and format details
-   - Compositional analysis describing layout principles, visual hierarchy, and balance
-   - Mood and atmosphere details with emotional impact assessment
-   - Cultural or contextual references when relevant
-   - Subject matter details and their significance
-3. Organize image analysis insights by pillar categories to enable direct mapping to questions
-4. Always analyze the image through the lens of the user's specific intent or request`;
+When analyzing images:
+1. Extract visible attributes as pre-filled answers
+2. Generate follow-up questions for missing context
+3. Map image elements to template requirements
+4. Preserve technical details when available
+
+Structure responses to build a complete context model:
+1. Use a mix of questions and variables
+2. Ensure coverage of all key entities
+3. Maintain logical grouping by category
+4. Progressive detail gathering
+5. Clear connection to user intent`;
 
   // Add template-specific instructions if template exists
   if (template && Array.isArray(template.pillars) && template.pillars.length > 0) {

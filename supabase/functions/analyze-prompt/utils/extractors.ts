@@ -21,23 +21,24 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
           let answer = q.answer || '';
           let contextSource = q.contextSource || '';
           
-          // Validate and enhance pre-filled answers
+          // Enhance pre-filled answers with contextual information
           if (answer.startsWith('PRE-FILLED:')) {
-            // Ensure source attribution is present
+            // Extract entity information from the question text
+            const entityMatch = q.text.match(/(?:about|for|of)\s+(?:the|a|an)?\s+([a-zA-Z\s]+)(?:\?|$)/i);
+            const entity = entityMatch ? entityMatch[1].trim().toLowerCase() : null;
+            
+            // Ensure source attribution is present and add contextual markers
             if (!answer.includes('(from')) {
               if (contextSource === 'image') {
-                answer = `${answer} (from image analysis)`;
-                console.log(`Added missing image attribution to question ${q.id || index + 1}`);
+                answer = `${answer} (from image analysis${entity ? ` of ${entity}` : ''})`;
               } else if (contextSource === 'smartContext' || contextSource === 'smart') {
-                answer = `${answer} (from smart context)`;
-                console.log(`Added missing smart context attribution to question ${q.id || index + 1}`);
+                answer = `${answer} (from smart context${entity ? ` about ${entity}` : ''})`;
               } else if (contextSource === 'prompt') {
-                answer = `${answer} (from prompt)`;
-                console.log(`Added missing prompt attribution to question ${q.id || index + 1}`);
+                answer = `${answer} (from prompt${entity ? ` mentioning ${entity}` : ''})`;
               }
             }
             
-            console.log(`Enhanced pre-filled answer for question ${q.id || index + 1} from source: ${contextSource || 'unknown'}`);
+            console.log(`Enhanced pre-filled answer for question ${q.id || index + 1} about ${entity || 'general topic'}`);
           }
           
           return {
@@ -48,56 +49,13 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
             category: q.category || 'General'
           };
         });
-      } else {
-        console.log("No questions array found in JSON response");
       }
+      console.log("No questions array found in JSON response");
+      return [];
     } catch (jsonError) {
       console.error("JSON parsing failed:", jsonError);
+      return [];
     }
-    
-    // Fallback to regex-based extraction if JSON parsing fails
-    console.log("Falling back to regex extraction");
-    const questions: Question[] = [];
-    const questionRegex = /(?:###\s*([^:]+)\s*Questions:|Q\d+:)\s*(.*?)(?=###|Q\d+:|$)/gs;
-    
-    let match;
-    while ((match = questionRegex.exec(aiResponse)) !== null) {
-      const category = match[1]?.trim() || 'General';
-      const questionText = match[2].trim();
-      
-      if (questionText) {
-        // Enhanced regex to capture pre-filled answers with source attribution
-        const answerMatch = questionText.match(/PRE-FILLED:\s*(.*?)(?:\(from ([^)]+)\))?(?=\n|$)/);
-        
-        const answer = answerMatch 
-          ? (answerMatch[1].trim() + (answerMatch[2] ? ` (from ${answerMatch[2]})` : ''))
-          : '';
-          
-        const source = answerMatch && answerMatch[2] 
-          ? answerMatch[2].trim() 
-          : (answer.includes('image') ? 'image analysis' : 
-             answer.includes('smart') ? 'smart context' : 
-             answer ? 'prompt' : '');
-        
-        questions.push({
-          id: `q-${questions.length + 1}`,
-          text: questionText.replace(/PRE-FILLED:\s*.*$/, '').trim(),
-          answer: answerMatch ? `PRE-FILLED: ${answer}` : '',
-          isRelevant: answerMatch ? true : null,
-          category
-        });
-      }
-    }
-    
-    console.log(`Extracted ${questions.length} questions using regex`);
-    
-    // Check for image-based pre-fills in regex extraction
-    const imageBasedQuestions = questions.filter(q => 
-      q.answer?.includes("(from image analysis)") || q.answer?.includes("image")
-    );
-    console.log(`Found ${imageBasedQuestions.length} questions with image-based pre-fills using regex`);
-    
-    return questions;
   } catch (error) {
     console.error("Error in question extraction:", error);
     return [];
@@ -105,7 +63,7 @@ export function extractQuestions(aiResponse: string, originalPrompt: string): Qu
 }
 
 export function extractVariables(aiResponse: string, originalPrompt: string): Variable[] {
-  console.log("Starting variable extraction with response length:", aiResponse.length);
+  console.log("Starting variable extraction with enhanced context handling");
   
   try {
     let parsedResponse;
@@ -114,77 +72,92 @@ export function extractVariables(aiResponse: string, originalPrompt: string): Va
       console.log("Successfully parsed JSON response");
     } catch (error) {
       console.error("Failed to parse JSON response:", error);
-      return generateFallbackVariables(originalPrompt);
+      return generateContextualVariables(originalPrompt);
     }
 
-    if (Array.isArray(parsedResponse?.variables) && parsedResponse.variables.length > 0) {
+    if (Array.isArray(parsedResponse?.variables)) {
       console.log(`Found ${parsedResponse.variables.length} variables in response`);
       
-      // Validate and normalize variables
-      const validatedVariables = parsedResponse.variables
+      // Enhance variables with contextual information
+      const enhancedVariables = parsedResponse.variables
         .filter(v => v && typeof v === 'object' && v.name)
-        .map((v, index) => ({
-          id: v.id || `v-${index + 1}`,
-          name: v.name,
-          value: v.value || '',
-          isRelevant: v.isRelevant === false ? false : true,
-          category: v.category || 'General',
-          code: v.code || `VAR_${index + 1}`
-        }));
+        .map((v, index) => {
+          // Determine if this should be a variable based on expected answer length
+          const expectedShortAnswer = isLikelyShortAnswer(v.name, v.category);
+          
+          if (!expectedShortAnswer) {
+            console.log(`Converting ${v.name} to a question due to expected long answer`);
+            return null; // This will be filtered out
+          }
+          
+          return {
+            id: v.id || `v-${index + 1}`,
+            name: enhanceVariableName(v.name),
+            value: v.value || '',
+            isRelevant: v.isRelevant === false ? false : true,
+            category: v.category || 'General',
+            code: v.code || `VAR_${index + 1}`
+          };
+        })
+        .filter(v => v !== null);
 
-      if (validatedVariables.length > 0) {
-        console.log("Returning validated variables:", validatedVariables);
-        return validatedVariables;
+      if (enhancedVariables.length > 0) {
+        console.log("Returning enhanced variables:", enhancedVariables);
+        return enhancedVariables;
       }
     }
     
-    // If no valid variables found, generate fallback variables
-    console.log("No valid variables found in response, using fallback generation");
-    return generateFallbackVariables(originalPrompt);
-    
+    return generateContextualVariables(originalPrompt);
   } catch (error) {
     console.error("Error extracting variables:", error);
-    return generateFallbackVariables(originalPrompt);
+    return generateContextualVariables(originalPrompt);
   }
 }
 
-function generateFallbackVariables(promptText: string): Variable[] {
-  console.log("Generating fallback variables from prompt:", promptText);
+function generateContextualVariables(promptText: string): Variable[] {
+  console.log("Generating contextual variables from prompt:", promptText);
   
   const variables: Variable[] = [];
   
-  // Extract key phrases and potential variables using regex patterns
+  // Enhanced patterns for entity extraction with context
   const patterns = [
-    // Style/format related
-    /(?:in|with)\s+(?:a\s+)?([a-zA-Z\s]+)\s+style/i,
-    // Color related
-    /(?:color|colou?red?)\s+([a-zA-Z\s]+)/i,
-    // Size/dimensions
-    /(\d+\s*(?:x|\*)\s*\d+)/i,
-    // Actions/verbs
-    /(?:showing|depicting|doing|performing)\s+([a-zA-Z\s]+)/i,
-    // Subjects/objects
-    /(?:of|with)\s+(?:a|an|the)?\s*([a-zA-Z\s]+)/i
+    // Physical objects with attributes
+    { regex: /(?:a|the)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)?)\s+(?:that is|with|in)\s+([a-zA-Z\s]+)/i, category: 'Object' },
+    // Colors with objects
+    { regex: /([a-zA-Z]+)\s+(?:colored|colou?red?)\s+([a-zA-Z]+)/i, category: 'Color' },
+    // Sizes and dimensions
+    { regex: /(\d+(?:\s*(?:x|\*)\s*\d+)?)\s*(?:pixels?|px|em|rem|%|pts?|points?)?/i, category: 'Size' },
+    // Specific attributes
+    { regex: /(?:with|having)\s+([a-zA-Z]+)\s+([a-zA-Z]+)/i, category: 'Attribute' },
+    // Quantities
+    { regex: /(\d+)\s+([a-zA-Z]+s?)/i, category: 'Quantity' }
   ];
   
   patterns.forEach((pattern, index) => {
-    const match = promptText.match(pattern);
-    if (match && match[1]) {
-      const value = match[1].trim();
-      if (value && !variables.some(v => v.value === value)) {
-        variables.push({
-          id: `v-${variables.length + 1}`,
-          name: `Variable ${variables.length + 1}`,
-          value: value,
-          isRelevant: true,
-          category: 'Extracted',
-          code: `VAR_${variables.length + 1}`
-        });
+    const matches = Array.from(promptText.matchAll(new RegExp(pattern.regex, 'gi')));
+    
+    matches.forEach(match => {
+      if (match && match[1]) {
+        const value = match[1].trim();
+        const context = match[2]?.trim();
+        
+        if (value && !variables.some(v => v.value === value)) {
+          const varName = generateDescriptiveVariableName(value, context, pattern.category);
+          
+          variables.push({
+            id: `v-${variables.length + 1}`,
+            name: varName,
+            value: value,
+            isRelevant: true,
+            category: pattern.category,
+            code: `VAR_${variables.length + 1}`
+          });
+        }
       }
-    }
+    });
   });
   
-  // Always ensure at least one variable
+  // Always ensure at least one variable for input
   if (variables.length === 0) {
     variables.push({
       id: 'v-1',
@@ -196,8 +169,41 @@ function generateFallbackVariables(promptText: string): Variable[] {
     });
   }
   
-  console.log("Generated fallback variables:", variables);
+  console.log("Generated contextual variables:", variables);
   return variables;
+}
+
+function isLikelyShortAnswer(name: string, category: string): boolean {
+  // Check if the variable name suggests a short answer (1-3 words)
+  const longAnswerKeywords = ['description', 'explain', 'details', 'background', 'context'];
+  const shortAnswerCategories = ['Color', 'Size', 'Number', 'Format', 'Type'];
+  
+  return !longAnswerKeywords.some(keyword => name.toLowerCase().includes(keyword)) ||
+         shortAnswerCategories.includes(category);
+}
+
+function enhanceVariableName(name: string): string {
+  // Add context-specific qualifiers to variable names
+  if (name.toLowerCase().includes('color')) {
+    return `${name} (e.g., red, blue)`;
+  } else if (name.toLowerCase().includes('size')) {
+    return `${name} (e.g., small, large, 100px)`;
+  } else if (name.toLowerCase().includes('number')) {
+    return `${name} (numeric value)`;
+  }
+  return name;
+}
+
+function generateDescriptiveVariableName(value: string, context: string | undefined, category: string): string {
+  // Create more descriptive variable names based on context
+  if (context) {
+    return `${category} - ${value} ${context}`;
+  } else if (category === 'Size') {
+    return `Dimension - ${value}`;
+  } else if (category === 'Color') {
+    return `Color Value - ${value}`;
+  }
+  return `${category} - ${value}`;
 }
 
 /**
