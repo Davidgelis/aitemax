@@ -1,99 +1,277 @@
-
-import React, { RefObject } from 'react';
-import { Question } from './types';
-import { useLanguage } from '@/context/LanguageContext';
-import { dashboardTranslations } from '@/translations/dashboard';
+import { X, FileText, Edit } from "lucide-react";
+import { Question } from "./types";
+import { RefObject, useState } from "react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { placeholderTestQuestions } from "./constants";
 
 interface QuestionListProps {
   questions: Question[];
   onQuestionRelevance: (questionId: string, isRelevant: boolean) => void;
   onQuestionAnswer: (questionId: string, answer: string) => void;
   containerRef: RefObject<HTMLDivElement>;
-  originalPrompt: string;
+  originalPrompt?: string;
 }
 
-export const QuestionList: React.FC<QuestionListProps> = ({
+export const QuestionList = ({
   questions,
   onQuestionRelevance,
   onQuestionAnswer,
   containerRef,
   originalPrompt
-}) => {
-  const { currentLanguage } = useLanguage();
-  const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
+}: QuestionListProps) => {
+  const [showPromptSheet, setShowPromptSheet] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editResponseSheet, setEditResponseSheet] = useState(false);
+  const [currentAnswer, setCurrentAnswer] = useState("");
+  const maxCharacterLimit = 1000; // Set the character limit to 1000
 
-  // Count pre-filled questions
-  const prefilledCount = questions.filter(q => q.answer).length;
-  const hasPrefilledQuestions = prefilledCount > 0;
+  console.log('Incoming questions:', questions);
+  console.log('Placeholder questions:', placeholderTestQuestions);
 
-  // Calculate how many questions might be from image analysis
-  const imageAnalysisQuestionsCount = questions.filter(
-    q => q.answer && q.answer.toLowerCase().startsWith('based on image analysis')
-  ).length;
+  // Display placeholder test questions if no questions are provided
+  const displayQuestions = questions.length > 0 ? questions : placeholderTestQuestions;
+
+  // Group questions by category
+  const groupedQuestions: Record<string, Question[]> = {};
   
-  // Calculate how many questions have been filled automatically from other sources
-  const otherPrefilledCount = prefilledCount - imageAnalysisQuestionsCount;
+  // Sort categories to ensure consistent order
+  displayQuestions.forEach(question => {
+    console.log('Processing question:', question);
+    const category = question.category || 'Other';
+    console.log('Category for question:', category);
+    
+    if (!groupedQuestions[category]) {
+      groupedQuestions[category] = [];
+    }
+    groupedQuestions[category].push(question);
+  });
 
+  console.log('Grouped questions:', groupedQuestions);
+
+  // Sort categories alphabetically, but keep certain pillars first
+  const pillarOrder = ['Task', 'Persona', 'Conditions', 'Instructions'];
+  const categories = Object.keys(groupedQuestions).sort((a, b) => {
+    const aIndex = pillarOrder.indexOf(a);
+    const bIndex = pillarOrder.indexOf(b);
+    
+    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+    if (aIndex !== -1) return -1;
+    if (bIndex !== -1) return 1;
+    return a.localeCompare(b);
+  });
+
+  // Function to clean question text - removing prefixes and asterisks
+  const cleanQuestionText = (text: string): string => {
+    // Remove category prefixes with asterisks like "**Task**:" or "Task:"
+    return text.replace(/^\s*(\*\*)?(?:Task|Persona|Conditions|Instructions)(\*\*)?\s*:\s*/i, '')
+      // Also remove any remaining asterisks
+      .replace(/\*\*/g, '');
+  };
+
+  // Function to open the response editing sheet
+  const handleEditResponse = (question: Question) => {
+    if (question.isRelevant === false) return;
+    
+    setEditingQuestion({...question});
+    setCurrentAnswer(question.answer || '');
+    setEditResponseSheet(true);
+    
+    // Automatically mark as relevant when editing
+    if (question.isRelevant === null) {
+      onQuestionRelevance(question.id, true);
+    }
+  };
+
+  // Function to save the edited response
+  const handleSaveResponse = () => {
+    if (editingQuestion) {
+      onQuestionAnswer(editingQuestion.id, currentAnswer);
+      setEditResponseSheet(false);
+      setEditingQuestion(null);
+    }
+  };
+  
+  // Function to toggle question relevance
+  const handleToggleRelevance = (questionId: string, currentIsRelevant: boolean | null) => {
+    // If currently irrelevant (false), make it relevant (true)
+    // If currently relevant (true) or undecided (null), make it irrelevant (false)
+    const newRelevance = currentIsRelevant === false ? true : false;
+    onQuestionRelevance(questionId, newRelevance);
+  };
+
+  // Function to get the first 10 words of the answer
+  const getAnswerPreview = (answer: string) => {
+    if (!answer) return "";
+    const words = answer.split(' ');
+    return words.slice(0, 10).join(' ') + (words.length > 10 ? '...' : '');
+  };
+
+  const renderTechnicalTerms = (question: Question) => {
+    if (!question.technicalTerms || question.technicalTerms.length === 0) return null;
+
+    return (
+      <div className="ml-11 mt-2 space-y-2">
+        {question.technicalTerms.map((term, index) => (
+          <TooltipProvider key={index}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="inline-flex items-center gap-2 text-xs bg-accent/10 px-2 py-1 rounded-full cursor-help">
+                  <span className="font-medium">{term.term}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[300px]">
+                <div className="space-y-2">
+                  <p className="font-medium">{term.explanation}</p>
+                  <p className="text-sm text-muted-foreground">{term.example}</p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ))}
+      </div>
+    );
+  };
+  
   return (
-    <div ref={containerRef} className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-      {hasPrefilledQuestions && (
-        <div className="flex gap-2 mb-2 flex-wrap">
-          {imageAnalysisQuestionsCount > 0 && (
-            <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded-md">
-              {imageAnalysisQuestionsCount} {t.steps.prefilledAnswers} (image)
-            </span>
-          )}
-          {otherPrefilledCount > 0 && (
-            <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-              {otherPrefilledCount} {t.steps.prefilledAnswers}
-            </span>
-          )}
-        </div>
-      )}
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-medium">Questions</h3>
+        {originalPrompt && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button 
+                  onClick={() => setShowPromptSheet(true)} 
+                  className="flex items-center gap-1 text-sm hover:bg-[#33fea6]/20 p-2 rounded-full transition-colors" 
+                  title="View submitted prompt"
+                >
+                  <FileText className="w-6 h-6 text-[#33fea6]" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View the submitted prompt</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
       
-      {questions.map(question => (
-        <div key={question.id} className="border rounded-lg p-4 bg-background">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2">
-              <label className="text-card-foreground font-medium text-sm">
-                {question.text}
-              </label>
-              {question.category && (
-                <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded">
-                  {question.category}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center">
-              <label className="inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={question.isRelevant}
-                  onChange={(e) => onQuestionRelevance(question.id, e.target.checked)}
-                  className="mr-2 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <span className="text-xs text-gray-500">{t.variableActions.editVariable}</span>
-              </label>
+      <div ref={containerRef} className="max-h-[285px] overflow-y-auto pr-2 space-y-6">
+        {categories.map(category => (
+          <div key={category} className="space-y-4">
+            <h4 className="font-medium text-sm text-accent bg-accent/5 p-2 rounded-md">
+              {category}
+              <span className="text-xs text-muted-foreground ml-2">
+                ({groupedQuestions[category].length})
+              </span>
+            </h4>
+            
+            {groupedQuestions[category].map((question, index) => (
+              <div key={question.id} className="p-4 border rounded-lg bg-background">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between group">
+                    <div 
+                      className={`flex-grow flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors
+                                ${question.isRelevant === false ? 'opacity-60' : ''}
+                                ${question.answer && question.isRelevant !== false ? 'bg-[#33fea6]/20' : 'hover:bg-[#33fea6]/20'}`}
+                      onClick={() => handleEditResponse(question)}
+                    >
+                      <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
+                        {index + 1}
+                      </div>
+                      <span className="text-card-foreground">{cleanQuestionText(question.text)}</span>
+                      {question.isRelevant !== false && (
+                        <Edit className="w-4 h-4 ml-2 opacity-0 group-hover:opacity-80 text-[#33fea6]" />
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => handleToggleRelevance(question.id, question.isRelevant)} 
+                      className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${question.isRelevant === false ? 'bg-[#33fea6]/20' : ''}`}
+                      title={question.isRelevant === false ? "Mark as relevant" : "Mark as not relevant"}
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  
+                  {/* Add technical terms display */}
+                  {question.isRelevant !== false && renderTechnicalTerms(question)}
+                  
+                  {question.isRelevant !== false && question.answer && (
+                    <div className="pl-8 pr-2 text-sm text-gray-600 line-clamp-2 italic bg-gray-50 p-2 rounded">
+                      {getAnswerPreview(question.answer)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Original Prompt Sheet */}
+      <Sheet open={showPromptSheet} onOpenChange={setShowPromptSheet}>
+        <SheetContent className="w-[90%] sm:max-w-[600px] md:max-w-[800px] z-50 bg-white">
+          <SheetHeader>
+            <SheetTitle>Submitted Prompt</SheetTitle>
+            <SheetDescription>
+              This is the original prompt you submitted for analysis.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="py-6">
+            <div className="w-full min-h-[40vh] p-4 text-sm rounded-md border bg-gray-50/80 text-card-foreground overflow-y-auto whitespace-pre-wrap">
+              {originalPrompt}
             </div>
           </div>
-          <textarea
-            value={question.answer || ''}
-            onChange={(e) => onQuestionAnswer(question.id, e.target.value)}
-            className="w-full border rounded-md p-2 min-h-[80px] text-sm focus:ring-1 focus:ring-primary focus:border-primary"
-            disabled={!question.isRelevant}
-            placeholder={!question.isRelevant ? t.variableActions.editVariable : ''}
-          />
-        </div>
-      ))}
-      
-      {questions.length === 0 && (
-        <div className="text-center py-6 text-gray-500">
-          No questions generated. Try adjusting your prompt.
-        </div>
-      )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Response Editing Sheet */}
+      <Sheet open={editResponseSheet} onOpenChange={(open) => {
+        if (!open) {
+          handleSaveResponse();
+        }
+        setEditResponseSheet(open);
+      }}>
+        <SheetContent className="w-[90%] sm:max-w-[500px] z-50 bg-white">
+          <SheetHeader>
+            <SheetTitle>Edit Response</SheetTitle>
+            <SheetDescription>
+              Provide your answer to this question
+            </SheetDescription>
+          </SheetHeader>
+          <div className="py-6 space-y-4">
+            <div className="text-base font-medium">
+              {editingQuestion?.text}
+            </div>
+            <div className="relative">
+              <textarea 
+                value={currentAnswer} 
+                onChange={(e) => {
+                  // Limit input to maxCharacterLimit characters
+                  if (e.target.value.length <= maxCharacterLimit) {
+                    setCurrentAnswer(e.target.value);
+                  }
+                }} 
+                placeholder="Type your answer here..." 
+                className="w-full p-4 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[200px] focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent" 
+                maxLength={maxCharacterLimit}
+              />
+              <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                {currentAnswer.length}/{maxCharacterLimit}
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button 
+                onClick={handleSaveResponse}
+                className="aurora-button"
+              >
+                Save Response
+              </button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
-
-// Export the translations object
-export { dashboardTranslations };

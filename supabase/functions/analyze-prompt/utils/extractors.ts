@@ -1,70 +1,267 @@
+import { Question, Variable } from '../types.ts';
 
-/**
- * Utility functions for extracting components from AI analysis results
- */
-
-// Extract questions from the AI analysis result
-export const extractQuestions = (content: string) => {
+export function extractQuestions(aiResponse: string, originalPrompt: string): Question[] {
+  console.log("Starting question extraction with enhanced context handling");
+  
   try {
-    const parsedContent = JSON.parse(content);
-    return parsedContent.questions || [];
+    try {
+      const parsedResponse = JSON.parse(aiResponse);
+      console.log("Successfully parsed JSON response");
+      
+      if (Array.isArray(parsedResponse.questions)) {
+        console.log(`Found ${parsedResponse.questions.length} questions in JSON`);
+        
+        // Check for image-based pre-fills
+        const imageBasedQuestions = parsedResponse.questions.filter((q: any) => 
+          q.answer?.includes("(from image analysis)") || q.contextSource === "image"
+        );
+        console.log(`Found ${imageBasedQuestions.length} questions with image-based pre-fills`);
+        
+        return parsedResponse.questions.map((q: any, index: number) => {
+          let answer = q.answer || '';
+          let contextSource = q.contextSource || '';
+          
+          // Validate and enhance pre-filled answers
+          if (answer.startsWith('PRE-FILLED:')) {
+            // Ensure source attribution is present
+            if (!answer.includes('(from')) {
+              if (contextSource === 'image') {
+                answer = `${answer} (from image analysis)`;
+                console.log(`Added missing image attribution to question ${q.id || index + 1}`);
+              } else if (contextSource === 'smartContext' || contextSource === 'smart') {
+                answer = `${answer} (from smart context)`;
+                console.log(`Added missing smart context attribution to question ${q.id || index + 1}`);
+              } else if (contextSource === 'prompt') {
+                answer = `${answer} (from prompt)`;
+                console.log(`Added missing prompt attribution to question ${q.id || index + 1}`);
+              }
+            }
+            
+            console.log(`Enhanced pre-filled answer for question ${q.id || index + 1} from source: ${contextSource || 'unknown'}`);
+          }
+          
+          return {
+            id: q.id || `q-${index + 1}`,
+            text: q.text || '',
+            answer,
+            isRelevant: typeof q.isRelevant === 'boolean' ? q.isRelevant : null,
+            category: q.category || 'General'
+          };
+        });
+      } else {
+        console.log("No questions array found in JSON response");
+      }
+    } catch (jsonError) {
+      console.error("JSON parsing failed:", jsonError);
+    }
+    
+    // Fallback to regex-based extraction if JSON parsing fails
+    console.log("Falling back to regex extraction");
+    const questions: Question[] = [];
+    const questionRegex = /(?:###\s*([^:]+)\s*Questions:|Q\d+:)\s*(.*?)(?=###|Q\d+:|$)/gs;
+    
+    let match;
+    while ((match = questionRegex.exec(aiResponse)) !== null) {
+      const category = match[1]?.trim() || 'General';
+      const questionText = match[2].trim();
+      
+      if (questionText) {
+        // Enhanced regex to capture pre-filled answers with source attribution
+        const answerMatch = questionText.match(/PRE-FILLED:\s*(.*?)(?:\(from ([^)]+)\))?(?=\n|$)/);
+        
+        const answer = answerMatch 
+          ? (answerMatch[1].trim() + (answerMatch[2] ? ` (from ${answerMatch[2]})` : ''))
+          : '';
+          
+        const source = answerMatch && answerMatch[2] 
+          ? answerMatch[2].trim() 
+          : (answer.includes('image') ? 'image analysis' : 
+             answer.includes('smart') ? 'smart context' : 
+             answer ? 'prompt' : '');
+        
+        questions.push({
+          id: `q-${questions.length + 1}`,
+          text: questionText.replace(/PRE-FILLED:\s*.*$/, '').trim(),
+          answer: answerMatch ? `PRE-FILLED: ${answer}` : '',
+          isRelevant: answerMatch ? true : null,
+          category
+        });
+      }
+    }
+    
+    console.log(`Extracted ${questions.length} questions using regex`);
+    
+    // Check for image-based pre-fills in regex extraction
+    const imageBasedQuestions = questions.filter(q => 
+      q.answer?.includes("(from image analysis)") || q.answer?.includes("image")
+    );
+    console.log(`Found ${imageBasedQuestions.length} questions with image-based pre-fills using regex`);
+    
+    return questions;
   } catch (error) {
-    console.error("Failed to extract questions:", error);
+    console.error("Error in question extraction:", error);
     return [];
   }
-};
+}
 
-// Extract variables from the AI analysis result with enhanced classification
-export const extractVariables = (content: string) => {
+export function extractVariables(aiResponse: string, originalPrompt: string): Variable[] {
+  console.log("Starting variable extraction with response length:", aiResponse.length);
+  
   try {
-    const parsedContent = JSON.parse(content);
-    return parsedContent.variables || [];
-  } catch (error) {
-    console.error("Failed to extract variables:", error);
-    return [];
-  }
-};
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(aiResponse);
+      console.log("Successfully parsed JSON response");
+    } catch (error) {
+      console.error("Failed to parse JSON response:", error);
+      return generateFallbackVariables(originalPrompt);
+    }
 
-// Extract the master command from the AI analysis result
-export const extractMasterCommand = (content: string) => {
-  try {
-    const parsedContent = JSON.parse(content);
-    return parsedContent.masterCommand || "";
-  } catch (error) {
-    console.error("Failed to extract master command:", error);
-    return "";
-  }
-};
+    if (Array.isArray(parsedResponse?.variables) && parsedResponse.variables.length > 0) {
+      console.log(`Found ${parsedResponse.variables.length} variables in response`);
+      
+      // Validate and normalize variables
+      const validatedVariables = parsedResponse.variables
+        .filter(v => v && typeof v === 'object' && v.name)
+        .map((v, index) => ({
+          id: v.id || `v-${index + 1}`,
+          name: v.name,
+          value: v.value || '',
+          isRelevant: v.isRelevant === false ? false : true,
+          category: v.category || 'General',
+          code: v.code || `VAR_${index + 1}`
+        }));
 
-// Extract the enhanced prompt from the AI analysis result
-export const extractEnhancedPrompt = (content: string) => {
-  try {
-    const parsedContent = JSON.parse(content);
-    return parsedContent.enhancedPrompt || "";
+      if (validatedVariables.length > 0) {
+        console.log("Returning validated variables:", validatedVariables);
+        return validatedVariables;
+      }
+    }
+    
+    // If no valid variables found, generate fallback variables
+    console.log("No valid variables found in response, using fallback generation");
+    return generateFallbackVariables(originalPrompt);
+    
   } catch (error) {
-    console.error("Failed to extract enhanced prompt:", error);
-    return "";
+    console.error("Error extracting variables:", error);
+    return generateFallbackVariables(originalPrompt);
   }
-};
+}
 
-// New helper: Classify if a gap should be a variable or question based on expected answer length
-export const classifyGapType = (text: string, category: string): 'variable' | 'question' => {
-  // Short-form answers that should be variables (1-3 words typically)
-  const variablePatterns = [
-    /color/i, /size/i, /dimension/i, /breed/i, /height/i, /width/i,
-    /name/i, /number/i, /quantity/i, /age/i, /price/i, /cost/i,
-    /type/i, /model/i, /brand/i, /date/i, /time/i, /duration/i,
-    /range/i, /material/i, /weight/i, /length/i, /depth/i, /texture/i
+function generateFallbackVariables(promptText: string): Variable[] {
+  console.log("Generating fallback variables from prompt:", promptText);
+  
+  const variables: Variable[] = [];
+  
+  // Extract key phrases and potential variables using regex patterns
+  const patterns = [
+    // Style/format related
+    /(?:in|with)\s+(?:a\s+)?([a-zA-Z\s]+)\s+style/i,
+    // Color related
+    /(?:color|colou?red?)\s+([a-zA-Z\s]+)/i,
+    // Size/dimensions
+    /(\d+\s*(?:x|\*)\s*\d+)/i,
+    // Actions/verbs
+    /(?:showing|depicting|doing|performing)\s+([a-zA-Z\s]+)/i,
+    // Subjects/objects
+    /(?:of|with)\s+(?:a|an|the)?\s*([a-zA-Z\s]+)/i
   ];
   
-  // Check if the text includes patterns that suggest a short-form answer
-  const isLikelyVariable = variablePatterns.some(pattern => pattern.test(text)) && text.length < 100;
+  patterns.forEach((pattern, index) => {
+    const match = promptText.match(pattern);
+    if (match && match[1]) {
+      const value = match[1].trim();
+      if (value && !variables.some(v => v.value === value)) {
+        variables.push({
+          id: `v-${variables.length + 1}`,
+          name: `Variable ${variables.length + 1}`,
+          value: value,
+          isRelevant: true,
+          category: 'Extracted',
+          code: `VAR_${variables.length + 1}`
+        });
+      }
+    }
+  });
   
-  // Style-related attributes are usually variables
-  if (category === 'Style' || category === 'Technical') {
-    return isLikelyVariable ? 'variable' : 'question';
+  // Always ensure at least one variable
+  if (variables.length === 0) {
+    variables.push({
+      id: 'v-1',
+      name: 'Main Element',
+      value: '',
+      isRelevant: true,
+      category: 'General',
+      code: 'VAR_1'
+    });
   }
   
-  // For other categories, prefer longer-form answers as questions
-  return isLikelyVariable ? 'variable' : 'question';
-};
+  console.log("Generated fallback variables:", variables);
+  return variables;
+}
+
+/**
+ * Extracts the master command from the AI response.
+ * @param aiResponse - The raw response from the AI
+ * @returns The master command string or empty string if not found
+ */
+export function extractMasterCommand(aiResponse: string): string {
+  console.log("Extracting master command...");
+  
+  try {
+    // Extract master command section
+    const commandRegex = /### Master Command:?([\s\S]*?)(?=###|$)/i;
+    const commandMatch = aiResponse.match(commandRegex);
+    
+    if (!commandMatch || !commandMatch[1].trim()) {
+      console.log("No master command found");
+      return "";
+    }
+    
+    const commandText = commandMatch[1].trim();
+    console.log("Master command found:", commandText.substring(0, 50) + (commandText.length > 50 ? "..." : ""));
+    
+    return commandText;
+  } catch (error) {
+    console.error("Error extracting master command:", error);
+    return "";
+  }
+}
+
+/**
+ * Extracts the enhanced prompt from the AI response.
+ * @param aiResponse - The raw response from the AI
+ * @returns The enhanced prompt string or empty string if not found
+ */
+export function extractEnhancedPrompt(aiResponse: string): string {
+  console.log("Extracting enhanced prompt from AI response...");
+  
+  try {
+    // Extract enhanced prompt section from the response
+    const promptRegex = /### Enhanced Prompt:?([\s\S]*?)(?=###|$)/i;
+    const promptMatch = aiResponse.match(promptRegex);
+    
+    if (!promptMatch || !promptMatch[1].trim()) {
+      // Try alternate patterns
+      const alternateRegex = /### Final Prompt:?([\s\S]*?)(?=###|$)/i;
+      const alternateMatch = aiResponse.match(alternateRegex);
+      
+      if (!alternateMatch || !alternateMatch[1].trim()) {
+        console.log("No enhanced prompt found in AI response.");
+        return "";
+      }
+      
+      const promptText = alternateMatch[1].trim();
+      console.log("Enhanced prompt found (alternate pattern), length:", promptText.length);
+      return promptText;
+    }
+    
+    const promptText = promptMatch[1].trim();
+    console.log("Enhanced prompt found, length:", promptText.length);
+    
+    return promptText;
+  } catch (error) {
+    console.error("Error extracting enhanced prompt:", error);
+    return "";
+  }
+}
