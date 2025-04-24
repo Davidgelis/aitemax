@@ -1,3 +1,4 @@
+
 import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
@@ -729,4 +730,278 @@ function findDetailedRelevantImageInfo(question: Question, imageAnalysis: any, u
     }
   }
   
-  // If
+  // If no direct matches, try fuzzy matching using question text context
+  const questionKeywords = extractQuestionSemanticKeywords(questionText);
+  for (const [key, mapping] of Object.entries(analysisMapping)) {
+    if (questionKeywords.includes(key) || questionKeywords.some(kw => key.includes(kw))) {
+      const formattedInfo = mapping.format(imageAnalysis);
+      if (formattedInfo) {
+        // Clean any numbered questions
+        const cleanedInfo = formattedInfo.replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+        if (cleanedInfo) {
+          console.log(`Found match by question semantic keyword match "${key}"`);
+          return `Based on image analysis: ${cleanedInfo}`;
+        }
+      }
+    }
+  }
+  
+  // As a last resort, if the question seems important, try to match with any related data
+  if (questionText.includes('important') || questionText.includes('key') || questionText.includes('main')) {
+    // Look for any content about subjects, elements, or recommendations
+    for (const key of ['subject', 'elements', 'details', 'recommendations', 'overview']) {
+      if (imageAnalysis[key]) {
+        const info = typeof imageAnalysis[key] === 'string' ? 
+          imageAnalysis[key] : 
+          JSON.stringify(imageAnalysis[key]).replace(/[{}"]/g, '');
+        
+        // Clean any numbered questions
+        const cleanedInfo = info.replace(/\d+\.\s+[^.?!]*\?/g, '').trim();
+        if (cleanedInfo) {
+          console.log(`Last resort match with "${key}" for important question`);
+          return `Based on image analysis: ${cleanedInfo}`;
+        }
+      }
+    }
+  }
+  
+  console.log(`No relevant image info found for question: "${questionText.substring(0, 30)}..."`);
+  return null;
+}
+
+// Additional function to generate context variables from templates and image analysis
+export function generateContextualVariablesForPrompt(
+  promptText: string,
+  template: any = null,
+  imageAnalysis: any = null,
+  smartContext: any = null,
+  useMinimalVariables: boolean = false
+): Variable[] {
+  const variables: Variable[] = [];
+  
+  // Start with basic set of variables
+  const baseVariables = useMinimalVariables ? 
+    getMinimalVariablesSet() : 
+    getComprehensiveVariablesSet();
+  
+  // Add basic variables with automatic categories
+  baseVariables.forEach(v => variables.push({
+    ...v,
+    id: `var-${variables.length + 1}`
+  }));
+  
+  // If we have image analysis data, prefill relevant variables
+  if (imageAnalysis && typeof imageAnalysis === 'object') {
+    prefillVariablesFromImageAnalysis(variables, imageAnalysis);
+  }
+  
+  return variables;
+}
+
+// Get a minimal set of variables for simple prompts
+function getMinimalVariablesSet(): Variable[] {
+  return [
+    {
+      id: 'var-1',
+      name: 'style',
+      value: '',
+      category: 'Style',
+      isRelevant: true,
+      description: 'The artistic or visual style for this creation',
+      contextSource: undefined
+    },
+    {
+      id: 'var-2',
+      name: 'subject',
+      value: '',
+      category: 'Content',
+      isRelevant: true,
+      description: 'The main subject or focus',
+      contextSource: undefined
+    },
+    {
+      id: 'var-3',
+      name: 'colors',
+      value: '',
+      category: 'Style',
+      isRelevant: true,
+      description: 'Key colors or color palette',
+      contextSource: undefined
+    }
+  ];
+}
+
+// Get a more comprehensive set of variables
+function getComprehensiveVariablesSet(): Variable[] {
+  return [
+    {
+      id: 'var-1',
+      name: 'style',
+      value: '',
+      category: 'Style',
+      isRelevant: true,
+      description: 'The artistic or visual style for this creation',
+      contextSource: undefined
+    },
+    {
+      id: 'var-2',
+      name: 'subject',
+      value: '',
+      category: 'Content',
+      isRelevant: true,
+      description: 'The main subject or focus',
+      contextSource: undefined
+    },
+    {
+      id: 'var-3',
+      name: 'colors',
+      value: '',
+      category: 'Style',
+      isRelevant: true,
+      description: 'Key colors or color palette',
+      contextSource: undefined
+    },
+    {
+      id: 'var-4',
+      name: 'mood',
+      value: '',
+      category: 'Style',
+      isRelevant: true,
+      description: 'The emotional tone or mood',
+      contextSource: undefined
+    },
+    {
+      id: 'var-5',
+      name: 'background',
+      value: '',
+      category: 'Content',
+      isRelevant: true,
+      description: 'Background elements or setting',
+      contextSource: undefined
+    },
+    {
+      id: 'var-6',
+      name: 'lighting',
+      value: '',
+      category: 'Technical',
+      isRelevant: true,
+      description: 'Lighting style or conditions',
+      contextSource: undefined
+    },
+    {
+      id: 'var-7',
+      name: 'details',
+      value: '',
+      category: 'Content',
+      isRelevant: true,
+      description: 'Specific details to include',
+      contextSource: undefined
+    }
+  ];
+}
+
+// Prefill variables with image analysis data
+function prefillVariablesFromImageAnalysis(variables: Variable[], imageAnalysis: any): void {
+  // Map of variable names to possible image analysis properties
+  const variableToAnalysisMap: Record<string, string[]> = {
+    'style': ['style', 'artisticStyle', 'aesthetic', 'visualStyle'],
+    'subject': ['subject', 'mainSubject', 'content', 'focus'],
+    'colors': ['colors', 'palette', 'dominantColors', 'colorScheme'],
+    'mood': ['mood', 'atmosphere', 'emotion', 'feeling'],
+    'background': ['background', 'setting', 'environment', 'scene'],
+    'lighting': ['lighting', 'light', 'shadows', 'illumination'],
+    'details': ['details', 'elements', 'features', 'specifics']
+  };
+  
+  // Prefill variables with matching data from analysis
+  variables.forEach(variable => {
+    const possibleProperties = variableToAnalysisMap[variable.name] || [variable.name];
+    
+    // First try direct property match
+    for (const prop of possibleProperties) {
+      if (imageAnalysis[prop]) {
+        if (typeof imageAnalysis[prop] === 'string') {
+          variable.value = imageAnalysis[prop];
+          variable.contextSource = 'image';
+          break;
+        } else if (typeof imageAnalysis[prop] === 'object' && imageAnalysis[prop] !== null) {
+          // If it's an object, try to create a meaningful description
+          const keyValues = Object.entries(imageAnalysis[prop])
+            .filter(([k, v]) => v !== null && v !== undefined && v !== '')
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(', ');
+          
+          if (keyValues) {
+            variable.value = keyValues;
+            variable.contextSource = 'image';
+            break;
+          }
+        }
+      }
+    }
+    
+    // If still no value, look deeper in nested objects
+    if (!variable.value) {
+      for (const [key, value] of Object.entries(imageAnalysis)) {
+        if (typeof value === 'object' && value !== null) {
+          for (const prop of possibleProperties) {
+            if (value[prop]) {
+              variable.value = String(value[prop]);
+              variable.contextSource = 'image';
+              break;
+            }
+          }
+          if (variable.value) break;
+        }
+      }
+    }
+  });
+}
+
+// Function to map technical terms to descriptions and examples for UI display
+export function addTechnicalTerms(questions: Question[]): Question[] {
+  const technicalTermMapping: Record<string, Array<{term: string, explanation: string, example: string}>> = {
+    'style': [
+      {
+        term: 'Minimalism',
+        explanation: 'A style characterized by simplicity and the reduction of elements to only what is essential',
+        example: 'Clean lines, limited color palette, ample white space, geometric forms'
+      },
+      {
+        term: 'Art Deco',
+        explanation: 'A bold, geometric style popular in the 1920s and 30s known for its elegance and symmetry',
+        example: 'Bold curves, zigzag patterns, vibrant colors, streamlined forms'
+      }
+    ],
+    'composition': [
+      {
+        term: 'Rule of Thirds',
+        explanation: 'A guideline that divides the image into nine equal parts by two horizontal and two vertical lines, placing key elements along these lines or at their intersections',
+        example: 'Placing the horizon on the upper or lower third line, or a subject at an intersection point'
+      },
+      {
+        term: 'Golden Ratio',
+        explanation: 'A mathematical ratio (approximately 1:1.618) that creates a naturally pleasing composition',
+        example: 'Spiral arrangements, balanced proportions, natural-feeling visual harmony'
+      }
+    ]
+  };
+  
+  // For each question, check if we have terms to add based on its category
+  return questions.map(question => {
+    const category = question.category.toLowerCase();
+    
+    // Check if we have terms for this category
+    for (const [key, terms] of Object.entries(technicalTermMapping)) {
+      if (category.includes(key) || question.text.toLowerCase().includes(key)) {
+        // Add terms as they match the category
+        return {
+          ...question,
+          technicalTerms: terms
+        };
+      }
+    }
+    
+    return question;
+  });
+}
