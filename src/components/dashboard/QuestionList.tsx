@@ -28,19 +28,32 @@ export const QuestionList = ({
   const maxCharacterLimit = 1000; // Set the character limit to 1000
 
   console.log('Incoming questions:', questions);
-  console.log('Placeholder questions:', placeholderTestQuestions);
-
+  
   // Display placeholder test questions if no questions are provided
   const displayQuestions = questions.length > 0 ? questions : placeholderTestQuestions;
 
   // Group questions by category
   const groupedQuestions: Record<string, Question[]> = {};
   
+  // Extract prominent terms from prompt to highlight related questions
+  const extractKeyTerms = (prompt: string): string[] => {
+    if (!prompt) return [];
+    
+    // Extract nouns and key objects from the prompt
+    const words = prompt.toLowerCase().split(/\s+/)
+      .filter(w => w.length > 3)
+      .map(w => w.replace(/[^a-z]/g, ''));
+      
+    // Remove common words and return unique terms
+    const commonWords = ['this', 'that', 'with', 'from', 'have', 'will', 'what', 'when', 'where', 'which', 'create', 'make', 'generate'];
+    return [...new Set(words.filter(w => !commonWords.includes(w)))];
+  };
+  
+  const keyTerms = originalPrompt ? extractKeyTerms(originalPrompt) : [];
+  
   // Sort categories to ensure consistent order
   displayQuestions.forEach(question => {
-    console.log('Processing question:', question);
     const category = question.category || 'Other';
-    console.log('Category for question:', category);
     
     if (!groupedQuestions[category]) {
       groupedQuestions[category] = [];
@@ -82,6 +95,19 @@ export const QuestionList = ({
     cleanedText = cleanedText.replace(/^Based on image analysis:\s*/i, '');
     
     return cleanedText.trim();
+  };
+
+  // Function to determine if a question is highly relevant to the prompt
+  const isHighlyRelevantToPrompt = (questionText: string): boolean => {
+    if (!originalPrompt || !questionText || keyTerms.length === 0) return false;
+    
+    const cleanText = cleanQuestionText(questionText).toLowerCase();
+    
+    // Check if question contains multiple key terms from the prompt
+    const termCount = keyTerms.filter(term => cleanText.includes(term)).length;
+    return termCount >= 2 || 
+           (keyTerms.length === 1 && cleanText.includes(keyTerms[0])) ||
+           (questionText.includes('image') && originalPrompt.toLowerCase().includes('image'));
   };
 
   // Function to clean answer text - removing any nested questions
@@ -205,44 +231,66 @@ export const QuestionList = ({
               </span>
             </h4>
             
-            {groupedQuestions[category].map((question, index) => (
-              <div key={question.id} className="p-4 border rounded-lg bg-background">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between group">
-                    <div 
-                      className={`flex-grow flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors
-                                ${question.isRelevant === false ? 'opacity-60' : ''}
-                                ${question.answer && question.isRelevant !== false ? 'bg-[#33fea6]/20' : 'hover:bg-[#33fea6]/20'}`}
-                      onClick={() => handleEditResponse(question)}
-                    >
-                      <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
-                        {index + 1}
+            {groupedQuestions[category].map((question, index) => {
+              // Check if this question is highly relevant to the original prompt
+              const isPromptSpecific = isHighlyRelevantToPrompt(question.text);
+              
+              return (
+                <div key={question.id} className="p-4 border rounded-lg bg-background">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between group">
+                      <div 
+                        className={`flex-grow flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors
+                                  ${question.isRelevant === false ? 'opacity-60' : ''}
+                                  ${question.answer && question.isRelevant !== false ? 'bg-[#33fea6]/20' : 'hover:bg-[#33fea6]/20'}`}
+                        onClick={() => handleEditResponse(question)}
+                      >
+                        <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
+                          {index + 1}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-card-foreground">{cleanQuestionText(question.text)}</span>
+                          
+                          {/* Show source badges */}
+                          {question.contextSource === "image" && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                              Image
+                            </span>
+                          )}
+                          
+                          {/* Show prompt-specific badge */}
+                          {isPromptSpecific && (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full whitespace-nowrap">
+                              Prompt specific
+                            </span>
+                          )}
+                        </div>
+                        
+                        {question.isRelevant !== false && (
+                          <Edit className="w-4 h-4 ml-2 opacity-0 group-hover:opacity-80 text-[#33fea6]" />
+                        )}
                       </div>
-                      <span className="text-card-foreground">{cleanQuestionText(question.text)}</span>
-                      {question.isRelevant !== false && (
-                        <Edit className="w-4 h-4 ml-2 opacity-0 group-hover:opacity-80 text-[#33fea6]" />
-                      )}
+                      <button 
+                        onClick={() => handleToggleRelevance(question.id, question.isRelevant)} 
+                        className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${question.isRelevant === false ? 'bg-[#33fea6]/20' : ''}`}
+                        title={question.isRelevant === false ? "Mark as relevant" : "Mark as not relevant"}
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
                     </div>
-                    <button 
-                      onClick={() => handleToggleRelevance(question.id, question.isRelevant)} 
-                      className={`p-2 rounded-full hover:bg-[#33fea6]/20 ${question.isRelevant === false ? 'bg-[#33fea6]/20' : ''}`}
-                      title={question.isRelevant === false ? "Mark as relevant" : "Mark as not relevant"}
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
+                    
+                    {/* Add technical terms display */}
+                    {question.isRelevant !== false && renderTechnicalTerms(question)}
+                    
+                    {question.isRelevant !== false && question.answer && (
+                      <div className="pl-8 pr-2 text-sm text-gray-600 line-clamp-2 italic bg-gray-50 p-2 rounded">
+                        {getAnswerPreview(question.answer)}
+                      </div>
+                    )}
                   </div>
-                  
-                  {/* Add technical terms display */}
-                  {question.isRelevant !== false && renderTechnicalTerms(question)}
-                  
-                  {question.isRelevant !== false && question.answer && (
-                    <div className="pl-8 pr-2 text-sm text-gray-600 line-clamp-2 italic bg-gray-50 p-2 rounded">
-                      {getAnswerPreview(question.answer)}
-                    </div>
-                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ))}
       </div>

@@ -26,6 +26,8 @@ Intent-Based Question Writing:
 3. Note any specific attributes already provided
 4. Generate questions that fill gaps between provided details and required information
 5. Adapt template pillars to match the user's context rather than forcing generic questions
+6. CRITICAL: ALWAYS make questions EXTREMELY SPECIFIC to the user's prompt content (e.g., if prompt mentions "dog with red ball", ask about the dog's breed, the ball's size, etc.)
+7. NEVER generate generic questions that could apply to any prompt
 
 Variable Guidelines:
 1. Focus on capturing concrete attributes mentioned or implied in the prompt
@@ -42,6 +44,7 @@ Variable Guidelines:
         if (pillar && pillar.title && pillar.description) {
           const maxQuestions = Math.min(4, Math.ceil((12 - questionCount) / (template.pillars.length)));
           systemPrompt += `\n- "${pillar.title}": Align ${pillar.description} with the user's intent. Generate ${maxQuestions} contextual questions that connect user's goals with ${pillar.title} requirements.\n`;
+          systemPrompt += `  ALWAYS MAKE QUESTIONS SPECIFIC TO THE USER'S PROMPT. For example, if the user is asking about "a dog with a red ball" and this pillar is "Conditions", ask "What position should the dog be in while playing with the ball?" NOT generic questions like "What conditions are important for this task?"\n`;
           questionCount += maxQuestions;
         }
       });

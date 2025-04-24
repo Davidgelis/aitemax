@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -389,20 +388,20 @@ serve(async (req) => {
 function extractUserIntent(promptText: string): string {
   if (!promptText) return '';
   
-  // Try to extract an action + object pattern
-  const actionObjectPattern = /(?:create|generate|make|design|draw|produce)\s+(?:a|an|the)?\s*([a-z\s]+)/i;
+  // Try to extract an action + object pattern with more context
+  const actionObjectPattern = /(?:create|generate|make|design|draw|produce)\s+(?:a|an|the)?\s*([a-z\s]+(?:[a-z\s,]+)?)/i;
   const match = promptText.match(actionObjectPattern);
   
   if (match && match[1]) {
-    // Return the first 5-10 words to capture the core intent
-    return match[1].trim().split(/\s+/).slice(0, 10).join(' ');
+    // Return more words to capture the full intent and any key objects
+    return match[1].trim().split(/\s+/).slice(0, 15).join(' ');
   }
   
-  // Fallback: just return the first 5-8 words
-  return promptText.split(/\s+/).slice(0, 8).join(' ').toLowerCase();
+  // Fallback: return more words to ensure we capture the full intent
+  return promptText.split(/\s+/).slice(0, 12).join(' ').toLowerCase();
 }
 
-// Check if a question is related to the user's intent
+// Check if a question is related to the user's intent with improved matching
 function isQuestionRelatedToIntent(questionText: string, userIntent: string): boolean {
   if (!userIntent) return true;
   
@@ -410,10 +409,14 @@ function isQuestionRelatedToIntent(questionText: string, userIntent: string): bo
     .filter(w => w.length > 3) // Only use meaningful words
     .map(w => w.replace(/[^a-z]/g, '')); // Clean up the words
   
-  // Check if any intent words are in the question
-  return intentWords.some(word => 
-    questionText.toLowerCase().includes(word)
-  );
+  // Check if question contains key objects from intent
+  const questionContainsKeyObjects = intentWords
+    .filter(word => word.length > 4) // Focus on substantial words
+    .some(word => questionText.toLowerCase().includes(word));
+  
+  // Check if question directly addresses the intent context
+  return questionContainsKeyObjects || 
+         questionText.toLowerCase().includes(userIntent.substring(0, 10).toLowerCase());
 }
 
 // Simplify an answer for duplicate detection
