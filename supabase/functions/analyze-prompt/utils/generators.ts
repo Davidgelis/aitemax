@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
@@ -16,14 +15,14 @@ export function generateContextQuestionsForPrompt(
     template.pillars.forEach((pillar: any) => {
       if (pillar && pillar.title) {
         // Extract keywords from the prompt for more specific questions
-        const keywords = extractKeywords(promptText);
+        const keywords = extractKeywordsWithContext(promptText, pillar.title);
         
-        // Generate pillar-specific questions that relate to the prompt
+        // Generate questions specific to this pillar's keywords
         const pillarQuestions = generatePillarSpecificQuestions(
           pillar,
-          promptText,
           keywords,
-          userIntent
+          userIntent,
+          3 // Generate top 3 questions per pillar
         );
 
         // Add generated questions with proper metadata
@@ -31,7 +30,7 @@ export function generateContextQuestionsForPrompt(
           questions.push({
             id: `q-${questionId++}`,
             text: q.text,
-            answer: q.example || '', // Include example answer
+            answer: q.example || '',
             isRelevant: true,
             category: pillar.title,
             contextSource: 'prompt'
@@ -44,63 +43,84 @@ export function generateContextQuestionsForPrompt(
   return questions;
 }
 
-// Helper function to extract meaningful keywords from the prompt
-function extractKeywords(promptText: string): string[] {
-  // Remove common words and extract key terms
+// Enhanced keyword extraction that considers pillar context
+function extractKeywordsWithContext(promptText: string, pillarTitle: string): string[] {
   const commonWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for']);
-  return promptText
+  
+  // Get action words and nouns from the prompt
+  const words = promptText
     .toLowerCase()
     .split(/\s+/)
     .filter(word => 
       word.length > 3 && 
       !commonWords.has(word) &&
-      !word.match(/[0-9]/) // Exclude numbers
+      !word.match(/[0-9]/)
     );
+
+  // Score keywords based on relevance to pillar
+  const scoredKeywords = words.map(word => ({
+    word,
+    score: getKeywordRelevanceScore(word, pillarTitle)
+  }));
+
+  // Return top keywords sorted by relevance score
+  return scoredKeywords
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map(k => k.word);
 }
 
-// Generate questions specific to a pillar and the user's prompt
+// Score keyword relevance to pillar context
+function getKeywordRelevanceScore(word: string, pillarTitle: string): number {
+  let score = 1;
+  
+  // Higher score if word relates to pillar title
+  if (pillarTitle.toLowerCase().includes(word) || 
+      word.includes(pillarTitle.toLowerCase())) {
+    score += 3;
+  }
+  
+  // Higher score for action verbs
+  if (word.match(/(create|build|design|develop|implement|add|make)/)) {
+    score += 2;
+  }
+  
+  return score;
+}
+
+// Generate focused questions for each pillar
 function generatePillarSpecificQuestions(
   pillar: any,
-  promptText: string,
   keywords: string[],
-  userIntent: string
+  userIntent: string,
+  questionsPerPillar: number
 ): Array<{ text: string; example: string }> {
   const questions: Array<{ text: string; example: string }> = [];
   
-  // Use the pillar description and keywords to generate relevant questions
-  const promptLines = promptText.split('\n').filter(line => line.trim());
-  
-  // Generate 2-3 questions per pillar based on the prompt content
-  keywords.slice(0, 3).forEach(keyword => {
-    const question = createContextualQuestion(
-      pillar.title,
-      pillar.description,
-      keyword,
-      userIntent
-    );
+  // Create questions using the top keywords
+  keywords.slice(0, questionsPerPillar).forEach(keyword => {
+    const questionText = `How should ${keyword} in the context of ${pillar.title.toLowerCase()} be handled to achieve your goal?`;
     
-    if (question) {
-      questions.push(question);
-    }
+    // Generate multiple example points
+    const examplePoints = generateExamplePoints(keyword, pillar.title, userIntent);
+    
+    questions.push({
+      text: questionText,
+      example: `E.g: ${examplePoints.join(', ')}`
+    });
   });
 
   return questions;
 }
 
-function createContextualQuestion(
-  pillarTitle: string,
-  pillarDescription: string,
-  keyword: string,
-  userIntent: string
-): { text: string; example: string } | null {
-  // Create a question that combines the pillar focus with the specific keyword
-  const questionContext = `${keyword} in the context of ${pillarTitle.toLowerCase()}`;
-  
-  // Generate a question specific to both the pillar and the keyword
-  return {
-    text: `How should ${questionContext} be handled to achieve your goal?`,
-    example: `Example: The ${keyword} should be optimized for ${pillarTitle.toLowerCase()} by...`
-  };
+// Generate concise example points
+function generateExamplePoints(keyword: string, pillarTitle: string, userIntent: string): string[] {
+  return [
+    `Define ${keyword} requirements`,
+    `Plan ${keyword} implementation`,
+    `Test ${keyword} functionality`,
+    `Review ${keyword} results`
+  ];
 }
 
 export function generateContextualVariablesForPrompt(
@@ -141,4 +161,18 @@ function toCamelCase(str: string): string {
     if (+match === 0) return ""; // or if (/\s+/.test(match)) for white spaces
     return index === 0 ? match.toLowerCase() : match.toUpperCase();
   });
+}
+
+// Helper function to extract meaningful keywords from the prompt
+function extractKeywords(promptText: string): string[] {
+  // Remove common words and extract key terms
+  const commonWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for']);
+  return promptText
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(word => 
+      word.length > 3 && 
+      !commonWords.has(word) &&
+      !word.match(/[0-9]/) // Exclude numbers
+    );
 }
