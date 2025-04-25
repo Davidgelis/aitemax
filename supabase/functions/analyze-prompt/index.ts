@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -15,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Starting analyze-prompt function with enhanced pillar-based question generation and image analysis");
+    console.log("Starting analyze-prompt function with enhanced context-aware question generation");
     
     const requestBody = await req.json();
     const { 
@@ -309,14 +310,6 @@ serve(async (req) => {
           
           return q;
         });
-        
-        // Verify prompt-specificity for each question
-        parsedContent.questions = parsedContent.questions.filter(q => 
-          isQuestionRelatedToPrompt(q.text, promptText) ||
-          q.contextSource === 'image' // Image questions are always kept
-        );
-        
-        console.log(`After prompt-specificity verification, kept ${parsedContent.questions.length} questions`);
       }
     } catch (error) {
       console.error("Failed to parse content:", error);
@@ -330,7 +323,7 @@ serve(async (req) => {
       };
     }
 
-    // Generate intent-specific questions based on user prompt and template pillars
+    // Generate questions using our enhanced context-aware generator - no strict filtering constraints
     let questions = generateContextQuestionsForPrompt(
       enhancedContext,
       template,
@@ -339,137 +332,61 @@ serve(async (req) => {
       userIntent
     );
     
-    console.log(`Generated ${questions.length} intent-based questions from template pillars (${questions.filter(q => q.answer).length} with pre-filled answers)`);
+    console.log(`Generated ${questions.length} intent-based questions (${questions.filter(q => q.answer).length} with pre-filled answers)`);
 
-    // If we have AI-generated questions with good coverage, consider using them instead
-    // But only if they have good pillar coverage, pre-filled answers, and match user intent
-    const useAIQuestions = Array.isArray(parsedContent.questions) && 
-                          parsedContent.questions.length >= questions.length &&
-                          parsedContent.questions.filter(q => q.answer).length >= questions.filter(q => q.answer).length;
+    // If we have AI-generated questions, check if they're valuable additions
+    const aiGeneratedQuestions = Array.isArray(parsedContent?.questions) ? 
+                              parsedContent.questions : [];
     
-    if (useAIQuestions) {
-      // Filter AI questions to ensure they're actually prompt-specific
-      const filteredAIQuestions = parsedContent.questions.filter(q => {
-        // Check if question text contains keywords from the prompt
-        const isQuestionSpecificToPrompt = isQuestionRelatedToPrompt(q.text, promptText);
-        
-        if (!isQuestionSpecificToPrompt) {
-          console.log(`Filtered out non-prompt-specific question: "${q.text.substring(0, 30)}..."`);
-        }
-        
-        return isQuestionSpecificToPrompt || q.contextSource === 'image';
+    // Check AI-generated question quality
+    if (aiGeneratedQuestions.length > 0) {
+      console.log(`Evaluating ${aiGeneratedQuestions.length} AI-generated questions`);
+      
+      // Find meaningful AI questions that add value
+      const uniqueAIQuestions = aiGeneratedQuestions.filter(aiQ => {
+        // Check if this question adds unique value
+        return !questions.some(q => isSimilarQuestion(q.text, aiQ.text)) &&
+               isRelevantToPrompt(aiQ.text, promptText, userIntent);
       });
-
-      // Check if the filtered AI questions have good coverage across pillars and match user intent
-      const aiQuestionsHaveGoodCoverage = template?.pillars?.length > 0 ?
-        template.pillars.some(pillar => 
-          filteredAIQuestions.some(q => 
-            q.category === pillar.title || q.category.includes(pillar.title)
-          )
-        ) : true;
       
-      // Check if AI-generated questions focus on user intent
-      const aiQuestionsMatchIntent = filteredAIQuestions.some(q => 
-        isQuestionRelatedToIntent(q.text, userIntent)
-      );
-      
-      if (aiQuestionsHaveGoodCoverage && aiQuestionsMatchIntent && filteredAIQuestions.length > 0) {
-        console.log(`Using filtered AI-generated questions: ${filteredAIQuestions.length} (from original ${parsedContent.questions.length})`);
+      if (uniqueAIQuestions.length > 0) {
+        console.log(`Adding ${uniqueAIQuestions.length} unique AI-generated questions`);
         
-        // Check for repetitive answers and deduplicate as needed
-        const uniqueAnswers = new Set();
-        filteredAIQuestions.forEach(q => {
-          if (q.answer) {
-            const simpleAnswer = simplifyAnswer(q.answer);
-            if (uniqueAnswers.has(simpleAnswer)) {
-              // If we have this answer already, mark as duplicate
-              console.log(`Found duplicate pre-filled answer for question: "${q.text.substring(0, 30)}..."`);
-              q.isDuplicate = true;
-            } else {
-              uniqueAnswers.add(simpleAnswer);
-            }
-          }
-        });
-        
-        // Filter out questions with duplicate answers
-        questions = filteredAIQuestions.filter(q => !q.isDuplicate);
-        console.log(`Using ${questions.length} AI questions after filtering duplicates`);
-      } else {
-        console.log("Using locally generated questions for better prompt-specific coverage and intent matching");
-        // Keep our locally generated questions
+        // Add the unique AI questions to our list
+        questions = [
+          ...questions,
+          ...uniqueAIQuestions.map(q => ({
+            ...q,
+            isRelevant: true
+          }))
+        ];
       }
     }
     
-    // Ensure we always have at least 3 questions for any prompt, even simple ones
-    if (questions.length === 0) {
-      console.log("No questions were generated - creating fallback questions");
+    // Always ensure we have at least 5 questions
+    if (questions.length < 5) {
+      console.log(`Only ${questions.length} questions generated, adding additional questions`);
       
-      // Generate simple fallback questions based on prompt type
-      if (promptText.toLowerCase().includes('image') || promptText.toLowerCase().includes('picture')) {
-        questions = [
-          {
-            id: 'q-fallback-1',
-            text: 'What style would you prefer for this image?',
-            answer: '',
-            isRelevant: true,
-            category: 'Style',
-            contextSource: 'prompt'
-          },
-          {
-            id: 'q-fallback-2',
-            text: 'Any specific details you want to emphasize?',
-            answer: '',
-            isRelevant: true,
-            category: 'Details',
-            contextSource: 'prompt'
-          },
-          {
-            id: 'q-fallback-3',
-            text: 'What kind of background or setting would you like?',
-            answer: '',
-            isRelevant: true,
-            category: 'Setting',
-            contextSource: 'prompt'
-          }
-        ];
-      } else {
-        questions = [
-          {
-            id: 'q-fallback-1',
-            text: 'What tone or style would you prefer?',
-            answer: '',
-            isRelevant: true,
-            category: 'Style',
-            contextSource: 'prompt'
-          },
-          {
-            id: 'q-fallback-2',
-            text: 'Are there any specific details you want to include?',
-            answer: '',
-            isRelevant: true,
-            category: 'Content',
-            contextSource: 'prompt'
-          }
-        ];
-      }
+      // Generate additional questions based on prompt keywords
+      const promptKeywords = extractKeywords(promptText);
+      const additionalQuestions = generateAdditionalQuestionsFromKeywords(promptKeywords, promptText);
       
-      console.log(`Added ${questions.length} fallback questions`);
+      // Add any new unique questions
+      additionalQuestions.forEach(newQ => {
+        if (!questions.some(q => isSimilarQuestion(q.text, newQ.text))) {
+          questions.push({
+            id: `q-additional-${questions.length + 1}`,
+            text: newQ.text,
+            answer: newQ.examples ? `E.g: ${newQ.examples.join(', ')}` : '',
+            isRelevant: true,
+            category: newQ.category || 'Additional Context',
+            contextSource: 'prompt'
+          });
+        }
+      });
+      
+      console.log(`Added ${additionalQuestions.length} additional questions, now have ${questions.length} total`);
     }
-    
-    // One final check to filter non-prompt-specific questions
-    questions = questions.filter(question => {
-      // Always keep image analysis questions
-      if (question.contextSource === 'image') return true;
-      
-      // For regular questions, verify they're prompt-specific
-      const isSpecific = isQuestionRelatedToPrompt(question.text, promptText);
-      if (!isSpecific) {
-        console.log(`Final filter removed non-specific question: "${question.text}"`);
-      }
-      return isSpecific;
-    });
-    
-    console.log(`After final filtering, keeping ${questions.length} prompt-specific questions`);
     
     // Generate variables with appropriate detail level
     let variables = generateContextualVariablesForPrompt(
@@ -477,35 +394,30 @@ serve(async (req) => {
       template,
       imageAnalysis,
       smartContextData,
-      isPromptSimple && !hasValidImageData // Flag for concise variables
+      false // Never use concise variables to ensure comprehensive capture
     );
 
     const masterCommand = extractMasterCommand(content);
     const enhancedPrompt = extractEnhancedPrompt(content);
 
-    // Log prefilled questions by pillar to help with debugging
-    const prefilledByPillar = questions
-      .filter(q => q.answer)
-      .reduce((acc, q) => {
-        acc[q.category] = (acc[q.category] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+    // Log prefilled questions by category to help with debugging
+    const categoryCounts = questions.reduce((acc, q) => {
+      acc[q.category] = (acc[q.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
     console.log("Analysis complete, returning results:", {
       questionsCount: questions.length,
       variablesCount: variables.length,
       prefilled: questions.filter(q => q.answer).length,
-      prefilledByPillar,
+      categories: Object.keys(categoryCounts),
+      categoryDistribution: categoryCounts,
       hasMasterCommand: !!masterCommand,
       hasEnhancedPrompt: !!enhancedPrompt,
       isPromptSimple,
       hasValidImageData,
       imageAnalysisAvailable: !!imageAnalysis,
-      originalIntent: userIntent,
-      pillarsCovered: questions.reduce((acc, q) => {
-        if (!acc.includes(q.category)) acc.push(q.category);
-        return acc;
-      }, [] as string[]).join(', ')
+      originalIntent: userIntent
     });
 
     return new Response(
@@ -526,13 +438,8 @@ serve(async (req) => {
           isPromptSimple,
           hasValidImageData,
           imageAnalysisAvailable: !!imageAnalysis,
-          sourceOfQuestions: useAIQuestions ? "AI" : "local",
-          prefilledByPillar,
-          pillarsCovered: questions.reduce((acc, q) => {
-            if (!acc.includes(q.category)) acc.push(q.category);
-            return acc;
-          }, [] as string[]).join(', '),
-          cleanedNumberedQuestions: true
+          categories: Object.keys(categoryCounts),
+          categoryDistribution: categoryCounts
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -570,40 +477,16 @@ function extractUserIntent(promptText: string): string {
     return match[1].trim().split(/\s+/).slice(0, 15).join(' ');
   }
   
+  // Try to extract queries starting with "how to" or "what is"
+  const queryPattern = /(?:how to|what is|how can i|where can i)\s+([a-z\s]+(?:[a-z\s,]+)?)/i;
+  const queryMatch = promptText.match(queryPattern);
+  
+  if (queryMatch && queryMatch[1]) {
+    return queryMatch[1].trim().split(/\s+/).slice(0, 15).join(' ');
+  }
+  
   // Fallback: return more words to ensure we capture the full intent
   return promptText.split(/\s+/).slice(0, 12).join(' ').toLowerCase();
-}
-
-// Check if a question is related to the user's intent with improved matching
-function isQuestionRelatedToIntent(questionText: string, userIntent: string): boolean {
-  if (!userIntent) return true;
-  
-  const intentWords = userIntent.toLowerCase().split(/\s+/)
-    .filter(w => w.length > 3) // Only use meaningful words
-    .map(w => w.replace(/[^a-z]/g, '')); // Clean up the words
-  
-  // Check if question contains key objects from intent
-  const questionContainsKeyObjects = intentWords
-    .filter(word => word.length > 4) // Focus on substantial words
-    .some(word => questionText.toLowerCase().includes(word));
-  
-  // Check if question directly addresses the intent context
-  return questionContainsKeyObjects || 
-         questionText.toLowerCase().includes(userIntent.substring(0, 10).toLowerCase());
-}
-
-// Simplify an answer for duplicate detection
-function simplifyAnswer(answer: string): string {
-  if (!answer) return '';
-  
-  // Remove "Based on image analysis: " prefix
-  let simplified = answer.replace(/^Based on image analysis:\s*/i, '');
-  
-  // Remove punctuation, normalize spaces
-  simplified = simplified.replace(/[.,;:]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
-  
-  // Keep only first 50 chars for comparison
-  return simplified.substring(0, 50);
 }
 
 // Extract numbered questions in format "0: Question? 1: Another question?"
@@ -640,74 +523,154 @@ function extractNumberedListQuestions(text: string): string[] {
   return questions;
 }
 
-// Enhanced function to check if a question is related to the prompt
-function isQuestionRelatedToPrompt(questionText: string, promptText: string): boolean {
-  if (!promptText || !questionText) return false;
+// Check if a question is relevant to the prompt and user intent
+function isRelevantToPrompt(question: string, promptText: string, userIntent: string): boolean {
+  if (!question) return false;
   
-  // For fallback questions, always return true
-  if (questionText.includes('style would you prefer') || 
-      questionText.includes('specific details') ||
-      questionText.includes('background or setting')) {
-    return true;
-  }
+  // Extract meaningful keywords from prompt
+  const promptKeywords = extractKeywords(promptText);
   
-  // Extract the keyword/subject from the question (between "How should" and "in the context of")
-  const subjectMatch = questionText.match(/How should\s+([^]+?)\s+in the context of/i);
-  if (!subjectMatch || !subjectMatch[1]) {
-    // If we can't extract the subject with this pattern, use a fallback approach
-    return fallbackPromptSpecificityCheck(questionText, promptText);
-  }
-  
-  const subject = subjectMatch[1].trim().toLowerCase();
-  
-  // Create a regex that matches the subject as a whole word or phrase
-  // This handles both single words and multi-word phrases
-  const subjectRegex = new RegExp(
-    `\\b${subject.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 
-    'i'
+  // Check if any keywords appear in the question
+  const hasKeywords = promptKeywords.some(keyword => 
+    question.toLowerCase().includes(keyword.toLowerCase())
   );
   
-  // Check if the subject appears in the prompt
-  if (subjectRegex.test(promptText.toLowerCase())) {
-    return true;
-  }
+  // Check if the question is related to the user's intent
+  const isIntentRelevant = userIntent && 
+    question.toLowerCase().includes(userIntent.substring(0, Math.min(10, userIntent.length)).toLowerCase());
   
-  // If the subject is a phrase, check if each significant word appears in the prompt
-  if (subject.includes(' ')) {
-    const significantWords = subject
-      .split(/\s+/)
-      .filter(word => word.length > 3); // Only consider significant words
-    
-    const allSignificantWordsInPrompt = significantWords.every(word => {
-      const wordRegex = new RegExp(`\\b${word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
-      return wordRegex.test(promptText.toLowerCase());
-    });
-    
-    if (allSignificantWordsInPrompt && significantWords.length > 0) {
-      return true;
-    }
-  }
-  
-  // If still no match, use the fallback approach
-  return fallbackPromptSpecificityCheck(questionText, promptText);
+  // Accept the question if it matches keywords or intent
+  return hasKeywords || isIntentRelevant;
 }
 
-// Fallback method to check prompt specificity when the main pattern fails
-function fallbackPromptSpecificityCheck(questionText: string, promptText: string): boolean {
-  // Extract meaningful words from question and prompt
-  const questionWords = questionText.toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
-    .split(/\s+/)
-    .filter(word => word.length > 3);
+// Check if two questions are similar to avoid duplication
+function isSimilarQuestion(q1: string, q2: string): boolean {
+  // Normalize both strings for comparison
+  const normalize = (str: string) => str.toLowerCase()
+    .replace(/[^\w\s?]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
   
-  const promptWords = promptText.toLowerCase()
-    .replace(/[^\w\s]/g, ' ')
-    .split(/\s+/)
-    .filter(word => word.length > 3);
+  const norm1 = normalize(q1);
+  const norm2 = normalize(q2);
   
-  // Check if any significant words from the question appear in the prompt
-  return questionWords.some(qWord => {
-    const wordRegex = new RegExp(`\\b${qWord.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
-    return wordRegex.test(promptText.toLowerCase());
+  // Check for high similarity
+  if (norm1 === norm2) return true;
+  
+  // Check if one contains the other
+  if (norm1.includes(norm2) || norm2.includes(norm1)) return true;
+  
+  // Extract key phrases from both questions
+  const keyPhrases1 = extractKeyPhrases(norm1);
+  const keyPhrases2 = extractKeyPhrases(norm2);
+  
+  // Check for significant overlap in key phrases
+  const commonPhrases = keyPhrases1.filter(phrase => 
+    keyPhrases2.some(p => p === phrase || p.includes(phrase) || phrase.includes(p))
+  );
+  
+  const similarityScore = commonPhrases.length / Math.max(keyPhrases1.length, keyPhrases2.length, 1);
+  return similarityScore > 0.6; // 60% similarity threshold
+}
+
+// Extract key phrases from text
+function extractKeyPhrases(text: string): string[] {
+  const phrases = [];
+  
+  // Split by common phrase delimiters
+  const parts = text.split(/[,;]|\s+(?:and|or|but|with|for|in|on|at|by|about)\s+/);
+  
+  // Add non-empty phrases
+  parts.forEach(part => {
+    const cleaned = part.trim();
+    if (cleaned.length > 3) phrases.push(cleaned);
   });
+  
+  return phrases;
+}
+
+// Extract meaningful keywords from text
+function extractKeywords(text: string): string[] {
+  if (!text) return [];
+  
+  // Common words to exclude
+  const stopWords = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+    'have', 'has', 'had', 'do', 'does', 'did', 'to', 'at', 'in', 'on', 'for', 'with', 'by',
+    'about', 'against', 'between', 'into', 'through', 'during', 'before', 'after', 'above',
+    'below', 'from', 'up', 'down', 'of', 'off', 'over', 'under', 'again', 'further', 'then',
+    'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each',
+    'few', 'more', 'most', 'other', 'some', 'such', 'no', 'not', 'only', 'own', 'same', 'so',
+    'than', 'too', 'very', 'can', 'will', 'just', 'should', 'now'
+  ]);
+  
+  // Extract words, filtering out stop words and short words
+  const keywords = text.toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 3 && !stopWords.has(word));
+  
+  return [...new Set(keywords)]; // Remove duplicates
+}
+
+// Generate additional questions based on keywords in the prompt
+function generateAdditionalQuestionsFromKeywords(keywords: string[], promptText: string): any[] {
+  const questions = [];
+  
+  // Add image-specific questions if relevant
+  if (keywords.some(k => ['image', 'picture', 'photo', 'graphic', 'drawing', 'illustration'].includes(k))) {
+    questions.push({
+      text: "Do you have any specific aesthetic preferences for this image?",
+      examples: ['minimalist', 'colorful', 'vintage', 'modern', 'abstract'],
+      category: 'Style'
+    });
+    
+    questions.push({
+      text: "What should be the focal point or main subject of the image?",
+      examples: ['a person', 'a landscape', 'a product', 'an abstract concept'],
+      category: 'Content'
+    });
+  }
+  
+  // Add writing-specific questions if relevant
+  if (keywords.some(k => ['text', 'write', 'writing', 'article', 'blog', 'content', 'essay'].includes(k))) {
+    questions.push({
+      text: "What tone should the content have?",
+      examples: ['formal', 'casual', 'technical', 'conversational', 'persuasive'],
+      category: 'Tone'
+    });
+    
+    questions.push({
+      text: "How long should the content be?",
+      examples: ['short paragraph', 'few paragraphs', 'detailed article', 'comprehensive guide'],
+      category: 'Length'
+    });
+    
+    questions.push({
+      text: "Who is the target audience for this content?",
+      examples: ['general public', 'experts', 'beginners', 'customers', 'internal team'],
+      category: 'Audience'
+    });
+  }
+  
+  // Always add some generally applicable questions
+  questions.push({
+    text: "What specific details are most important to include?",
+    examples: ['technical specifications', 'emotional elements', 'historical context', 'practical examples'],
+    category: 'Details'
+  });
+  
+  questions.push({
+    text: "How would you describe the overall style you're looking for?",
+    examples: ['professional', 'creative', 'minimalist', 'detailed', 'innovative'],
+    category: 'Style'
+  });
+  
+  questions.push({
+    text: "What's the primary purpose or goal you're trying to achieve?",
+    examples: ['inform', 'persuade', 'entertain', 'instruct', 'inspire'],
+    category: 'Purpose'
+  });
+  
+  return questions;
 }
