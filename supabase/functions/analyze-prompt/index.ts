@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -164,6 +165,12 @@ serve(async (req) => {
     try {
       parsedContent = JSON.parse(content);
       imageAnalysis = parsedContent.imageAnalysis;
+      
+      // Ensure parsedContent.questions is always an array - Fix for the filter error
+      if (!Array.isArray(parsedContent.questions)) {
+        console.log("parsedContent.questions is not an array, setting to empty array");
+        parsedContent.questions = [];
+      }
       
       // Process image analysis to ensure each item becomes a separate question
       if (imageAnalysis && typeof imageAnalysis === 'object' && hasValidImageData) {
@@ -337,7 +344,7 @@ serve(async (req) => {
 
     // If we have AI-generated questions with good coverage, consider using them instead
     // But only if they have good pillar coverage, pre-filled answers, and match user intent
-    const useAIQuestions = Array.isArray(parsedContent?.questions) && 
+    const useAIQuestions = Array.isArray(parsedContent.questions) && 
                           parsedContent.questions.length >= questions.length &&
                           parsedContent.questions.filter(q => q.answer).length >= questions.filter(q => q.answer).length;
     
@@ -443,7 +450,7 @@ serve(async (req) => {
       pillarsCovered: questions.reduce((acc, q) => {
         if (!acc.includes(q.category)) acc.push(q.category);
         return acc;
-      }, []).join(', ')
+      }, [] as string[]).join(', ')
     });
 
     return new Response(
@@ -469,7 +476,7 @@ serve(async (req) => {
           pillarsCovered: questions.reduce((acc, q) => {
             if (!acc.includes(q.category)) acc.push(q.category);
             return acc;
-          }, []).join(', '),
+          }, [] as string[]).join(', '),
           cleanedNumberedQuestions: true
         }
       }),

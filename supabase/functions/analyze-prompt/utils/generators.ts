@@ -1,3 +1,4 @@
+
 import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
@@ -317,7 +318,7 @@ function isQuestionValueAdding(
   return isUnique && isPromptSpecific;
 }
 
-// This function was referenced but not exported, so we need to export it
+// Export the function for generating contextual variables
 export function generateContextualVariablesForPrompt(
   promptText: string,
   template: any,
