@@ -1,4 +1,5 @@
-import { Question, Variable } from '../types';
+
+import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
   promptText: string,
