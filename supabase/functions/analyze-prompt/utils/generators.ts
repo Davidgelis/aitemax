@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
@@ -42,6 +41,22 @@ export function generateContextQuestionsForPrompt(
       });
     });
   }
+  
+  // New: Generate default questions for simple prompts that had no questions generated
+  if (questions.length === 0 && promptText.length < 100) {
+    const defaultQuestions = generateDefaultQuestionsForSimplePrompt(promptElements, userIntent);
+    defaultQuestions.forEach(question => {
+      questions.push({
+        id: `q-${questionId++}`,
+        text: question.text,
+        answer: question.examples ? `E.g: ${question.examples.join(', ')}` : '',
+        isRelevant: true,
+        category: question.category || 'General',
+        contextSource: 'prompt'
+      });
+    });
+    console.log(`Generated ${defaultQuestions.length} default questions for simple prompt`);
+  }
 
   return questions;
 }
@@ -80,6 +95,7 @@ function extractKeyElements(promptText: string): PromptElements {
 interface ContextualQuestion {
   text: string;
   examples: string[];
+  category?: string;
 }
 
 function generateContextualQuestions(
@@ -110,6 +126,56 @@ function generateContextualQuestions(
   }
 
   return questions;
+}
+
+// New function to generate default questions for simple prompts
+function generateDefaultQuestionsForSimplePrompt(elements: PromptElements, userIntent: string): ContextualQuestion[] {
+  const defaultQuestions: ContextualQuestion[] = [];
+  
+  // Check for image creation intent
+  if (userIntent.toLowerCase().includes('image') || 
+      userIntent.toLowerCase().includes('photo') || 
+      userIntent.toLowerCase().includes('picture')) {
+    
+    // Extract main subject
+    const mainSubject = elements.subjects[0] || 'subject';
+    
+    // Add style question
+    defaultQuestions.push({
+      text: `What style or aesthetic should the ${mainSubject} image have?`,
+      examples: ['realistic', 'cartoon', 'watercolor', 'dramatic lighting'],
+      category: 'Style'
+    });
+    
+    // Add detail question
+    defaultQuestions.push({
+      text: `What specific details or characteristics of the ${mainSubject} should be emphasized?`,
+      examples: ['fur color', 'specific breed', 'size', 'expression'],
+      category: 'Details'
+    });
+    
+    // Add setting question
+    defaultQuestions.push({
+      text: `In what environment or setting should the ${mainSubject} be placed?`,
+      examples: ['indoors', 'backyard', 'beach', 'park', 'forest'],
+      category: 'Setting'
+    });
+  } else {
+    // Generic questions for other types of content
+    defaultQuestions.push({
+      text: 'What is the desired tone or style for this content?',
+      examples: ['professional', 'casual', 'technical', 'friendly'],
+      category: 'Style'
+    });
+    
+    defaultQuestions.push({
+      text: 'Are there any specific details that should be included?',
+      examples: ['particular features', 'specific information', 'key points'],
+      category: 'Content'
+    });
+  }
+  
+  return defaultQuestions;
 }
 
 function generateDetailQuestion(subject: string, pillar: any, prompt: string): ContextualQuestion | null {

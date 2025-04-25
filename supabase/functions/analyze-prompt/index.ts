@@ -1,9 +1,8 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
-import { analyzePromptWithAI } from './openai-client.ts';
 import { generateContextQuestionsForPrompt, generateContextualVariablesForPrompt } from './utils/generators.ts';
+import { analyzePromptWithAI } from './openai-client.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -401,6 +400,62 @@ serve(async (req) => {
       }
     }
     
+    // Ensure we always have at least 3 questions for any prompt, even simple ones
+    if (questions.length === 0) {
+      console.log("No questions were generated - creating fallback questions");
+      
+      // Generate simple fallback questions based on prompt type
+      if (promptText.toLowerCase().includes('image') || promptText.toLowerCase().includes('picture')) {
+        questions = [
+          {
+            id: 'q-fallback-1',
+            text: 'What style would you prefer for this image?',
+            answer: '',
+            isRelevant: true,
+            category: 'Style',
+            contextSource: 'prompt'
+          },
+          {
+            id: 'q-fallback-2',
+            text: 'Any specific details you want to emphasize?',
+            answer: '',
+            isRelevant: true,
+            category: 'Details',
+            contextSource: 'prompt'
+          },
+          {
+            id: 'q-fallback-3',
+            text: 'What kind of background or setting would you like?',
+            answer: '',
+            isRelevant: true,
+            category: 'Setting',
+            contextSource: 'prompt'
+          }
+        ];
+      } else {
+        questions = [
+          {
+            id: 'q-fallback-1',
+            text: 'What tone or style would you prefer?',
+            answer: '',
+            isRelevant: true,
+            category: 'Style',
+            contextSource: 'prompt'
+          },
+          {
+            id: 'q-fallback-2',
+            text: 'Are there any specific details you want to include?',
+            answer: '',
+            isRelevant: true,
+            category: 'Content',
+            contextSource: 'prompt'
+          }
+        ];
+      }
+      
+      console.log(`Added ${questions.length} fallback questions`);
+    }
+    
     // One final check to filter non-prompt-specific questions
     questions = questions.filter(question => {
       // Always keep image analysis questions
@@ -588,6 +643,13 @@ function extractNumberedListQuestions(text: string): string[] {
 // Enhanced function to check if a question is related to the prompt
 function isQuestionRelatedToPrompt(questionText: string, promptText: string): boolean {
   if (!promptText || !questionText) return false;
+  
+  // For fallback questions, always return true
+  if (questionText.includes('style would you prefer') || 
+      questionText.includes('specific details') ||
+      questionText.includes('background or setting')) {
+    return true;
+  }
   
   // Extract the keyword/subject from the question (between "How should" and "in the context of")
   const subjectMatch = questionText.match(/How should\s+([^]+?)\s+in the context of/i);
