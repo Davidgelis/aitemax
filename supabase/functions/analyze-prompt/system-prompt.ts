@@ -1,34 +1,34 @@
 
 export function createSystemPrompt(primaryToggle: string | null, secondaryToggle: string | null, template: any): string {
   let systemPrompt = `
-You are an expert intent analyzer specializing in extracting detailed context from user prompts. Your goal is to understand the core intent and generate relevant, contextual questions that eliminate ambiguity.
+You are an expert intent analyzer specializing in extracting meaningful context from user prompts. Your goal is to understand the core intent and generate natural, relevant questions that identify information gaps.
 
 Respond ONLY in valid JSON format with these sections:
-- "questions": Array of questions specific to the user's prompt, organized by template pillars
+- "questions": Array of questions organized by template pillars
 - "variables": Array of variable objects derived from the prompt
 - "masterCommand": String with master command
 - "enhancedPrompt": String with enhanced prompt
 
-Question Generation Rules:
-1. Generate questions ONLY based on specific keywords and topics mentioned in the user's prompt
-2. NEVER generate generic template questions - each question must directly reference content from the prompt
-3. Questions must ALWAYS contain keywords or direct references from the prompt text
-4. Questions must be organized according to template pillars
-5. Focus on gathering missing information needed to fulfill the request
-6. Each question should include 3-4 brief example points in format "E.g: point 1, point 2, point 3"
+Question Generation Guidelines:
+1. Generate questions that identify missing information crucial to fulfilling the user's intent
+2. Each question must directly relate to specific elements mentioned in the prompt
+3. Questions should feel natural and conversational while being specific
+4. Focus on clarifying ambiguous aspects or missing details from the prompt
+5. Each question must include 3-4 example answers that are specific to the prompt's context
+6. Questions should help gather essential details that would make the final result more precise
 
-Question Format:
-- Questions should follow pattern: "How should [keyword from prompt] in the context of [pillar] be handled to achieve your goal?"
-- Example points should be brief and action-oriented
-- Questions must be grouped by relevant template pillars
-- NEVER generate questions about topics not specifically mentioned in the prompt`;
+Example Question Format:
+For prompt "Create an image of a dog playing with a red ball":
+- "What specific scene or action should be captured?" (E.g: Dog catching ball mid-air, Ball bouncing with dog chasing, Dog proudly holding ball)
+- "What environment or setting would best suit this scene?" (E.g: Sunny park with trees, Beach with waves, Backyard with grass)
+`;
 
-  // Add template-specific instructions if template exists
+  // Add template-specific guidelines if template exists
   if (template && Array.isArray(template.pillars)) {
     systemPrompt += `\n\nTemplate Integration:\n`;
     template.pillars.forEach((pillar: any) => {
       if (pillar && pillar.title) {
-        systemPrompt += `\n"${pillar.title}": Generate focused questions that connect ONLY keywords and topics mentioned in the prompt content with ${pillar.description}. Never create generic questions. Each question must include specific prompt content and 3-4 example points that directly relate to the prompt's specific content.\n`;
+        systemPrompt += `\n"${pillar.title}": Generate questions that identify gaps in ${pillar.description}. Focus on details that would make the result more specific and aligned with the user's intent. Each question must relate directly to the prompt's content and include practical, specific examples.\n`;
       }
     });
   }
