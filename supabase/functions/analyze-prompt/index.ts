@@ -262,6 +262,9 @@ serve(async (req) => {
               .replace(/^questions?:\s*/i, '')
               .trim();
               
+            // Fix grammatical errors using the same function we use elsewhere
+            cleanQuestionText = fixGrammaticalErrors(cleanQuestionText);
+              
             parsedContent.questions.push({
               id: `q-img-${index + 1}`,
               text: cleanQuestionText,
@@ -288,12 +291,14 @@ serve(async (req) => {
       if (Array.isArray(parsedContent.questions)) {
         parsedContent.questions = parsedContent.questions.map(q => {
           if (q.text) {
-            q.text = q.text
-              .replace(/^based on image analysis:\s*/i, '')
-              .replace(/^questions?:\s*/i, '')
-              .replace(/^\d+\s*:\s*/, '')
-              .replace(/^\d+\.\s+/, '')
-              .trim();
+            q.text = fixGrammaticalErrors(
+              q.text
+                .replace(/^based on image analysis:\s*/i, '')
+                .replace(/^questions?:\s*/i, '')
+                .replace(/^\d+\s*:\s*/, '')
+                .replace(/^\d+\.\s+/, '')
+                .trim()
+            );
           }
           
           if (q.answer) {
@@ -357,6 +362,7 @@ serve(async (req) => {
           ...questions,
           ...uniqueAIQuestions.map(q => ({
             ...q,
+            text: fixGrammaticalErrors(q.text), // Apply grammar fixes to AI questions
             isRelevant: true
           }))
         ];
@@ -376,7 +382,7 @@ serve(async (req) => {
         if (!questions.some(q => isSimilarQuestion(q.text, newQ.text))) {
           questions.push({
             id: `q-additional-${questions.length + 1}`,
-            text: newQ.text,
+            text: fixGrammaticalErrors(newQ.text), // Apply grammar fixes
             answer: newQ.examples ? `E.g: ${newQ.examples.join(', ')}` : '',
             isRelevant: true,
             category: newQ.category || 'Additional Context',
@@ -388,6 +394,12 @@ serve(async (req) => {
       console.log(`Added ${additionalQuestions.length} additional questions, now have ${questions.length} total`);
     }
     
+    // Final grammar check for all questions
+    questions = questions.map(q => {
+      q.text = fixGrammaticalErrors(q.text);
+      return q;
+    });
+    
     // Generate variables with appropriate detail level
     let variables = generateContextualVariablesForPrompt(
       enhancedContext,
@@ -396,6 +408,12 @@ serve(async (req) => {
       smartContextData,
       false // Never use concise variables to ensure comprehensive capture
     );
+
+    // Final grammar check for all variables
+    variables = variables.map(v => {
+      v.name = fixGrammaticalErrors(v.name);
+      return v;
+    });
 
     const masterCommand = extractMasterCommand(content);
     const enhancedPrompt = extractEnhancedPrompt(content);
@@ -489,6 +507,39 @@ function extractUserIntent(promptText: string): string {
   return promptText.split(/\s+/).slice(0, 12).join(' ').toLowerCase();
 }
 
+// Function to fix grammatical errors in text
+function fixGrammaticalErrors(text: string): string {
+  if (!text) return text;
+  
+  // Fix 'n image' issues - replace patterns like "n image" with "an image"
+  text = text.replace(/\bn\s+(image|illustration|artwork|picture|photo)/gi, "an $1");
+  text = text.replace(/\bn\s+([aeiou][a-z]*)/gi, "an $1"); // Fix 'n' + vowel words
+  text = text.replace(/\bn\s+([^aeiou][a-z]*)/gi, "a $1"); // Fix 'n' + consonant words
+  
+  // Fix article issues with proper indefinite articles
+  text = text.replace(/\ba\s+([aeiou][a-z]*)/gi, "an $1"); // Replace 'a' with 'an' before vowels
+  
+  // Fix common preposition errors
+  text = text.replace(/\sof\s+the\s+the\s+/gi, " of the ");
+  
+  // Fix double articles
+  text = text.replace(/\b(a|an|the)\s+(a|an|the)\b/gi, "$1");
+  
+  // Fix spaces around punctuation
+  text = text.replace(/\s+([.,?!])/g, "$1");
+  
+  // Fix "the the" duplications
+  text = text.replace(/\bthe\s+the\b/gi, "the");
+  
+  // Fix capitalization after question mark
+  text = text.replace(/\?\s+([a-z])/g, (match, letter) => `? ${letter.toUpperCase()}`);
+  
+  // Change "dod" to "dog" - common typo
+  text = text.replace(/\b(dod)\b/gi, "dog");
+  
+  return text;
+}
+
 // Extract numbered questions in format "0: Question? 1: Another question?"
 function extractNumberedQuestions(text: string): string[] {
   if (!text) return [];
@@ -499,7 +550,8 @@ function extractNumberedQuestions(text: string): string[] {
   
   while ((match = regex.exec(text)) !== null) {
     if (match[1] && match[1].trim()) {
-      questions.push(match[1].trim());
+      const cleanedQuestion = fixGrammaticalErrors(match[1].trim());
+      questions.push(cleanedQuestion);
     }
   }
   
@@ -516,7 +568,8 @@ function extractNumberedListQuestions(text: string): string[] {
   
   while ((match = regex.exec(text)) !== null) {
     if (match[1] && match[1].trim()) {
-      questions.push(match[1].trim());
+      const cleanedQuestion = fixGrammaticalErrors(match[1].trim());
+      questions.push(cleanedQuestion);
     }
   }
   
@@ -526,6 +579,9 @@ function extractNumberedListQuestions(text: string): string[] {
 // Check if a question is relevant to the prompt and user intent
 function isRelevantToPrompt(question: string, promptText: string, userIntent: string): boolean {
   if (!question) return false;
+  
+  // Fix grammatical issues before relevance check
+  question = fixGrammaticalErrors(question);
   
   // Extract meaningful keywords from prompt
   const promptKeywords = extractKeywords(promptText);
@@ -547,6 +603,10 @@ function isRelevantToPrompt(question: string, promptText: string, userIntent: st
 function isSimilarQuestion(q1: string, q2: string): boolean {
   // Safety check for undefined or null inputs
   if (!q1 || !q2) return false;
+  
+  // Fix grammatical issues before comparison
+  q1 = fixGrammaticalErrors(q1);
+  q2 = fixGrammaticalErrors(q2);
   
   // Normalize both strings for comparison
   const normalize = (str: string) => str.toLowerCase()
@@ -609,8 +669,9 @@ function extractKeywords(text: string): string[] {
     'than', 'too', 'very', 'can', 'will', 'just', 'should', 'now'
   ]);
   
-  // Extract words, filtering out stop words and short words
-  const keywords = text.toLowerCase()
+  // Clean and extract words, filtering out stop words and short words
+  const cleanedText = fixGrammaticalErrors(text);
+  const keywords = cleanedText.toLowerCase()
     .replace(/[^\w\s]/g, ' ')
     .split(/\s+/)
     .filter(word => word.length > 3 && !stopWords.has(word));
@@ -621,6 +682,9 @@ function extractKeywords(text: string): string[] {
 // Generate additional questions based on keywords in the prompt
 function generateAdditionalQuestionsFromKeywords(keywords: string[], promptText: string): any[] {
   const questions = [];
+  
+  // Clean prompt text for better matching
+  const cleanedPrompt = fixGrammaticalErrors(promptText);
   
   // Add image-specific questions if relevant
   if (keywords.some(k => ['image', 'picture', 'photo', 'graphic', 'drawing', 'illustration'].includes(k))) {

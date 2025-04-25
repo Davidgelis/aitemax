@@ -1,3 +1,4 @@
+
 import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
@@ -100,7 +101,44 @@ export function generateContextQuestionsForPrompt(
     })));
   }
 
-  return questions;
+  // Final grammatical validation for all questions
+  const validatedQuestions = questions.map(q => {
+    // Fix common grammatical issues
+    q.text = fixGrammaticalErrors(q.text);
+    return q;
+  });
+
+  return validatedQuestions;
+}
+
+// New function to fix grammatical errors
+function fixGrammaticalErrors(text: string): string {
+  if (!text) return text;
+  
+  // Fix 'n image' issues - replace patterns like "n image" with "an image"
+  text = text.replace(/\bn\s+(image|illustration|artwork|picture|photo)/gi, "an $1");
+  text = text.replace(/\bn\s+([aeiou][a-z]*)/gi, "an $1"); // Fix 'n' + vowel words
+  text = text.replace(/\bn\s+([^aeiou][a-z]*)/gi, "a $1"); // Fix 'n' + consonant words
+  
+  // Fix article issues with proper indefinite articles
+  text = text.replace(/\ba\s+([aeiou][a-z]*)/gi, "an $1"); // Replace 'a' with 'an' before vowels
+  
+  // Fix common preposition errors
+  text = text.replace(/\sof\s+the\s+the\s+/gi, " of the ");
+  
+  // Fix double articles
+  text = text.replace(/\b(a|an|the)\s+(a|an|the)\b/gi, "$1");
+  
+  // Fix spaces around punctuation
+  text = text.replace(/\s+([.,?!])/g, "$1");
+  
+  // Fix "the the" duplications
+  text = text.replace(/\bthe\s+the\b/gi, "the");
+  
+  // Fix capitalization after question mark
+  text = text.replace(/\?\s+([a-z])/g, (match, letter) => `? ${letter.toUpperCase()}`);
+  
+  return text;
 }
 
 type PromptElement = {
@@ -125,7 +163,7 @@ function extractMeaningfulElements(promptText: string): ExtractedElements {
     context: []
   };
 
-  // Improved pattern for extracting subjects
+  // Improved pattern for extracting subjects - now handles articles better
   const actionSubjectPattern = /(?:can you|please|could you)?\s*([a-z]+(?:ing|ed)?)\s+(?:a|an|the)?\s*([a-z\s]+)(?:\s+with|\s+that|\s+for|\?|\.)/gi;
   const attributePattern = /(?:with|having|in|of)\s+([a-z\s]+)\s+(?:style|color|size|format|type|theme|mood)/gi;
   const subjectPattern = /(?:a|an|the|some|this|that)\s+([a-z]+(?:\s+[a-z]+){0,2})/gi;
@@ -322,7 +360,7 @@ function generateEnhancedSubjectQuestions(subject: PromptElement, promptText: st
 function generateEnhancedActionQuestions(action: PromptElement, promptText: string, subjects: PromptElement[]): any[] {
   const questions = [];
   const actionText = action.text;
-  const relatedSubject = subjects.length > 0 ? subjects[0].text : '';
+  const relatedSubject = subjects.length > 0 ? cleanSubjectText(subjects[0].text) : '';
   
   // Create more contextual questions about the action
   questions.push({
@@ -351,7 +389,7 @@ function generateEnhancedActionQuestions(action: PromptElement, promptText: stri
 function generateContextualAttributeQuestions(attribute: PromptElement, promptText: string, subjects: PromptElement[]): any[] {
   const questions = [];
   const attributeText = attribute.text;
-  const relatedSubject = subjects.length > 0 ? subjects[0].text : 'result';
+  const relatedSubject = subjects.length > 0 ? cleanSubjectText(subjects[0].text) : 'result';
   
   questions.push({
     text: `How important is the ${attributeText} attribute for the ${relatedSubject}?`,
@@ -372,14 +410,16 @@ function generateIntentBasedQuestions(userIntent: string, promptText: string): a
   const questions = [];
   
   if (userIntent) {
+    const cleanedIntent = userIntent.replace(/^n\s+/i, '');
+    
     questions.push({
-      text: `What's the main purpose of ${userIntent}?`,
+      text: `What's the main purpose of ${cleanedIntent}?`,
       examples: ['personal use', 'professional project', 'learning', 'entertainment'],
       category: 'Intent Purpose'
     });
     
     questions.push({
-      text: `Are there any specific constraints or limitations for ${userIntent}?`,
+      text: `Are there any specific constraints or limitations for ${cleanedIntent}?`,
       examples: ['time constraints', 'technical limitations', 'skill level', 'resource availability'],
       category: 'Constraints'
     });
@@ -413,20 +453,49 @@ function generateAdditionalQuestions(promptText: string, elements: ExtractedElem
   return questions;
 }
 
-// New helper functions for text cleaning
+// Enhanced helper function for text cleaning
 function cleanSubjectText(text: string): string {
   if (!text) return 'result';
   
-  // Remove any leading articles
-  text = text.replace(/^(a|an|the)\s+/i, '');
+  // Remove any leading articles and clean malformed text
+  let cleanedText = text
+    .replace(/^(a|an|the)\s+/i, '')  // Remove leading articles
+    .replace(/\bn\b/g, '')           // Remove standalone 'n'
+    .replace(/\s+/g, ' ')            // Normalize spaces
+    .trim();
   
-  // Clean any malformed text
-  text = text.replace(/\bn\b/g, '');
+  // Fix "n + word" patterns that should be "a word" or "an word"
+  cleanedText = cleanedText.replace(/^n\s+([aeiou])/i, 'an $1');  // n + vowel becomes "an + vowel"
+  cleanedText = cleanedText.replace(/^n\s+([^aeiou])/i, 'a $1');  // n + consonant becomes "a + consonant"
   
-  // Ensure proper spacing
-  text = text.replace(/\s+/g, ' ').trim();
+  // Handle missing articles for subjects that need them
+  if (needsArticle(cleanedText) && !hasArticle(cleanedText)) {
+    if (/^[aeiou]/i.test(cleanedText)) {
+      cleanedText = `an ${cleanedText}`;  // Add "an" before vowel sounds
+    } else {
+      cleanedText = `a ${cleanedText}`;   // Add "a" before consonant sounds
+    }
+  }
   
-  return text || 'result';
+  return cleanedText || 'result';
+}
+
+// Detect if a subject needs an article
+function needsArticle(text: string): boolean {
+  // Most singular countable nouns need articles
+  // This is a simplified check - in a real implementation you'd need more sophisticated rules
+  const pluralEndings = ['s', 'es', 'ies'];
+  const uncountableNouns = ['information', 'advice', 'news', 'furniture', 'luggage', 'equipment'];
+  
+  // Don't add articles to plural forms or uncountable nouns
+  return !pluralEndings.some(ending => text.endsWith(ending)) && 
+         !uncountableNouns.includes(text.toLowerCase());
+}
+
+// Check if text already has an article
+function hasArticle(text: string): boolean {
+  const articlePattern = /^(a|an|the)\s+/i;
+  return articlePattern.test(text);
 }
 
 function cleanText(text: string): string {
@@ -434,9 +503,13 @@ function cleanText(text: string): string {
   
   // Remove unwanted patterns
   text = text
-    .replace(/\bn\b/g, '')
-    .replace(/\s+/g, ' ')
+    .replace(/\bn\b/g, '')     // Remove standalone 'n'
+    .replace(/\s+/g, ' ')      // Normalize spaces
     .trim();
+  
+  // Fix "n + word" patterns
+  text = text.replace(/n\s+([aeiou])/i, 'an $1');  // n + vowel becomes "an + vowel"
+  text = text.replace(/n\s+([^aeiou])/i, 'a $1');  // n + consonant becomes "a + consonant"
   
   return text;
 }
@@ -525,7 +598,8 @@ export function generateContextualVariablesForPrompt(
   // Generate variables for subjects (most important)
   elements.subjects.forEach(subject => {
     if (subject.text.length > 2 && !isCommonWord(subject.text)) {
-      const variableName = capitalizeFirstLetter(subject.text) + (subject.context ? ` (${subject.context})` : '');
+      const cleanedSubject = cleanSubjectText(subject.text);
+      const variableName = capitalizeFirstLetter(cleanedSubject) + (subject.context ? ` (${subject.context})` : '');
       
       variables.push({
         id: `var-${variableId++}`,
@@ -533,7 +607,7 @@ export function generateContextualVariablesForPrompt(
         value: '',
         isRelevant: true,
         category: 'Subject',
-        code: toCamelCase(subject.text)
+        code: toCamelCase(cleanedSubject)
       });
     }
   });
@@ -541,7 +615,8 @@ export function generateContextualVariablesForPrompt(
   // Generate variables for attributes
   elements.attributes.forEach(attribute => {
     if (attribute.text.length > 2 && !isCommonWord(attribute.text)) {
-      const variableName = capitalizeFirstLetter(attribute.text) + ' Style';
+      const cleanedAttribute = cleanText(attribute.text);
+      const variableName = capitalizeFirstLetter(cleanedAttribute) + ' Style';
       
       variables.push({
         id: `var-${variableId++}`,
@@ -549,7 +624,7 @@ export function generateContextualVariablesForPrompt(
         value: '',
         isRelevant: true,
         category: 'Attribute',
-        code: toCamelCase(attribute.text + 'Style')
+        code: toCamelCase(cleanedAttribute + 'Style')
       });
     }
   });
@@ -599,14 +674,23 @@ export function generateContextualVariablesForPrompt(
     });
   }
 
-  return variables;
+  // Final grammar validation for variable names
+  const validatedVariables = variables.map(v => {
+    // Fix any remaining grammatical issues in names
+    v.name = fixGrammaticalErrors(v.name);
+    return v;
+  });
+
+  return validatedVariables;
 }
 
 function capitalizeFirstLetter(str: string): string {
+  if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function toCamelCase(str: string): string {
+  if (!str) return '';
   return str.replace(/(?:^\w|[A-Z]|\b\w|\s+)/g, function(match, index) {
     if (+match === 0) return ""; // or if (/\s+/.test(match)) for white spaces
     return index === 0 ? match.toLowerCase() : match.toUpperCase();

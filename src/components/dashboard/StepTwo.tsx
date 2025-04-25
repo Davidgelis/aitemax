@@ -53,7 +53,7 @@ export const StepTwo = ({
   const hasImageAnalysis = imageAnalysisQuestions.length > 0;
 
   // Count prompt-specific questions
-  const promptSpecificCount = questions.length;
+  const promptSpecificCount = questions.filter(q => q.contextSource === "prompt").length;
 
   return (
     <div className="border rounded-xl p-6 bg-card">

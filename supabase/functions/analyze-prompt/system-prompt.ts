@@ -16,6 +16,8 @@ Question Generation Guidelines:
 4. Focus on clarifying ambiguous aspects or missing details from the prompt
 5. Each question must include 3-4 example answers that are specific to the prompt's context
 6. Questions should help gather essential details that would make the final result more precise
+7. Ensure all questions are grammatically correct with no errors like "n image" or improper article usage
+8. Carefully proofread all questions for proper grammar, articles, and sentence structure
 
 Example Question Format:
 For prompt "Create an image of a dog playing with a red ball":
