@@ -10,15 +10,15 @@ Respond ONLY in valid JSON format with these sections:
 - "enhancedPrompt": String with enhanced prompt
 
 Question Generation Rules:
-1. Generate questions ONLY based on the user's prompt text
-2. Each question must be specifically tailored to the user's request
-3. No generic questions allowed - all questions must relate directly to the prompt
+1. Generate questions ONLY based on specific keywords and topics mentioned in the user's prompt
+2. NEVER generate generic template questions - each question must directly reference content from the prompt
+3. Questions must ALWAYS contain keywords or direct references from the prompt text
 4. Questions must be organized according to template pillars
 5. Focus on gathering missing information needed to fulfill the request
 6. Each question should include 3-4 brief example points in format "E.g: point 1, point 2, point 3"
 
 Question Format:
-- Questions should follow pattern: "How should [keyword] in the context of [pillar] be handled to achieve your goal?"
+- Questions should follow pattern: "How should [keyword from prompt] in the context of [pillar] be handled to achieve your goal?"
 - Example points should be brief and action-oriented
 - Questions must be grouped by relevant template pillars`;
 
@@ -27,7 +27,7 @@ Question Format:
     systemPrompt += `\n\nTemplate Integration:\n`;
     template.pillars.forEach((pillar: any) => {
       if (pillar && pillar.title) {
-        systemPrompt += `\n"${pillar.title}": Generate focused questions that connect the prompt content with ${pillar.description}. Each question must include 3-4 example points.\n`;
+        systemPrompt += `\n"${pillar.title}": Generate focused questions that connect ONLY keywords and topics mentioned in the prompt content with ${pillar.description}. Never create generic questions. Each question must include specific prompt content and 3-4 example points.\n`;
       }
     });
   }
