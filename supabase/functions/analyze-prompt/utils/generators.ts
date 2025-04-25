@@ -82,7 +82,7 @@ function extractMeaningfulKeywords(promptText: string): string[] {
     .replace(/[^\w\s]/g, ' ')  // Replace punctuation with spaces
     .split(/\s+/)
     .filter(word => 
-      word.length > 3 && 
+      word.length > 2 && 
       !commonWords.has(word) &&
       !word.match(/^\d+$/)  // Exclude pure numbers
     );
@@ -129,39 +129,47 @@ function extractTopics(promptText: string): string[] {
 // Rank keywords based on their relevance to the pillar
 function rankKeywordsByPillarRelevance(keywords: string[], pillarTitle: string, promptText: string): string[] {
   const scoredKeywords = keywords.map(keyword => {
-    let score = 1;
+    let score = 0;
     
-    // Higher score if the keyword appears multiple times in the prompt
-    const keywordRegex = new RegExp(keyword, 'gi');
+    // ONLY consider keywords that actually appear in the prompt text
+    const keywordRegex = new RegExp("\\b" + keyword + "\\b", 'gi');
     const occurrences = (promptText.match(keywordRegex) || []).length;
-    score += occurrences;
     
-    // Higher score if keyword is related to pillar
-    if (pillarTitle.toLowerCase().includes(keyword) || 
-        keyword.includes(pillarTitle.toLowerCase())) {
-      score += 3;
-    }
-    
-    // Higher score for action verbs common in development
-    if (keyword.match(/(creat|build|design|develop|implement|add|make|generat|integrat|deploy)/i)) {
-      score += 2;
-    }
-    
-    // Higher score for words that appear near the pillar title in the prompt
-    const pillarProximity = promptText.toLowerCase().indexOf(pillarTitle.toLowerCase());
-    const keywordPosition = promptText.toLowerCase().indexOf(keyword);
-    if (pillarProximity >= 0 && keywordPosition >= 0) {
-      const distance = Math.abs(pillarProximity - keywordPosition);
-      if (distance < 50) score += (50 - distance) / 10; // Closer = higher score
+    // If keyword doesn't appear in prompt text, give it a negative score
+    if (occurrences === 0) {
+      score = -100; // This ensures it won't be used
+    } else {
+      // Score based on occurrences
+      score += occurrences * 2;
+      
+      // Higher score if keyword is related to pillar
+      if (pillarTitle.toLowerCase().includes(keyword.toLowerCase()) || 
+          keyword.toLowerCase().includes(pillarTitle.toLowerCase())) {
+        score += 3;
+      }
+      
+      // Higher score for action verbs common in development
+      if (keyword.match(/(creat|build|design|develop|implement|add|make|generat|integrat|deploy)/i)) {
+        score += 2;
+      }
+      
+      // Higher score for words that appear near the pillar title in the prompt
+      const pillarProximity = promptText.toLowerCase().indexOf(pillarTitle.toLowerCase());
+      const keywordPosition = promptText.toLowerCase().indexOf(keyword.toLowerCase());
+      if (pillarProximity >= 0 && keywordPosition >= 0) {
+        const distance = Math.abs(pillarProximity - keywordPosition);
+        if (distance < 50) score += (50 - distance) / 10; // Closer = higher score
+      }
     }
     
     return { keyword, score };
   });
   
-  // Sort by score and return just the keywords
+  // Sort by score and return just the keywords, filtering out any with negative scores
   return scoredKeywords
+    .filter(k => k.score > 0) // Only include keywords that actually appear in the prompt
     .sort((a, b) => b.score - a.score)
-    .slice(0, 7)  // Take top 7 most relevant keywords
+    .slice(0, 5)  // Take top 5 most relevant keywords
     .map(k => k.keyword);
 }
 
@@ -183,8 +191,9 @@ function generatePillarSpecificQuestions(
       continue;
     }
     
-    // Only use keywords actually mentioned in the prompt
-    if (promptText.toLowerCase().includes(keyword.toLowerCase())) {
+    // Double check keyword is actually in the prompt with a more strict check
+    const keywordRegex = new RegExp("\\b" + keyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "\\b", 'i');
+    if (keywordRegex.test(promptText)) {
       const questionText = `How should ${keyword} in the context of ${pillar.title.toLowerCase()} be handled to achieve your goal?`;
       
       // Generate multiple example points
@@ -199,39 +208,31 @@ function generatePillarSpecificQuestions(
     }
   }
   
-  // If we don't have enough questions, try with more general prompt-specific questions
+  // If we still need more questions, try with more general prompt-specific questions
   if (questions.length < questionsPerPillar) {
-    const missingCount = questionsPerPillar - questions.length;
+    const remainingKeywordsNeeded = questionsPerPillar - questions.length;
     
-    // Extract sentences from prompt that might be relevant to the pillar
-    const sentences = promptText.split(/[.!?]+/).filter(s => s.trim().length > 10);
+    // Use any additional keywords that might be in the prompt but weren't selected earlier
+    const allKeywords = extractMeaningfulKeywords(promptText);
+    const unusedKeywords = allKeywords.filter(k => !usedKeywords.has(k));
     
-    for (const sentence of sentences) {
+    for (const keyword of unusedKeywords) {
       if (questions.length >= questionsPerPillar) break;
       
-      // Check if sentence might relate to pillar based on content overlap
-      const words = sentence.toLowerCase().split(/\s+/);
-      const pillarWords = pillar.title.toLowerCase().split(/\s+/);
-      const pillarDescription = pillar.description?.toLowerCase().split(/\s+/) || [];
-      
-      const hasOverlap = words.some(w => 
-        pillarWords.includes(w) || pillarDescription.includes(w) || 
-        pillarWords.some(pw => w.includes(pw)) || pillarDescription.some(pd => w.includes(pd))
-      );
-      
-      if (hasOverlap) {
-        // Extract a key phrase from the sentence (first 5-7 words)
-        const keyPhrase = words.slice(0, Math.min(words.length, 4)).join(' ');
-        
-        const questionText = `How should "${keyPhrase}..." in the context of ${pillar.title.toLowerCase()} be handled to achieve your goal?`;
+      // Double check keyword is actually in the prompt
+      const keywordRegex = new RegExp("\\b" + keyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "\\b", 'i');
+      if (keywordRegex.test(promptText)) {
+        const questionText = `How should ${keyword} in the context of ${pillar.title.toLowerCase()} be handled to achieve your goal?`;
         
         // Generate example points
-        const examplePoints = generateExamplePoints(keyPhrase, pillar.title, promptText);
+        const examplePoints = generateExamplePoints(keyword, pillar.title, promptText);
         
         questions.push({
           text: questionText,
           example: `E.g: ${examplePoints.join(', ')}`
         });
+        
+        usedKeywords.add(keyword);
       }
     }
   }
@@ -342,4 +343,3 @@ function extractKeywords(promptText: string): string[] {
       !word.match(/[0-9]/) // Exclude numbers
     );
 }
-

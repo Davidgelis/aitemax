@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createSystemPrompt } from './system-prompt.ts';
 import { extractQuestions, extractVariables, extractMasterCommand, extractEnhancedPrompt } from './utils/extractors.ts';
@@ -335,25 +334,37 @@ serve(async (req) => {
                           parsedContent.questions.filter(q => q.answer).length >= questions.filter(q => q.answer).length;
     
     if (useAIQuestions) {
-      // Check if the AI questions have good coverage across pillars and match user intent
+      // Filter AI questions to ensure they're actually prompt-specific
+      const filteredAIQuestions = parsedContent.questions.filter(q => {
+        // Check if question text contains keywords from the prompt
+        const isQuestionSpecificToPrompt = isQuestionRelatedToPrompt(q.text, promptText);
+        
+        if (!isQuestionSpecificToPrompt) {
+          console.log(`Filtered out non-prompt-specific question: "${q.text.substring(0, 30)}..."`);
+        }
+        
+        return isQuestionSpecificToPrompt;
+      });
+
+      // Check if the filtered AI questions have good coverage across pillars and match user intent
       const aiQuestionsHaveGoodCoverage = template?.pillars?.length > 0 ?
         template.pillars.some(pillar => 
-          parsedContent.questions.some(q => 
+          filteredAIQuestions.some(q => 
             q.category === pillar.title || q.category.includes(pillar.title)
           )
         ) : true;
       
       // Check if AI-generated questions focus on user intent
-      const aiQuestionsMatchIntent = parsedContent.questions.some(q => 
+      const aiQuestionsMatchIntent = filteredAIQuestions.some(q => 
         isQuestionRelatedToIntent(q.text, userIntent)
       );
       
-      if (aiQuestionsHaveGoodCoverage && aiQuestionsMatchIntent) {
-        console.log("Using AI-generated questions due to better intent matching and pre-filled answers");
+      if (aiQuestionsHaveGoodCoverage && aiQuestionsMatchIntent && filteredAIQuestions.length > 0) {
+        console.log(`Using filtered AI-generated questions: ${filteredAIQuestions.length} (from original ${parsedContent.questions.length})`);
         
         // Check for repetitive answers and deduplicate as needed
         const uniqueAnswers = new Set();
-        parsedContent.questions.forEach(q => {
+        filteredAIQuestions.forEach(q => {
           if (q.answer) {
             const simpleAnswer = simplifyAnswer(q.answer);
             if (uniqueAnswers.has(simpleAnswer)) {
@@ -367,10 +378,10 @@ serve(async (req) => {
         });
         
         // Filter out questions with duplicate answers
-        questions = parsedContent.questions.filter(q => !q.isDuplicate);
-        console.log(`Using ${questions.length} AI questions after filtering ${parsedContent.questions.length - questions.length} duplicates`);
+        questions = filteredAIQuestions.filter(q => !q.isDuplicate);
+        console.log(`Using ${questions.length} AI questions after filtering duplicates`);
       } else {
-        console.log("Using locally generated questions for better pillar-based coverage and intent matching");
+        console.log("Using locally generated questions for better prompt-specific coverage and intent matching");
         // Keep our locally generated questions
       }
     }
@@ -542,4 +553,25 @@ function extractNumberedListQuestions(text: string): string[] {
   }
   
   return questions;
+}
+
+// New function to check if a question is related to the prompt
+function isQuestionRelatedToPrompt(questionText: string, promptText: string): boolean {
+  if (!promptText || !questionText) return false;
+  
+  // Extract meaningful keywords from the prompt (ignore common words)
+  const promptWords = promptText.toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 3)
+    .map(w => w.replace(/[^a-z]/g, ''));
+  
+  // Check if the question contains any of the meaningful keywords from the prompt
+  const questionLower = questionText.toLowerCase();
+  
+  return promptWords.some(word => {
+    // Create a regex that matches the word as a whole word, not as part of another word
+    const wordRegex = new RegExp(`\\b${word}\\b`, 'i');
+    return wordRegex.test(questionLower);
+  });
 }
