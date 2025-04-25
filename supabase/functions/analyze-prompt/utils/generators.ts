@@ -317,7 +317,8 @@ function isQuestionValueAdding(
   return isUnique && isPromptSpecific;
 }
 
-function generateContextualVariablesForPrompt(
+// This function was referenced but not exported, so we need to export it
+export function generateContextualVariablesForPrompt(
   promptText: string,
   template: any,
   imageAnalysis: any = null,
