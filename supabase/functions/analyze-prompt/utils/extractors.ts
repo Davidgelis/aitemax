@@ -485,4 +485,3 @@ export function extractEnhancedPrompt(aiResponse: string): string {
     return "";
   }
 }
-

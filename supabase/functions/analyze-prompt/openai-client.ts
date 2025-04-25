@@ -39,6 +39,7 @@ export async function analyzePromptWithAI(
     // Handle image analysis if we have an image
     if (imageBase64) {
       console.log("Including image in OpenAI request for multimodal analysis");
+      
       userContent = [
         {
           type: "text",

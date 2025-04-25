@@ -345,7 +345,7 @@ serve(async (req) => {
       // Find meaningful AI questions that add value
       const uniqueAIQuestions = aiGeneratedQuestions.filter(aiQ => {
         // Check if this question adds unique value
-        return !questions.some(q => isSimilarQuestion(q.text, aiQ.text)) &&
+        return aiQ && aiQ.text && !questions.some(q => isSimilarQuestion(q.text, aiQ.text)) &&
                isRelevantToPrompt(aiQ.text, promptText, userIntent);
       });
       
@@ -545,6 +545,9 @@ function isRelevantToPrompt(question: string, promptText: string, userIntent: st
 
 // Check if two questions are similar to avoid duplication
 function isSimilarQuestion(q1: string, q2: string): boolean {
+  // Safety check for undefined or null inputs
+  if (!q1 || !q2) return false;
+  
   // Normalize both strings for comparison
   const normalize = (str: string) => str.toLowerCase()
     .replace(/[^\w\s?]/g, '')
@@ -575,6 +578,8 @@ function isSimilarQuestion(q1: string, q2: string): boolean {
 
 // Extract key phrases from text
 function extractKeyPhrases(text: string): string[] {
+  if (!text) return [];
+  
   const phrases = [];
   
   // Split by common phrase delimiters
