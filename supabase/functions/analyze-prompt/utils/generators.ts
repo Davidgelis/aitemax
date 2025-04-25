@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
@@ -126,25 +125,25 @@ function extractMeaningfulElements(promptText: string): ExtractedElements {
     context: []
   };
 
-  // Define patterns for extracting key phrases
+  // Improved pattern for extracting subjects
   const actionSubjectPattern = /(?:can you|please|could you)?\s*([a-z]+(?:ing|ed)?)\s+(?:a|an|the)?\s*([a-z\s]+)(?:\s+with|\s+that|\s+for|\?|\.)/gi;
   const attributePattern = /(?:with|having|in|of)\s+([a-z\s]+)\s+(?:style|color|size|format|type|theme|mood)/gi;
   const subjectPattern = /(?:a|an|the|some|this|that)\s+([a-z]+(?:\s+[a-z]+){0,2})/gi;
   
-  // Extract action-subject pairs
+  // Extract action-subject pairs with proper cleaning
   let match;
   while ((match = actionSubjectPattern.exec(promptText)) !== null) {
     if (match[1] && isActionWord(match[1])) {
       result.actions.push({
-        text: match[1].toLowerCase(),
-        context: match[2] || '',
+        text: cleanText(match[1].toLowerCase()),
+        context: match[2] ? cleanText(match[2]) : '',
         importance: 3
       });
       
       if (match[2]) {
         result.subjects.push({
-          text: match[2].toLowerCase().trim(),
-          context: match[1] || '',
+          text: cleanText(match[2].toLowerCase().trim()),
+          context: match[1] ? cleanText(match[1]) : '',
           importance: 3
         });
       }
@@ -155,7 +154,7 @@ function extractMeaningfulElements(promptText: string): ExtractedElements {
   while ((match = attributePattern.exec(promptText)) !== null) {
     if (match[1]) {
       result.attributes.push({
-        text: match[1].toLowerCase().trim(),
+        text: cleanText(match[1].toLowerCase().trim()),
         importance: 2
       });
     }
@@ -165,7 +164,7 @@ function extractMeaningfulElements(promptText: string): ExtractedElements {
   while ((match = subjectPattern.exec(promptText)) !== null) {
     if (match[1] && !isCommonWord(match[1]) && !result.subjects.some(s => s.text === match[1].toLowerCase().trim())) {
       result.subjects.push({
-        text: match[1].toLowerCase().trim(),
+        text: cleanText(match[1].toLowerCase().trim()),
         importance: 1
       });
     }
@@ -177,7 +176,7 @@ function extractMeaningfulElements(promptText: string): ExtractedElements {
     words.forEach(word => {
       if (isActionWord(word) && word.length > 3) {
         result.actions.push({
-          text: word,
+          text: cleanText(word),
           importance: 1
         });
       }
@@ -191,7 +190,7 @@ function extractMeaningfulElements(promptText: string): ExtractedElements {
       if (words[i].length > 3 && !isCommonWord(words[i]) && !isActionWord(words[i])) {
         // Look for words that might be nouns (not in common words or action words)
         result.subjects.push({
-          text: words[i],
+          text: cleanText(words[i]),
           importance: 1
         });
       }
@@ -208,7 +207,7 @@ function extractMeaningfulElements(promptText: string): ExtractedElements {
   
   contextWords.forEach(word => {
     result.context.push({
-      text: word,
+      text: cleanText(word),
       importance: 1
     });
   });
@@ -237,10 +236,10 @@ function deduplicate(elements: PromptElement[]): PromptElement[] {
 
 function generateContentSpecificQuestions(promptText: string, elements: ExtractedElements, userIntent: string): any[] {
   const questions = [];
-  const hasSubjects = elements.subjects.length > 0;
-  const hasActions = elements.actions.length > 0;
+  const subjects = elements.subjects.map(s => cleanSubjectText(s.text));
+  const mainSubject = subjects.length > 0 ? subjects[0] : 'result';
   
-  // Consider the full prompt context
+  // Consider the full prompt context with proper subject handling
   if (promptText.includes('image') || promptText.includes('picture') || promptText.includes('photo')) {
     questions.push({
       text: `What style or visual aesthetic are you looking for?`,
@@ -249,7 +248,7 @@ function generateContentSpecificQuestions(promptText: string, elements: Extracte
     });
     
     questions.push({
-      text: `What mood or feeling should the ${hasSubjects ? elements.subjects[0].text : 'result'} convey?`,
+      text: `What mood or feeling should the ${mainSubject} convey?`,
       examples: ['calm', 'energetic', 'serious', 'playful', 'mysterious'],
       category: 'Mood'
     });
@@ -261,7 +260,7 @@ function generateContentSpecificQuestions(promptText: string, elements: Extracte
     });
     
     questions.push({
-      text: `Who is the target audience for this ${hasSubjects ? elements.subjects[0].text : 'content'}?`,
+      text: `Who is the target audience for this ${mainSubject}?`,
       examples: ['general public', 'professionals', 'beginners', 'experts in the field'],
       category: 'Audience'
     });
@@ -273,9 +272,9 @@ function generateContentSpecificQuestions(promptText: string, elements: Extracte
       category: 'Purpose'
     });
     
-    if (hasActions && hasSubjects) {
+    if (elements.actions.length > 0 && elements.subjects.length > 0) {
       questions.push({
-        text: `What specific results are you hoping to achieve by ${elements.actions[0].text} the ${elements.subjects[0].text}?`,
+        text: `What specific results are you hoping to achieve by ${elements.actions[0].text} the ${mainSubject}?`,
         examples: ['clarity', 'efficiency', 'visual appeal', 'better understanding'],
         category: 'Goals'
       });
@@ -293,25 +292,25 @@ function generateContentSpecificQuestions(promptText: string, elements: Extracte
 
 function generateEnhancedSubjectQuestions(subject: PromptElement, promptText: string, userIntent: string): any[] {
   const questions = [];
-  const subjectText = subject.text;
+  const cleanedSubject = cleanSubjectText(subject.text);
   
-  // Create questions that incorporate the actual subject
+  // Create questions that incorporate the cleaned subject
   questions.push({
-    text: `What specific aspects of the ${subjectText} are most important to you?`,
+    text: `What specific aspects of the ${cleanedSubject} are most important to you?`,
     examples: ['appearance', 'functionality', 'meaning', 'historical context'],
     category: 'Subject Focus'
   });
   
   // Add conditional questions based on subject type
-  if (isPhysicalObject(subjectText, promptText)) {
+  if (isPhysicalObject(cleanedSubject, promptText)) {
     questions.push({
-      text: `What should the ${subjectText} look like in terms of appearance?`,
+      text: `What should the ${cleanedSubject} look like in terms of appearance?`,
       examples: ['modern', 'vintage', 'sleek', 'ornate', 'minimalist'],
       category: 'Appearance'
     });
-  } else if (isConceptualSubject(subjectText, promptText)) {
+  } else if (isConceptualSubject(cleanedSubject, promptText)) {
     questions.push({
-      text: `How complex or detailed should the ${subjectText} be?`,
+      text: `How complex or detailed should the ${cleanedSubject} be?`,
       examples: ['simple and straightforward', 'moderately complex', 'highly detailed'],
       category: 'Complexity'
     });
@@ -412,6 +411,34 @@ function generateAdditionalQuestions(promptText: string, elements: ExtractedElem
   });
   
   return questions;
+}
+
+// New helper functions for text cleaning
+function cleanSubjectText(text: string): string {
+  if (!text) return 'result';
+  
+  // Remove any leading articles
+  text = text.replace(/^(a|an|the)\s+/i, '');
+  
+  // Clean any malformed text
+  text = text.replace(/\bn\b/g, '');
+  
+  // Ensure proper spacing
+  text = text.replace(/\s+/g, ' ').trim();
+  
+  return text || 'result';
+}
+
+function cleanText(text: string): string {
+  if (!text) return '';
+  
+  // Remove unwanted patterns
+  text = text
+    .replace(/\bn\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  return text;
 }
 
 // Helper functions
@@ -585,4 +612,3 @@ function toCamelCase(str: string): string {
     return index === 0 ? match.toLowerCase() : match.toUpperCase();
   });
 }
-
