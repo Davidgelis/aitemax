@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 export function generateContextQuestionsForPrompt(
@@ -17,6 +16,7 @@ export function generateContextQuestionsForPrompt(
   }
 
   // Extract meaningful content from the prompt
+  const promptWords = promptText.toLowerCase().split(/\s+/);
   const promptKeywords = extractMeaningfulKeywords(promptText);
   const promptTopics = extractTopics(promptText);
   
@@ -30,37 +30,147 @@ export function generateContextQuestionsForPrompt(
   
   // Only process template pillars if they exist
   if (template?.pillars && Array.isArray(template.pillars)) {
+    // Track keywords already used to avoid duplicates across pillars
+    const usedKeywordsGlobally = new Set<string>();
+    
     template.pillars.forEach((pillar: any) => {
       if (pillar && pillar.title) {
-        // Score and select the most relevant keywords for this pillar
-        const rankedKeywords = rankKeywordsByPillarRelevance(promptKeywords, pillar.title, promptText);
+        // For each pillar, get a set of unique prompt-specific keywords
+        const uniqueKeywordsForPillar = promptKeywords
+          .filter(keyword => 
+            // Ensure keyword actually appears in the prompt text (strict checking)
+            promptText.toLowerCase().includes(keyword.toLowerCase()) && 
+            // Don't reuse keywords across pillars
+            !usedKeywordsGlobally.has(keyword)
+          )
+          .slice(0, 3); // Limit to 3 keywords per pillar
         
-        if (rankedKeywords.length > 0) {
-          // Generate questions specific to this pillar's keywords
-          const pillarQuestions = generatePillarSpecificQuestions(
-            pillar,
-            rankedKeywords,
-            promptText,
-            3 // Generate top 3 questions per pillar
-          );
-
-          // Add generated questions with proper metadata
-          pillarQuestions.forEach(q => {
-            questions.push({
-              id: `q-${questionId++}`,
-              text: q.text,
-              answer: q.example || '',
-              isRelevant: true,
-              category: pillar.title,
-              contextSource: 'prompt'
-            });
+        if (uniqueKeywordsForPillar.length > 0) {
+          // Add these keywords to the global used set
+          uniqueKeywordsForPillar.forEach(keyword => usedKeywordsGlobally.add(keyword));
+          
+          // Generate questions using only these verified prompt-specific keywords
+          uniqueKeywordsForPillar.forEach(keyword => {
+            // Double verify the keyword is in the prompt with exact matching
+            if (verifyKeywordInPrompt(keyword, promptText)) {
+              const questionText = `How should ${keyword} in the context of ${pillar.title.toLowerCase()} be handled to achieve your goal?`;
+              const examplePoints = generatePromptSpecificExamples(keyword, pillar.title, promptText);
+              
+              questions.push({
+                id: `q-${questionId++}`,
+                text: questionText,
+                answer: `E.g: ${examplePoints.join(', ')}`,
+                isRelevant: true,
+                category: pillar.title,
+                contextSource: 'prompt'
+              });
+            }
           });
         }
       }
     });
+    
+    // If we didn't generate enough questions, try a different approach with key phrases
+    if (questions.length < template.pillars.length * 2) {
+      const keyPhrases = extractKeyPhrases(promptText);
+      console.log(`Generated ${keyPhrases.length} key phrases from prompt`);
+      
+      let additionalQuestionsAdded = 0;
+      
+      template.pillars.forEach((pillar: any) => {
+        if (pillar && pillar.title) {
+          // How many more questions we need for this pillar
+          const questionsForThisPillar = questions.filter(q => q.category === pillar.title).length;
+          const neededQuestions = 3 - questionsForThisPillar;
+          
+          if (neededQuestions > 0) {
+            // Find phrases not already used in questions
+            const availablePhrases = keyPhrases.filter(phrase => 
+              !questions.some(q => q.text.includes(phrase)) &&
+              verifyKeywordInPrompt(phrase, promptText)
+            );
+            
+            // Take what we need
+            const phrasesToUse = availablePhrases.slice(0, neededQuestions);
+            
+            phrasesToUse.forEach(phrase => {
+              const questionText = `How should ${phrase} in the context of ${pillar.title.toLowerCase()} be handled to achieve your goal?`;
+              const examplePoints = generatePromptSpecificExamples(phrase, pillar.title, promptText);
+              
+              questions.push({
+                id: `q-${questionId++}`,
+                text: questionText,
+                answer: `E.g: ${examplePoints.join(', ')}`,
+                isRelevant: true,
+                category: pillar.title,
+                contextSource: 'prompt'
+              });
+              
+              additionalQuestionsAdded++;
+            });
+          }
+        }
+      });
+      
+      console.log(`Added ${additionalQuestionsAdded} additional questions using key phrases`);
+    }
   }
 
-  return questions;
+  // Final verification pass to ensure all questions reference prompt content
+  const verifiedQuestions = questions.filter(question => {
+    const isPromptSpecific = isQuestionPromptSpecific(question.text, promptText);
+    if (!isPromptSpecific) {
+      console.log(`Filtering out non-prompt-specific question: "${question.text}"`);
+    }
+    return isPromptSpecific;
+  });
+
+  console.log(`Generated ${questions.length} questions, ${verifiedQuestions.length} verified as prompt-specific`);
+  return verifiedQuestions;
+}
+
+// Verify a keyword actually appears in the prompt (as a whole word, not part of another word)
+function verifyKeywordInPrompt(keyword: string, promptText: string): boolean {
+  // Clean up the keyword and prompt for comparison
+  const cleanKeyword = keyword.toLowerCase().replace(/[^\w\s]/g, '');
+  const cleanPrompt = promptText.toLowerCase().replace(/[^\w\s]/g, ' ');
+  
+  // Check if the keyword appears as a whole word or exact phrase
+  const keywordRegex = new RegExp(`\\b${cleanKeyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+  return keywordRegex.test(cleanPrompt);
+}
+
+// Check if a question is properly specific to the prompt
+function isQuestionPromptSpecific(questionText: string, promptText: string): boolean {
+  // Extract the subject of the question (usually after "How should" and before "in the context of")
+  const subjectMatch = questionText.match(/How should\s+([^]+?)\s+in the context of/i);
+  if (!subjectMatch || !subjectMatch[1]) return false;
+  
+  const subject = subjectMatch[1].toLowerCase();
+  
+  // Check if this subject actually appears in the prompt
+  return verifyKeywordInPrompt(subject, promptText);
+}
+
+// Extract key phrases that might represent important concepts in the prompt
+function extractKeyPhrases(promptText: string): string[] {
+  const phrases = [];
+  const words = promptText.toLowerCase().split(/\s+/);
+  
+  // Look for noun + adjective patterns and other common phrase patterns
+  for (let i = 0; i < words.length - 1; i++) {
+    if (words[i].length > 2 && words[i+1].length > 2) { // Both words must be substantial
+      phrases.push(`${words[i]} ${words[i+1]}`);
+    }
+  }
+  
+  // Also extract any capitalized phrases (proper nouns)
+  const capitalizedPhraseRegex = /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g;
+  const capitalizedMatches = promptText.match(capitalizedPhraseRegex) || [];
+  capitalizedMatches.forEach(match => phrases.push(match.toLowerCase()));
+  
+  // Deduplicate and return
+  return [...new Set(phrases)];
 }
 
 // Extract meaningful keywords that represent concepts, actions, or entities from the prompt
@@ -73,7 +183,7 @@ function extractMeaningfulKeywords(promptText: string): string[] {
     'her', 'hers', 'it', 'its', 'they', 'them', 'their', 'theirs', 'this', 'that', 
     'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 
     'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'would', 'will', 
-    'shall', 'should', 'can', 'could', 'may', 'might', 'must', 'ought'
+    'shall', 'should', 'can', 'could', 'may', 'might', 'must', 'ought', 'how', 'context'
   ]);
   
   // Extract words, focusing on longer ones that are likely meaningful
@@ -99,9 +209,40 @@ function extractMeaningfulKeywords(promptText: string): string[] {
     }
   }
   
-  // Combine individual words with meaningful phrases
-  const uniqueKeywords = new Set([...words, ...phrases]);
-  return Array.from(uniqueKeywords);
+  // Find most relevant individual words (likely nouns and verbs)
+  const wordScore = new Map<string, number>();
+  words.forEach(word => {
+    // Score based on word characteristics
+    let score = word.length; // Longer words often more meaningful
+    
+    // Higher score for capitalized words in original text (likely nouns)
+    if (promptText.match(new RegExp(`\\b${word}\\b`, 'i'))) {
+      if (promptText.match(new RegExp(`\\b${word[0].toUpperCase()}${word.slice(1)}\\b`))) {
+        score += 3;
+      }
+    }
+    
+    // Higher score for words that appear multiple times
+    const occurrences = promptText.toLowerCase().split(word).length - 1;
+    score += occurrences;
+    
+    wordScore.set(word, score);
+  });
+  
+  // Sort words by score and take top ones
+  const topWords = Array.from(wordScore.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(entry => entry[0]);
+  
+  // Combine individual words with meaningful phrases, but verify each actually appears in the text
+  const candidates = [...topWords, ...phrases];
+  const verifiedKeywords = candidates.filter(keyword => 
+    verifyKeywordInPrompt(keyword, promptText)
+  );
+  
+  // Deduplicate and return
+  return [...new Set(verifiedKeywords)];
 }
 
 // Extract main topics or subjects from the prompt
@@ -126,126 +267,11 @@ function extractTopics(promptText: string): string[] {
   return Array.from(new Set(topics));
 }
 
-// Rank keywords based on their relevance to the pillar
-function rankKeywordsByPillarRelevance(keywords: string[], pillarTitle: string, promptText: string): string[] {
-  const scoredKeywords = keywords.map(keyword => {
-    let score = 0;
-    
-    // ONLY consider keywords that actually appear in the prompt text
-    const keywordRegex = new RegExp("\\b" + keyword + "\\b", 'gi');
-    const occurrences = (promptText.match(keywordRegex) || []).length;
-    
-    // If keyword doesn't appear in prompt text, give it a negative score
-    if (occurrences === 0) {
-      score = -100; // This ensures it won't be used
-    } else {
-      // Score based on occurrences
-      score += occurrences * 2;
-      
-      // Higher score if keyword is related to pillar
-      if (pillarTitle.toLowerCase().includes(keyword.toLowerCase()) || 
-          keyword.toLowerCase().includes(pillarTitle.toLowerCase())) {
-        score += 3;
-      }
-      
-      // Higher score for action verbs common in development
-      if (keyword.match(/(creat|build|design|develop|implement|add|make|generat|integrat|deploy)/i)) {
-        score += 2;
-      }
-      
-      // Higher score for words that appear near the pillar title in the prompt
-      const pillarProximity = promptText.toLowerCase().indexOf(pillarTitle.toLowerCase());
-      const keywordPosition = promptText.toLowerCase().indexOf(keyword.toLowerCase());
-      if (pillarProximity >= 0 && keywordPosition >= 0) {
-        const distance = Math.abs(pillarProximity - keywordPosition);
-        if (distance < 50) score += (50 - distance) / 10; // Closer = higher score
-      }
-    }
-    
-    return { keyword, score };
-  });
-  
-  // Sort by score and return just the keywords, filtering out any with negative scores
-  return scoredKeywords
-    .filter(k => k.score > 0) // Only include keywords that actually appear in the prompt
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5)  // Take top 5 most relevant keywords
-    .map(k => k.keyword);
-}
-
-// Generate focused questions for each pillar using prompt-specific keywords
-function generatePillarSpecificQuestions(
-  pillar: any,
-  keywords: string[],
-  promptText: string,
-  questionsPerPillar: number
-): Array<{ text: string; example: string }> {
-  const questions: Array<{ text: string; example: string }> = [];
-  
-  // Create questions using the top keywords, but ensure uniqueness
-  const usedKeywords = new Set<string>();
-  
-  for (const keyword of keywords) {
-    // Skip if we have enough questions or if keyword was already used
-    if (questions.length >= questionsPerPillar || usedKeywords.has(keyword)) {
-      continue;
-    }
-    
-    // Double check keyword is actually in the prompt with a more strict check
-    const keywordRegex = new RegExp("\\b" + keyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "\\b", 'i');
-    if (keywordRegex.test(promptText)) {
-      const questionText = `How should ${keyword} in the context of ${pillar.title.toLowerCase()} be handled to achieve your goal?`;
-      
-      // Generate multiple example points
-      const examplePoints = generateExamplePoints(keyword, pillar.title, promptText);
-      
-      questions.push({
-        text: questionText,
-        example: `E.g: ${examplePoints.join(', ')}`
-      });
-      
-      usedKeywords.add(keyword);
-    }
-  }
-  
-  // If we still need more questions, try with more general prompt-specific questions
-  if (questions.length < questionsPerPillar) {
-    const remainingKeywordsNeeded = questionsPerPillar - questions.length;
-    
-    // Use any additional keywords that might be in the prompt but weren't selected earlier
-    const allKeywords = extractMeaningfulKeywords(promptText);
-    const unusedKeywords = allKeywords.filter(k => !usedKeywords.has(k));
-    
-    for (const keyword of unusedKeywords) {
-      if (questions.length >= questionsPerPillar) break;
-      
-      // Double check keyword is actually in the prompt
-      const keywordRegex = new RegExp("\\b" + keyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "\\b", 'i');
-      if (keywordRegex.test(promptText)) {
-        const questionText = `How should ${keyword} in the context of ${pillar.title.toLowerCase()} be handled to achieve your goal?`;
-        
-        // Generate example points
-        const examplePoints = generateExamplePoints(keyword, pillar.title, promptText);
-        
-        questions.push({
-          text: questionText,
-          example: `E.g: ${examplePoints.join(', ')}`
-        });
-        
-        usedKeywords.add(keyword);
-      }
-    }
-  }
-
-  return questions;
-}
-
-// Generate concise example points relevant to the keyword and pillar
-function generateExamplePoints(keyword: string, pillarTitle: string, promptText: string): string[] {
-  // Base examples on prompt content and keyword context
+// Generate examples that are specifically relevant to the keyword and prompt content
+function generatePromptSpecificExamples(keyword: string, pillarTitle: string, promptText: string): string[] {
   const examples: string[] = [];
   
-  // Look for action verbs in the prompt
+  // Extract action verbs from the prompt to make examples more relevant
   const actionVerbRegex = /(create|build|design|develop|implement|add|make|generate|optimize|enhance|improve|integrate)/gi;
   const actionVerbs = [];
   let match;
@@ -257,37 +283,36 @@ function generateExamplePoints(keyword: string, pillarTitle: string, promptText:
   // Use found action verbs, or defaults if none found
   const verbs = actionVerbs.length > 0 ? 
     [...new Set(actionVerbs)] : 
-    ['Define', 'Plan', 'Implement', 'Test'];
+    ['Define', 'Create', 'Implement'];
   
-  // Generate specific examples
-  if (pillarTitle.toLowerCase().includes('design')) {
-    examples.push(`${verbs[0] || 'Create'} ${keyword} visual elements`);
-    examples.push(`Ensure ${keyword} matches brand identity`);
-    examples.push(`Plan ${keyword} user experience flow`);
-  } 
-  else if (pillarTitle.toLowerCase().includes('function') || pillarTitle.toLowerCase().includes('task')) {
-    examples.push(`${verbs[0] || 'Define'} ${keyword} requirements`);
-    examples.push(`${verbs[1] || 'Implement'} ${keyword} functionality`);
-    examples.push(`Test ${keyword} performance`);
-  }
-  else if (pillarTitle.toLowerCase().includes('content')) {
-    examples.push(`Structure ${keyword} information hierarchy`);
-    examples.push(`Create ${keyword} copy guidelines`);
-    examples.push(`Develop ${keyword} content strategy`);
-  }
-  else {
-    // Default examples based on verbs found in the prompt
-    for (let i = 0; i < Math.min(verbs.length, 3); i++) {
-      examples.push(`${verbs[i]} ${keyword} ${pillarTitle.toLowerCase()}`);
+  // Create examples using prompt-specific content when possible
+  // Extract nouns from the prompt to use in examples
+  const promptNouns = promptText.toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 3 && !actionVerbs.includes(word.toLowerCase()));
+  
+  // Use the most relevant verb + keyword combinations
+  if (verbs.length > 0 && promptNouns.length > 0) {
+    // Use first verb with keyword directly
+    examples.push(`${verbs[0]} ${keyword}`);
+    
+    // Use second verb (if available) with keyword and context from prompt
+    if (verbs.length > 1) {
+      const contextNoun = promptNouns.find(noun => noun !== keyword) || pillarTitle.toLowerCase();
+      examples.push(`${verbs[1]} ${keyword} for ${contextNoun}`);
     }
     
-    // Add one more example if we don't have enough
-    if (examples.length < 3) {
-      examples.push(`Review ${keyword} results`);
-    }
+    // Add a third example with more context
+    examples.push(`Ensure ${keyword} aligns with ${pillarTitle.toLowerCase()} requirements`);
+  } else {
+    // Fallback examples if we couldn't extract good verbs/nouns
+    examples.push(`Define ${keyword} requirements`);
+    examples.push(`Implement ${keyword} in ${pillarTitle.toLowerCase()}`);
+    examples.push(`Optimize ${keyword} performance`);
   }
   
-  return examples.slice(0, 4); // Limit to 4 examples
+  return examples;
 }
 
 export function generateContextualVariablesForPrompt(
@@ -322,7 +347,6 @@ export function generateContextualVariablesForPrompt(
   return variables;
 }
 
-// Utility function to convert a string to camelCase
 function toCamelCase(str: string): string {
   return str.replace(/(?:^\w|[A-Z]|\b\w|\s+)/g, function(match, index) {
     if (+match === 0) return ""; // or if (/\s+/.test(match)) for white spaces
@@ -330,7 +354,6 @@ function toCamelCase(str: string): string {
   });
 }
 
-// Helper function to extract meaningful keywords from the prompt
 function extractKeywords(promptText: string): string[] {
   // Remove common words and extract key terms
   const commonWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for']);

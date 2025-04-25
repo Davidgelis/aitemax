@@ -20,14 +20,15 @@ Question Generation Rules:
 Question Format:
 - Questions should follow pattern: "How should [keyword from prompt] in the context of [pillar] be handled to achieve your goal?"
 - Example points should be brief and action-oriented
-- Questions must be grouped by relevant template pillars`;
+- Questions must be grouped by relevant template pillars
+- NEVER generate questions about topics not specifically mentioned in the prompt`;
 
   // Add template-specific instructions if template exists
   if (template && Array.isArray(template.pillars)) {
     systemPrompt += `\n\nTemplate Integration:\n`;
     template.pillars.forEach((pillar: any) => {
       if (pillar && pillar.title) {
-        systemPrompt += `\n"${pillar.title}": Generate focused questions that connect ONLY keywords and topics mentioned in the prompt content with ${pillar.description}. Never create generic questions. Each question must include specific prompt content and 3-4 example points.\n`;
+        systemPrompt += `\n"${pillar.title}": Generate focused questions that connect ONLY keywords and topics mentioned in the prompt content with ${pillar.description}. Never create generic questions. Each question must include specific prompt content and 3-4 example points that directly relate to the prompt's specific content.\n`;
       }
     });
   }

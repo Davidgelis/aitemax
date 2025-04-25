@@ -303,6 +303,14 @@ serve(async (req) => {
           
           return q;
         });
+        
+        // Verify prompt-specificity for each question
+        parsedContent.questions = parsedContent.questions.filter(q => 
+          isQuestionRelatedToPrompt(q.text, promptText) ||
+          q.contextSource === 'image' // Image questions are always kept
+        );
+        
+        console.log(`After prompt-specificity verification, kept ${parsedContent.questions.length} questions`);
       }
     } catch (error) {
       console.error("Failed to parse content:", error);
@@ -343,7 +351,7 @@ serve(async (req) => {
           console.log(`Filtered out non-prompt-specific question: "${q.text.substring(0, 30)}..."`);
         }
         
-        return isQuestionSpecificToPrompt;
+        return isQuestionSpecificToPrompt || q.contextSource === 'image';
       });
 
       // Check if the filtered AI questions have good coverage across pillars and match user intent
@@ -385,6 +393,21 @@ serve(async (req) => {
         // Keep our locally generated questions
       }
     }
+    
+    // One final check to filter non-prompt-specific questions
+    questions = questions.filter(question => {
+      // Always keep image analysis questions
+      if (question.contextSource === 'image') return true;
+      
+      // For regular questions, verify they're prompt-specific
+      const isSpecific = isQuestionRelatedToPrompt(question.text, promptText);
+      if (!isSpecific) {
+        console.log(`Final filter removed non-specific question: "${question.text}"`);
+      }
+      return isSpecific;
+    });
+    
+    console.log(`After final filtering, keeping ${questions.length} prompt-specific questions`);
     
     // Generate variables with appropriate detail level
     let variables = generateContextualVariablesForPrompt(
@@ -555,23 +578,67 @@ function extractNumberedListQuestions(text: string): string[] {
   return questions;
 }
 
-// New function to check if a question is related to the prompt
+// Enhanced function to check if a question is related to the prompt
 function isQuestionRelatedToPrompt(questionText: string, promptText: string): boolean {
   if (!promptText || !questionText) return false;
   
-  // Extract meaningful keywords from the prompt (ignore common words)
+  // Extract the keyword/subject from the question (between "How should" and "in the context of")
+  const subjectMatch = questionText.match(/How should\s+([^]+?)\s+in the context of/i);
+  if (!subjectMatch || !subjectMatch[1]) {
+    // If we can't extract the subject with this pattern, use a fallback approach
+    return fallbackPromptSpecificityCheck(questionText, promptText);
+  }
+  
+  const subject = subjectMatch[1].trim().toLowerCase();
+  
+  // Create a regex that matches the subject as a whole word or phrase
+  // This handles both single words and multi-word phrases
+  const subjectRegex = new RegExp(
+    `\\b${subject.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 
+    'i'
+  );
+  
+  // Check if the subject appears in the prompt
+  if (subjectRegex.test(promptText.toLowerCase())) {
+    return true;
+  }
+  
+  // If the subject is a phrase, check if each significant word appears in the prompt
+  if (subject.includes(' ')) {
+    const significantWords = subject
+      .split(/\s+/)
+      .filter(word => word.length > 3); // Only consider significant words
+    
+    const allSignificantWordsInPrompt = significantWords.every(word => {
+      const wordRegex = new RegExp(`\\b${word.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+      return wordRegex.test(promptText.toLowerCase());
+    });
+    
+    if (allSignificantWordsInPrompt && significantWords.length > 0) {
+      return true;
+    }
+  }
+  
+  // If still no match, use the fallback approach
+  return fallbackPromptSpecificityCheck(questionText, promptText);
+}
+
+// Fallback method to check prompt specificity when the main pattern fails
+function fallbackPromptSpecificityCheck(questionText: string, promptText: string): boolean {
+  // Extract meaningful words from question and prompt
+  const questionWords = questionText.toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 3);
+  
   const promptWords = promptText.toLowerCase()
     .replace(/[^\w\s]/g, ' ')
     .split(/\s+/)
-    .filter(w => w.length > 3)
-    .map(w => w.replace(/[^a-z]/g, ''));
+    .filter(word => word.length > 3);
   
-  // Check if the question contains any of the meaningful keywords from the prompt
-  const questionLower = questionText.toLowerCase();
-  
-  return promptWords.some(word => {
-    // Create a regex that matches the word as a whole word, not as part of another word
-    const wordRegex = new RegExp(`\\b${word}\\b`, 'i');
-    return wordRegex.test(questionLower);
+  // Check if any significant words from the question appear in the prompt
+  return questionWords.some(qWord => {
+    const wordRegex = new RegExp(`\\b${qWord.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+    return wordRegex.test(promptText.toLowerCase());
   });
 }
