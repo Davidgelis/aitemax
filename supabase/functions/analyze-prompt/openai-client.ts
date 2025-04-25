@@ -1,4 +1,3 @@
-
 export async function analyzePromptWithAI(
   promptText: string, 
   systemMessage: string, 
@@ -20,58 +19,24 @@ export async function analyzePromptWithAI(
   console.log(`Using OpenAI model: ${model}`);
 
   try {
-    // Validate and clean base64 string if provided
-    let cleanBase64 = null;
-    let imageInstructions = null;
+    let userContent: string | Array<any> = promptText;
     
-    if (imageBase64) {
-      try {
-        cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '').replace(/\s/g, '');
-        
-        // Extract user's analysis instructions from the prompt
-        const instructionsMatch = promptText.match(/Image Analysis Instructions:\s*([^]*?)(?:\n\n|$)/i);
-        imageInstructions = instructionsMatch ? instructionsMatch[1].trim() : null;
-        
-        // Validate base64 string
-        const isValidBase64 = /^[A-Za-z0-9+/=]+$/.test(cleanBase64);
-        if (!isValidBase64) {
-          console.error("Invalid base64 string for image");
-          cleanBase64 = null; // Don't use the invalid image
-        } else {
-          console.log("Image analysis instructions detected:", imageInstructions);
-        }
-      } catch (error) {
-        console.error("Error processing image data:", error);
-        cleanBase64 = null; // Reset on error
-      }
-    }
-    
-    let userContent: string | Array<any>;
-    if (cleanBase64) {
-      userContent = [
-        {
-          type: "text",
-          text: `Analyze this prompt with the following context:\n${promptText}${
-            smartContext ? `\n\nAdditional context: ${smartContext}` : ''
-          }\n\nFor image analysis:\n1. Only analyze aspects specifically requested by user\n2. Provide clear, factual descriptions of requested elements\n3. Focus on describing what exists, not suggesting changes\n\nUser's image analysis instructions: ${imageInstructions || 'No specific instructions provided'}`
-        },
-        {
-          type: "image_url",
-          image_url: {
-            url: `data:image/jpeg;base64,${cleanBase64}`,
-            detail: "high"
-          }
-        }
-      ];
-    } else {
-      userContent = promptText + (smartContext ? `\n\nAdditional context: ${smartContext}` : '');
+    // Only add smart context if it exists and is meaningful
+    if (smartContext && typeof smartContext === 'string' && smartContext.trim().length > 0) {
+      userContent = `${promptText}\n\nAdditional context: ${smartContext}`;
     }
 
-    // Prepare messages array after userContent is defined
+    // Prepare messages array
     const messages = [
       { 
         role: 'system', 
-        content: systemMessage 
+        content: `${systemMessage}\n\nIMPORTANT GUIDELINES FOR QUESTION GENERATION:
+1. Generate questions ONLY based on the user's prompt text
+2. Each question must directly relate to understanding or clarifying the user's specific request
+3. Organize questions according to the template pillars provided
+4. Each question must include a brief, one-sentence example answer
+5. Do not generate generic questions - every question must be specific to the user's input
+6. Questions must help gather missing information needed to fulfill the user's request`
       },
       {
         role: 'user',
@@ -131,8 +96,6 @@ export async function analyzePromptWithAI(
     
   } catch (error) {
     console.error("Error in analyzePromptWithAI:", error);
-    
-    // Provide a fallback response for unhandled errors
     return {
       content: JSON.stringify({
         questions: [],

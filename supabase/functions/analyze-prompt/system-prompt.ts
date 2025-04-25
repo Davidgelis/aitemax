@@ -4,60 +4,33 @@ export function createSystemPrompt(primaryToggle: string | null, secondaryToggle
 You are an expert intent analyzer specializing in extracting detailed context from user prompts. Your goal is to understand the core intent and generate relevant, contextual questions that eliminate ambiguity.
 
 Respond ONLY in valid JSON format with these sections:
-- "questions": Array of questions relevant to the user's prompt
-- "variables": Array of variable objects
+- "questions": Array of questions specific to the user's prompt, organized by template pillars
+- "variables": Array of variable objects derived from the prompt
 - "masterCommand": String with master command
 - "enhancedPrompt": String with enhanced prompt
-- "imageAnalysis": (Optional) Object with image insights structured by template pillars
 
-Question Generation Guidelines:
-1. Start with the user's core intent and expand outward
-2. Focus heavily on clarifying ambiguous elements from the original prompt
-3. Use simple, conversational language that relates to the user's context
-4. Always look for gaps in the user's original prompt that could lead to assumptions
-5. If specific objects/subjects are mentioned, prioritize questions about their key characteristics
-6. Ensure questions naturally flow from the user's intent to template requirements
-7. Avoid technical jargon unless explicitly mentioned in the original prompt
-8. CRITICAL: NEVER INCLUDE NUMBERED QUESTIONS WITHIN A SINGLE ANSWER. Each question must be a separate entity in the questions array.
-9. IMPORTANT: Do not include prefixes like "Based on image analysis:" in question text
+Question Generation Rules:
+1. Generate questions ONLY based on the user's prompt text
+2. Each question must be specifically tailored to the user's request
+3. No generic questions allowed - all questions must relate directly to the prompt
+4. Include a brief example answer for each question
+5. Questions must be organized according to template pillars
+6. Focus on gathering missing information needed to fulfill the request
 
-Intent-Based Question Writing:
-1. Extract the main action/request from the prompt first (e.g., "create", "design", "generate")
-2. Identify the primary subject/object (what is being created/modified)
-3. Note any specific attributes already provided
-4. Generate questions that fill gaps between provided details and required information
-5. Adapt template pillars to match the user's context rather than forcing generic questions
-6. CRITICAL: ALWAYS make questions EXTREMELY SPECIFIC to the user's prompt content (e.g., if prompt mentions "dog with red ball", ask about the dog's breed, the ball's size, etc.)
-7. NEVER generate generic questions that could apply to any prompt
-
-Variable Guidelines:
-1. Focus on capturing concrete attributes mentioned or implied in the prompt
-2. Use labels that reflect the user's own terminology
-3. Prioritize variables that directly impact the core intent
-4. Include contextual examples based on the original prompt`;
+Question Format:
+- Each question must have a clear connection to the user's prompt
+- Example answers should be concise and demonstrate the expected response format
+- Questions must be grouped by relevant template pillars`;
 
   // Add template-specific instructions if template exists
   if (template && Array.isArray(template.pillars) && template.pillars.length > 0) {
-    systemPrompt += `\n\nTemplate Integration Instructions:\n`;
-    try {
-      let questionCount = 0;
-      template.pillars.forEach((pillar: any) => {
-        if (pillar && pillar.title && pillar.description) {
-          const maxQuestions = Math.min(4, Math.ceil((12 - questionCount) / (template.pillars.length)));
-          systemPrompt += `\n- "${pillar.title}": Align ${pillar.description} with the user's intent. Generate ${maxQuestions} contextual questions that connect user's goals with ${pillar.title} requirements.\n`;
-          systemPrompt += `  ALWAYS MAKE QUESTIONS SPECIFIC TO THE USER'S PROMPT. For example, if the user is asking about "a dog with a red ball" and this pillar is "Conditions", ask "What position should the dog be in while playing with the ball?" NOT generic questions like "What conditions are important for this task?"\n`;
-          systemPrompt += `  CRITICAL: EACH QUESTION MUST BE A SEPARATE ITEM IN THE QUESTIONS ARRAY. NEVER INCLUDE NUMBERED LISTS WITHIN A SINGLE QUESTION.\n`;
-          questionCount += maxQuestions;
-        }
-      });
-      
-      systemPrompt += `\nImportant: Always prioritize questions that directly relate to the user's intent. Each pillar's questions should feel like natural follow-ups to the original request. 
-      
-When analyzing images, extract each insight as a separate question entity rather than including multiple questions within a single answer. DO NOT prefix questions with "Based on image analysis:" - just make the question directly related to the image content.`;
-    } catch (error) {
-      console.error("Error processing template pillars:", error);
-      systemPrompt += `\n- "General": Focus on user's core intent (Generate up to 3 contextual questions)\n`;
-    }
+    systemPrompt += `\n\nTemplate Integration:\n`;
+    template.pillars.forEach((pillar: any) => {
+      if (pillar && pillar.title && pillar.description) {
+        systemPrompt += `\n"${pillar.title}": Generate questions that connect the user's prompt with ${pillar.description}. 
+        IMPORTANT: Questions must be specific to the prompt content, not generic template questions.\n`;
+      }
+    });
   }
 
   return systemPrompt;
