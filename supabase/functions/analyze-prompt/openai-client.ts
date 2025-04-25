@@ -7,6 +7,7 @@ export async function analyzePromptWithAI(
   imageBase64?: string | null,
   model: string = "gpt-4o"
 ): Promise<any> {
+  // Input validation with detailed logging
   if (!promptText || typeof promptText !== 'string') {
     console.error("Invalid prompt text:", promptText);
     throw new Error("Invalid prompt text provided");
@@ -17,6 +18,7 @@ export async function analyzePromptWithAI(
     throw new Error("OpenAI API key is required");
   }
 
+  console.log(`Processing prompt with length: ${promptText.length} characters`);
   console.log(`Using OpenAI model: ${model}`);
 
   try {
@@ -32,7 +34,8 @@ export async function analyzePromptWithAI(
 5. Generate at least 6-10 questions for any non-trivial prompt
 6. Questions must help gather information needed to fulfill the user's request perfectly
 7. Every question should be phrased in a conversational, user-friendly manner
-8. Ensure questions cover both high-level goals and specific details needed to complete the request`
+8. Ensure questions cover both high-level goals and specific details needed to complete the request
+9. Process and analyze the entire prompt text to generate comprehensive questions`
       }
     ];
 
@@ -54,13 +57,11 @@ export async function analyzePromptWithAI(
         }
       ];
       
-      // Add specific image analysis guidance
       messages.push({
         role: 'user',
         content: userContent
       });
       
-      // Add follow-up message with image analysis instructions
       messages.push({
         role: 'system',
         content: `Also perform a detailed image analysis. For the image, analyze and provide:
@@ -72,7 +73,7 @@ export async function analyzePromptWithAI(
 6. Generate specific questions about what the user wants to do with or change about this image`
       });
     } else {
-      // Text-only analysis
+      // Text-only analysis - ensure complete text is processed
       userContent = promptText;
       
       // Only add smart context if it exists and is meaningful
@@ -80,13 +81,15 @@ export async function analyzePromptWithAI(
         userContent = `${promptText}\n\nAdditional context: ${smartContext}`;
       }
       
+      console.log(`Final content length being sent to OpenAI: ${userContent.length} characters`);
+      
       messages.push({
         role: 'user',
         content: userContent
       });
     }
 
-    // Make API call with proper JSON format configuration
+    // Make API call with proper JSON format configuration and increased max_tokens
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -97,7 +100,7 @@ export async function analyzePromptWithAI(
         model: model,
         messages: messages,
         temperature: 0.7,
-        max_tokens: 2000,
+        max_tokens: 4000, // Increased to handle longer responses
         response_format: { type: "json_object" }
       }),
     });
@@ -106,7 +109,6 @@ export async function analyzePromptWithAI(
       const errorText = await response.text();
       console.error(`OpenAI API error (${response.status}):`, errorText);
       
-      // Provide a fallback response for common error scenarios
       if (response.status === 413 || response.status === 429 || response.status === 400) {
         console.log("Providing fallback response due to API error");
         return {

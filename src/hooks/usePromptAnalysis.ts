@@ -107,7 +107,15 @@ export const usePromptAnalysis = (
     websiteContext: { url: string; instructions: string } | null = null,
     smartContext: { context: string; usageInstructions: string } | null = null
   ) => {
-    console.log("Starting analysis with prompt:", promptText.substring(0, 50) + "...");
+    console.log("Starting analysis with complete prompt:", {
+      promptLength: promptText.length,
+      promptFirstChars: promptText.substring(0, 50) + "...",
+      promptLastChars: promptText.substring(promptText.length - 50) + "...",
+      hasImages: !!uploadedImages && uploadedImages.length > 0,
+      hasSmartContext: !!smartContext?.context,
+      hasWebContext: !!websiteContext?.url
+    });
+    
     setIsLoading(true);
     setCurrentLoadingMessage("Analyzing your prompt...");
 
@@ -152,7 +160,7 @@ export const usePromptAnalysis = (
           hasBase64: !!img.base64,
           base64Length: img.base64 ? img.base64.length : 0,
           hasContext: !!img.context,
-          contextText: img.context ? img.context.substring(0, 30) + '...' : 'none'
+          contextLength: img.context ? img.context.length : 0
         })),
         hasValidImageData,
         hasSmartContext: !!smartContext?.context,
@@ -162,7 +170,7 @@ export const usePromptAnalysis = (
 
       const { data, error } = await supabase.functions.invoke("analyze-prompt", {
         body: {
-          promptText,
+          promptText,  // Send complete prompt text
           primaryToggle: selectedPrimary,
           secondaryToggle: selectedSecondary,
           userId: user?.id || null,
