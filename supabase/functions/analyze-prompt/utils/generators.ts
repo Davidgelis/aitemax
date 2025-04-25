@@ -19,214 +19,175 @@ export function generateContextQuestionsForPrompt(
   const promptElements = extractKeyElements(promptText);
   console.log("Extracted elements:", promptElements);
 
-  // Process template pillars if they exist
-  if (template?.pillars && Array.isArray(template.pillars)) {
-    template.pillars.forEach((pillar: any) => {
-      if (!pillar || !pillar.title) return;
+  // Generate base contextual questions
+  const baseQuestions = generateBaseContextualQuestions(promptText, promptElements);
+  questions.push(...baseQuestions.map((q, index) => ({
+    id: `q-${questionId++}`,
+    text: q.text,
+    answer: q.examples ? `E.g: ${q.examples.join(', ')}` : '',
+    isRelevant: true,
+    category: q.category || 'Context',
+    contextSource: 'prompt'
+  })));
 
-      // Generate contextual questions based on prompt elements
-      const contextQuestions = generateContextualQuestions(promptElements, pillar, promptText);
-      
-      contextQuestions.forEach(question => {
-        if (isQuestionValueAdding(question, questions, promptText)) {
-          questions.push({
-            id: `q-${questionId++}`,
-            text: question.text,
-            answer: question.examples ? `E.g: ${question.examples.join(', ')}` : '',
-            isRelevant: true,
-            category: pillar.title,
-            contextSource: 'prompt'
-          });
-        }
-      });
-    });
-  }
-  
-  // New: Generate default questions for simple prompts that had no questions generated
-  if (questions.length === 0 && promptText.length < 100) {
-    const defaultQuestions = generateDefaultQuestionsForSimplePrompt(promptElements, userIntent);
-    defaultQuestions.forEach(question => {
-      questions.push({
-        id: `q-${questionId++}`,
-        text: question.text,
-        answer: question.examples ? `E.g: ${question.examples.join(', ')}` : '',
-        isRelevant: true,
-        category: question.category || 'General',
-        contextSource: 'prompt'
-      });
-    });
-    console.log(`Generated ${defaultQuestions.length} default questions for simple prompt`);
-  }
+  // Generate specific contextual questions for each subject
+  promptElements.subjects.forEach(subject => {
+    const subjectQuestions = generateSubjectQuestions(subject, promptText);
+    questions.push(...subjectQuestions.map(q => ({
+      id: `q-${questionId++}`,
+      text: q.text,
+      answer: q.examples ? `E.g: ${q.examples.join(', ')}` : '',
+      isRelevant: true,
+      category: q.category || 'Subject Details',
+      contextSource: 'prompt'
+    })));
+  });
+
+  // Generate action-based questions
+  promptElements.actions.forEach(action => {
+    const actionQuestions = generateActionQuestions(action, promptText);
+    questions.push(...actionQuestions.map(q => ({
+      id: `q-${questionId++}`,
+      text: q.text,
+      answer: q.examples ? `E.g: ${q.examples.join(', ')}` : '',
+      isRelevant: true,
+      category: 'Action Details',
+      contextSource: 'prompt'
+    })));
+  });
+
+  // Generate attribute-based questions
+  promptElements.attributes.forEach(attribute => {
+    const attributeQuestions = generateAttributeQuestions(attribute, promptText);
+    questions.push(...attributeQuestions.map(q => ({
+      id: `q-${questionId++}`,
+      text: q.text,
+      answer: q.examples ? `E.g: ${q.examples.join(', ')}` : '',
+      isRelevant: true,
+      category: 'Attributes',
+      contextSource: 'prompt'
+    })));
+  });
 
   return questions;
 }
 
-interface PromptElements {
+function extractKeyElements(promptText: string): {
   subjects: string[];
   actions: string[];
   attributes: string[];
   context: string[];
-}
-
-function extractKeyElements(promptText: string): PromptElements {
+} {
   const words = promptText.toLowerCase().split(/\s+/);
   
-  // Improved keyword extraction using natural language patterns
   const subjects = words.filter(word => 
     word.length > 2 && !isCommonWord(word) && isLikelySubject(word, promptText)
   );
   
   const actions = words.filter(word => 
-    isActionWord(word) && !subjects.includes(word)
+    word.length > 3 && isActionWord(word) && !subjects.includes(word)
   );
   
   const attributes = words.filter(word =>
-    isDescriptiveWord(word) && !subjects.includes(word) && !actions.includes(word)
+    word.length > 3 && isDescriptiveWord(word) && !subjects.includes(word) && !actions.includes(word)
   );
   
   const context = words.filter(word =>
-    isContextualWord(word) && !subjects.includes(word) && 
+    word.length > 3 && isContextualWord(word) && !subjects.includes(word) && 
     !actions.includes(word) && !attributes.includes(word)
   );
 
   return { subjects, actions, attributes, context };
 }
 
-interface ContextualQuestion {
-  text: string;
-  examples: string[];
-  category?: string;
-}
+function generateBaseContextualQuestions(promptText: string, elements: any): any[] {
+  const questions = [];
 
-function generateContextualQuestions(
-  elements: PromptElements,
-  pillar: any,
-  originalPrompt: string
-): ContextualQuestion[] {
-  const questions: ContextualQuestion[] = [];
-  
-  // Generate questions based on missing context
-  if (elements.subjects.length > 0) {
-    elements.subjects.forEach(subject => {
-      if (!hasDetailedAttributes(subject, originalPrompt)) {
-        const question = generateDetailQuestion(subject, pillar, originalPrompt);
-        if (question) questions.push(question);
-      }
-    });
-  }
+  // Style and Tone Questions
+  questions.push({
+    text: "What style or tone should be used?",
+    examples: ['professional', 'casual', 'formal', 'playful'],
+    category: 'Style'
+  });
 
-  // Generate questions about environmental/contextual details
-  if (elements.actions.length > 0) {
-    elements.actions.forEach(action => {
-      if (!hasActionContext(action, originalPrompt)) {
-        const question = generateActionContextQuestion(action, pillar, originalPrompt);
-        if (question) questions.push(question);
-      }
+  // Purpose Questions
+  questions.push({
+    text: "What is the main purpose or goal?",
+    examples: ['inform', 'entertain', 'persuade', 'guide'],
+    category: 'Purpose'
+  });
+
+  // Audience Questions
+  questions.push({
+    text: "Who is the target audience?",
+    examples: ['general public', 'professionals', 'experts', 'beginners'],
+    category: 'Audience'
+  });
+
+  // Context Questions
+  if (elements.context.length > 0) {
+    questions.push({
+      text: "In what context should this be applied?",
+      examples: ['business', 'personal', 'educational', 'creative'],
+      category: 'Context'
     });
   }
 
   return questions;
 }
 
-// New function to generate default questions for simple prompts
-function generateDefaultQuestionsForSimplePrompt(elements: PromptElements, userIntent: string): ContextualQuestion[] {
-  const defaultQuestions: ContextualQuestion[] = [];
+function generateSubjectQuestions(subject: string, promptText: string): any[] {
+  const questions = [];
   
-  // Check for image creation intent
-  if (userIntent.toLowerCase().includes('image') || 
-      userIntent.toLowerCase().includes('photo') || 
-      userIntent.toLowerCase().includes('picture')) {
-    
-    // Extract main subject
-    const mainSubject = elements.subjects[0] || 'subject';
-    
-    // Add style question
-    defaultQuestions.push({
-      text: `What style or aesthetic should the ${mainSubject} image have?`,
-      examples: ['realistic', 'cartoon', 'watercolor', 'dramatic lighting'],
-      category: 'Style'
-    });
-    
-    // Add detail question
-    defaultQuestions.push({
-      text: `What specific details or characteristics of the ${mainSubject} should be emphasized?`,
-      examples: ['fur color', 'specific breed', 'size', 'expression'],
-      category: 'Details'
-    });
-    
-    // Add setting question
-    defaultQuestions.push({
-      text: `In what environment or setting should the ${mainSubject} be placed?`,
-      examples: ['indoors', 'backyard', 'beach', 'park', 'forest'],
-      category: 'Setting'
-    });
-  } else {
-    // Generic questions for other types of content
-    defaultQuestions.push({
-      text: 'What is the desired tone or style for this content?',
-      examples: ['professional', 'casual', 'technical', 'friendly'],
-      category: 'Style'
-    });
-    
-    defaultQuestions.push({
-      text: 'Are there any specific details that should be included?',
-      examples: ['particular features', 'specific information', 'key points'],
-      category: 'Content'
-    });
-  }
-  
-  return defaultQuestions;
+  questions.push({
+    text: `What specific characteristics of ${subject} should be emphasized?`,
+    examples: ['size', 'color', 'shape', 'texture'],
+    category: 'Characteristics'
+  });
+
+  questions.push({
+    text: `How should ${subject} be presented or positioned?`,
+    examples: ['prominently', 'subtly', 'in detail', 'abstractly'],
+    category: 'Presentation'
+  });
+
+  return questions;
 }
 
-function generateDetailQuestion(subject: string, pillar: any, prompt: string): ContextualQuestion | null {
-  // Generate specific questions based on the subject and pillar
-  const questionTypes = {
-    Appearance: {
-      text: `What specific details or characteristics of the ${subject} should be emphasized?`,
-      examples: generateSpecificExamples(subject, 'appearance', prompt)
-    },
-    Setting: {
-      text: `In what setting or environment should the ${subject} be placed?`,
-      examples: generateSpecificExamples(subject, 'setting', prompt)
-    },
-    Action: {
-      text: `How exactly should the ${subject} be positioned or what action should it be performing?`,
-      examples: generateSpecificExamples(subject, 'action', prompt)
-    }
-  };
+function generateActionQuestions(action: string, promptText: string): any[] {
+  const questions = [];
 
-  const questionType = determineQuestionType(pillar, subject);
-  return questionTypes[questionType] || null;
+  questions.push({
+    text: `How should the ${action} be performed or executed?`,
+    examples: ['quickly', 'gradually', 'precisely', 'naturally'],
+    category: 'Execution'
+  });
+
+  questions.push({
+    text: `What should be the intensity or level of ${action}?`,
+    examples: ['subtle', 'moderate', 'intense', 'varying'],
+    category: 'Intensity'
+  });
+
+  return questions;
 }
 
-function generateActionContextQuestion(action: string, pillar: any, prompt: string): ContextualQuestion | null {
-  return {
-    text: `How should the ${action} be specifically executed or presented?`,
-    examples: generateSpecificExamples(action, 'execution', prompt)
-  };
-}
+function generateAttributeQuestions(attribute: string, promptText: string): any[] {
+  const questions = [];
 
-function generateSpecificExamples(keyword: string, type: string, prompt: string): string[] {
-  // Generate contextually relevant examples based on the keyword and type
-  const examples: string[] = [];
-  const promptContext = extractPromptContext(prompt);
-  
-  switch (type) {
-    case 'appearance':
-      examples.push(...generateAppearanceExamples(keyword, promptContext));
-      break;
-    case 'setting':
-      examples.push(...generateSettingExamples(keyword, promptContext));
-      break;
-    case 'action':
-      examples.push(...generateActionExamples(keyword, promptContext));
-      break;
-    case 'execution':
-      examples.push(...generateExecutionExamples(keyword, promptContext));
-      break;
-  }
+  questions.push({
+    text: `How important is the ${attribute} in the overall context?`,
+    examples: ['very important', 'moderate', 'subtle influence', 'critical'],
+    category: 'Importance'
+  });
 
-  return examples.slice(0, 3); // Return top 3 most relevant examples
+  questions.push({
+    text: `How should ${attribute} be incorporated or expressed?`,
+    examples: ['explicitly', 'implicitly', 'throughout', 'in specific parts'],
+    category: 'Integration'
+  });
+
+  return questions;
 }
 
 // Helper functions
@@ -236,152 +197,27 @@ function isCommonWord(word: string): boolean {
 }
 
 function isLikelySubject(word: string, context: string): boolean {
-  // Implement natural language processing patterns to identify subjects
   return word.length > 2 && !isCommonWord(word) && 
          (context.includes(`the ${word}`) || context.includes(`a ${word}`));
 }
 
 function isActionWord(word: string): boolean {
-  // Add common action words and their variations
-  const actionWords = new Set(['create', 'make', 'build', 'design', 'generate', 'show', 'display']);
-  return actionWords.has(word);
+  const actionWords = new Set([
+    'create', 'make', 'build', 'design', 'generate', 'show', 'display',
+    'develop', 'write', 'compose', 'analyze', 'explain', 'describe',
+    'illustrate', 'demonstrate', 'present', 'organize', 'structure'
+  ]);
+  return actionWords.has(word) || word.endsWith('ing') || word.endsWith('ate');
 }
 
 function isDescriptiveWord(word: string): boolean {
-  // Check if the word is likely an adjective or descriptor
-  return word.endsWith('ing') || word.endsWith('ed') || word.endsWith('al');
+  return word.endsWith('ing') || word.endsWith('ed') || 
+         word.endsWith('al') || word.endsWith('ive') || 
+         word.endsWith('ous') || word.endsWith('ful');
 }
 
 function isContextualWord(word: string): boolean {
-  // Identify words that provide context (time, place, manner)
   return word.length > 3 && !isCommonWord(word) && !isActionWord(word);
-}
-
-function hasDetailedAttributes(subject: string, prompt: string): boolean {
-  // Check if the subject already has detailed attributes in the prompt
-  const subjectPattern = new RegExp(`(${subject}\\s+[\\w\\s]+)|([\\w\\s]+\\s+${subject})`, 'i');
-  return subjectPattern.test(prompt);
-}
-
-function hasActionContext(action: string, prompt: string): boolean {
-  // Check if the action already has context in the prompt
-  const actionPattern = new RegExp(`${action}\\s+[\\w\\s]+`, 'i');
-  return actionPattern.test(prompt);
-}
-
-function determineQuestionType(pillar: any, subject: string): string {
-  // Map pillar types to question types based on context
-  const pillarTitle = pillar.title.toLowerCase();
-  if (pillarTitle.includes('visual') || pillarTitle.includes('appearance')) return 'Appearance';
-  if (pillarTitle.includes('environment') || pillarTitle.includes('setting')) return 'Setting';
-  return 'Action';
-}
-
-function extractPromptContext(prompt: string): string[] {
-  // Extract key contextual phrases from the prompt
-  return prompt.toLowerCase()
-    .split(/[.,!?]/)
-    .map(phrase => phrase.trim())
-    .filter(phrase => phrase.length > 0);
-}
-
-function generateAppearanceExamples(keyword: string, context: string[]): string[] {
-  // Generate specific appearance-related examples based on context
-  const examples: string[] = [];
-  const qualities = extractQualitiesFromContext(context);
-  qualities.forEach(quality => {
-    examples.push(`${quality} ${keyword}`);
-  });
-  return examples;
-}
-
-function generateSettingExamples(keyword: string, context: string[]): string[] {
-  // Generate setting-specific examples based on context
-  const examples: string[] = [];
-  const settings = extractSettingsFromContext(context);
-  settings.forEach(setting => {
-    examples.push(`${keyword} in ${setting}`);
-  });
-  return examples;
-}
-
-function generateActionExamples(keyword: string, context: string[]): string[] {
-  // Generate action-specific examples based on context
-  const examples: string[] = [];
-  const actions = extractActionsFromContext(context);
-  actions.forEach(action => {
-    examples.push(`${keyword} ${action}`);
-  });
-  return examples;
-}
-
-function generateExecutionExamples(keyword: string, context: string[]): string[] {
-  // Generate execution-specific examples based on context
-  const examples: string[] = [];
-  const executions = extractExecutionsFromContext(context);
-  executions.forEach(execution => {
-    examples.push(`${keyword} ${execution}`);
-  });
-  return examples;
-}
-
-function extractQualitiesFromContext(context: string[]): string[] {
-  // Extract quality-related words from context
-  return context
-    .flatMap(phrase => phrase.split(' '))
-    .filter(word => isQualityWord(word));
-}
-
-function extractSettingsFromContext(context: string[]): string[] {
-  // Extract setting-related phrases from context
-  return context
-    .filter(phrase => isSettingPhrase(phrase));
-}
-
-function extractActionsFromContext(context: string[]): string[] {
-  // Extract action-related phrases from context
-  return context
-    .filter(phrase => isActionPhrase(phrase));
-}
-
-function extractExecutionsFromContext(context: string[]): string[] {
-  // Extract execution-related phrases from context
-  return context
-    .filter(phrase => isExecutionPhrase(phrase));
-}
-
-function isQualityWord(word: string): boolean {
-  return word.length > 3 && !isCommonWord(word);
-}
-
-function isSettingPhrase(phrase: string): boolean {
-  return phrase.includes('in') || phrase.includes('at') || phrase.includes('on');
-}
-
-function isActionPhrase(phrase: string): boolean {
-  return phrase.includes('ing') || phrase.includes('ed');
-}
-
-function isExecutionPhrase(phrase: string): boolean {
-  return phrase.length > 5 && (phrase.includes('with') || phrase.includes('using'));
-}
-
-function isQuestionValueAdding(
-  newQuestion: ContextualQuestion,
-  existingQuestions: Question[],
-  promptText: string
-): boolean {
-  // Check if the question is truly adding value and isn't redundant
-  const isUnique = !existingQuestions.some(q => 
-    q.text.toLowerCase().includes(newQuestion.text.toLowerCase()) ||
-    newQuestion.text.toLowerCase().includes(q.text.toLowerCase())
-  );
-
-  const isPromptSpecific = promptText.toLowerCase().split(' ').some(word =>
-    newQuestion.text.toLowerCase().includes(word) && word.length > 3
-  );
-
-  return isUnique && isPromptSpecific;
 }
 
 // Export the function for generating contextual variables
