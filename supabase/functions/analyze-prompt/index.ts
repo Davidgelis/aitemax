@@ -64,64 +64,57 @@ serve(async (req) => {
 
       const questions = Array.isArray(parsed.questions) ? parsed.questions : [];
       
-      // ----- Variable post-processing -----
+      /* ----- Variable post-processing ----- */
       let variables = Array.isArray(parsed.variables) ? parsed.variables : [];
       console.log(`Raw variables received: ${variables.length}`);
 
-      // 1. Trim names to 3 words
+      // helper: canonical form (lower-case → remove stop-words → alphabetical)
+      const stop = new Set(["of", "the", "a", "an"]);
+      const canonical = (label: string) => label
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(w => !stop.has(w))
+        .sort()
+        .join(" ");
+
+      // 1️⃣ Trim to max three words
       variables = variables.map(v => ({
         ...v,
-        name: v.name.trim().split(/\s+/).slice(0, 3).join(' ')
+        name: v.name.trim().split(/\s+/).slice(0, 3).join(" ")
       }));
 
-      // 2-a. Dedupe by canonical label
+      // 2️⃣ Dedupe via canonical label
       const seen = new Set<string>();
-      const canonical = (label: string) =>
-        label                                    // 1) start with original
-          .toLowerCase()                         // 2) normalize case
-          .replace(/\b(of|the|a|an)\b/g, '')    // 3) drop stop-words
-          .trim()                               // 4) clean whitespace
-          .split(/\s+/)                         // 5) word array
-          .sort()                               // 6) alphabetical order
-          .join(' ');                           // 7) back to string
-
       variables = variables.filter(v => {
         const sig = canonical(v.name);
         if (seen.has(sig)) {
-          console.log(`Removing duplicate variable: "${v.name}" (signature: "${sig}")`);
+          console.log(`Removing duplicate variable → "${v.name}" (signature: ${sig})`);
           return false;
         }
         seen.add(sig);
         return true;
       });
 
-      // 2-b. Ensure category
-      variables = variables.map(v => ({
-        ...v,
-        category: v.category || 'Other'
-      }));
+      // 3️⃣ Ensure category (default "Other")
+      variables = variables.map(v => ({ ...v, category: v.category || "Other" }));
 
-      // 3. Remove any variable that overlaps a question
-      const qTexts = questions.map(q => q.text.toLowerCase());
-      variables = variables.filter(v =>
-        !qTexts.some(qt => qt.includes(v.name.toLowerCase()))
-      );
+      // 4️⃣ Drop variables that overlap any question text
+      const qText = questions.map(q => q.text.toLowerCase());
+      variables = variables.filter(v => !qText.some(t => t.includes(v.name.toLowerCase())));
 
-      // 4. Cap at eight
+      // 5️⃣ Cap at eight
       if (variables.length > 8) {
-        console.log(`Trimming variables from ${variables.length} to 8`);
+        console.log(`Trimming variables from ${variables.length} → 8`);
         variables = variables.slice(0, 8);
       }
 
-      // Build distribution for debugging
+      // Debug distribution
       const variableDistribution = variables.reduce<Record<string, number>>((acc, v) => {
-        const cat = v.category || 'Uncategorized';
+        const cat = v.category || "Other";
         acc[cat] = (acc[cat] || 0) + 1;
         return acc;
       }, {});
-
-      console.log(`Final variables count: ${variables.length}`);
-      console.log(`Variable distribution: ${JSON.stringify(variableDistribution)}`);
+      console.log(`Final variables: ${variables.length}`, variableDistribution);
 
       return new Response(
         JSON.stringify({
