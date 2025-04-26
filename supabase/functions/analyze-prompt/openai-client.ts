@@ -48,15 +48,21 @@ export async function analyzePromptWithAI(
       ];
     }
 
-    // Use built-in timeout from OpenAI client instead of AbortController
-    const completion = await openai.chat.completions.create({
+    // Use promise timeout instead of the timeout parameter
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Request timed out after 30 seconds")), 30000);
+    });
+    
+    const apiPromise = openai.chat.completions.create({
       model,
       messages,
       response_format: { type: "json_object" },
       temperature: 0.2,
       max_tokens: 2000, // Limit token usage
-      timeout: 30000, // 30 second timeout in ms
     });
+    
+    // Race the API call against the timeout
+    const completion = await Promise.race([apiPromise, timeoutPromise]) as any;
     
     // Extract the response content
     const responseContent = completion.choices[0].message.content || "";

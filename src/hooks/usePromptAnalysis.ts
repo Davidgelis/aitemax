@@ -170,7 +170,6 @@ export const usePromptAnalysis = (
         description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
-    } finally {
       updateLoadingState('complete', "");
     }
   };
