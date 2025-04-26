@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI } from "./openai-client.ts";
@@ -33,16 +32,8 @@ serve(async (req) => {
   }
 
   try {
-    const { 
-      promptText, 
-      template, 
-      websiteData, 
-      imageData, 
-      smartContextData, 
-      model = 'gpt-4.1'
-    } = await req.json();
+    const { promptText, template, websiteData, imageData, smartContextData, model = 'gpt-4.1' } = await req.json();
 
-    // Enhanced ambiguity calculation
     const ambiguity = calculateAmbiguity(promptText);
     console.log(`Calculated ambiguity: ${ambiguity} for prompt of ${promptText.split(/\s+/).length} words`);
 
@@ -58,8 +49,6 @@ serve(async (req) => {
       );
       
       let parsed;
-      
-      // Handle potential markdown formatting in the response
       let processedContent = content;
       if (content.includes('```json')) {
         processedContent = content.replace(/```json\n|\n```|```/g, '').trim();
@@ -74,58 +63,59 @@ serve(async (req) => {
       }
 
       const questions = Array.isArray(parsed.questions) ? parsed.questions : [];
-
-      // Track question categories and identify missing pillars
-      const categoryCounts = questions.reduce((acc, q) => ({
-        ...acc,
-        [q.category]: (acc[q.category] || 0) + 1
-      }), {} as Record<string, number>);
-
-      const pillarTitles = Array.isArray(template?.pillars) 
-        ? template.pillars.map((p: any) => p.title)
-        : [];
-
-      const missingPillars = pillarTitles.filter(title => !categoryCounts[title]);
-
-      // Enhanced debug information
-      const debugInfo = {
-        hasImageData: !!imageData?.[0]?.base64,
-        model,
-        ambiguity: {
-          score: ambiguity,
-          wordCount: promptText.split(/\s+/).length,
-          interpretation: ambiguity > 0.7 ? 'highly ambiguous' : 
-                          ambiguity > 0.4 ? 'moderately clear' : 'very clear'
-        },
-        missingPillars,
-        pillarCoverage: {
-          total: pillarTitles.length,
-          covered: pillarTitles.length - missingPillars.length,
-          missing: missingPillars.length
-        },
-        categories: Object.keys(categoryCounts),
-        categoryDistribution: categoryCounts,
-        questionsPerPillar: Object.entries(categoryCounts).map(([category, count]) => ({
-          category,
-          count
-        }))
-      };
-
-      console.log(`Generated questions distribution:`, JSON.stringify(debugInfo.questionsPerPillar));
       
+      // Enhanced variable processing
+      let variables = Array.isArray(parsed.variables) ? parsed.variables : [];
+      console.log(`Raw variables received: ${variables.length}`);
+
+      // 1. Truncate names to 3 words
+      variables = variables.map(v => ({
+        ...v,
+        name: v.name.trim().split(/\s+/).slice(0, 3).join(' ')
+      }));
+
+      // 2. Filter out overlapping question content
+      const qTexts = questions.map(q => q.text.toLowerCase());
+      variables = variables.filter(v =>
+        v.name &&
+        !qTexts.some(qt => qt.includes(v.name.toLowerCase()))
+      );
+
+      // 3. Enforce count limit of 8
+      if (variables.length > 8) {
+        console.log(`Trimming variables from ${variables.length} to 8`);
+        variables = variables.slice(0, 8);
+      }
+
+      // 4. Build distribution for debugging
+      const variableDistribution = variables.reduce<Record<string, number>>((acc, v) => {
+        const cat = v.category || 'Uncategorized';
+        acc[cat] = (acc[cat] || 0) + 1;
+        return acc;
+      }, {});
+
+      console.log(`Final variables count: ${variables.length}`);
+      console.log('Variable distribution:', JSON.stringify(variableDistribution));
+
       return new Response(
         JSON.stringify({
           questions,
-          variables: parsed.variables || [],
+          variables,
           masterCommand: parsed.masterCommand || '',
           enhancedPrompt: parsed.enhancedPrompt || '',
-          debug: debugInfo
+          debug: {
+            hasImageData: !!imageData?.[0]?.base64,
+            model,
+            ambiguity: {
+              score: ambiguity,
+              wordCount: promptText.split(/\s+/).length
+            },
+            variablesCount: variables.length,
+            variableDistribution
+          }
         }), 
         { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     } catch (aiError) {

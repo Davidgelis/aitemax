@@ -48,7 +48,7 @@ export const usePromptAnalysis = (
       });
 
       if (error || !data) {
-        console.error("Analysis error:", error);
+        console.error('Analysis error:', error);
         toast({
           title: "Analysis failed",
           description: error?.message || "No data returned",
@@ -61,39 +61,26 @@ export const usePromptAnalysis = (
       const questions = Array.isArray(data.questions) ? data.questions : [];
       setQuestions(questions);
 
-      // Filter and process variables
-      const rawVars: Variable[] = Array.isArray(data.variables) ? data.variables : [];
-      const filteredVars = rawVars
-        .map(v => ({
-          ...v,
-          name: v.name.trim().split(/\s+/).slice(0, 3).join(' ') // Limit to 3 words
-        }))
-        .filter(v => {
-          const wordCount = v.name.split(/\s+/).length;
-          if (wordCount < 1 || wordCount > 3) return false;
-          
-          // Check for overlap with question topics
-          return !questions.some(q => 
-            q.text.toLowerCase().includes(v.name.toLowerCase())
-          );
-        });
+      // Process and validate variables
+      const rawVars = Array.isArray(data.variables) ? data.variables : [];
+      console.log(`usePromptAnalysis: received ${rawVars.length} variables`);
 
-      // Limit to 8 variables
-      const limitedVars = filteredVars.slice(0, 8);
-      if (filteredVars.length > 8) {
+      setVariables(rawVars);
+
+      // Notify if no variables were generated
+      if (!rawVars.length) {
         toast({
-          title: "Variable limit reached",
-          description: "Only the first 8 variables were kept.",
-          variant: "default",
+          title: "No variables detected",
+          description: "Try adding more specific details to your prompt.",
+          variant: "default"
         });
       }
-      
-      setVariables(limitedVars);
+
       setMasterCommand(data.masterCommand || "");
       setFinalPrompt(data.enhancedPrompt || "");
 
       // Advance to next step if we have content
-      if (questions.length > 0 || limitedVars.length > 0 || data.debug?.hasImageData) {
+      if (questions.length > 0 || rawVars.length > 0 || data.debug?.hasImageData) {
         setCurrentStep(2);
       } else {
         toast({
@@ -116,7 +103,6 @@ export const usePromptAnalysis = (
     }
   };
 
-  // Add prompt enhancement function for step 3
   const enhancePromptWithGPT = async (
     promptToEnhance: string,
     primaryToggle: string | null,
@@ -127,7 +113,6 @@ export const usePromptAnalysis = (
     selectedTemplate: any = null
   ): Promise<void> => {
     try {
-      // Call enhancement edge function
       const { data, error } = await supabase.functions.invoke('enhance-prompt', {
         body: {
           originalPrompt: promptToEnhance,
@@ -147,7 +132,6 @@ export const usePromptAnalysis = (
       
       setFinalPrompt(data.enhancedPrompt);
     } catch (error) {
-      console.error("Error in enhancePromptWithGPT:", error);
       throw error;
     }
   };
