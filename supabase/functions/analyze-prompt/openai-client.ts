@@ -57,6 +57,7 @@ export async function analyzePromptWithAI(
     // Make sure it's valid JSON
     try {
       JSON.parse(cleanedContent);
+      console.log("Successfully parsed JSON response.");
     } catch (e) {
       console.error("Invalid JSON response:", cleanedContent);
       console.error("Error parsing JSON:", e.message);

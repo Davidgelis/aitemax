@@ -5,6 +5,7 @@ import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
 import { useLanguage } from "@/context/LanguageContext";
 import { dashboardTranslations } from "@/translations/dashboard";
+import { Info } from "lucide-react";
 
 interface StepTwoProps {
   questions: Question[];
@@ -54,6 +55,12 @@ export const StepTwo = ({
 
   // Count prompt-specific questions
   const promptSpecificCount = questions.filter(q => q.contextSource === "prompt").length;
+  
+  // Group questions by category to show distribution
+  const categoryCounts = questions.reduce((acc, q) => {
+    acc[q.category || 'Other'] = (acc[q.category || 'Other'] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   return (
     <div className="border rounded-xl p-6 bg-card">
@@ -62,7 +69,7 @@ export const StepTwo = ({
           <p className="text-card-foreground">
             {t.steps.questionsToAnswer}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             {hasPrefilledQuestions && (
               <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded-md">
                 {prefilledCount} {t.steps.prefilledAnswers}

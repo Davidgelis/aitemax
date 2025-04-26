@@ -8,6 +8,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Enhanced ambiguity calculation function
+function calculateAmbiguity(promptText: string): number {
+  // Basic calculation based on word count
+  const wordCount = promptText.split(/\s+/).length;
+  const baseAmbiguity = Math.max(0, 1 - Math.min(wordCount/20, 1));
+  
+  // Additional factors that might indicate ambiguity
+  const hasSpecificDetails = /(\d+|specific|exact|precise)/i.test(promptText);
+  const hasClearObjective = /(need|want|create|make|build|design)/i.test(promptText);
+  
+  // Adjust ambiguity based on additional factors
+  let adjustedAmbiguity = baseAmbiguity;
+  if (hasSpecificDetails) adjustedAmbiguity *= 0.8; // Reduce ambiguity if specific details present
+  if (!hasClearObjective) adjustedAmbiguity *= 1.2; // Increase ambiguity if no clear objective
+  
+  // Ensure ambiguity stays between 0 and 1
+  return Math.max(0, Math.min(adjustedAmbiguity, 1));
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -23,8 +42,9 @@ serve(async (req) => {
       model = 'gpt-4.1'
     } = await req.json();
 
-    const wordCount = promptText.split(/\s+/).length;
-    const ambiguity = Math.max(0, 1 - Math.min(wordCount/20, 1));
+    // Enhanced ambiguity calculation
+    const ambiguity = calculateAmbiguity(promptText);
+    console.log(`Calculated ambiguity: ${ambiguity} for prompt of ${promptText.split(/\s+/).length} words`);
 
     const systemPrompt = createSystemPrompt(template, ambiguity);
     
@@ -67,25 +87,39 @@ serve(async (req) => {
 
       const missingPillars = pillarTitles.filter(title => !categoryCounts[title]);
 
+      // Enhanced debug information
+      const debugInfo = {
+        hasImageData: !!imageData?.[0]?.base64,
+        model,
+        ambiguity: {
+          score: ambiguity,
+          wordCount: promptText.split(/\s+/).length,
+          interpretation: ambiguity > 0.7 ? 'highly ambiguous' : 
+                          ambiguity > 0.4 ? 'moderately clear' : 'very clear'
+        },
+        missingPillars,
+        pillarCoverage: {
+          total: pillarTitles.length,
+          covered: pillarTitles.length - missingPillars.length,
+          missing: missingPillars.length
+        },
+        categories: Object.keys(categoryCounts),
+        categoryDistribution: categoryCounts,
+        questionsPerPillar: Object.entries(categoryCounts).map(([category, count]) => ({
+          category,
+          count
+        }))
+      };
+
+      console.log(`Generated questions distribution:`, JSON.stringify(debugInfo.questionsPerPillar));
+      
       return new Response(
         JSON.stringify({
           questions,
           variables: parsed.variables || [],
           masterCommand: parsed.masterCommand || '',
           enhancedPrompt: parsed.enhancedPrompt || '',
-          debug: {
-            hasImageData: !!imageData?.[0]?.base64,
-            model,
-            ambiguity,
-            missingPillars,
-            pillarCoverage: {
-              total: pillarTitles.length,
-              covered: pillarTitles.length - missingPillars.length,
-              missing: missingPillars.length
-            },
-            categories: Object.keys(categoryCounts),
-            categoryDistribution: categoryCounts
-          }
+          debug: debugInfo
         }), 
         { 
           headers: { 
