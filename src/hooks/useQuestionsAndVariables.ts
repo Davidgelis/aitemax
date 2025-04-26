@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +43,7 @@ export const useQuestionsAndVariables = (
   };
 
   const handleQuestionRelevance = (questionId: string, isRelevant: boolean) => {
+    // Apply relevance change only to the specific question
     setQuestions(
       questions.map((q) => (q.id === questionId ? { ...q, isRelevant } : q))
     );
@@ -125,39 +125,16 @@ export const useQuestionsAndVariables = (
   };
 
   const prepareDataForEnhancement = () => {
-    // Mark all unanswered or unreviewed questions as not relevant
-    const updatedQuestions = questions.map(q => {
-      if (q.isRelevant === null || (q.isRelevant === true && (!q.answer || q.answer.trim() === ""))) {
-        return { ...q, isRelevant: false };
-      }
-      return q;
-    });
-    setQuestions(updatedQuestions);
-
-    // Mark all empty or unreviewed variables as not relevant
-    const updatedVariables = variables.map(v => {
-      if (v.isRelevant === null || v.name.trim() === "" || v.value.trim() === "") {
-        return { ...v, isRelevant: false };
-      }
-      return v;
-    });
-    setVariables(updatedVariables);
-
-    // Return the cleaned data
+    // Modified: Don't automatically change question relevance
+    // Just filter out the questions and variables based on current relevance
+    
+    // Return the data without modifying relevance flags
     return {
-      updatedQuestions,
-      updatedVariables
+      updatedQuestions: questions,
+      updatedVariables: variables
     };
   };
 
-  /**
-   * Enhanced prompt with GPT, now with standardized parameter order to match usePromptAnalysis.ts
-   * @param promptToEnhance The original prompt text to enhance
-   * @param primaryToggle Selected primary toggle
-   * @param secondaryToggle Selected secondary toggle
-   * @param setFinalPrompt Callback to set the final prompt
-   * @param selectedTemplate The selected template to use
-   */
   const enhancePromptWithGPT = async (
     promptToEnhance: string, 
     primaryToggle: string | null, 

@@ -74,7 +74,6 @@ export const QuestionList = ({
     return a.localeCompare(b);
   });
 
-  // Function to clean question text - removing prefixes, asterisks, and numbered question patterns
   const cleanQuestionText = (text: string): string => {
     if (!text) return "";
     
@@ -96,7 +95,6 @@ export const QuestionList = ({
     return cleanedText.trim();
   };
 
-  // Function to determine if a question is highly relevant to the prompt
   const isHighlyRelevantToPrompt = (questionText: string): boolean => {
     if (!originalPrompt || !questionText || keyTerms.length === 0) return false;
     
@@ -109,7 +107,6 @@ export const QuestionList = ({
            (questionText.includes('image') && originalPrompt.toLowerCase().includes('image'));
   };
 
-  // Function to clean answer text - removing any nested questions
   const cleanAnswerText = (answer: string): string => {
     if (!answer) return "";
     
@@ -154,11 +151,13 @@ export const QuestionList = ({
     }
   };
   
-  // Function to toggle question relevance
+  // Modified function to toggle question relevance for ONLY the clicked question
   const handleToggleRelevance = (questionId: string, currentIsRelevant: boolean | null) => {
     // If currently irrelevant (false), make it relevant (true)
     // If currently relevant (true) or undecided (null), make it irrelevant (false)
     const newRelevance = currentIsRelevant === false ? true : false;
+    
+    // Only toggle the relevance of the specific question that was clicked
     onQuestionRelevance(questionId, newRelevance);
   };
 
