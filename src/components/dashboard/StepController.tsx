@@ -89,13 +89,11 @@ export const StepController = ({
     setMasterCommand,
     setFinalPrompt,
     setCurrentStep,
-    selectedPrimary,
-    selectedSecondary,
     user,
     currentPromptId
   );
   
-  const { isLoading: isAnalyzing, currentLoadingMessage, handleAnalyze } = promptAnalysis;
+  const { isLoading: isAnalyzing, currentLoadingMessage, handleAnalyze, enhancePromptWithGPT } = promptAnalysis;
   
   const questionVarOps = useQuestionsAndVariables(
     questions,
@@ -270,7 +268,7 @@ export const StepController = ({
         const answeredQuestions = questions.filter(q => q.isRelevant !== false && q.answer?.trim());
         const relevantVariables = variables.filter(v => v.isRelevant === true);
         
-        console.log("StepController: Calling promptAnalysis.enhancePromptWithGPT with:", {
+        console.log("StepController: Calling enhancePromptWithGPT with:", {
           promptText: promptText.substring(0, 50) + "...",
           selectedPrimary,
           selectedSecondary,
@@ -279,15 +277,15 @@ export const StepController = ({
           templateName: templateToUse.name
         });
         
-        // Call the enhancePromptWithGPT with the STANDARDIZED parameter order
-        await promptAnalysis.enhancePromptWithGPT(
+        // Use the enhancePromptWithGPT from promptAnalysis
+        await enhancePromptWithGPT(
           promptText,
           selectedPrimary,
           selectedSecondary,
           setFinalPrompt,
           answeredQuestions,
           relevantVariables,
-          templateToUse // Using our managed template
+          templateToUse
         );
         
         console.log("StepController: Successfully enhanced prompt, moving to step 3");
