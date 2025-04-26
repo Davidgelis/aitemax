@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI } from "./openai-client.ts";
@@ -20,7 +19,7 @@ serve(async (req) => {
       websiteData, 
       imageData, 
       smartContextData, 
-      model = 'gpt-4o' 
+      model = 'gpt-4.1'
     } = await req.json();
 
     const wordCount = promptText.split(/\s+/).length;

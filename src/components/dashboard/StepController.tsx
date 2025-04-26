@@ -417,6 +417,22 @@ export const StepController = ({
     }
   };
 
+  // On component mount, automatically select GPT-4.1 if no model is selected
+  useEffect(() => {
+    if (!selectedModel) {
+      const gpt41Model = {
+        id: "gpt-4.1",
+        name: "GPT-4.1",
+        provider: "OpenAI",
+        description: "The latest GPT-4.1 model from OpenAI",
+        strengths: ["Advanced reasoning", "State-of-the-art performance", "Better context handling"],
+        limitations: ["Experimental model", "May produce unexpected results"],
+        updated_at: new Date().toISOString()
+      };
+      setSelectedModel(gpt41Model);
+    }
+  }, []);
+
   return (
     <div className="w-full">
       {user && promptState.currentStep === 2 && (

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
@@ -176,7 +175,7 @@ START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This
       // Make the API call with "o3-mini" model instead of "gpt-4o"
       // IMPORTANT CHANGE: Remove temperature parameter for o3-mini model
       const completion = await openai.chat.completions.create({
-        model: "o3-mini",
+        model: 'gpt-4.1',  // Explicitly set to GPT-4.1
         messages: messages,
         // Temperature parameter removed for o3-mini model compatibility
       });
