@@ -257,12 +257,6 @@ export const QuestionList = ({
                             </span>
                           )}
                           
-                          {/* Show prompt-specific badge */}
-                          {isPromptSpecific && (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full whitespace-nowrap">
-                              Prompt specific
-                            </span>
-                          )}
                         </div>
                         
                         {question.isRelevant !== false && (
