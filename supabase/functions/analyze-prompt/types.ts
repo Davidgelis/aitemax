@@ -8,6 +8,7 @@ export interface Question {
   contextSource?: string;
   technicalTerms?: TechnicalTerm[];
   isDuplicate?: boolean;
+  examples?: string[];
 }
 
 export interface TechnicalTerm {

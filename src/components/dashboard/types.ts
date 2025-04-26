@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 
 export interface AIModel {
@@ -26,8 +27,9 @@ export interface Question {
   isRelevant: boolean | null;
   category?: string; // Task, Persona, Conditions, Instructions categories
   prefillSource?: string;
-  contextSource?: string; // Add this property to fix the errors
+  contextSource?: string;
   technicalTerms?: TechnicalTerm[];
+  examples?: string[]; // Add the examples property
 }
 
 export interface Variable {
@@ -127,15 +129,4 @@ interface TechnicalTerm {
   term: string;
   explanation: string;
   example: string;
-}
-
-export interface Question {
-  id: string;
-  text: string;
-  answer: string;
-  isRelevant: boolean | null;
-  category?: string;
-  prefillSource?: string;
-  technicalTerms?: TechnicalTerm[];
-  contextSource?: string;
 }
