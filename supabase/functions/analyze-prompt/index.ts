@@ -64,30 +64,47 @@ serve(async (req) => {
 
       const questions = Array.isArray(parsed.questions) ? parsed.questions : [];
       
-      // Enhanced variable processing
+      // ----- Variable post-processing -----
       let variables = Array.isArray(parsed.variables) ? parsed.variables : [];
       console.log(`Raw variables received: ${variables.length}`);
 
-      // 1. Truncate names to 3 words
+      // 1. Trim names to 3 words
       variables = variables.map(v => ({
         ...v,
         name: v.name.trim().split(/\s+/).slice(0, 3).join(' ')
       }));
 
-      // 2. Filter out overlapping question content
+      // 2-a. Dedupe by case-insensitive label
+      const seen = new Set<string>();
+      variables = variables.filter(v => {
+        const key = v.name.toLowerCase();
+        if (seen.has(key)) {
+          console.log(`Removing duplicate variable: ${v.name}`);
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+
+      // 2-b. Ensure category
+      variables = variables.map(v => ({
+        ...v,
+        category: v.category || 'Other'
+      }));
+
+      // 3. Remove any variable that overlaps a question
       const qTexts = questions.map(q => q.text.toLowerCase());
       variables = variables.filter(v =>
-        v.name &&
         !qTexts.some(qt => qt.includes(v.name.toLowerCase()))
       );
 
-      // 3. Enforce count limit of 8
+      // 4. Cap at eight
       if (variables.length > 8) {
         console.log(`Trimming variables from ${variables.length} to 8`);
         variables = variables.slice(0, 8);
       }
 
-      // 4. Build distribution for debugging
+      // Build distribution for debugging
       const variableDistribution = variables.reduce<Record<string, number>>((acc, v) => {
         const cat = v.category || 'Uncategorized';
         acc[cat] = (acc[cat] || 0) + 1;
@@ -95,7 +112,7 @@ serve(async (req) => {
       }, {});
 
       console.log(`Final variables count: ${variables.length}`);
-      console.log('Variable distribution:', JSON.stringify(variableDistribution));
+      console.log(`Variable distribution: ${JSON.stringify(variableDistribution)}`);
 
       return new Response(
         JSON.stringify({
@@ -113,11 +130,10 @@ serve(async (req) => {
             variablesCount: variables.length,
             variableDistribution
           }
-        }), 
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+
     } catch (aiError) {
       console.error('Error with AI analysis:', aiError);
       throw new Error(`AI analysis failed: ${aiError.message}`);

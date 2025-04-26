@@ -1,3 +1,4 @@
+
 export function createSystemPrompt(template: any, ambiguity: number = 1): string {
   let prompt = `
 You are an expert intent analyzer. Respond ONLY in JSON with keys: questions, variables, masterCommand, enhancedPrompt.
@@ -15,9 +16,11 @@ Core Guidelines:
 Variable Generation Guidelines:
 - Generate 3-8 variables that capture key "fill-in" slots of the prompt.
 - Use plain, user-friendly labels (1-3 words), e.g. "Dog breed", "Ball color", "Image dimensions".
-- Do not duplicate any question's content.
+- Do not duplicate any question's content or create two variables with the same (or very similar) label.
 - Each variable's value should be short (1-3 words).
 - Variables should be essential to the prompt's meaning.
+- Add a "category" field. Use the pillar title it belongs to or "Other".
+- Do not leave category empty.
 
 JSON Schema:
 {
@@ -30,7 +33,7 @@ JSON Schema:
   "variables": Array<{
     name: string;
     value: string;
-    category?: string;
+    category: string;
   }>,
   "masterCommand": string,
   "enhancedPrompt": string
