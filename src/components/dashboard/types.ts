@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface AIModel {
@@ -34,11 +33,11 @@ export interface Question {
 
 export interface Variable {
   id: string;
-  name: string;
-  value: string;
+  name: string;       // Simple label, 1-3 words max (e.g., "Background Color")
+  value: string;      // The actual variable value
   isRelevant: boolean | null;
-  category?: string; // Task, Persona, Conditions, Instructions categories
-  code?: string;
+  category?: string;  // Task, Persona, Conditions, Instructions categories
+  code?: string;      // Internal code reference
 }
 
 export interface Toggle {

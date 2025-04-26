@@ -1,4 +1,3 @@
-
 import { Plus, Trash } from "lucide-react";
 import { Variable } from "./types";
 import { RefObject, useState, useEffect } from "react";
@@ -111,17 +110,23 @@ export const VariableList = ({
 
   // Handle name change
   const handleNameChange = (variableId: string, name: string) => {
+    const words = name.trim().split(/\s+/);
+    if (words.length > 3) {
+      toast({
+        title: "Name too long",
+        description: "Variable names must be 1-3 words.",
+        variant: "warning"
+      });
+      name = words.slice(0, 3).join(' ');
+    }
+    
     // Update local state
     setVariableNames(prev => ({
       ...prev,
       [variableId]: name
     }));
     
-    // Mark as relevant when name is added
-    if (name.trim() !== '') {
-      onVariableRelevance(variableId, true);
-    }
-    
+    // Call the original change handler
     onVariableChange(variableId, 'name', name);
   };
   
@@ -179,7 +184,7 @@ export const VariableList = ({
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Input
                     type="text"
-                    placeholder="Variable name"
+                    placeholder="Variable name (1-3 words)"
                     value={variableNames[variable.id] || ""}
                     onChange={(e) => handleNameChange(variable.id, e.target.value)}
                     className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"

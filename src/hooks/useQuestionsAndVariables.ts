@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -71,12 +70,21 @@ export const useQuestionsAndVariables = (
     );
   };
 
-  const handleVariableChange = (
-    variableId: string,
-    field: keyof Variable,
-    value: string
-  ) => {
+  const handleVariableChange = (variableId: string, field: keyof Variable, value: string) => {
     console.log(`Updating variable ${variableId}, field: ${field}, value: ${value}`);
+    
+    // Handle name field with word limit
+    if (field === 'name') {
+      const words = value.trim().split(/\s+/);
+      if (words.length > 3) {
+        toast({
+          title: "Variable name too long",
+          description: "Use up to 3 words only.",
+          variant: "warning"
+        });
+        value = words.slice(0, 3).join(' ');
+      }
+    }
     
     // Create a new array with the updated variable
     const updatedVariables = variables.map((v) => {

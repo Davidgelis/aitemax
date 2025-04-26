@@ -47,155 +47,69 @@ export const usePromptAnalysis = (
         }
       });
 
-      if (error) {
-        console.error("Edge function error:", error);
+      if (error || !data) {
+        console.error("Analysis error:", error);
         toast({
           title: "Analysis failed",
-          description: error.message || "There was an error analyzing your prompt",
+          description: error?.message || "No data returned",
           variant: "destructive",
         });
         return;
       }
 
-      if (!data) {
-        toast({
-          title: "Analysis incomplete",
-          description: "No analysis results were returned",
-          variant: "destructive",
-        });
-        return;
-      }
+      // Process questions
+      const questions = Array.isArray(data.questions) ? data.questions : [];
+      setQuestions(questions);
 
-      // Check for missing pillar coverage
-      if (data.debug?.missingPillars?.length > 0) {
-        const missing = data.debug.missingPillars;
+      // Filter and process variables
+      const rawVars: Variable[] = Array.isArray(data.variables) ? data.variables : [];
+      const filteredVars = rawVars
+        .map(v => ({
+          ...v,
+          name: v.name.trim().split(/\s+/).slice(0, 3).join(' ') // Limit to 3 words
+        }))
+        .filter(v => {
+          const wordCount = v.name.split(/\s+/).length;
+          if (wordCount < 1 || wordCount > 3) return false;
+          
+          // Check for overlap with question topics
+          return !questions.some(q => 
+            q.text.toLowerCase().includes(v.name.toLowerCase())
+          );
+        });
+
+      // Limit to 8 variables
+      const limitedVars = filteredVars.slice(0, 8);
+      if (filteredVars.length > 8) {
         toast({
-          title: "Incomplete pillar coverage",
-          description: `Some template pillars weren't addressed: ${missing.join(', ')}. Try adding more context to your prompt.`,
-          variant: "default",
+          title: "Variable limit reached",
+          description: "Only the first 8 variables were kept.",
+          variant: "warning",
         });
       }
-
-      // Process and set questions & variables
-      setQuestions(Array.isArray(data.questions) ? data.questions : []);
-      setVariables(Array.isArray(data.variables) ? data.variables : []);
+      
+      setVariables(limitedVars);
       setMasterCommand(data.masterCommand || "");
       setFinalPrompt(data.enhancedPrompt || "");
 
-      // Determine if we can proceed to step 2
-      const hasQuestions = (data.questions?.length || 0) > 0;
-      const hasVariables = (data.variables?.length || 0) > 0;
-      const hasImageAnalysis = data.debug?.hasImageData;
-
-      if (hasQuestions || hasVariables || hasImageAnalysis) {
-        console.log("Moving to step 2 with:", {
-          questions: data.questions?.length || 0,
-          variables: data.variables?.length || 0,
-          hasImageAnalysis,
-          pillarCoverage: data.debug?.pillarCoverage
-        });
+      // Advance to next step if we have content
+      if (questions.length > 0 || limitedVars.length > 0 || data.debug?.hasImageData) {
         setCurrentStep(2);
       } else {
         toast({
           title: "Analysis incomplete",
-          description: "Could not generate enough content. Try adding more details to your prompt.",
+          description: "Add more details to your prompt.",
           variant: "destructive",
         });
       }
+
     } catch (err) {
-      console.error("Error in handleAnalyze:", err);
+      console.error("Analysis error:", err);
       toast({
         title: "Analysis failed",
-        description: err instanceof Error ? err.message : "An unexpected error occurred",
+        description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
-      setCurrentLoadingMessage("");
-    }
-  };
-
-  // Add the enhancePromptWithGPT method to fix the error
-  const enhancePromptWithGPT = async (
-    promptToEnhance: string,
-    primaryToggle: string | null,
-    secondaryToggle: string | null,
-    setFinalPrompt: React.Dispatch<React.SetStateAction<string>>,
-    answeredQuestions: Question[],
-    relevantVariables: Variable[],
-    selectedTemplate: any = null
-  ) => {
-    setIsLoading(true);
-    setCurrentLoadingMessage("Enhancing your prompt...");
-    
-    try {
-      // Enhanced template validation
-      const isValidTemplate = selectedTemplate && 
-                             typeof selectedTemplate === 'object' && 
-                             selectedTemplate.name && 
-                             Array.isArray(selectedTemplate.pillars) &&
-                             selectedTemplate.pillars.length > 0;
-      
-      console.log("usePromptAnalysis: Template being used:", 
-        isValidTemplate ? {
-          id: selectedTemplate.id,
-          name: selectedTemplate.name,
-          pillarsCount: selectedTemplate.pillars.length,
-          temperature: selectedTemplate.temperature
-        } : "Invalid or no template");
-      
-      // Always create a deep copy to prevent reference issues
-      let templateCopy = null;
-      if (selectedTemplate && isValidTemplate) {
-        try {
-          templateCopy = JSON.parse(JSON.stringify(selectedTemplate));
-          console.log("Template successfully copied:", templateCopy.name);
-        } catch (copyError) {
-          console.error("Error creating template copy:", copyError);
-        }
-      }
-      
-      console.log("usePromptAnalysis: Calling enhance-prompt with:", {
-        originalPrompt: promptToEnhance.substring(0, 50) + "...",
-        answeredQuestions: answeredQuestions.length,
-        relevantVariables: relevantVariables.length,
-        primaryToggle,
-        secondaryToggle
-      });
-      
-      const { data, error } = await supabase.functions.invoke('enhance-prompt', {
-        body: {
-          originalPrompt: promptToEnhance,
-          answeredQuestions,
-          relevantVariables,
-          primaryToggle,
-          secondaryToggle,
-          userId: user?.id,
-          promptId: currentPromptId,
-          template: templateCopy
-        }
-      });
-      
-      if (error) {
-        console.error("Error from enhance-prompt edge function:", error);
-        throw new Error(`Error enhancing prompt: ${error.message}`);
-      }
-      
-      if (!data || !data.enhancedPrompt) {
-        console.error("No enhanced prompt returned from edge function");
-        throw new Error("No enhanced prompt returned");
-      }
-      
-      console.log("Enhanced prompt received (length):", data.enhancedPrompt.length);
-      setFinalPrompt(data.enhancedPrompt);
-    } catch (error) {
-      console.error("Error in enhancePromptWithGPT:", error);
-      toast({
-        title: "Enhancement failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive",
-      });
-      throw error;
     } finally {
       setIsLoading(false);
       setCurrentLoadingMessage("");
@@ -205,7 +119,6 @@ export const usePromptAnalysis = (
   return {
     isLoading,
     currentLoadingMessage,
-    handleAnalyze,
-    enhancePromptWithGPT
+    handleAnalyze
   };
 };
