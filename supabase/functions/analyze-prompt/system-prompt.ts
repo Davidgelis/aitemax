@@ -33,16 +33,25 @@ Core Question Generation Guidelines:
 6. Ensure flawless grammar and article usage.
 `;
 
-  // If a template with pillars is provided, add a single instruction block
+  // If a template with pillars is provided, add explicit pillar instructions
   if (Array.isArray(template?.pillars) && template.pillars.length) {
-    const titles = template.pillars.map((p: any) => `"${p.title}"`).join(', ');
+    const pillars = template.pillars.map((p: any) => ({
+      title: p.title,
+      description: p.description
+    }));
+    
     prompt += `
-Use the following pillars to structure your questions: ${titles}.
-For each pillar, generate 1–2 gap-identification questions that reference its description.
+IMPORTANT: Generate questions based on these specific pillars:
+${pillars.map(p => `- "${p.title}": ${p.description}`).join('\n')}
+
+Requirements:
+1. Each question MUST be categorized under one of these exact pillar titles.
+2. Generate at least one question for EACH pillar.
+3. Questions must directly relate to the pillar's description.
+4. Maintain balance across pillars in question distribution.
 `;
   }
 
-  // Example stub
   prompt += `
 
 \`\`\`json
