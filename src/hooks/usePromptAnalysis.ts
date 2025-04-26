@@ -84,7 +84,7 @@ export const usePromptAnalysis = (
         toast({
           title: "Variable limit reached",
           description: "Only the first 8 variables were kept.",
-          variant: "warning",
+          variant: "default",
         });
       }
       
@@ -116,9 +116,46 @@ export const usePromptAnalysis = (
     }
   };
 
+  // Add prompt enhancement function for step 3
+  const enhancePromptWithGPT = async (
+    promptToEnhance: string,
+    primaryToggle: string | null,
+    secondaryToggle: string | null,
+    setFinalPrompt: React.Dispatch<React.SetStateAction<string>>,
+    answeredQuestions: Question[],
+    relevantVariables: Variable[],
+    selectedTemplate: any = null
+  ): Promise<void> => {
+    try {
+      // Call enhancement edge function
+      const { data, error } = await supabase.functions.invoke('enhance-prompt', {
+        body: {
+          originalPrompt: promptToEnhance,
+          answeredQuestions,
+          relevantVariables,
+          primaryToggle,
+          secondaryToggle,
+          userId: user?.id || null,
+          promptId: currentPromptId,
+          template: selectedTemplate
+        }
+      });
+      
+      if (error || !data?.enhancedPrompt) {
+        throw new Error(error?.message || 'Failed to enhance prompt');
+      }
+      
+      setFinalPrompt(data.enhancedPrompt);
+    } catch (error) {
+      console.error("Error in enhancePromptWithGPT:", error);
+      throw error;
+    }
+  };
+
   return {
     isLoading,
     currentLoadingMessage,
-    handleAnalyze
+    handleAnalyze,
+    enhancePromptWithGPT
   };
 };

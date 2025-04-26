@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
@@ -80,7 +81,7 @@ export const useQuestionsAndVariables = (
         toast({
           title: "Variable name too long",
           description: "Use up to 3 words only.",
-          variant: "warning"
+          variant: "default"
         });
         value = words.slice(0, 3).join(' ');
       }

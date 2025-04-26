@@ -108,14 +108,14 @@ export const VariableList = ({
     onVariableChange(variableId, 'value', value);
   };
 
-  // Handle name change
+  // Handle name change with validation for word count
   const handleNameChange = (variableId: string, name: string) => {
     const words = name.trim().split(/\s+/);
     if (words.length > 3) {
       toast({
         title: "Name too long",
         description: "Variable names must be 1-3 words.",
-        variant: "warning"
+        variant: "default"
       });
       name = words.slice(0, 3).join(' ');
     }
@@ -197,7 +197,6 @@ export const VariableList = ({
                       placeholder="Value"
                       value={variableValues[variable.id] || ""}
                       onChange={(e) => {
-                        // Limit input to maxCharacterLimit characters
                         if (e.target.value.length <= maxCharacterLimit) {
                           handleValueChange(variable.id, e.target.value);
                         }

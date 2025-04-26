@@ -40,13 +40,6 @@ export interface Variable {
   code?: string;      // Internal code reference
 }
 
-export interface Toggle {
-  id: string;
-  label: string;
-  definition: string;
-  prompt: string;
-}
-
 // Define a proper type for the tag structure
 export interface PromptTag {
   category: string;
