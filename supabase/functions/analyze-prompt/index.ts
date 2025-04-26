@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI } from "./openai-client.ts";
@@ -26,20 +27,106 @@ function calculateAmbiguity(promptText: string): number {
   return Math.max(0, Math.min(adjustedAmbiguity, 1));
 }
 
+// Function to process variables with performance optimizations
+function processVariables(variables: any[], questions: any[]) {
+  console.time("variableProcessing");
+  console.log(`Raw variables received: ${variables.length}`);
+
+  // helper: canonical form (lower-case → remove stop-words → alphabetical)
+  const stop = new Set(["of", "the", "a", "an"]);
+  const canonical = (label: string) => label
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(w => !stop.has(w))
+    .sort()
+    .join(" ");
+
+  // 1️⃣ Trim to max three words
+  const trimmedVariables = variables.map(v => ({
+    ...v,
+    name: v.name.trim().split(/\s+/).slice(0, 3).join(" ")
+  }));
+  console.log(`After trimming: ${trimmedVariables.length} variables`);
+
+  // 2️⃣ Dedupe via canonical label
+  const seen = new Set<string>();
+  const dedupedVariables = trimmedVariables.filter(v => {
+    if (!v.name) return false; // Skip variables with empty names
+    const sig = canonical(v.name);
+    if (seen.has(sig)) {
+      console.log(`Removing duplicate variable → "${v.name}" (signature: ${sig})`);
+      return false;
+    }
+    seen.add(sig);
+    return true;
+  });
+  console.log(`After deduplication: ${dedupedVariables.length} variables`);
+
+  // 3️⃣ Ensure category (default "Other")
+  const categorizedVariables = dedupedVariables.map(v => ({ ...v, category: v.category || "Other" }));
+
+  // 4️⃣ Drop variables that overlap any question text
+  const qText = questions.map(q => q.text.toLowerCase());
+  const nonOverlappingVariables = categorizedVariables.filter(v => !qText.some(t => t.includes(v.name.toLowerCase())));
+  console.log(`After removing question overlaps: ${nonOverlappingVariables.length} variables`);
+
+  // 5️⃣ Cap at eight
+  const finalVariables = nonOverlappingVariables.length > 8 
+    ? nonOverlappingVariables.slice(0, 8)
+    : nonOverlappingVariables;
+
+  if (nonOverlappingVariables.length > 8) {
+    console.log(`Trimming variables from ${nonOverlappingVariables.length} → 8`);
+  }
+
+  // Debug distribution
+  const variableDistribution = finalVariables.reduce<Record<string, number>>((acc, v) => {
+    const cat = v.category || "Other";
+    acc[cat] = (acc[cat] || 0) + 1;
+    return acc;
+  }, {});
+  console.log(`Final variables: ${finalVariables.length}`, variableDistribution);
+  console.timeEnd("variableProcessing");
+  
+  return finalVariables;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.time("totalProcessingTime");
   try {
-    const { promptText, template, websiteData, imageData, smartContextData, model = 'gpt-4.1' } = await req.json();
+    const { promptText, template, websiteData, imageData, smartContextData, model = 'gpt-4o' } = await req.json();
+    console.log(`Request received for model: ${model}`);
+    console.log(`Prompt length: ${promptText.length} characters`);
+    
+    // Validate input
+    if (!promptText || typeof promptText !== 'string') {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid prompt text",
+          questions: [],
+          variables: [],
+          masterCommand: "",
+          enhancedPrompt: ""
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      );
+    }
 
     const ambiguity = calculateAmbiguity(promptText);
     console.log(`Calculated ambiguity: ${ambiguity} for prompt of ${promptText.split(/\s+/).length} words`);
 
     const systemPrompt = createSystemPrompt(template, ambiguity);
+    console.log("System prompt created");
     
     try {
+      console.time("aiAnalysisTime");
       const { content } = await analyzePromptWithAI(
         promptText,
         systemPrompt,
@@ -47,6 +134,8 @@ serve(async (req) => {
         smartContextData?.context || '',
         imageData?.[0]?.base64
       );
+      console.timeEnd("aiAnalysisTime");
+      console.log("AI analysis completed");
       
       let parsed;
       let processedContent = content;
@@ -64,58 +153,13 @@ serve(async (req) => {
 
       const questions = Array.isArray(parsed.questions) ? parsed.questions : [];
       
-      /* ----- Variable post-processing ----- */
-      let variables = Array.isArray(parsed.variables) ? parsed.variables : [];
-      console.log(`Raw variables received: ${variables.length}`);
+      // Process variables with optimized function
+      const variables = processVariables(
+        Array.isArray(parsed.variables) ? parsed.variables : [], 
+        questions
+      );
 
-      // helper: canonical form (lower-case → remove stop-words → alphabetical)
-      const stop = new Set(["of", "the", "a", "an"]);
-      const canonical = (label: string) => label
-        .toLowerCase()
-        .split(/\s+/)
-        .filter(w => !stop.has(w))
-        .sort()
-        .join(" ");
-
-      // 1️⃣ Trim to max three words
-      variables = variables.map(v => ({
-        ...v,
-        name: v.name.trim().split(/\s+/).slice(0, 3).join(" ")
-      }));
-
-      // 2️⃣ Dedupe via canonical label
-      const seen = new Set<string>();
-      variables = variables.filter(v => {
-        const sig = canonical(v.name);
-        if (seen.has(sig)) {
-          console.log(`Removing duplicate variable → "${v.name}" (signature: ${sig})`);
-          return false;
-        }
-        seen.add(sig);
-        return true;
-      });
-
-      // 3️⃣ Ensure category (default "Other")
-      variables = variables.map(v => ({ ...v, category: v.category || "Other" }));
-
-      // 4️⃣ Drop variables that overlap any question text
-      const qText = questions.map(q => q.text.toLowerCase());
-      variables = variables.filter(v => !qText.some(t => t.includes(v.name.toLowerCase())));
-
-      // 5️⃣ Cap at eight
-      if (variables.length > 8) {
-        console.log(`Trimming variables from ${variables.length} → 8`);
-        variables = variables.slice(0, 8);
-      }
-
-      // Debug distribution
-      const variableDistribution = variables.reduce<Record<string, number>>((acc, v) => {
-        const cat = v.category || "Other";
-        acc[cat] = (acc[cat] || 0) + 1;
-        return acc;
-      }, {});
-      console.log(`Final variables: ${variables.length}`, variableDistribution);
-
+      console.timeEnd("totalProcessingTime");
       return new Response(
         JSON.stringify({
           questions,
@@ -143,6 +187,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in analyze-prompt function:', error);
+    console.timeEnd("totalProcessingTime");
     return new Response(
       JSON.stringify({ 
         error: error.message,

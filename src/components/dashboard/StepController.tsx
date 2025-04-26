@@ -93,7 +93,7 @@ export const StepController = ({
     currentPromptId
   );
   
-  const { isLoading: isAnalyzing, currentLoadingMessage, handleAnalyze, enhancePromptWithGPT } = promptAnalysis;
+  const { isLoading: isAnalyzing, currentLoadingMessage, loadingState, handleAnalyze, enhancePromptWithGPT } = promptAnalysis;
   
   const questionVarOps = useQuestionsAndVariables(
     questions,
@@ -379,6 +379,8 @@ export const StepController = ({
             questionsContainerRef={questionsContainerRef}
             variablesContainerRef={variablesContainerRef}
             originalPrompt={promptText}
+            isLoading={isAnalyzing}
+            loadingMessage={loadingState?.message || currentLoadingMessage}
           />
         );
 

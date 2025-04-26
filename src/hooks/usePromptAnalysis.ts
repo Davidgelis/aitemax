@@ -5,6 +5,13 @@ import { Question, Variable } from "@/components/dashboard/types";
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 import { useToast } from "@/hooks/use-toast";
 
+// Define loading states for better user feedback
+type LoadingState = {
+  isLoading: boolean;
+  stage: 'initial' | 'analyzing' | 'processing-variables' | 'processing-questions' | 'enhancing' | 'complete';
+  message: string;
+};
+
 export const usePromptAnalysis = (
   promptText: string,
   setQuestions: (questions: Question[]) => void,
@@ -15,79 +22,151 @@ export const usePromptAnalysis = (
   user: any,
   currentPromptId: string | null
 ) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentLoadingMessage, setCurrentLoadingMessage] = useState("");
+  const [loadingState, setLoadingState] = useState<LoadingState>({
+    isLoading: false,
+    stage: 'initial',
+    message: ""
+  });
+  
   const { getCurrentTemplate } = useTemplateManagement();
   const { toast } = useToast();
+  
+  // Create a derived isLoading state for backward compatibility
+  const isLoading = loadingState.isLoading;
+  const currentLoadingMessage = loadingState.message;
+
+  // Cache for recent analyses to prevent unnecessary API calls
+  const analysisCache = new Map<string, any>();
+  const cacheKey = (text: string, images?: any[], website?: any, context?: any) => {
+    return `${text}|${images ? images.length : 0}|${website ? 'y' : 'n'}|${context ? 'y' : 'n'}`;
+  };
+
+  const updateLoadingState = (stage: LoadingState['stage'], message: string) => {
+    setLoadingState({
+      isLoading: stage !== 'complete',
+      stage,
+      message
+    });
+    console.log(`Loading state: ${stage} - ${message}`);
+  };
 
   const handleAnalyze = async (
     uploadedImages: any[] | null = null,
     websiteContext: { url: string; instructions: string } | null = null,
     smartContext: { context: string; usageInstructions: string } | null = null
   ) => {
-    setIsLoading(true);
-    setCurrentLoadingMessage("Analyzing your prompt...");
-
+    updateLoadingState('analyzing', "Analyzing your prompt...");
+    
     try {
       const currentTemplate = getCurrentTemplate();
       if (!promptText?.trim()) {
         throw new Error("Prompt text is required");
       }
 
-      const { data, error } = await supabase.functions.invoke("analyze-prompt", {
-        body: {
-          promptText,
-          userId: user?.id || null,
-          promptId: currentPromptId,
-          websiteData: websiteContext,
-          imageData: uploadedImages,
-          smartContextData: smartContext,
-          template: currentTemplate,
-          model: "gpt-4o"
+      // Check cache first to see if we've already analyzed this prompt with similar parameters
+      const key = cacheKey(promptText, uploadedImages, websiteContext, smartContext);
+      if (analysisCache.has(key)) {
+        console.log("Using cached analysis result");
+        const cachedData = analysisCache.get(key);
+        
+        updateLoadingState('processing-questions', "Processing questions...");
+        setQuestions(cachedData.questions || []);
+        
+        updateLoadingState('processing-variables', "Processing variables...");
+        setVariables(cachedData.variables || []);
+        
+        setMasterCommand(cachedData.masterCommand || "");
+        setFinalPrompt(cachedData.enhancedPrompt || "");
+        
+        updateLoadingState('complete', "Analysis complete!");
+        
+        // Still advance to next step if we have content
+        if ((cachedData.questions?.length > 0 || cachedData.variables?.length > 0 || cachedData.debug?.hasImageData)) {
+          setCurrentStep(2);
         }
-      });
-
-      if (error || !data) {
-        console.error('Analysis error:', error);
-        toast({
-          title: "Analysis failed",
-          description: error?.message || "No data returned",
-          variant: "destructive",
-        });
+        
         return;
       }
 
-      // Process questions
-      const questions = Array.isArray(data.questions) ? data.questions : [];
-      setQuestions(questions);
+      // Use an AbortController to handle timeouts
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
-      // Process and validate variables
-      const rawVars = Array.isArray(data.variables) ? data.variables : [];
-      console.log(`usePromptAnalysis: received ${rawVars.length} variables`);
-
-      setVariables(rawVars);
-
-      // Notify if no variables were generated
-      if (!rawVars.length) {
-        toast({
-          title: "No variables detected",
-          description: "Try adding more specific details to your prompt.",
-          variant: "default"
+      try {
+        updateLoadingState('analyzing', "Connecting to AI model...");
+        const { data, error } = await supabase.functions.invoke("analyze-prompt", {
+          body: {
+            promptText,
+            userId: user?.id || null,
+            promptId: currentPromptId,
+            websiteData: websiteContext,
+            imageData: uploadedImages,
+            smartContextData: smartContext,
+            template: currentTemplate,
+            model: "gpt-4o-mini" // Use faster model by default
+          },
+          signal: controller.signal
         });
-      }
+        
+        clearTimeout(timeoutId);
 
-      setMasterCommand(data.masterCommand || "");
-      setFinalPrompt(data.enhancedPrompt || "");
+        if (error || !data) {
+          console.error('Analysis error:', error);
+          toast({
+            title: "Analysis failed",
+            description: error?.message || "No data returned",
+            variant: "destructive",
+          });
+          updateLoadingState('complete', "");
+          return;
+        }
 
-      // Advance to next step if we have content
-      if (questions.length > 0 || rawVars.length > 0 || data.debug?.hasImageData) {
-        setCurrentStep(2);
-      } else {
-        toast({
-          title: "Analysis incomplete",
-          description: "Add more details to your prompt.",
-          variant: "destructive",
-        });
+        // Cache the result for future use
+        analysisCache.set(key, data);
+        
+        // Process questions
+        updateLoadingState('processing-questions', "Processing questions...");
+        const questions = Array.isArray(data.questions) ? data.questions : [];
+        setQuestions(questions);
+
+        // Process and validate variables
+        updateLoadingState('processing-variables', "Processing variables...");
+        const rawVars = Array.isArray(data.variables) ? data.variables : [];
+        console.log(`usePromptAnalysis: received ${rawVars.length} variables`);
+
+        setVariables(rawVars);
+
+        // Notify if no variables were generated
+        if (!rawVars.length) {
+          toast({
+            title: "No variables detected",
+            description: "Try adding more specific details to your prompt.",
+            variant: "default"
+          });
+        }
+
+        setMasterCommand(data.masterCommand || "");
+        setFinalPrompt(data.enhancedPrompt || "");
+        
+        updateLoadingState('complete', "Analysis complete!");
+
+        // Advance to next step if we have content
+        if (questions.length > 0 || rawVars.length > 0 || data.debug?.hasImageData) {
+          setCurrentStep(2);
+        } else {
+          toast({
+            title: "Analysis incomplete",
+            description: "Add more details to your prompt.",
+            variant: "destructive",
+          });
+        }
+      } catch (abortError) {
+        clearTimeout(timeoutId);
+        
+        if (abortError.name === 'AbortError') {
+          throw new Error("Analysis timed out. Please try again or use a shorter prompt.");
+        }
+        throw abortError;
       }
 
     } catch (err) {
@@ -98,8 +177,7 @@ export const usePromptAnalysis = (
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
-      setCurrentLoadingMessage("");
+      updateLoadingState('complete', "");
     }
   };
 
@@ -113,6 +191,8 @@ export const usePromptAnalysis = (
     selectedTemplate: any = null
   ): Promise<void> => {
     try {
+      updateLoadingState('enhancing', "Enhancing your prompt with Aitema X...");
+      
       const { data, error } = await supabase.functions.invoke('enhance-prompt', {
         body: {
           originalPrompt: promptToEnhance,
@@ -131,7 +211,9 @@ export const usePromptAnalysis = (
       }
       
       setFinalPrompt(data.enhancedPrompt);
+      updateLoadingState('complete', "Enhancement complete!");
     } catch (error) {
+      updateLoadingState('complete', "");
       throw error;
     }
   };
@@ -139,6 +221,7 @@ export const usePromptAnalysis = (
   return {
     isLoading,
     currentLoadingMessage,
+    loadingState,
     handleAnalyze,
     enhancePromptWithGPT
   };

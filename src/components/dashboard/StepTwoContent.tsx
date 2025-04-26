@@ -3,7 +3,7 @@ import { Question, Variable } from "./types";
 import { RefObject } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
-import { Info } from "lucide-react";
+import { Info, Loader2 } from "lucide-react";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
 
@@ -23,6 +23,8 @@ interface StepTwoContentProps {
   questionsContainerRef: RefObject<HTMLDivElement>;
   variablesContainerRef: RefObject<HTMLDivElement>;
   originalPrompt: string;
+  isLoading?: boolean;
+  loadingMessage?: string;
 }
 
 export const StepTwoContent = ({
@@ -40,7 +42,9 @@ export const StepTwoContent = ({
   onContinue,
   questionsContainerRef,
   variablesContainerRef,
-  originalPrompt
+  originalPrompt,
+  isLoading = false,
+  loadingMessage = ""
 }: StepTwoContentProps) => {
   const { currentLanguage } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
@@ -52,6 +56,18 @@ export const StepTwoContent = ({
   // Check for image analysis questions
   const imageAnalysisQuestions = questions.filter(q => q.contextSource === "image" || q.category === "Image Analysis");
   const hasImageAnalysis = imageAnalysisQuestions.length > 0;
+  
+  if (isLoading) {
+    return (
+      <div className="border rounded-xl p-6 bg-card">
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-lg font-medium">{loadingMessage || "Processing your prompt..."}</p>
+          <p className="text-sm text-muted-foreground mt-2">This may take a moment for complex prompts.</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="border rounded-xl p-6 bg-card">
