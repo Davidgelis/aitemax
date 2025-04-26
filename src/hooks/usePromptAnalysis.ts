@@ -88,12 +88,15 @@ export const usePromptAnalysis = (
         return;
       }
 
-      // Use an AbortController to handle timeouts
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      // Set up timeout handling using Promise.race
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Analysis timed out after 60 seconds")), 60000);
+      });
 
-      try {
+      // Main analysis promise
+      const analysisPromise = async () => {
         updateLoadingState('analyzing', "Connecting to AI model...");
+        
         const { data, error } = await supabase.functions.invoke("analyze-prompt", {
           body: {
             promptText,
@@ -104,71 +107,62 @@ export const usePromptAnalysis = (
             smartContextData: smartContext,
             template: currentTemplate,
             model: "gpt-4o-mini" // Use faster model by default
-          },
-          signal: controller.signal
+          }
         });
         
-        clearTimeout(timeoutId);
-
         if (error || !data) {
           console.error('Analysis error:', error);
-          toast({
-            title: "Analysis failed",
-            description: error?.message || "No data returned",
-            variant: "destructive",
-          });
-          updateLoadingState('complete', "");
-          return;
+          throw new Error(error?.message || "No data returned");
         }
-
-        // Cache the result for future use
-        analysisCache.set(key, data);
         
-        // Process questions
-        updateLoadingState('processing-questions', "Processing questions...");
-        const questions = Array.isArray(data.questions) ? data.questions : [];
-        setQuestions(questions);
+        return data;
+      };
 
-        // Process and validate variables
-        updateLoadingState('processing-variables', "Processing variables...");
-        const rawVars = Array.isArray(data.variables) ? data.variables : [];
-        console.log(`usePromptAnalysis: received ${rawVars.length} variables`);
+      // Race between timeout and the actual analysis
+      const data = await Promise.race([
+        analysisPromise(),
+        timeoutPromise
+      ]) as any;
 
-        setVariables(rawVars);
+      // Cache the result for future use
+      analysisCache.set(key, data);
+      
+      // Process questions
+      updateLoadingState('processing-questions', "Processing questions...");
+      const questions = Array.isArray(data.questions) ? data.questions : [];
+      setQuestions(questions);
 
-        // Notify if no variables were generated
-        if (!rawVars.length) {
-          toast({
-            title: "No variables detected",
-            description: "Try adding more specific details to your prompt.",
-            variant: "default"
-          });
-        }
+      // Process and validate variables
+      updateLoadingState('processing-variables', "Processing variables...");
+      const rawVars = Array.isArray(data.variables) ? data.variables : [];
+      console.log(`usePromptAnalysis: received ${rawVars.length} variables`);
 
-        setMasterCommand(data.masterCommand || "");
-        setFinalPrompt(data.enhancedPrompt || "");
-        
-        updateLoadingState('complete', "Analysis complete!");
+      setVariables(rawVars);
 
-        // Advance to next step if we have content
-        if (questions.length > 0 || rawVars.length > 0 || data.debug?.hasImageData) {
-          setCurrentStep(2);
-        } else {
-          toast({
-            title: "Analysis incomplete",
-            description: "Add more details to your prompt.",
-            variant: "destructive",
-          });
-        }
-      } catch (abortError) {
-        clearTimeout(timeoutId);
-        
-        if (abortError.name === 'AbortError') {
-          throw new Error("Analysis timed out. Please try again or use a shorter prompt.");
-        }
-        throw abortError;
+      // Notify if no variables were generated
+      if (!rawVars.length) {
+        toast({
+          title: "No variables detected",
+          description: "Try adding more specific details to your prompt.",
+          variant: "default"
+        });
       }
 
+      setMasterCommand(data.masterCommand || "");
+      setFinalPrompt(data.enhancedPrompt || "");
+      
+      updateLoadingState('complete', "Analysis complete!");
+
+      // Advance to next step if we have content
+      if (questions.length > 0 || rawVars.length > 0 || data.debug?.hasImageData) {
+        setCurrentStep(2);
+      } else {
+        toast({
+          title: "Analysis incomplete",
+          description: "Add more details to your prompt.",
+          variant: "destructive",
+        });
+      }
     } catch (err) {
       console.error("Analysis error:", err);
       toast({
@@ -193,24 +187,34 @@ export const usePromptAnalysis = (
     try {
       updateLoadingState('enhancing', "Enhancing your prompt with Aitema X...");
       
-      const { data, error } = await supabase.functions.invoke('enhance-prompt', {
-        body: {
-          originalPrompt: promptToEnhance,
-          answeredQuestions,
-          relevantVariables,
-          primaryToggle,
-          secondaryToggle,
-          userId: user?.id || null,
-          promptId: currentPromptId,
-          template: selectedTemplate
-        }
+      // Similar timeout pattern for enhancement
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Enhancement timed out after 60 seconds")), 60000);
       });
       
-      if (error || !data?.enhancedPrompt) {
-        throw new Error(error?.message || 'Failed to enhance prompt');
-      }
+      const enhancePromise = async () => {
+        const { data, error } = await supabase.functions.invoke('enhance-prompt', {
+          body: {
+            originalPrompt: promptToEnhance,
+            answeredQuestions,
+            relevantVariables,
+            primaryToggle,
+            secondaryToggle,
+            userId: user?.id || null,
+            promptId: currentPromptId,
+            template: selectedTemplate
+          }
+        });
+        
+        if (error || !data?.enhancedPrompt) {
+          throw new Error(error?.message || 'Failed to enhance prompt');
+        }
+        
+        return data;
+      };
       
-      setFinalPrompt(data.enhancedPrompt);
+      const data = await Promise.race([enhancePromise(), timeoutPromise]);
+      setFinalPrompt((data as any).enhancedPrompt);
       updateLoadingState('complete', "Enhancement complete!");
     } catch (error) {
       updateLoadingState('complete', "");

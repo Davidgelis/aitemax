@@ -48,46 +48,33 @@ export async function analyzePromptWithAI(
       ];
     }
 
-    // Set a timeout for the OpenAI request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    // Use built-in timeout from OpenAI client instead of AbortController
+    const completion = await openai.chat.completions.create({
+      model,
+      messages,
+      response_format: { type: "json_object" },
+      temperature: 0.2,
+      max_tokens: 2000, // Limit token usage
+      timeout: 30000, // 30 second timeout in ms
+    });
     
+    // Extract the response content
+    const responseContent = completion.choices[0].message.content || "";
+    
+    // Remove any markdown formatting that might be present (like ```json)
+    let cleanedContent = responseContent.replace(/```json\n|\n```|```/g, "").trim();
+    
+    // Make sure it's valid JSON
     try {
-      const completion = await openai.chat.completions.create({
-        model,
-        messages,
-        response_format: { type: "json_object" },
-        temperature: 0.2,
-        max_tokens: 2000, // Limit token usage
-        signal: controller.signal,
-      });
-  
-      clearTimeout(timeoutId); // Clear the timeout if request completes
-      
-      // Extract the response content
-      const responseContent = completion.choices[0].message.content || "";
-      
-      // Remove any markdown formatting that might be present (like ```json)
-      let cleanedContent = responseContent.replace(/```json\n|\n```|```/g, "").trim();
-      
-      // Make sure it's valid JSON
-      try {
-        JSON.parse(cleanedContent);
-        console.log("Successfully parsed JSON response.");
-      } catch (e) {
-        console.error("Invalid JSON response:", cleanedContent);
-        console.error("Error parsing JSON:", e.message);
-        throw new Error("Failed to parse response as JSON");
-      }
-      
-      return completion.choices[0].message;
-    } catch (err) {
-      clearTimeout(timeoutId); // Clear timeout on error
-      if (err.name === 'AbortError') {
-        throw new Error("OpenAI request timed out after 30 seconds");
-      }
-      throw err;
+      JSON.parse(cleanedContent);
+      console.log("Successfully parsed JSON response.");
+    } catch (e) {
+      console.error("Invalid JSON response:", cleanedContent);
+      console.error("Error parsing JSON:", e.message);
+      throw new Error("Failed to parse response as JSON");
     }
+    
+    return completion.choices[0].message;
   } catch (error) {
     console.error("Error in analyzePromptWithAI:", error);
     throw error;
