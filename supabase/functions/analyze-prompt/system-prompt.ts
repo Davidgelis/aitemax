@@ -1,37 +1,51 @@
 
-export function createSystemPrompt(primaryToggle: string | null, secondaryToggle: string | null, template: any): string {
-  let systemPrompt = `
-You are an expert intent analyzer specializing in extracting meaningful context from user prompts. Your response must be valid JSON containing exactly these keys:
+export function createSystemPrompt(template: any): string {
+  // Base JSON-only requirement
+  let prompt = `
+You are an expert intent analyzer. Respond ONLY in JSON with exactly these keys, in this order:
+  1. questions
+  2. variables
+  3. masterCommand
+  4. enhancedPrompt
 
+JSON Schema:
 {
-  "questions": Array<{ category: string, text: string, examples: string[], contextSource?: string }>,
-  "variables": Array<{ name: string, value: string, category?: string }>,
+  "questions": Array<{
+    category: string;
+    text: string;
+    examples: string[];
+    contextSource?: string;
+  }>,
+  "variables": Array<{
+    name: string;
+    value: string;
+  }>,
   "masterCommand": string,
   "enhancedPrompt": string
 }
 
 Core Question Generation Guidelines:
-1. Generate questions ONLY about missing information crucial to fulfilling the user's intent
-2. Each question must directly relate to specific elements in the prompt
-3. Questions must be natural and conversational while remaining specific
-4. Focus on clarifying ambiguous aspects or missing details from the prompt
-5. Include 2-4 example answers per question that are contextually relevant
-6. Ensure all questions are grammatically correct with proper articles and structure
+1. Ask ONLY about missing information crucial to the user's intent.
+2. Tie each question directly to elements in the original prompt.
+3. Use a natural, conversational tone—no jargon.
+4. Clarify any ambiguity or unspecified detail.
+5. Provide 2–4 context-relevant example answers per question.
+6. Ensure flawless grammar and article usage.
+`;
 
-DO NOT include any text or explanations outside the JSON structure.`;
-
-  // Add template-specific guidelines if template exists
-  if (template && Array.isArray(template.pillars)) {
-    systemPrompt += `\n\nTemplate Integration:\nGenerate questions aligned with these pillars:`;
-    template.pillars.forEach((pillar: any) => {
-      if (pillar && pillar.title) {
-        systemPrompt += `\n"${pillar.title}": Generate questions that address gaps in ${pillar.description}. Focus on details that would make the result more specific and aligned with user intent.`;
-      }
-    });
+  // If a template with pillars is provided, add a single instruction block
+  if (Array.isArray(template?.pillars) && template.pillars.length) {
+    const titles = template.pillars.map((p: any) => `"${p.title}"`).join(', ');
+    prompt += `
+Use the following pillars to structure your questions: ${titles}.
+For each pillar, generate 1–2 gap-identification questions that reference its description.
+`;
   }
 
-  // Add JSON structure example
-  systemPrompt += `\n\nExample Response Structure:
+  // Example stub
+  prompt += `
+
+\`\`\`json
 {
   "questions": [
     {
@@ -44,13 +58,14 @@ DO NOT include any text or explanations outside the JSON structure.`;
   "variables": [
     {
       "name": "style",
-      "value": "minimalist",
-      "category": "Visual Style"
+      "value": "minimalist"
     }
   ],
   "masterCommand": "Create image with specified parameters",
   "enhancedPrompt": "Enhanced version of original prompt"
-}`;
+}
+\`\`\`
+`;
 
-  return systemPrompt.trim();
+  return prompt.trim();
 }
