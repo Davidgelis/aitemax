@@ -35,8 +35,8 @@ export const useQuestionsAndVariables = (
     setQuestions(
       questions.map((q) => {
         if (q.id === questionId) {
-          // When an answer is provided, automatically mark as relevant
-          return { ...q, answer, isRelevant: answer.trim() !== "" };
+          // Remove automatic relevance setting, only update answer
+          return { ...q, answer };
         }
         return q;
       })
