@@ -74,15 +74,24 @@ serve(async (req) => {
         name: v.name.trim().split(/\s+/).slice(0, 3).join(' ')
       }));
 
-      // 2-a. Dedupe by case-insensitive label
+      // 2-a. Dedupe by canonical label
       const seen = new Set<string>();
+      const canonical = (label: string) =>
+        label                                    // 1) start with original
+          .toLowerCase()                         // 2) normalize case
+          .replace(/\b(of|the|a|an)\b/g, '')    // 3) drop stop-words
+          .trim()                               // 4) clean whitespace
+          .split(/\s+/)                         // 5) word array
+          .sort()                               // 6) alphabetical order
+          .join(' ');                           // 7) back to string
+
       variables = variables.filter(v => {
-        const key = v.name.toLowerCase();
-        if (seen.has(key)) {
-          console.log(`Removing duplicate variable: ${v.name}`);
+        const sig = canonical(v.name);
+        if (seen.has(sig)) {
+          console.log(`Removing duplicate variable: "${v.name}" (signature: "${sig}")`);
           return false;
         }
-        seen.add(key);
+        seen.add(sig);
         return true;
       });
 
