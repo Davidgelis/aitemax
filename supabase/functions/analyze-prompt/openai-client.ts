@@ -1,158 +1,144 @@
 
+import { Question, Variable } from "./types.ts";
+
+interface AnalyzePromptResponse {
+  content: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+}
+
 export async function analyzePromptWithAI(
-  promptText: string, 
-  systemMessage: string, 
-  apiKey: string,
-  smartContext: string = "",
-  imageBase64?: string | null,
-  model: string = "gpt-4o"
-): Promise<any> {
-  // Input validation with detailed logging
-  if (!promptText || typeof promptText !== 'string') {
-    console.error("Invalid prompt text:", promptText);
-    throw new Error("Invalid prompt text provided");
-  }
-
-  if (!apiKey) {
-    console.error("Missing API key");
-    throw new Error("OpenAI API key is required");
-  }
-
-  console.log(`Processing prompt with length: ${promptText.length} characters`);
-  console.log(`Using OpenAI model: ${model}`);
-
+  promptText: string,
+  systemPrompt: string,
+  model: string = 'gpt-4o-mini',
+  websiteData: any = null,
+  imageData: any[] = [],
+  smartContextData: any = null
+): Promise<AnalyzePromptResponse> {
   try {
-    let userContent: string | Array<any>;
-    const messages = [
-      { 
-        role: 'system', 
-        content: `${systemMessage}\n\nIMPORTANT GUIDELINES FOR QUESTION GENERATION:
-1. Generate diverse questions that gather all necessary information about the user's prompt
-2. Each question must directly relate to understanding or clarifying the user's specific request
-3. Questions should cover different aspects of the user's needs, including style, format, content, and purpose
-4. Each question must include brief example answers to guide the user
-5. Generate at least 6-10 questions for any non-trivial prompt
-6. Questions must help gather information needed to fulfill the user's request perfectly
-7. Every question should be phrased in a conversational, user-friendly manner
-8. Ensure questions cover both high-level goals and specific details needed to complete the request
-9. Process and analyze the entire prompt text to generate comprehensive questions`
-      }
-    ];
+    const openAiApiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!openAiApiKey) {
+      throw new Error("OpenAI API key not found");
+    }
 
-    // Handle image analysis if we have an image
-    if (imageBase64) {
-      console.log("Including image in OpenAI request for multimodal analysis");
-      
-      userContent = [
-        {
-          type: "text",
-          text: promptText + (smartContext ? `\n\nAdditional context: ${smartContext}` : '')
-        },
-        {
-          type: "image_url",
-          image_url: {
-            url: `data:image/jpeg;base64,${imageBase64}`,
-            detail: "high"
-          }
-        }
-      ];
-      
+    const messages = [];
+
+    // Add system prompt
+    messages.push({
+      role: "system",
+      content: systemPrompt
+    });
+
+    // Add context data from various sources if available
+    let contentToAnalyze = promptText;
+
+    // Add website context if available
+    if (websiteData && websiteData.content) {
       messages.push({
-        role: 'user',
-        content: userContent
-      });
-      
-      messages.push({
-        role: 'system',
-        content: `Also perform a detailed image analysis. For the image, analyze and provide:
-1. Overall description of what's in the image
-2. Main colors, themes, and visual elements
-3. Key objects, people, or subjects
-4. Style, mood, and composition
-5. Any text visible in the image
-6. Generate specific questions about what the user wants to do with or change about this image`
-      });
-    } else {
-      // Text-only analysis - ensure complete text is processed
-      userContent = promptText;
-      
-      // Only add smart context if it exists and is meaningful
-      if (smartContext && typeof smartContext === 'string' && smartContext.trim().length > 0) {
-        userContent = `${promptText}\n\nAdditional context: ${smartContext}`;
-      }
-      
-      console.log(`Final content length being sent to OpenAI: ${userContent.length} characters`);
-      
-      messages.push({
-        role: 'user',
-        content: userContent
+        role: "user",
+        content: `Website content context:\n${websiteData.content}\n\nUser's instructions for the website context: ${websiteData.instructions || "No specific instructions provided"}`
       });
     }
 
-    // Make API call with proper JSON format configuration and increased max_tokens
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    // Add smart context if available
+    if (smartContextData && smartContextData.context) {
+      messages.push({
+        role: "user",
+        content: `Additional context:\n${smartContextData.context}\n\nUser's instructions for this context: ${smartContextData.usageInstructions || "No specific instructions provided"}`
+      });
+    }
+
+    // Process image data if available
+    let imageContent = [];
+    if (imageData && imageData.length > 0) {
+      // First, log information about the images
+      console.log(`Processing ${imageData.length} images for analysis`);
+      
+      imageData.forEach((img, idx) => {
+        if (img.base64) {
+          const context = img.context ? `Context: ${img.context}` : "No specific context provided";
+          imageContent.push({
+            type: "image_url",
+            image_url: {
+              url: img.base64,
+            }
+          });
+          
+          console.log(`Image ${idx+1}: Base64 data available, length: ${img.base64.length}, context: ${context.substring(0, 50)}...`);
+        } else {
+          console.log(`Image ${idx+1}: No base64 data available`);
+        }
+      });
+    }
+    
+    // Add the main prompt as user message
+    if (imageContent.length > 0) {
+      // For prompts with images, we need to use a multipart message
+      messages.push({
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: contentToAnalyze
+          },
+          ...imageContent
+        ]
+      });
+    } else {
+      // For regular text prompts
+      messages.push({
+        role: "user",
+        content: contentToAnalyze
+      });
+    }
+
+    // Log details of what we're sending to OpenAI
+    console.log(`Processing prompt with length: ${contentToAnalyze.length} characters`);
+    console.log(`Using OpenAI model: ${model}`);
+    console.log(`Final content length being sent to OpenAI: ${contentToAnalyze.length} characters`);
+
+    // Make OpenAI API call
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${openAiApiKey}`
       },
       body: JSON.stringify({
         model: model,
         messages: messages,
         temperature: 0.7,
-        max_tokens: 4000, // Increased to handle longer responses
-        response_format: { type: "json_object" }
-      }),
+        max_tokens: 4000
+      })
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`OpenAI API error (${response.status}):`, errorText);
-      
-      if (response.status === 413 || response.status === 429 || response.status === 400) {
-        console.log("Providing fallback response due to API error");
-        return {
-          content: JSON.stringify({
-            questions: [],
-            variables: [],
-            masterCommand: "",
-            enhancedPrompt: promptText,
-            error: `API Error (${response.status}): ${errorText.substring(0, 100)}`
-          }),
-          usage: {
-            prompt_tokens: 0,
-            completion_tokens: 0,
-            total_tokens: 0
-          }
-        };
-      }
-      
-      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+      const errorData = await response.text();
+      console.error(`OpenAI API error (${response.status}): ${errorData}\n`);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
     }
 
     const data = await response.json();
-    console.log(`OpenAI response received, content length: ${data.choices[0].message.content.length}`);
     
-    return {
+    if (!data.choices || data.choices.length === 0) {
+      throw new Error("No response content returned from OpenAI");
+    }
+
+    const result = {
       content: data.choices[0].message.content,
-      usage: data.usage
+      usage: data.usage ? {
+        promptTokens: data.usage.prompt_tokens,
+        completionTokens: data.usage.completion_tokens,
+        totalTokens: data.usage.total_tokens
+      } : undefined
     };
-    
+
+    return result;
   } catch (error) {
     console.error("Error in analyzePromptWithAI:", error);
-    return {
-      content: JSON.stringify({
-        questions: [],
-        variables: [],
-        masterCommand: "",
-        enhancedPrompt: promptText,
-        error: `Error: ${error.message || "Unknown error occurred"}`
-      }),
-      usage: {
-        prompt_tokens: 0,
-        completion_tokens: 0,
-        total_tokens: 0
-      }
-    };
+    throw error;
   }
 }
