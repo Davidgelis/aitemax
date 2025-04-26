@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  computeAmbiguity,
+  sanitizeQuestionText,
+  appendExamples,
+  organizeQuestionsByPillar
+} from "@/utils/questionUtils";
 
 export const useQuestionsAndVariables = (
   questions: Question[],
@@ -11,10 +17,25 @@ export const useQuestionsAndVariables = (
   variableToDelete: string | null,
   setVariableToDelete: React.Dispatch<React.SetStateAction<string | null>>,
   user?: any,
-  promptId?: string | null
+  promptId?: string | null,
+  originalPrompt?: string
 ) => {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const { toast } = useToast();
+
+  // Process questions based on ambiguity when originalPrompt changes
+  useEffect(() => {
+    if (!originalPrompt) return;
+    const ambiguity = computeAmbiguity(originalPrompt);
+    
+    setQuestions(prev => {
+      const processed = prev.map(q => ({
+        ...q,
+        text: appendExamples(sanitizeQuestionText(q.text), q.examples)
+      }));
+      return organizeQuestionsByPillar(processed, ambiguity);
+    });
+  }, [originalPrompt, setQuestions]);
 
   // Debug variables whenever they change
   useEffect(() => {
