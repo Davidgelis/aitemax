@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
@@ -169,20 +170,19 @@ START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This
 
     console.log("Sending request to OpenAI with system message length:", systemMessage.length);
     console.log("User message length:", userMessage.length);
-    console.log("Using model: o3-mini");
+    console.log("Using model: gpt-4.1");
 
     try {
-      // Make the API call with "o3-mini" model instead of "gpt-4o"
-      // IMPORTANT CHANGE: Remove temperature parameter for o3-mini model
+      // Use GPT-4.1 model
       const completion = await openai.chat.completions.create({
         model: 'gpt-4.1',  // Explicitly set to GPT-4.1
         messages: messages,
-        // Temperature parameter removed for o3-mini model compatibility
+        temperature: temperature
       });
 
       const enhancedPrompt = completion.choices[0].message.content;
       
-      console.log("Enhanced prompt generated successfully with o3-mini model");
+      console.log("Enhanced prompt generated successfully with gpt-4.1 model");
       console.log(`Enhanced prompt length: ${enhancedPrompt.length} characters`);
       console.log(`Enhanced prompt start: ${enhancedPrompt.substring(0, 100)}...`);
       
@@ -199,14 +199,14 @@ START YOUR PROMPT WITH A 4-6 WORD TITLE AS A MARKDOWN H1 HEADING (# Title). This
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (openaiError) {
-      console.error("Error calling OpenAI API with o3-mini model:", openaiError);
+      console.error("Error calling OpenAI API with gpt-4.1 model:", openaiError);
       
       // Return a structured error response
       return new Response(JSON.stringify({
         error: openaiError.message,
         enhancedPrompt: `# Error Enhancing Prompt
 
-We encountered an error while trying to enhance your prompt with o3-mini. Please try again.
+We encountered an error while trying to enhance your prompt with gpt-4.1. Please try again.
 
 Original Prompt:
 ${originalPrompt}`,
