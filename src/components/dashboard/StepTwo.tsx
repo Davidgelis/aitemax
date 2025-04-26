@@ -53,9 +53,6 @@ export const StepTwo = ({
   const imageAnalysisQuestions = questions.filter(q => q.contextSource === "image" || q.category === "Image Analysis");
   const hasImageAnalysis = imageAnalysisQuestions.length > 0;
 
-  // Count prompt-specific questions
-  const promptSpecificCount = questions.filter(q => q.contextSource === "prompt").length;
-  
   // Group questions by category to show distribution
   const categoryCounts = questions.reduce((acc, q) => {
     acc[q.category || 'Other'] = (acc[q.category || 'Other'] || 0) + 1;
@@ -78,11 +75,6 @@ export const StepTwo = ({
             {hasImageAnalysis && (
               <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
                 {imageAnalysisQuestions.length} from image
-              </span>
-            )}
-            {promptSpecificCount > 0 && (
-              <span className="text-sm text-purple-600 bg-purple-50 px-2 py-1 rounded-md">
-                {promptSpecificCount} prompt-specific
               </span>
             )}
           </div>
