@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { AIModel } from "@/components/dashboard/types";
 import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
@@ -19,29 +18,36 @@ export const ModelFetchService = {
         throw error;
       }
       
-      // Check if we have models
-      if (!data || data.length === 0) {
-        console.log('No models found in database, attempting to trigger initial update...');
-        await this.triggerModelUpdate();
+      // Ensure GPT-4.1 is always in the model list
+      const hasGpt41 = data.some(model => model.name === "GPT-4.1");
+      if (!hasGpt41) {
+        console.warn('GPT-4.1 model not found in database. Adding default entry.');
+        const defaultGpt41: AIModel = {
+          id: 'gpt-4.1',
+          name: 'GPT-4.1',
+          provider: 'OpenAI',
+          description: 'Advanced language model with improved reasoning capabilities',
+          strengths: ['Enhanced context understanding', 'More nuanced responses'],
+          limitations: ['Experimental model', 'Pricing may vary'],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          is_deleted: null
+        };
         
-        // Try fetching again after update
-        const retryResult = await supabase
+        // Insert the default GPT-4.1 model if it doesn't exist
+        const { data: insertedModel, error: insertError } = await supabase
           .from('ai_models')
-          .select('*')
-          .is('is_deleted', null)  // Also filter here
-          .order('provider')
-          .order('name');
-          
-        if (retryResult.error) {
-          console.error('Error in retry fetch:', retryResult.error);
-          return [];
-        }
+          .insert(defaultGpt41)
+          .select();
         
-        console.log(`Fetched ${retryResult.data?.length || 0} models after update`);
-        return retryResult.data as AIModel[] || [];
+        if (insertError) {
+          console.error('Error inserting GPT-4.1 model:', insertError);
+        } else {
+          console.log('Added GPT-4.1 model to the database');
+          data.push(insertedModel[0]);
+        }
       }
       
-      console.log(`Fetched ${data.length} models from database`);
       return data as AIModel[];
     } catch (error) {
       console.error('Exception in fetchModels:', error);
