@@ -180,33 +180,38 @@ serve(async (req) => {
       console.log(`Raw questions count: ${questions.length}`);
       
       // Use LLM-provided ambiguity level
-      const ambiguityLevel = parsed.ambiguityLevel ?? 0.8; // Default to high ambiguity if not provided
+      const ambiguityLevel = parsed.ambiguityLevel ?? 0.8;
       console.log(`LLM determined ambiguity level: ${ambiguityLevel}`);
 
-      // Post-process questions with LLM-determined ambiguity
-      let processedQuestions = questions.map(q => ensureExamples({ ...q, text: plainify(q.text) }));
-      
-      const byPillar = processedQuestions.reduce<Record<string, any[]>>((acc, q) => {
-        const cat = q.category || 'Other';
-        (acc[cat] = acc[cat] || []).push(q);
-        return acc;
-      }, {});
+      // Question post-processing with deduplication
+      const qCanonical = (t: string) =>
+        t.toLowerCase().replace(/[^\w\s]/g,'').replace(/\s+/g,' ').trim();
 
-      // Use LLM-determined ambiguity for question count
+      const uniqSeen = new Set<string>();
+      let processedQuestions = questions
+        .map(q => ensureExamples({ ...q, text: plainify(q.text) }))
+        .filter(q => {
+          const sig = qCanonical(q.text);
+          if (uniqSeen.has(sig)) {
+            console.log(`Dropping duplicate question → "${q.text}"`);
+            return false;
+          }
+          uniqSeen.add(sig);
+          return true;
+        });
+
+      // Group by pillar and trim to desired count
+      const byPillar: Record<string, any[]> = {};
+      processedQuestions.forEach(q => {
+        const cat = q.category || 'Other';
+        if (!byPillar[cat]) byPillar[cat] = [];
+        byPillar[cat].push(q);
+      });
+
       Object.keys(byPillar).forEach(cat => {
         const desired = ambiguityLevel >= 0.6 ? 3 : 2;
         if (byPillar[cat].length > desired) {
           byPillar[cat] = byPillar[cat].slice(0, desired);
-        } else if (byPillar[cat].length < 3 && ambiguityLevel >= 0.6) {
-          // If we need 3 questions but have fewer, duplicate the last one to reach 3
-          const lastQuestion = byPillar[cat][byPillar[cat].length - 1];
-          while (byPillar[cat].length < 3) {
-            const duplicate = {
-              ...lastQuestion,
-              id: `${lastQuestion.id || 'q'}-dup-${byPillar[cat].length}`
-            };
-            byPillar[cat].push(duplicate);
-          }
         }
       });
 

@@ -1,5 +1,5 @@
 
-export function createSystemPrompt(template: any, ambiguity: number = 1): string {
+export function createSystemPrompt(template: any): string {
   let prompt = `
 You are an expert intent analyzer. Respond ONLY in JSON with keys: questions, variables, masterCommand, enhancedPrompt, ambiguityLevel.
 
@@ -13,6 +13,7 @@ Core Guidelines:
 - Questions per pillar based on ambiguityLevel:
   - If ambiguityLevel ≥ 0.6: Generate exactly 3 questions per pillar
   - If ambiguityLevel < 0.6: Generate 1-2 questions per pillar
+- All questions within a pillar must be unique; never repeat wording
 - Avoid technical jargon
 - Do not ask for information already captured in variable labels
 
