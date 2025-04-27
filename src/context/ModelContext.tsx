@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { AIModel } from "@/components/dashboard/types";
 import { ModelService } from "@/services/model";
@@ -22,13 +23,13 @@ const ModelContext = createContext<ModelContextType>({
   error: null,
   refreshModels: async () => {},
   selectedModel: {
-    id: 'gpt-4.1',
+    id: 'gpt-4.1-2025-04-14',
     name: 'GPT-4.1',
     provider: 'OpenAI',
     description: 'Advanced language model for comprehensive analysis',
     strengths: ['Detailed analysis', 'Multi-step reasoning'],
     limitations: ['Higher cost', 'Slower processing']
-  }, // Set default model to 'gpt-4.1'
+  }, // Set default model to 'gpt-4.1-2025-04-14'
   setSelectedModel: () => {},
   addModel: async () => null,
   updateModel: async () => false,
@@ -43,13 +44,13 @@ export const ModelProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<AIModel | null>({
-    id: 'gpt-4.1',
+    id: 'gpt-4.1-2025-04-14',
     name: 'GPT-4.1',
     provider: 'OpenAI',
     description: 'Advanced language model for comprehensive analysis',
     strengths: ['Detailed analysis', 'Multi-step reasoning'],
     limitations: ['Higher cost', 'Slower processing']
-  }); // Set initial state to 'gpt-4.1'
+  }); // Set initial state to 'gpt-4.1-2025-04-14'
   const { toast } = useToast();
 
   const fetchModels = async () => {

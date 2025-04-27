@@ -1,3 +1,4 @@
+
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -9,7 +10,7 @@ if (!openAIApiKey) {
 export async function analyzePromptWithAI(
   promptText: string,
   systemPrompt: string,
-  model: string = 'gpt-4.1',
+  model: string = 'gpt-4.1-2025-04-14',
   additionalContext: string = '',
   imageBase64: string | null = null
 ) {
@@ -20,9 +21,9 @@ export async function analyzePromptWithAI(
   try {
     console.log(`Processing prompt with model: ${model}`);
 
-    if (model !== 'gpt-4.1' && model !== 'gpt-4o' && model !== 'gpt-4o-mini') {
-      console.warn(`Invalid model specified: ${model}, defaulting to gpt-4.1`);
-      model = 'gpt-4.1';
+    if (model !== 'gpt-4.1-2025-04-14' && model !== 'gpt-4o' && model !== 'gpt-4o-mini') {
+      console.warn(`Invalid model specified: ${model}, defaulting to gpt-4.1-2025-04-14`);
+      model = 'gpt-4.1-2025-04-14';
     }
 
     // Optimize content by truncating extremely long text

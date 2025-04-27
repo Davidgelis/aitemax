@@ -97,6 +97,7 @@ export const usePromptAnalysis = (
       const analysisPromise = async () => {
         updateLoadingState('analyzing', "Connecting to AI model...");
         
+        console.log("Sending request to analyze-prompt with model: gpt-4.1-2025-04-14");
         const { data, error } = await supabase.functions.invoke("analyze-prompt", {
           body: {
             promptText,
@@ -106,7 +107,7 @@ export const usePromptAnalysis = (
             imageData: uploadedImages,
             smartContextData: smartContext,
             template: currentTemplate,
-            model: "gpt-4o-mini" // Use faster model by default
+            model: "gpt-4.1-2025-04-14" // Use the new ID format
           }
         });
         
@@ -115,10 +116,11 @@ export const usePromptAnalysis = (
           throw new Error(error?.message || "No data returned");
         }
         
+        console.log("Received response from analyze-prompt with model: gpt-4.1-2025-04-14");
         return data;
       };
 
-      // Race between timeout and the actual analysis
+      // Race the API call against the timeout
       const data = await Promise.race([
         analysisPromise(),
         timeoutPromise
