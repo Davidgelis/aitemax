@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI } from "./openai-client.ts";
@@ -11,6 +12,12 @@ const corsHeaders = {
 function calculateAmbiguity(promptText: string): number {
   // Basic calculation based on word count
   const wordCount = promptText.split(/\s+/).length;
+  
+  // For very short prompts (fewer than 5 words), automatically set high ambiguity
+  if (wordCount < 5) {
+    return 0.8; // High ambiguity to ensure 3 questions per pillar
+  }
+  
   const baseAmbiguity = Math.max(0, 1 - Math.min(wordCount/20, 1));
   
   // Additional factors that might indicate ambiguity
@@ -21,6 +28,11 @@ function calculateAmbiguity(promptText: string): number {
   let adjustedAmbiguity = baseAmbiguity;
   if (hasSpecificDetails) adjustedAmbiguity *= 0.8; // Reduce ambiguity if specific details present
   if (!hasClearObjective) adjustedAmbiguity *= 1.2; // Increase ambiguity if no clear objective
+  
+  // Ensure minimum ambiguity level for short prompts to get more questions
+  if (wordCount < 10) {
+    return Math.max(adjustedAmbiguity, 0.6); // Ensure at least 0.6 for short prompts
+  }
   
   // Ensure ambiguity stays between 0 and 1
   return Math.max(0, Math.min(adjustedAmbiguity, 1));
@@ -116,6 +128,7 @@ serve(async (req) => {
     const { promptText, template, websiteData, imageData, smartContextData, model = 'gpt-4o' } = await req.json();
     console.log(`Request received for model: ${model}`);
     console.log(`Prompt length: ${promptText.length} characters`);
+    console.log(`Prompt text: "${promptText}"`);
     
     // Validate input
     if (!promptText || typeof promptText !== 'string') {
@@ -160,6 +173,7 @@ serve(async (req) => {
       
       try {
         parsed = JSON.parse(processedContent);
+        console.log("Successfully parsed JSON response.");
       } catch (parseError) {
         console.error('JSON parsing error:', parseError);
         console.error('Content that failed to parse:', processedContent);
@@ -167,27 +181,42 @@ serve(async (req) => {
       }
 
     let questions = Array.isArray(parsed.questions) ? parsed.questions : [];
+    console.log(`Raw questions count: ${questions.length}`);
     
     // Post-process questions
+    // 1. Plain language + example append
     let processedQuestions = questions.map(q => ensureExamples({ ...q, text: plainify(q.text) }));
 
-    // Group by pillar for count enforcement
+    // 2. Group by pillar for count enforcement
     const byPillar = processedQuestions.reduce<Record<string, any[]>>((acc, q) => {
       const cat = q.category || 'Other';
       (acc[cat] = acc[cat] || []).push(q);
       return acc;
     }, {});
 
-    // Enforce question count based on ambiguity
+    // 3. Enforce question count based on ambiguity
     Object.keys(byPillar).forEach(cat => {
       const desired = ambiguity >= 0.6 ? 3 : 2;
       if (byPillar[cat].length > desired) {
         byPillar[cat] = byPillar[cat].slice(0, desired);
+      } else if (byPillar[cat].length < 3 && ambiguity >= 0.6) {
+        // If we need 3 questions but have fewer, duplicate the last one to reach 3
+        // This ensures we always have 3 questions per pillar for high ambiguity
+        const lastQuestion = byPillar[cat][byPillar[cat].length - 1];
+        while (byPillar[cat].length < 3) {
+          // Create a copy with a different ID
+          const duplicate = {
+            ...lastQuestion,
+            id: `${lastQuestion.id || 'q'}-dup-${byPillar[cat].length}`
+          };
+          byPillar[cat].push(duplicate);
+        }
       }
     });
 
-    // Flatten back to array
+    // 4. Flatten back to array
     processedQuestions = Object.values(byPillar).flat();
+    console.log(`Processed questions count: ${processedQuestions.length}`);
 
     // Process variables as before
     const { finalVariables, variableDistribution } = processVariables(

@@ -59,12 +59,15 @@ export const StepTwo = ({
     return acc;
   }, {} as Record<string, number>);
 
+  // Count total questions
+  const totalQuestions = questions.length;
+
   return (
     <div className="border rounded-xl p-6 bg-card">
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <p className="text-card-foreground">
-            {t.steps.questionsToAnswer}
+            {t.steps.questionsToAnswer} ({totalQuestions})
           </p>
           <div className="flex items-center gap-2 flex-wrap justify-end">
             {hasPrefilledQuestions && (
@@ -75,6 +78,13 @@ export const StepTwo = ({
             {hasImageAnalysis && (
               <span className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
                 {imageAnalysisQuestions.length} from image
+              </span>
+            )}
+            {Object.keys(categoryCounts).length > 0 && (
+              <span className="text-xs text-gray-600">
+                {Object.entries(categoryCounts).map(([cat, count]) => 
+                  `${cat}: ${count}`
+                ).join(', ')}
               </span>
             )}
           </div>

@@ -7,8 +7,8 @@ Core Guidelines:
 - Use plain, non-technical language that a beginner can understand
 - Every question MUST include 2-4 example answers in parentheses
 - Questions per pillar based on ambiguity level:
-  - If ambiguity ≥ 0.6: Generate exactly 3 questions per pillar
-  - If ambiguity < 0.6: Generate 1-2 questions per pillar
+  - If ambiguity ≥ 0.6 OR prompt has fewer than 5 words: Generate exactly 3 questions per pillar
+  - If ambiguity < 0.6 and prompt has 5+ words: Generate 1-2 questions per pillar
 - Do not ask for information already captured in variable labels
 - Maintain friendly, conversational tone
 - Avoid technical jargon
