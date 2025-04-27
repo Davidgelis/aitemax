@@ -11,8 +11,9 @@ Core Guidelines:
   - Scale between 0-1 based on missing vs provided details
 - Every question MUST include 2-4 example answers
 - Questions per pillar based on ambiguityLevel:
-  - If ambiguityLevel ≥ 0.6: Generate exactly 3 questions per pillar
-  - If ambiguityLevel < 0.6: Generate 1-2 questions per pillar
+  - Always generate up to 3 unique questions per pillar
+  - If ambiguityLevel ≥ 0.6: Must generate exactly 3 questions per pillar
+  - If ambiguityLevel < 0.6: Generate as many unique questions as needed (1-3 per pillar)
 - All questions within a pillar must be unique; never repeat wording
 - Avoid technical jargon
 - Do not ask for information already captured in variable labels

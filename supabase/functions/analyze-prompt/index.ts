@@ -179,7 +179,6 @@ serve(async (req) => {
       let questions = Array.isArray(parsed.questions) ? parsed.questions : [];
       console.log(`Raw questions count: ${questions.length}`);
       
-      // Use LLM-provided ambiguity level
       const ambiguityLevel = parsed.ambiguityLevel ?? 0.8;
       console.log(`LLM determined ambiguity level: ${ambiguityLevel}`);
 
@@ -200,7 +199,7 @@ serve(async (req) => {
           return true;
         });
 
-      // Group by pillar and trim to desired count
+      // Group by pillar
       const byPillar: Record<string, any[]> = {};
       processedQuestions.forEach(q => {
         const cat = q.category || 'Other';
@@ -208,10 +207,10 @@ serve(async (req) => {
         byPillar[cat].push(q);
       });
 
+      // Keep all unique questions up to 3 per pillar
       Object.keys(byPillar).forEach(cat => {
-        const desired = ambiguityLevel >= 0.6 ? 3 : 2;
-        if (byPillar[cat].length > desired) {
-          byPillar[cat] = byPillar[cat].slice(0, desired);
+        if (byPillar[cat].length > 3) {
+          byPillar[cat] = byPillar[cat].slice(0, 3);
         }
       });
 
