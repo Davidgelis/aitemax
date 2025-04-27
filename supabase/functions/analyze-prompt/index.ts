@@ -111,9 +111,9 @@ serve(async (req) => {
 
   console.time("totalProcessingTime");
   try {
-    const { promptText, template, websiteData, imageData, smartContextData, model = 'gpt-4o' } = await req.json();
+    const { promptText, template, websiteData, imageData, smartContextData, model = 'gpt-4.1' } = await req.json();
     console.log(`Request received for model: ${model}`);
-    console.log(`Prompt length: ${promptText.length} characters`);
+    console.log(`Prompt length: ${promptText?.length} characters`);
     console.log(`Prompt text: "${promptText}"`);
     
     // Validate input

@@ -9,7 +9,7 @@ if (!openAIApiKey) {
 export async function analyzePromptWithAI(
   promptText: string,
   systemPrompt: string,
-  model: string = 'gpt-4.1', // Changed default to 'gpt-4.1'
+  model: string = 'gpt-4.1',
   additionalContext: string = '',
   imageBase64: string | null = null
 ) {
@@ -18,7 +18,12 @@ export async function analyzePromptWithAI(
   });
 
   try {
-    console.log(`Processing prompt with model: ${model}`); // Log the specific model being used
+    console.log(`Processing prompt with model: ${model}`);
+
+    if (model !== 'gpt-4.1' && model !== 'gpt-4o' && model !== 'gpt-4o-mini') {
+      console.warn(`Invalid model specified: ${model}, defaulting to gpt-4.1`);
+      model = 'gpt-4.1';
+    }
 
     // Optimize content by truncating extremely long text
     const maxAdditionalContextLength = 4000; // Limit additional context length
@@ -31,7 +36,7 @@ export async function analyzePromptWithAI(
       : promptText;
       
     console.log(`Final content length being sent to OpenAI: ${content.length} characters`);
-    
+      
     const messages = [
       { role: "system", content: systemPrompt },
       { role: "user", content }
@@ -52,15 +57,19 @@ export async function analyzePromptWithAI(
     });
     
     const apiPromise = openai.chat.completions.create({
-      model: model, // Use the passed model, defaulting to 'gpt-4.1'
+      model: model,
       messages,
       response_format: { type: "json_object" },
       temperature: 0.2,
-      max_tokens: 2000, // Limit token usage
+      max_tokens: 2000,
     });
+    
+    console.log(`Sending request to OpenAI with model: ${model}`);
     
     // Race the API call against the timeout
     const completion = await Promise.race([apiPromise, timeoutPromise]) as any;
+    
+    console.log(`Received response from OpenAI using model: ${model}`);
     
     // Extract the response content
     const responseContent = completion.choices[0].message.content || "";
