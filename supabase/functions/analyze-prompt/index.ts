@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI } from "./openai-client.ts";
@@ -26,6 +25,22 @@ function calculateAmbiguity(promptText: string): number {
   // Ensure ambiguity stays between 0 and 1
   return Math.max(0, Math.min(adjustedAmbiguity, 1));
 }
+
+// Question post-processing utilities
+const MAX_EXAMPLES = 4;
+
+const plainify = (text: string): string =>
+  text
+    .replace(/resolution|dpi|rgb|hex/gi, 'colour')
+    .replace(/\bn\s+image\b/gi, 'an image')
+    .trim();
+
+const ensureExamples = (q: any) => {
+  if (!Array.isArray(q.examples) || !q.examples.length) return q;
+  const ex = q.examples.slice(0, MAX_EXAMPLES).join(', ');
+  const withParens = /\(.+\)$/.test(q.text) ? q.text : `${q.text} (${ex})`;
+  return { ...q, text: withParens };
+};
 
 // Function to process variables with performance optimizations
 function processVariables(variables: any[], questions: any[]) {
@@ -151,34 +166,55 @@ serve(async (req) => {
         throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
       }
 
-      const questions = Array.isArray(parsed.questions) ? parsed.questions : [];
-      
-      // Process variables with optimized function and capture both variables and distribution
-      const { finalVariables, variableDistribution } = processVariables(
-        Array.isArray(parsed.variables) ? parsed.variables : [], 
-        questions
-      );
+    let questions = Array.isArray(parsed.questions) ? parsed.questions : [];
+    
+    // Post-process questions
+    let processedQuestions = questions.map(q => ensureExamples({ ...q, text: plainify(q.text) }));
 
-      console.timeEnd("totalProcessingTime");
-      return new Response(
-        JSON.stringify({
-          questions,
-          variables: finalVariables,
-          masterCommand: parsed.masterCommand || '',
-          enhancedPrompt: parsed.enhancedPrompt || '',
-          debug: {
-            hasImageData: !!imageData?.[0]?.base64,
-            model,
-            ambiguity: {
-              score: ambiguity,
-              wordCount: promptText.split(/\s+/).length
-            },
-            variablesCount: finalVariables.length,
-            variableDistribution
-          }
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Group by pillar for count enforcement
+    const byPillar = processedQuestions.reduce<Record<string, any[]>>((acc, q) => {
+      const cat = q.category || 'Other';
+      (acc[cat] = acc[cat] || []).push(q);
+      return acc;
+    }, {});
+
+    // Enforce question count based on ambiguity
+    Object.keys(byPillar).forEach(cat => {
+      const desired = ambiguity >= 0.6 ? 3 : 2;
+      if (byPillar[cat].length > desired) {
+        byPillar[cat] = byPillar[cat].slice(0, desired);
+      }
+    });
+
+    // Flatten back to array
+    processedQuestions = Object.values(byPillar).flat();
+
+    // Process variables as before
+    const { finalVariables, variableDistribution } = processVariables(
+      Array.isArray(parsed.variables) ? parsed.variables : [], 
+      processedQuestions
+    );
+
+    console.timeEnd("totalProcessingTime");
+    return new Response(
+      JSON.stringify({
+        questions: processedQuestions,
+        variables: finalVariables,
+        masterCommand: parsed.masterCommand || '',
+        enhancedPrompt: parsed.enhancedPrompt || '',
+        debug: {
+          hasImageData: !!imageData?.[0]?.base64,
+          model,
+          ambiguity: {
+            score: ambiguity,
+            wordCount: promptText.split(/\s+/).length
+          },
+          variablesCount: finalVariables.length,
+          variableDistribution
+        }
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
     } catch (aiError) {
       console.error('Error with AI analysis:', aiError);
