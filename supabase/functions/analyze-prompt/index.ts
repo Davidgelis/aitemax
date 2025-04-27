@@ -67,10 +67,11 @@ function processVariables(variables: any[], questions: any[]) {
     .sort()
     .join(" ");
 
-  // 1️⃣ Trim to max three words
+  // 1️⃣ Trim to max three words for both name and value
   const trimmedVariables = variables.map(v => ({
     ...v,
-    name: v.name.trim().split(/\s+/).slice(0, 3).join(" ")
+    name: v.name.trim().split(/\s+/).slice(0, 3).join(" "),
+    value: (v.value || "").trim().split(/\s+/).slice(0, 3).join(" ")
   }));
   console.log(`After trimming: ${trimmedVariables.length} variables`);
 
@@ -216,33 +217,63 @@ serve(async (req) => {
 
       processedQuestions = Object.values(byPillar).flat();
 
-      // Process variables as before
-    const { finalVariables, variableDistribution } = processVariables(
-      Array.isArray(parsed.variables) ? parsed.variables : [], 
-      processedQuestions
-    );
+      // Process variables
+      const { finalVariables, variableDistribution } = processVariables(
+        Array.isArray(parsed.variables) ? parsed.variables : [], 
+        processedQuestions
+      );
 
-    console.timeEnd("totalProcessingTime");
-    return new Response(
-      JSON.stringify({
-        questions: processedQuestions,
-        variables: finalVariables,
-        masterCommand: parsed.masterCommand || '',
-        enhancedPrompt: parsed.enhancedPrompt || '',
-        debug: {
-          hasImageData: !!imageData?.[0]?.base64,
-          model,
-          ambiguity: {
-            score: ambiguityLevel,
-            source: 'LLM determined',
-            wordCount: promptText.split(/\s+/).length
-          },
-          variablesCount: finalVariables.length,
-          variableDistribution
+      // Fallback: if no variables, auto-extract nouns
+      if (finalVariables.length === 0) {
+        console.warn("LLM returned 0 variables – running fallback extractor.");
+        const stop = new Set(["of","the","a","an"]);
+        const nouns = Array.from(new Set(
+          promptText
+            .match(/\b[A-Za-z]+\b/g) ?? []
+        ))
+          .filter(w => w.length > 2 && !stop.has(w.toLowerCase()))
+          .slice(0, 8)
+          .map((w, i) => ({
+            id: `auto_${i}`,
+            name: w.replace(/^\w/, c => c.toUpperCase()),
+            value: "",
+            category: "Auto"
+          }));
+
+        finalVariables.push(...nouns);
+      }
+
+      // Debug aid: warn about any remaining question-variable overlaps
+      finalVariables.forEach(v => {
+        const dup = processedQuestions.find(q => 
+          q.text.toLowerCase().includes(v.name.toLowerCase())
+        );
+        if (dup) {
+          console.log(`⚠️  Question "${dup.text}" duplicates variable "${v.name}"`);
         }
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      });
+
+      console.timeEnd("totalProcessingTime");
+      return new Response(
+        JSON.stringify({
+          questions: processedQuestions,
+          variables: finalVariables,
+          masterCommand: parsed.masterCommand || '',
+          enhancedPrompt: parsed.enhancedPrompt || '',
+          debug: {
+            hasImageData: !!imageData?.[0]?.base64,
+            model,
+            ambiguity: {
+              score: ambiguityLevel,
+              source: 'LLM determined',
+              wordCount: promptText.split(/\s+/).length
+            },
+            variablesCount: finalVariables.length,
+            variableDistribution
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
 
     } catch (aiError) {
       console.error('Error with AI analysis:', aiError);
