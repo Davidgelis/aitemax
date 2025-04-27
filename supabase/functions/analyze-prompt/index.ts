@@ -92,30 +92,16 @@ function processVariables(variables: any[], questions: any[]) {
   // 3️⃣ Ensure category (default "Other")
   const categorizedVariables = dedupedVariables.map(v => ({ ...v, category: v.category || "Other" }));
 
-  // 4️⃣ Drop variables that overlap any question text
-  const qText = questions.map(q => q.text.toLowerCase());
-  const nonOverlappingVariables = categorizedVariables.filter(v => !qText.some(t => t.includes(v.name.toLowerCase())));
-  console.log(`After removing question overlaps: ${nonOverlappingVariables.length} variables`);
+  // 4️⃣ We *keep* every variable. Duplicates with questions will be fixed later
+  let finalVariables = categorizedVariables;
 
   // 5️⃣ Cap at eight
-  const finalVariables = nonOverlappingVariables.length > 8 
-    ? nonOverlappingVariables.slice(0, 8)
-    : nonOverlappingVariables;
-
-  if (nonOverlappingVariables.length > 8) {
-    console.log(`Trimming variables from ${nonOverlappingVariables.length} → 8`);
+  if (finalVariables.length > 8) {
+    console.log(`Trimming variables from ${finalVariables.length} → 8`);
+    finalVariables = finalVariables.slice(0, 8);
   }
 
-  // Debug distribution
-  const variableDistribution = finalVariables.reduce<Record<string, number>>((acc, v) => {
-    const cat = v.category || "Other";
-    acc[cat] = (acc[cat] || 0) + 1;
-    return acc;
-  }, {});
-  console.log(`Final variables: ${finalVariables.length}`, variableDistribution);
-  console.timeEnd("variableProcessing");
-  
-  return { finalVariables, variableDistribution };
+  return { finalVariables, variableDistribution: {} }; // Distribution computed later
 }
 
 serve(async (req) => {
@@ -217,31 +203,55 @@ serve(async (req) => {
 
       processedQuestions = Object.values(byPillar).flat();
 
-      // Process variables
-      const { finalVariables, variableDistribution } = processVariables(
-        Array.isArray(parsed.variables) ? parsed.variables : [], 
+      // --------------------------------------------------------------
+      //  ⛔  Remove questions whose focus is already a variable
+      // --------------------------------------------------------------
+      const stopWords = new Set(["of","the","a","an"]);
+      const canon = (s:string)=>s.toLowerCase()
+        .replace(/[^\w\s]/g,"")
+        .split(/\s+/).filter(w=>!stopWords.has(w)).join(" ");
+
+      let tempVars = Array.isArray(parsed.variables) ? parsed.variables : [];
+      tempVars = tempVars.map(v => ({ ...v, name: v.name.trim() }));
+
+      const varSigs = new Set(tempVars.map(v => canon(v.name)));
+
+      processedQuestions = processedQuestions.filter(q => {
+        const qSig = canon(q.text.replace(/\?.*$/,""));
+        const keep = !varSigs.has(qSig);
+        if (!keep) console.log(`Dropping question "${q.text}" – covered by variable "${qSig}"`);
+        return keep;
+      });
+
+      // Process variables after question cleanup
+      const { finalVariables } = processVariables(
+        tempVars,
         processedQuestions
       );
 
-      // Fallback: if no variables, auto-extract nouns
-      if (finalVariables.length === 0) {
-        console.warn("LLM returned 0 variables – running fallback extractor.");
-        const stop = new Set(["of","the","a","an"]);
-        const nouns = Array.from(new Set(
-          promptText
-            .match(/\b[A-Za-z]+\b/g) ?? []
-        ))
-          .filter(w => w.length > 2 && !stop.has(w.toLowerCase()))
-          .slice(0, 8)
-          .map((w, i) => ({
+      // Top-up if you still have < 8 variables (never exceeds 8)
+      if (finalVariables.length < 8) {
+        const need = 8 - finalVariables.length;
+        const current = new Set(finalVariables.map(v => v.name.toLowerCase()));
+        const extras = Array.from(new Set(promptText.match(/\b[A-Za-z]+\b/g) ?? []))
+          .filter(w => w.length > 2 && !stopWords.has(w.toLowerCase())
+            && !current.has(w.toLowerCase()))
+          .slice(0, need)
+          .map((w,i) => ({
             id: `auto_${i}`,
-            name: w.replace(/^\w/, c => c.toUpperCase()),
+            name: w.replace(/^\w/, c=>c.toUpperCase()),
             value: "",
             category: "Auto"
           }));
-
-        finalVariables.push(...nouns);
+        finalVariables.push(...extras);
       }
+
+      // Compute variable distribution after possible top-up
+      const variableDistribution = finalVariables.reduce<Record<string,number>>((acc,v)=>{
+        const cat = v.category || "Other";
+        acc[cat] = (acc[cat] || 0) + 1;
+        return acc;
+      }, {});
 
       // Debug aid: warn about any remaining question-variable overlaps
       finalVariables.forEach(v => {

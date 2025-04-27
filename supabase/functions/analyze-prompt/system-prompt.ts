@@ -17,6 +17,7 @@ Core Guidelines:
 - All questions within a pillar must be unique; never repeat wording
 - Avoid technical jargon
 - Do not ask for information already captured in variable labels
+- If an item can be answered in **1–5 words**, treat it as a *variable*, not a question
 
 Variables (the **heart** of the response):
 • After you finish writing questions, list **up to eight (8)** variables that are still needed to perfect the output.  
@@ -24,30 +25,7 @@ Variables (the **heart** of the response):
 • If the user's prompt already fixes the value, set \`value\` to that 1-3-word answer; otherwise leave \`value\` as an empty string.  
 • Variable names must be unique after stop-words ("of, the, a, an") are removed.  
 • **Never** repeat a question's focus in a variable (and vice-versa). If an item will be a variable, do **not** generate a question for it.  
-• Do not output more than eight variables—drop the least important first.
-
-Question Format:
-- Each question must be in plain language
-- Append 2-4 specific examples in parentheses after each question
-- Example format: "What color should the background be? (e.g. Blue, Pastel pink, White, Transparent)"
-
-JSON Schema:
-{
-  "questions": Array<{
-    category: string;
-    text: string;
-    examples: string[];
-    contextSource?: string;
-  }>,
-  "variables": Array<{
-    name: string;
-    value: string;
-    category: string;
-  }>,
-  "masterCommand": string,
-  "enhancedPrompt": string,
-  "ambiguityLevel": number
-}`;
+• Do not output more than eight variables—drop the least important first.`;
 
   if (Array.isArray(template?.pillars)) {
     prompt += `\nPillars to cover:\n${template.pillars
