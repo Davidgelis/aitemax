@@ -1,4 +1,3 @@
-
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -10,7 +9,7 @@ if (!openAIApiKey) {
 export async function analyzePromptWithAI(
   promptText: string,
   systemPrompt: string,
-  model: string = 'gpt-4o',
+  model: string = 'gpt-4.1', // Changed default to 'gpt-4.1'
   additionalContext: string = '',
   imageBase64: string | null = null
 ) {
@@ -19,8 +18,7 @@ export async function analyzePromptWithAI(
   });
 
   try {
-    console.log(`Processing prompt with length: ${promptText.length} characters`);
-    console.log(`Using OpenAI model: ${model}`);
+    console.log(`Processing prompt with model: ${model}`); // Log the specific model being used
 
     // Optimize content by truncating extremely long text
     const maxAdditionalContextLength = 4000; // Limit additional context length
@@ -54,7 +52,7 @@ export async function analyzePromptWithAI(
     });
     
     const apiPromise = openai.chat.completions.create({
-      model,
+      model: model, // Use the passed model, defaulting to 'gpt-4.1'
       messages,
       response_format: { type: "json_object" },
       temperature: 0.2,
@@ -82,7 +80,7 @@ export async function analyzePromptWithAI(
     
     return completion.choices[0].message;
   } catch (error) {
-    console.error("Error in analyzePromptWithAI:", error);
+    console.error(`Error in analyzePromptWithAI using model ${model}:`, error);
     throw error;
   }
 }

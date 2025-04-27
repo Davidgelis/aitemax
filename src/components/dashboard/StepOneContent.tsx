@@ -132,7 +132,7 @@ export const StepOneContent = ({
   };
 
   const handleAnalyzeWithContext = () => {
-    console.log("StepOneContent: Analyzing with GPT-4o:", {
+    console.log("StepOneContent: Analyzing with GPT-4.1:", {
       promptText,
       userIntent,
       uploadedImages: uploadedImages.length,
@@ -147,7 +147,7 @@ export const StepOneContent = ({
       smartContext: smartContext ? "Provided" : "None",
       selectedPrimary,
       selectedSecondary,
-      model: "gpt-4o" 
+      model: "gpt-4.1" // Explicitly set to 'gpt-4.1'
     });
     
     onAnalyze();
