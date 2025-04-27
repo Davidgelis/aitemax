@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -97,7 +96,7 @@ export const usePromptAnalysis = (
       const analysisPromise = async () => {
         updateLoadingState('analyzing', "Connecting to AI model...");
         
-        console.log("Sending request to analyze-prompt with model: gpt-4.1-2025-04-14");
+        console.log("Sending request to analyze-prompt with model: gpt-4o");
         const { data, error } = await supabase.functions.invoke("analyze-prompt", {
           body: {
             promptText,
@@ -107,7 +106,7 @@ export const usePromptAnalysis = (
             imageData: uploadedImages,
             smartContextData: smartContext,
             template: currentTemplate,
-            model: "gpt-4.1-2025-04-14" // Use the new ID format
+            model: "gpt-4o" // Updated to use gpt-4o
           }
         });
         
@@ -116,7 +115,7 @@ export const usePromptAnalysis = (
           throw new Error(error?.message || "No data returned");
         }
         
-        console.log("Received response from analyze-prompt with model: gpt-4.1-2025-04-14");
+        console.log("Received response from analyze-prompt with model: gpt-4o");
         return data;
       };
 
