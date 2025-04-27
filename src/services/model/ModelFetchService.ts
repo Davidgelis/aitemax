@@ -5,7 +5,6 @@ import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
 export const ModelFetchService = {
   async fetchModels(): Promise<AIModel[]> {
     try {
-      console.log('Fetching AI models from database...');
       const { data, error } = await supabase
         .from('ai_models')
         .select('*')
@@ -28,10 +27,7 @@ export const ModelFetchService = {
           provider: 'OpenAI',
           description: 'Advanced language model with improved reasoning capabilities',
           strengths: ['Enhanced context understanding', 'More nuanced responses'],
-          limitations: ['Experimental model', 'Pricing may vary'],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          is_deleted: null
+          limitations: ['Experimental model', 'Pricing may vary']
         };
         
         // Insert the default GPT-4.1 model if it doesn't exist
