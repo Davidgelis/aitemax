@@ -1,3 +1,4 @@
+
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -20,8 +21,9 @@ export async function analyzePromptWithAI(
   try {
     console.log(`Processing prompt with model: ${model}`);
 
-    if (model !== 'gpt-4o' && model !== 'gpt-4o-mini' && model !== 'gpt-4.1-2025-04-14') {
-      console.warn(`Invalid model specified: ${model}, defaulting to gpt-4o`);
+    const ALLOWED = new Set(['gpt-4o', 'gpt-4o-mini']);
+    if (!ALLOWED.has(model)) {
+      console.warn(`[AI] model "${model}" not enabled; falling back to gpt-4o`);
       model = 'gpt-4o';
     }
 
