@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { ModelService } from '@/services/model';
 import { useToast } from '@/hooks/use-toast';
@@ -25,16 +24,16 @@ export const useModelSelector = (selectedModel: AIModel | null, onSelect: (model
       setLoading(true);
       const modelList = await ModelService.fetchModels();
       
-      // Add gpt-4.1 to the model list if it doesn't exist
+      // Ensure GPT-4.1 is added to the model list if it doesn't exist
       const hasGpt41 = modelList.some(model => model.name === "GPT-4.1");
       if (!hasGpt41) {
         modelList.push({
           id: "gpt-4.1",
           name: "GPT-4.1",
           provider: "OpenAI",
-          description: "The latest GPT-4.1 model from OpenAI",
-          strengths: ["Advanced reasoning", "State-of-the-art performance", "Better context handling"],
-          limitations: ["Experimental model", "May produce unexpected results"],
+          description: "Advanced language model with improved reasoning capabilities",
+          strengths: ["Enhanced context understanding", "More nuanced responses"],
+          limitations: ["Experimental model", "Pricing may vary"],
           updated_at: new Date().toISOString()
         });
       }
@@ -59,14 +58,11 @@ export const useModelSelector = (selectedModel: AIModel | null, onSelect: (model
       console.log(`Fetched ${modelList.length} models from ${providerList.length} providers`);
       
       if (selectedModel) {
-        // If there's a selected model, find its index in the sorted models array
-        // adding +1 because of the None option at index 0
         const index = modelList.findIndex(model => model.id === selectedModel.id);
         if (index !== -1) {
-          setActiveIndex(index + 1); // +1 for None option
+          setActiveIndex(index + 1);
         }
       } else {
-        // If no model is selected, set activeIndex to 0 (None option)
         setActiveIndex(0);
       }
       
