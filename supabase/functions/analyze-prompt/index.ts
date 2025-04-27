@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI } from "./openai-client.ts";
@@ -147,10 +146,7 @@ serve(async (req) => {
       );
     }
 
-    const ambiguity = calculateAmbiguity(promptText);
-    console.log(`Calculated ambiguity: ${ambiguity} for prompt of ${promptText.split(/\s+/).length} words`);
-
-    const systemPrompt = createSystemPrompt(template, ambiguity);
+    const systemPrompt = createSystemPrompt(template);
     console.log("System prompt created");
     
     try {
@@ -180,45 +176,43 @@ serve(async (req) => {
         throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
       }
 
-    let questions = Array.isArray(parsed.questions) ? parsed.questions : [];
-    console.log(`Raw questions count: ${questions.length}`);
-    
-    // Post-process questions
-    // 1. Plain language + example append
-    let processedQuestions = questions.map(q => ensureExamples({ ...q, text: plainify(q.text) }));
+      let questions = Array.isArray(parsed.questions) ? parsed.questions : [];
+      console.log(`Raw questions count: ${questions.length}`);
+      
+      // Use LLM-provided ambiguity level
+      const ambiguityLevel = parsed.ambiguityLevel ?? 0.8; // Default to high ambiguity if not provided
+      console.log(`LLM determined ambiguity level: ${ambiguityLevel}`);
 
-    // 2. Group by pillar for count enforcement
-    const byPillar = processedQuestions.reduce<Record<string, any[]>>((acc, q) => {
-      const cat = q.category || 'Other';
-      (acc[cat] = acc[cat] || []).push(q);
-      return acc;
-    }, {});
+      // Post-process questions with LLM-determined ambiguity
+      let processedQuestions = questions.map(q => ensureExamples({ ...q, text: plainify(q.text) }));
+      
+      const byPillar = processedQuestions.reduce<Record<string, any[]>>((acc, q) => {
+        const cat = q.category || 'Other';
+        (acc[cat] = acc[cat] || []).push(q);
+        return acc;
+      }, {});
 
-    // 3. Enforce question count based on ambiguity
-    Object.keys(byPillar).forEach(cat => {
-      const desired = ambiguity >= 0.6 ? 3 : 2;
-      if (byPillar[cat].length > desired) {
-        byPillar[cat] = byPillar[cat].slice(0, desired);
-      } else if (byPillar[cat].length < 3 && ambiguity >= 0.6) {
-        // If we need 3 questions but have fewer, duplicate the last one to reach 3
-        // This ensures we always have 3 questions per pillar for high ambiguity
-        const lastQuestion = byPillar[cat][byPillar[cat].length - 1];
-        while (byPillar[cat].length < 3) {
-          // Create a copy with a different ID
-          const duplicate = {
-            ...lastQuestion,
-            id: `${lastQuestion.id || 'q'}-dup-${byPillar[cat].length}`
-          };
-          byPillar[cat].push(duplicate);
+      // Use LLM-determined ambiguity for question count
+      Object.keys(byPillar).forEach(cat => {
+        const desired = ambiguityLevel >= 0.6 ? 3 : 2;
+        if (byPillar[cat].length > desired) {
+          byPillar[cat] = byPillar[cat].slice(0, desired);
+        } else if (byPillar[cat].length < 3 && ambiguityLevel >= 0.6) {
+          // If we need 3 questions but have fewer, duplicate the last one to reach 3
+          const lastQuestion = byPillar[cat][byPillar[cat].length - 1];
+          while (byPillar[cat].length < 3) {
+            const duplicate = {
+              ...lastQuestion,
+              id: `${lastQuestion.id || 'q'}-dup-${byPillar[cat].length}`
+            };
+            byPillar[cat].push(duplicate);
+          }
         }
-      }
-    });
+      });
 
-    // 4. Flatten back to array
-    processedQuestions = Object.values(byPillar).flat();
-    console.log(`Processed questions count: ${processedQuestions.length}`);
+      processedQuestions = Object.values(byPillar).flat();
 
-    // Process variables as before
+      // Process variables as before
     const { finalVariables, variableDistribution } = processVariables(
       Array.isArray(parsed.variables) ? parsed.variables : [], 
       processedQuestions
@@ -235,7 +229,8 @@ serve(async (req) => {
           hasImageData: !!imageData?.[0]?.base64,
           model,
           ambiguity: {
-            score: ambiguity,
+            score: ambiguityLevel,
+            source: 'LLM determined',
             wordCount: promptText.split(/\s+/).length
           },
           variablesCount: finalVariables.length,

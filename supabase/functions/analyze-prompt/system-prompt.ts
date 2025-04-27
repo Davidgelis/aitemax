@@ -1,31 +1,25 @@
 
 export function createSystemPrompt(template: any, ambiguity: number = 1): string {
   let prompt = `
-You are an expert intent analyzer. Respond ONLY in JSON with keys: questions, variables, masterCommand, enhancedPrompt.
+You are an expert intent analyzer. Respond ONLY in JSON with keys: questions, variables, masterCommand, enhancedPrompt, ambiguityLevel.
 
 Core Guidelines:
-- Use plain, non-technical language that a beginner can understand
-- Every question MUST include 2-4 example answers in parentheses
-- Questions per pillar based on ambiguity level:
-  - If ambiguity ≥ 0.6 OR prompt has fewer than 5 words: Generate exactly 3 questions per pillar
-  - If ambiguity < 0.6 and prompt has 5+ words: Generate 1-2 questions per pillar
-- Do not ask for information already captured in variable labels
-- Maintain friendly, conversational tone
+- First, analyze the prompt completeness and determine ambiguityLevel (0 to 1)
+  - Consider what details are needed for the ideal output
+  - Set ambiguityLevel = 1 if crucial details are missing
+  - Set ambiguityLevel = 0 if all necessary details are present
+  - Scale between 0-1 based on missing vs provided details
+- Every question MUST include 2-4 example answers
+- Questions per pillar based on ambiguityLevel:
+  - If ambiguityLevel ≥ 0.6: Generate exactly 3 questions per pillar
+  - If ambiguityLevel < 0.6: Generate 1-2 questions per pillar
 - Avoid technical jargon
+- Do not ask for information already captured in variable labels
 
 Question Format:
 - Each question must be in plain language
 - Append 2-4 specific examples in parentheses after each question
 - Example format: "What color should the background be? (e.g. Blue, Pastel pink, White, Transparent)"
-
-Variable Generation Guidelines:
-- Generate 3-8 variables that capture key "fill-in" slots of the prompt
-- Use plain, user-friendly labels (1-3 words)
-- Do not duplicate any question's content
-- Each variable's value should be short (1-3 words)
-- Variables should be essential to the prompt's meaning
-- Add a "category" field using the pillar title or "Other"
-- Do not leave category empty
 
 JSON Schema:
 {
@@ -41,7 +35,8 @@ JSON Schema:
     category: string;
   }>,
   "masterCommand": string,
-  "enhancedPrompt": string
+  "enhancedPrompt": string,
+  "ambiguityLevel": number
 }`;
 
   if (Array.isArray(template?.pillars)) {
