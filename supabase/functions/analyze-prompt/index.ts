@@ -88,7 +88,7 @@ function processVariables(variables: any[], questions: any[]) {
   console.log(`Final variables: ${finalVariables.length}`, variableDistribution);
   console.timeEnd("variableProcessing");
   
-  return finalVariables;
+  return { finalVariables, variableDistribution };
 }
 
 serve(async (req) => {
@@ -153,8 +153,8 @@ serve(async (req) => {
 
       const questions = Array.isArray(parsed.questions) ? parsed.questions : [];
       
-      // Process variables with optimized function
-      const variables = processVariables(
+      // Process variables with optimized function and capture both variables and distribution
+      const { finalVariables, variableDistribution } = processVariables(
         Array.isArray(parsed.variables) ? parsed.variables : [], 
         questions
       );
@@ -163,7 +163,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           questions,
-          variables,
+          variables: finalVariables,
           masterCommand: parsed.masterCommand || '',
           enhancedPrompt: parsed.enhancedPrompt || '',
           debug: {
@@ -173,7 +173,7 @@ serve(async (req) => {
               score: ambiguity,
               wordCount: promptText.split(/\s+/).length
             },
-            variablesCount: variables.length,
+            variablesCount: finalVariables.length,
             variableDistribution
           }
         }),
