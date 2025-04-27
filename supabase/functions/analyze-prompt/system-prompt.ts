@@ -17,7 +17,7 @@ Core Guidelines:
 - All questions within a pillar must be unique; never repeat wording
 - Avoid technical jargon
 - Do not ask for information already captured in variable labels
-- If an item can be answered in **1–5 words**, treat it as a *variable*, not a question
+- Treat something as a *variable* only when the information can be captured in **≤ 3 words** (e.g. "Red", "German Shepherd"). Otherwise generate a question for it.
 
 Variables (the **heart** of the response):
 • After you finish writing questions, list **up to eight (8)** variables that are still needed to perfect the output.  

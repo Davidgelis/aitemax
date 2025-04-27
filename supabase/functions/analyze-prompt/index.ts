@@ -204,24 +204,49 @@ serve(async (req) => {
       processedQuestions = Object.values(byPillar).flat();
 
       // --------------------------------------------------------------
-      //  ⛔  Remove questions whose focus is already a variable
+      //  Balance questions vs. variables when they target the same slot
       // --------------------------------------------------------------
       const stopWords = new Set(["of","the","a","an"]);
-      const canon = (s:string)=>s.toLowerCase()
-        .replace(/[^\w\s]/g,"")
-        .split(/\s+/).filter(w=>!stopWords.has(w)).join(" ");
+      const canon = (s: string) =>
+        s.toLowerCase()
+         .replace(/[^\w\s]/g, "")
+         .split(/\s+/)
+         .filter(w => !stopWords.has(w))
+         .join(" ");
 
-      let tempVars = Array.isArray(parsed.variables) ? parsed.variables : [];
+      const isDescriptive = (txt: string) => {
+        const wc = txt.trim().split(/\s+/).length;
+        if (wc > 8) return true;                           // long → descriptive
+        return /(describe|explain|background|details|context|story|scenario|steps|process|goal|purpose)/i.test(txt);
+      };
+
+      let tempVars: any[] = Array.isArray(parsed.variables) ? parsed.variables : [];
       tempVars = tempVars.map(v => ({ ...v, name: v.name.trim() }));
 
-      const varSigs = new Set(tempVars.map(v => canon(v.name)));
+      const questionKeep: boolean[] = new Array(processedQuestions.length).fill(true);
+      const varKeep = new Array<boolean>(tempVars.length).fill(true);
 
-      processedQuestions = processedQuestions.filter(q => {
-        const qSig = canon(q.text.replace(/\?.*$/,""));
-        const keep = !varSigs.has(qSig);
-        if (!keep) console.log(`Dropping question "${q.text}" – covered by variable "${qSig}"`);
-        return keep;
+      processedQuestions.forEach((q, qi) => {
+        const qSig = canon(q.text.replace(/\?.*$/, ""));           // bare signature
+        tempVars.forEach((v, vi) => {
+          if (!varKeep[vi]) return;
+          if (canon(v.name) === qSig) {
+            if (isDescriptive(q.text)) {
+              // Keep question, discard variable
+              varKeep[vi] = false;
+              console.log(`Keeping descriptive question "${q.text}" – dropping variable "${v.name}"`);
+            } else {
+              // Keep variable, drop question
+              questionKeep[qi] = false;
+              console.log(`Keeping variable "${v.name}" – dropping short question "${q.text}"`);
+            }
+          }
+        });
       });
+
+      // rebuild lists
+      processedQuestions = processedQuestions.filter((_, i) => questionKeep[i]);
+      tempVars = tempVars.filter((_, i) => varKeep[i]);
 
       // Process variables after question cleanup
       const { finalVariables } = processVariables(
