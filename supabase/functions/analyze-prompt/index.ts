@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI } from "./openai-client.ts";
@@ -112,7 +113,7 @@ serve(async (req) => {
 
   console.time("totalProcessingTime");
   try {
-    const { promptText, template, websiteData, imageData, smartContextData, model = 'gpt-4o' } = await req.json();
+    const { promptText, template, websiteData, imageData, smartContextData, model = 'gpt-4.1' } = await req.json();
     console.log(`Request received for model: ${model}`);
     console.log(`Prompt length: ${promptText?.length} characters`);
     console.log(`Prompt text: "${promptText}"`);
@@ -142,7 +143,7 @@ serve(async (req) => {
       const { content } = await analyzePromptWithAI(
         promptText,
         systemPrompt,
-        model,
+        model, // Pass the requested model (defaults to gpt-4.1)
         smartContextData?.context || '',
         imageData?.[0]?.base64
       );

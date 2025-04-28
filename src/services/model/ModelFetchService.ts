@@ -3,6 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { AIModel } from "@/components/dashboard/types";
 import { triggerInitialModelUpdate } from "@/utils/triggerInitialModelUpdate";
 
+// Export a constant for the GPT-4.1 ID to prevent mistyping
+export const GPT41_ID = 'gpt-4.1';
+
 export const ModelFetchService = {
   async fetchModels(): Promise<AIModel[]> {
     try {
@@ -18,12 +21,12 @@ export const ModelFetchService = {
         throw error;
       }
       
-      // Ensure GPT-4.1 is always in the model list with the new ID format
-      const hasGpt41 = data.some(model => model.id === "gpt-4.1-2025-04-14");
+      // Ensure GPT-4.1 is always in the model list with the future-proof alias ID
+      const hasGpt41 = data.some(model => model.id === GPT41_ID);
       if (!hasGpt41) {
-        console.warn('GPT-4.1 model not found in database. Adding default entry with new ID format.');
+        console.warn('GPT-4.1 model not found in database. Adding default entry with future-proof alias.');
         const defaultGpt41: AIModel = {
-          id: 'gpt-4.1-2025-04-14',
+          id: GPT41_ID,
           name: 'GPT-4.1',
           provider: 'OpenAI',
           description: 'Advanced language model with improved reasoning capabilities',
@@ -35,12 +38,12 @@ export const ModelFetchService = {
         const { data: insertedModel, error: insertError } = await supabase
           .from('ai_models')
           .insert(defaultGpt41)
-          .select();
+          .select('*');
         
         if (insertError) {
           console.error('Error inserting GPT-4.1 model:', insertError);
-        } else {
-          console.log('Added GPT-4.1 model to the database with ID: gpt-4.1-2025-04-14');
+        } else if (insertedModel && insertedModel.length > 0) {
+          console.log('Added GPT-4.1 model to the database with ID:', GPT41_ID);
           data.push(insertedModel[0]);
         }
       }

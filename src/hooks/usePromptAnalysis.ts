@@ -1,8 +1,10 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 import { useToast } from "@/hooks/use-toast";
+import { GPT41_ID } from "@/services/model/ModelFetchService"; // Import the GPT-4.1 ID constant
 
 // Define loading states for better user feedback
 type LoadingState = {
@@ -96,7 +98,7 @@ export const usePromptAnalysis = (
       const analysisPromise = async () => {
         updateLoadingState('analyzing', "Connecting to AI model...");
         
-        console.log("Sending request to analyze-prompt with model: gpt-4o");
+        console.log(`Sending request to analyze-prompt with model: ${GPT41_ID}`); // Using the constant
         const { data, error } = await supabase.functions.invoke("analyze-prompt", {
           body: {
             promptText,
@@ -106,7 +108,7 @@ export const usePromptAnalysis = (
             imageData: uploadedImages,
             smartContextData: smartContext,
             template: currentTemplate,
-            model: "gpt-4o" // Updated to use gpt-4o
+            model: GPT41_ID // Using GPT-4.1 as the model
           }
         });
         
@@ -115,7 +117,7 @@ export const usePromptAnalysis = (
           throw new Error(error?.message || "No data returned");
         }
         
-        console.log("Received response from analyze-prompt with model: gpt-4o");
+        console.log(`Received response from analyze-prompt with model: ${GPT41_ID}`);
         return data;
       };
 

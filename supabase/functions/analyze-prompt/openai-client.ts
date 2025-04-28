@@ -21,7 +21,8 @@ export async function analyzePromptWithAI(
   try {
     console.log(`Processing prompt with model: ${model}`);
 
-    const ALLOWED = new Set(['gpt-4o', 'gpt-4o-mini']);
+    // Updated models whitelist to include GPT-4.1
+    const ALLOWED = new Set(['gpt-4o', 'gpt-4o-mini', 'gpt-4.1']);
     if (!ALLOWED.has(model)) {
       console.warn(`[AI] model "${model}" not enabled; falling back to gpt-4o`);
       model = 'gpt-4o';
@@ -38,6 +39,7 @@ export async function analyzePromptWithAI(
       : promptText;
       
     console.log(`Final content length being sent to OpenAI: ${content.length} characters`);
+    console.log(`Using model: ${model} for analysis`);
       
     const messages = [
       { role: "system", content: systemPrompt },

@@ -33,11 +33,12 @@ export const triggerInitialModelUpdate = async (forceUpdate = true): Promise<Mod
     const functionPromise = supabase.functions.invoke('update-ai-models', {
       method: 'POST',
       headers: {
-        'X-Force-Update': forceUpdate ? 'true' : 'false'
+        'Content-Type': 'application/json',
+        'X-Force-Update': forceUpdate.toString()
       },
-      body: {
+      body: JSON.stringify({
         checkSignificantChanges: true
-      }
+      })
     });
     
     // Use Promise.race to handle potential timeouts
