@@ -1,5 +1,5 @@
 
-export function createSystemPrompt(template: any): string {
+export function createSystemPrompt(template: any, imageCaption = ""): string {
   let prompt = `
 You are an expert intent analyzer. Respond ONLY in **valid minified JSON** with keys: questions, variables, masterCommand, enhancedPrompt, ambiguityLevel.
 
@@ -26,6 +26,14 @@ Variables (the **heart** of the response):
 • Variable names must be unique after stop-words ("of, the, a, an") are removed.  
 • **Never** repeat a question's focus in a variable (and vice-versa). If an item will be a variable, do **not** generate a question for it.  
 • Do not output more than eight variables—drop the least important first.`;
+
+  // Inject image caption if available
+  if (imageCaption) {
+    prompt += `
+
+Image analysis (may help you pre-fill variables & examples):
+${imageCaption}`;
+  }
 
   // ───────── NEW, STRONGER guarantees ──────────
   prompt += `

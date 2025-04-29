@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
-import { analyzePromptWithAI } from "./openai-client.ts";
+import { analyzePromptWithAI, describeImage } from "./openai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -93,7 +93,7 @@ const pillarSuggestions = (pillar: string) => {
   if (p.includes('subject')) return [
     { txt: "What is the main subject's pose or action?", ex: ['running', 'sitting', 'jumping'] },
     { txt: "Any composition guidelines?",             ex: ['rule-of-thirds', 'centre focus', 'symmetry'] },
-    { txt: "Camera angle preference?",                ex: ['eye level', "bird's-eye", 'low angle'] }
+    { txt: "Camera angle preference?",                ex: ["eye level", "bird's-eye", "low angle"] }
   ];
 
   // default generic
@@ -247,23 +247,35 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = createSystemPrompt(template);
+    // ─── pick first usable base64 ─────────────────────
+    let firstImageBase64: string | null = null;
+    if (Array.isArray(imageData) && imageData.length) {
+      const candidate = imageData.find((i: any) => typeof i?.base64 === "string");
+      if (candidate?.base64) {
+        firstImageBase64 = candidate.base64;
+        console.log(
+          `Image base64 provided (${firstImageBase64.length} chars)`
+        );
+      }
+    }
+    
+    // ── If firstImageBase64 present → attempt a single-shot caption ──
+    let imageCaption: string | null = null;
+    if (firstImageBase64) {
+      // accept only png | jpeg | jpg | webp | gif to avoid 400s
+      const ok = /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(firstImageBase64.slice(0,40));
+      if (ok) {
+        imageCaption = await describeImage(firstImageBase64.replace(/^data:image\/\w+;base64,/,""));
+      } else {
+        console.log("🛑  Unsupported image mime – skipping vision call");
+      }
+    }
+    
+    const systemPrompt = createSystemPrompt(template, imageCaption || "");
     console.log("System prompt created");
     
     try {
       console.time("aiAnalysisTime");
-      
-      // ─── pick first usable base64 ─────────────────────
-      let firstImageBase64: string | null = null;
-      if (Array.isArray(imageData) && imageData.length) {
-        const candidate = imageData.find((i: any) => typeof i?.base64 === "string");
-        if (candidate?.base64) {
-          firstImageBase64 = candidate.base64;
-          console.log(
-            `Image base64 provided (${firstImageBase64.length} chars)`
-          );
-        }
-      }
       
       const { content } = await analyzePromptWithAI(
         promptText,

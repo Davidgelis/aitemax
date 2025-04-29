@@ -99,3 +99,39 @@ export async function analyzePromptWithAI(
     throw error;
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+//  HELPER: call vision endpoint once to get a 1-paragraph description
+// ─────────────────────────────────────────────────────────────────────────
+export async function describeImage(
+  base64: string,
+  instructions = "Describe the image in one concise paragraph focusing on subject, colours, style and composition."
+): Promise<string | null> {
+  try {
+    const openai = new OpenAI({
+      apiKey: openAIApiKey
+    });
+    
+    const res = await openai.chat.completions.create({
+      model: "gpt-4o-mini",               // fast & cheap caption
+      max_tokens: 120,
+      temperature: 0.2,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: { url: `data:image/png;base64,${base64}` }
+            },
+            { type: "text", text: instructions }
+          ]
+        }
+      ]
+    });
+    return res.choices[0]?.message?.content?.trim() || null;
+  } catch (err) {
+    console.log("⚠️  Vision call failed, continuing without image caption →", err);
+    return null;
+  }
+}
