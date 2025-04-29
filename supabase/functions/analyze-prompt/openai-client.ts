@@ -122,37 +122,42 @@ export async function analyzePromptWithAI(
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-//  HELPER: call vision endpoint once to get a 1-paragraph description
+//  Updated: describeImage now returns structured data with caption and tags
 // ─────────────────────────────────────────────────────────────────────────
 export async function describeImage(
   base64: string,
-  instructions = "Describe the image in one concise paragraph focusing on subject, colours, style and composition."
-): Promise<string | null> {
+  instructions =
+    `You are a vision assistant.
+Return *valid minified JSON* with keys:
+  caption : one descriptive paragraph
+  tags    : { subject, style, palette, background, mood }.
+If a tag is unknown use an empty string.`
+): Promise<{ caption: string; tags: Record<string,string> }> {
   try {
     const openai = new OpenAI({
       apiKey: openAIApiKey
     });
     
     const res = await openai.chat.completions.create({
-      model: "gpt-4o-mini",               // fast & cheap caption
-      max_tokens: 120,
+      model: "gpt-4o-mini",
+      max_tokens: 200,
       temperature: 0.2,
       messages: [
         {
           role: "user",
           content: [
-            {
-              type: "image_url",
-              image_url: { url: `data:image/png;base64,${base64}` }
-            },
+            { type: "image_url",
+              image_url: { url: `data:image/png;base64,${base64}` } },
             { type: "text", text: instructions }
           ]
         }
       ]
     });
-    return res.choices[0]?.message?.content?.trim() || null;
+    const cleaned = res.choices[0].message.content
+                     .replace(/```json|```/g,"").trim();
+    return JSON.parse(cleaned);
   } catch (err) {
-    console.log("⚠️  Vision call failed, continuing without image caption →", err);
-    return null;
+    console.log("⚠️ Vision call failed, continuing without image caption →", err);
+    return { caption:"", tags:{} };
   }
 }

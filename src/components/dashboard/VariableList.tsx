@@ -202,9 +202,9 @@ export const VariableList = ({
                           handleValueChange(variable.id, e.target.value);
                         }
                       }}
-                      className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16 ${
-                        highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''
-                      }`}
+                      className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16 
+                        ${highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''}
+                        ${variable.prefillSource === 'image' ? 'border-emerald-400 bg-emerald-50/50' : ''}`}
                       autoComplete="off"
                       aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
                       maxLength={maxCharacterLimit}
@@ -212,6 +212,11 @@ export const VariableList = ({
                     <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
                       {(variableValues[variable.id] || "").length}/{maxCharacterLimit}
                     </div>
+                    {variable.prefillSource === 'image' && (
+                      <div className="absolute -bottom-5 left-0 text-xs text-emerald-600">
+                        Suggested from image
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex">

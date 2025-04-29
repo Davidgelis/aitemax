@@ -41,6 +41,7 @@ export interface Variable {
   code?: string;      // Internal code reference
   description?: string;   // NEW (keeps TS happy)
   isCustom?: boolean;     // NEW
+  prefillSource?: string; // NEW: Track if value was prefilled from image/context
 }
 
 // Define a proper type for the tag structure

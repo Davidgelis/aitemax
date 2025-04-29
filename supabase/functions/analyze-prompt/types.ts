@@ -5,7 +5,8 @@ export interface Question {
   answer: string;
   isRelevant: boolean | null;
   category: string;
-  contextSource?: string;
+  contextSource?: "image" | "website" | "manual";
+  prefillSource?: "image" | "website" | "manual";
   technicalTerms?: TechnicalTerm[];
   isDuplicate?: boolean;
   examples?: string[];
@@ -25,4 +26,5 @@ export interface Variable {
   category: string;
   code: string;
   contextSource?: string;
+  prefillSource?: "image" | "website" | "manual";
 }

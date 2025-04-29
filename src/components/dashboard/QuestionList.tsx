@@ -1,3 +1,4 @@
+
 import { X, FileText, Edit } from "lucide-react";
 import { Question } from "./types";
 import { RefObject, useState } from "react";
@@ -241,7 +242,8 @@ export const QuestionList = ({
                       <div 
                         className={`flex-grow flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors
                                   ${question.isRelevant === false ? 'opacity-60' : ''}
-                                  ${question.answer && question.isRelevant !== false ? 'bg-[#33fea6]/20' : 'hover:bg-[#33fea6]/20'}`}
+                                  ${question.answer && question.isRelevant !== false ? 'bg-[#33fea6]/20' : 'hover:bg-[#33fea6]/20'}
+                                  ${question.contextSource === 'image' ? 'border-l-4 border-emerald-400' : ''}`}
                         onClick={() => handleEditResponse(question)}
                       >
                         <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium">
@@ -276,8 +278,12 @@ export const QuestionList = ({
                     {question.isRelevant !== false && renderTechnicalTerms(question)}
                     
                     {question.isRelevant !== false && question.answer && (
-                      <div className="pl-8 pr-2 text-sm text-gray-600 line-clamp-2 italic bg-gray-50 p-2 rounded">
+                      <div className={`pl-8 pr-2 text-sm text-gray-600 line-clamp-2 italic p-2 rounded 
+                                    ${question.contextSource === 'image' ? 'bg-emerald-50' : 'bg-gray-50'}`}>
                         {getAnswerPreview(question.answer)}
+                        {question.contextSource === 'image' && (
+                          <span className="block text-xs text-emerald-600 mt-1">Suggested from image</span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -333,12 +339,18 @@ export const QuestionList = ({
                   }
                 }} 
                 placeholder="Type your answer here..." 
-                className="w-full p-4 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[200px] focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent" 
+                className={`w-full p-4 rounded-md border bg-background text-card-foreground placeholder:text-muted-foreground resize-none min-h-[200px] focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
+                           ${editingQuestion?.contextSource === 'image' ? 'border-l-4 border-emerald-400 bg-emerald-50/50' : ''}`}
                 maxLength={maxCharacterLimit}
               />
               <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
                 {currentAnswer.length}/{maxCharacterLimit}
               </div>
+              {editingQuestion?.contextSource === 'image' && (
+                <div className="absolute bottom-2 left-2 text-xs text-emerald-600">
+                  Suggested from image
+                </div>
+              )}
             </div>
             <div className="flex justify-end">
               <button 

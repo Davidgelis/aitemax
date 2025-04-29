@@ -260,18 +260,18 @@ serve(async (req) => {
     }
     
     // ── If firstImageBase64 present → attempt a single-shot caption ──
-    let imageCaption: string | null = null;
+    let imageMeta: { caption: string; tags: Record<string,string> } | null = null;
     if (firstImageBase64) {
       // accept only png | jpeg | jpg | webp | gif to avoid 400s
       const ok = /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(firstImageBase64.slice(0,40));
       if (ok) {
-        imageCaption = await describeImage(firstImageBase64.replace(/^data:image\/\w+;base64,/,""));
+        imageMeta = await describeImage(firstImageBase64.replace(/^data:image\/\w+;base64,/,""));
       } else {
         console.log("🛑  Unsupported image mime – skipping vision call");
       }
     }
     
-    const systemPrompt = createSystemPrompt(template, imageCaption || "");
+    const systemPrompt = createSystemPrompt(template, imageMeta?.caption || "");
     console.log("System prompt created");
     
     try {
@@ -475,6 +475,47 @@ serve(async (req) => {
       processedQuestions = processedQuestions.map(q =>
         addFallbackExamples(q, finalVariables)
       );
+
+      //------------------------------------------------------------------
+      // Prefill from image-scan tags (no badge text added in UI)
+      //------------------------------------------------------------------
+      if (imageMeta && imageMeta.tags) {
+        const t = imageMeta.tags;      // short alias
+
+        const has = (v?:string) => v && v.trim().length;
+
+        // ---------- questions ----------
+        processedQuestions = processedQuestions.map(q => {
+          if (q.answer) return q;                 // already filled by user/LLM
+
+          const low = q.text.toLowerCase();
+          let fill = "";
+
+          if (has(t.subject)    && /subject|object|main.*in (?:image|scene)/.test(low))       fill = t.subject;
+          if (has(t.style)      && /style|aesthetic|genre/.test(low))                         fill = t.style;
+          if (has(t.palette)    && /palette|colour|color/.test(low))                          fill = t.palette;
+          if (has(t.background) && /background|setting|environment/.test(low))                fill = t.background;
+          if (has(t.mood)       && /mood|feeling|emotion|tone/.test(low))                     fill = t.mood;
+
+          return fill
+            ? { ...q, answer: fill, contextSource: "image" }   // UI already prints the badge
+            : q;
+        });
+
+        // ---------- variables ----------
+        finalVariables = finalVariables.map(v => {
+          if (v.value) return v;
+          const key = v.name.toLowerCase();
+
+          if (has(t.subject)    && /subject|object|dog|cat|person/.test(key)) return { ...v, value: t.subject,  prefillSource:"image" };
+          if (has(t.style)      && /style|aesthetic|genre/.test(key))         return { ...v, value: t.style,    prefillSource:"image" };
+          if (has(t.palette)    && /palette|colour|color/.test(key))          return { ...v, value: t.palette,  prefillSource:"image" };
+          if (has(t.background) && /background|env|setting/.test(key))       return { ...v, value: t.background,prefillSource:"image" };
+          if (has(t.mood)       && /mood|feeling|tone/.test(key))             return { ...v, value: t.mood,     prefillSource:"image" };
+
+          return v;
+        });
+      }
 
       console.timeEnd("totalProcessingTime");
       return new Response(
