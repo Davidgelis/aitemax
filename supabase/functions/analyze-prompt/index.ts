@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI } from "./openai-client.ts";
@@ -281,21 +282,26 @@ serve(async (req) => {
 
       processedQuestions = Object.values(byPillar).flat();
 
-      // ──────────────────────────────────────────────────────────────
-      // Safety-net: the model occasionally returns 0 questions even
-      // with ambiguity ≥ 0.6.  We insert one generic clarifier so
-      // the UI never hits an empty-question edge-case.
-      // ──────────────────────────────────────────────────────────────
-      if (processedQuestions.length === 0) {
-        processedQuestions.push({
-          id: "q_auto_1",
-          text: "Any extra style or mood preferences?",
-          examples: ["photorealistic", "vintage postcard", "neon cyber-punk"],
-          category: "Other",
-          isRelevant: true
-        });
-        console.log("⚠️  Inserted fallback question because LLM gave none");
-      }
+      // ── Safety-net upgraded: ensure **every pillar** has ≥ 1 q ──
+      const templatePillars = Array.isArray(template?.pillars)
+        ? template.pillars.map((p: any) => p.title)
+        : [];
+
+      templatePillars.forEach((pillar: string) => {
+        const hasOne = processedQuestions.some(
+          q => (q.category || "Other").toLowerCase() === pillar.toLowerCase()
+        );
+        if (!hasOne) {
+          processedQuestions.push({
+            id: `q_auto_${pillar.replace(/\s+/g, "_").toLowerCase()}`,
+            category: pillar,
+            isRelevant: true,
+            text: `What important details about ${pillar.toLowerCase()}? (e.g. example 1, example 2)`,
+            examples: ["example 1", "example 2"]
+          });
+          console.log(`🛠  Auto-inserted question for missing pillar «${pillar}»`);
+        }
+      });
 
       // --------------------------------------------------------------
       //  Balance questions vs. variables when they target the same slot
@@ -379,6 +385,9 @@ serve(async (req) => {
         );
         if (dup) {
           console.log(`⚠️  Question "${dup.text}" duplicates variable "${v.name}"`);
+          // prefer descriptive question, drop variable silently
+          const idx = finalVariables.findIndex(x => x.id === v.id);
+          if (idx !== -1) finalVariables.splice(idx, 1);
         }
       });
 

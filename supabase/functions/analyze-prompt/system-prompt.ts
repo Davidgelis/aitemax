@@ -27,6 +27,15 @@ Variables (the **heart** of the response):
 • **Never** repeat a question's focus in a variable (and vice-versa). If an item will be a variable, do **not** generate a question for it.  
 • Do not output more than eight variables—drop the least important first.`;
 
+  // ───────── NEW, STRONGER guarantees ──────────
+  prompt += `
+Hard Requirements (❌ invalid JSON if broken):
+1. For **every pillar below** output **at least ONE** and **no more than THREE**
+   clear, everyday-language questions.
+2. Each question **must** end with 1–4 short illustrative answers in parentheses.
+3. Output **max eight** unique variables (1-3-word labels) – no duplicates
+   after stop-words are removed, and never overlapping with the questions.`;
+
   if (Array.isArray(template?.pillars)) {
     prompt += `\nPillars to cover:\n${template.pillars
       .map((p: any) => `- "${p.title}": ${p.description}`)
