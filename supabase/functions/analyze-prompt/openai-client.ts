@@ -1,9 +1,23 @@
+
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 if (!openAIApiKey) {
   throw new Error('OPENAI_API_KEY is not set in environment variables');
+}
+
+function normaliseDataURL(b64: string, fallback = "jpeg") {
+  // remove any accidental whitespace
+  const cleaned = b64.replace(/\s+/g, "");
+
+  if (cleaned.startsWith("data:image/")) {
+    // Canonicalise jpg → jpeg
+    return cleaned.replace(/^data:image\/jpg;base64,/i,
+                           "data:image/jpeg;base64,");
+  }
+  // raw base-64 → wrap it
+  return `data:image/${fallback};base64,${cleaned}`;
 }
 
 export async function analyzePromptWithAI(
@@ -47,11 +61,7 @@ export async function analyzePromptWithAI(
 
     // Add image if available, but skip if too large
     if (imageBase64 && imageBase64.length < 650_000) {
-      // Use the incoming data-URL as-is when it already contains a header;
-      // otherwise prepend one (default to jpeg).
-      const asDataURL = imageBase64.startsWith("data:image/")
-        ? imageBase64
-        : `data:image/jpeg;base64,${imageBase64}`;
+      const asDataURL = normaliseDataURL(imageBase64);
 
       // Accept only png / jpg / jpeg / webp / gif
       const ok = /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(asDataURL);
