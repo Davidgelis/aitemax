@@ -51,6 +51,19 @@ export const usePromptAnalysis = (
     console.log(`Loading state: ${stage} - ${message}`);
   };
 
+  // Helper to safely process images before sending to edge function
+  const processSafeImages = (images: any[] | null) => {
+    if (!images || !images.length) return null;
+    
+    return images.map(img => ({
+      id: img.id,
+      base64: img.base64?.length > 1_500_000   // ~1.5 MB ≈ 2 MB post-JSON
+        ? img.base64.slice(0, 1_500_000) + '...[truncated]'
+        : img.base64,
+      context: img.context || ''
+    }));
+  };
+
   const handleAnalyze = async (
     uploadedImages: any[] | null = null,
     websiteContext: { url: string; instructions: string } | null = null,
@@ -98,20 +111,28 @@ export const usePromptAnalysis = (
       const analysisPromise = async () => {
         updateLoadingState('analyzing', "Connecting to AI model...");
         
-        console.log(`Sending request to analyze-prompt with model: ${GPT41_ID}`); // Using the constant
-        const { data, error } = await supabase.functions.invoke("analyze-prompt", {
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            promptText,
-            userId: user?.id || null,
-            promptId: currentPromptId,
-            websiteData: websiteContext,
-            imageData: uploadedImages,
-            smartContextData: smartContext,
-            template: currentTemplate,
-            model: GPT41_ID // Using GPT-4.1 as the model
-          })
-        });
+        // Process images safely before sending
+        const safeImages = processSafeImages(uploadedImages);
+        
+        console.log(`Sending request to analyze-prompt with model: ${GPT41_ID}`);
+        console.log(`Image data: ${safeImages ? safeImages.length : 0} images being sent`);
+        
+        // Create payload and let supabase client handle serialization
+        const payload = {
+          promptText,
+          userId: user?.id || null,
+          promptId: currentPromptId,
+          websiteData: websiteContext,
+          imageData: safeImages,
+          smartContextData: smartContext,
+          template: currentTemplate,
+          model: GPT41_ID
+        };
+        
+        const { data, error } = await supabase.functions.invoke(
+          "analyze-prompt", 
+          { body: payload }
+        );
         
         if (error || !data) {
           console.error('Analysis error:', error);
@@ -196,19 +217,22 @@ export const usePromptAnalysis = (
       });
       
       const enhancePromise = async () => {
-        const { data, error } = await supabase.functions.invoke('enhance-prompt', {
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            originalPrompt: promptToEnhance,
-            answeredQuestions,
-            relevantVariables,
-            primaryToggle,
-            secondaryToggle,
-            userId: user?.id || null,
-            promptId: currentPromptId,
-            template: selectedTemplate
-          })
-        });
+        // Create payload and let supabase client handle serialization
+        const payload = {
+          originalPrompt: promptToEnhance,
+          answeredQuestions,
+          relevantVariables,
+          primaryToggle,
+          secondaryToggle,
+          userId: user?.id || null,
+          promptId: currentPromptId,
+          template: selectedTemplate
+        };
+        
+        const { data, error } = await supabase.functions.invoke(
+          'enhance-prompt', 
+          { body: payload }
+        );
         
         if (error || !data?.enhancedPrompt) {
           throw new Error(error?.message || 'Failed to enhance prompt');

@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface ModelUpdateResponse {
   success: boolean;
@@ -30,15 +30,15 @@ export const triggerInitialModelUpdate = async (forceUpdate = true): Promise<Mod
       setTimeout(() => reject(new Error('Function timed out after 40 seconds')), 40000);
     });
     
+    // Create payload and let supabase client handle serialization
+    const payload = { checkSignificantChanges: true };
+    
     const functionPromise = supabase.functions.invoke('update-ai-models', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'X-Force-Update': forceUpdate.toString()
       },
-      body: JSON.stringify({
-        checkSignificantChanges: true
-      })
+      body: payload
     });
     
     // Use Promise.race to handle potential timeouts

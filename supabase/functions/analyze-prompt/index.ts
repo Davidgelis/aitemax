@@ -113,10 +113,74 @@ serve(async (req) => {
 
   console.time("totalProcessingTime");
   try {
-    const { promptText, template, websiteData, imageData, smartContextData, model = 'gpt-4.1' } = await req.json();
+    // Read request body as text first for better error handling
+    let bodyText = "";
+    try {
+      bodyText = await req.text();
+    } catch (textError) {
+      console.error("Error reading request body as text:", textError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Failed to read request body",
+          details: textError.message
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      );
+    }
+    
+    // Check for empty request body
+    if (!bodyText.trim()) {
+      console.error("Received empty request body");
+      return new Response(
+        JSON.stringify({ 
+          error: "Empty request body",
+          questions: [],
+          variables: [],
+          masterCommand: "",
+          enhancedPrompt: ""
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      );
+    }
+    
+    // Parse JSON with explicit error handling
+    let payload;
+    try {
+      payload = JSON.parse(bodyText);
+      console.log("Successfully parsed request body JSON");
+    } catch (parseError) {
+      console.error("Error parsing request body as JSON:", parseError);
+      console.error("First 500 characters of received body:", bodyText.slice(0, 500));
+      
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid JSON in request body",
+          details: parseError.message,
+          bodyPreview: bodyText.slice(0, 100) + "..." + (bodyText.length > 100 ? " [truncated]" : ""),
+          questions: [],
+          variables: [],
+          masterCommand: "",
+          enhancedPrompt: ""
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        }
+      );
+    }
+
+    // Extract and validate required fields
+    const { promptText, template, websiteData, imageData, smartContextData, model = 'gpt-4.1' } = payload || {};
     console.log(`Request received for model: ${model}`);
     console.log(`Prompt length: ${promptText?.length} characters`);
-    console.log(`Prompt text: "${promptText}"`);
+    console.log(`Prompt text: "${promptText?.substring(0, 100)}${promptText?.length > 100 ? "..." : ""}"`);
+    console.log(`Image data: ${imageData ? (Array.isArray(imageData) ? imageData.length : 1) : 0} items`);
     
     // Validate input
     if (!promptText || typeof promptText !== 'string') {
@@ -140,12 +204,23 @@ serve(async (req) => {
     
     try {
       console.time("aiAnalysisTime");
+      
+      // Get first image base64 if available
+      let firstImageBase64 = null;
+      if (imageData && Array.isArray(imageData) && imageData.length > 0) {
+        firstImageBase64 = imageData[0].base64 || null;
+        if (firstImageBase64) {
+          const truncated = firstImageBase64.includes('...[truncated]');
+          console.log(`Found image base64 (${firstImageBase64.length} chars${truncated ? ", truncated" : ""})`);
+        }
+      }
+      
       const { content } = await analyzePromptWithAI(
         promptText,
         systemPrompt,
         model, // Pass the requested model (defaults to gpt-4.1)
         smartContextData?.context || '',
-        imageData?.[0]?.base64
+        firstImageBase64
       );
       console.timeEnd("aiAnalysisTime");
       console.log("AI analysis completed");
