@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI } from "./openai-client.ts";
@@ -52,6 +51,22 @@ const ensureExamples = (q: any) => {
   const ex = q.examples.slice(0, MAX_EXAMPLES).join(', ');
   const withParens = /\(.+\)$/.test(q.text) ? q.text : `${q.text} (${ex})`;
   return { ...q, text: withParens };
+};
+
+// ── helper: fabricate examples when GPT omits them ──
+const addFallbackExamples = (q: any, vars: any[]) => {
+  // skip if the question already ends with (…)
+  if (/\(.+\)$/.test(q.text)) return q;
+
+  // try to build pillar-specific hints from variables
+  const hints = vars
+    .filter(v => (v.category || 'Other') === (q.category || 'Other'))
+    .map(v => (v.value || v.name).split(/\s+/)[0]) // first word only
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const ex = hints.length ? hints : ['example 1', 'example 2'];
+  return { ...q, text: `${q.text.replace(/\?$/, '')}? (${ex.join(', ')})` };
 };
 
 // Function to process variables with performance optimizations
@@ -371,6 +386,23 @@ serve(async (req) => {
         finalVariables.push(...extras);
       }
 
+      // ── final dedup (after top-up) ──
+      const seen = new Set<string>();
+      finalVariables = finalVariables.filter(v => {
+        const sig = v.name.toLowerCase().replace(/\b(of|the|a|an)\b/g, '').trim();
+        if (seen.has(sig)) {
+          console.log(`🔁 removing post-top-up duplicate «${v.name}»`);
+          return false;
+        }
+        seen.add(sig);
+        return true;
+      });
+
+      // unique ids safeguard
+      finalVariables.forEach((v, i) => {
+        v.id = v.id || `var_${Date.now()}_${i}`;
+      });
+
       // Compute variable distribution after possible top-up
       const variableDistribution = finalVariables.reduce<Record<string,number>>((acc,v)=>{
         const cat = v.category || "Other";
@@ -390,6 +422,11 @@ serve(async (req) => {
           if (idx !== -1) finalVariables.splice(idx, 1);
         }
       });
+
+      // give every question illustrative examples
+      processedQuestions = processedQuestions.map(q =>
+        addFallbackExamples(q, finalVariables)
+      );
 
       console.timeEnd("totalProcessingTime");
       return new Response(
