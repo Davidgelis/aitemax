@@ -71,6 +71,7 @@ export const WebScanDialog = ({
     }
     
     // Process the data and close the dialog
+    console.log("WebScanDialog: Submitting with URL and instructions");
     onWebsiteScan(url.trim(), instructions.trim());
     onOpenChange(false);
   };
@@ -90,6 +91,7 @@ export const WebScanDialog = ({
   
   const handleDelete = () => {
     if (onDeleteScan) {
+      console.log("WebScanDialog: Deleting scan");
       onDeleteScan();
       onOpenChange(false);
     }

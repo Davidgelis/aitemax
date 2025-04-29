@@ -21,6 +21,12 @@ export const WebScanner = ({
   const [hasContext, setHasContext] = useState(false);
   
   const handleWebsiteScan = (url: string, instructions: string) => {
+    // Only process if both URL and instructions are provided
+    if (!url || !instructions) {
+      console.log("WebScanner: Missing URL or instructions, not proceeding");
+      return;
+    }
+    
     // Save the values for persistence
     setSavedUrl(url);
     setSavedInstructions(instructions);

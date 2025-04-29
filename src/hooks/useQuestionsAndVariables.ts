@@ -3,7 +3,6 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
 
-// Create the hook that StepController.tsx is trying to import
 export const useQuestionsAndVariables = (
   questions: Question[],
   setQuestions: (questions: Question[]) => void,
@@ -67,8 +66,11 @@ export const useQuestionsAndVariables = (
   // but needs to use the variableToDelete value from the parent state
   const removeVariable = () => {
     if (variableToDelete) {
+      console.log(`Removing variable with id: ${variableToDelete}`);
       setVariables(variables.filter(v => v.id !== variableToDelete));
       setVariableToDelete(null);
+    } else {
+      console.warn("Attempted to remove variable but no variable was selected for deletion");
     }
   };
 

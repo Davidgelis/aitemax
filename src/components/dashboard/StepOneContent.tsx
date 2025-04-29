@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
@@ -11,7 +12,7 @@ import { ImageUploader } from "./ImageUploader";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
-import { GPT41_ID } from "@/services/model/ModelFetchService"; // Import the GPT-4.1 ID constant
+import { GPT41_ID } from "@/services/model/ModelFetchService";
 
 interface StepOneContentProps {
   promptText: string;
@@ -109,27 +110,35 @@ export const StepOneContent = ({
       contextText: img.context ? img.context.substring(0, 30) + '...' : 'none'
     })));
     
-    // Pass the images up to the parent component without triggering analysis
-    onImagesChange(images);
+    // Only pass images to parent if there are actually images to pass
+    if (images && images.length > 0) {
+      onImagesChange(images);
+    }
   };
 
   const handleWebsiteScan = (url: string, instructions: string = "") => {
-    const contextData = { url, instructions };
-    setWebsiteContext(contextData);
-    console.log("StepOneContent: Website context set:", contextData);
-    
-    onWebsiteScan(url, instructions);
+    // Only set and pass context if valid data was provided
+    if (url && instructions) {
+      const contextData = { url, instructions };
+      setWebsiteContext(contextData);
+      console.log("StepOneContent: Website context set:", contextData);
+      
+      onWebsiteScan(url, instructions);
+    }
   };
 
   const handleSmartContext = (context: string, usageInstructions: string = "") => {
-    const contextData = { context, usageInstructions };
-    setSmartContext(contextData);
-    console.log("StepOneContent: Smart context set:", {
-      context: context.substring(0, 100) + (context.length > 100 ? "..." : ""),
-      usageInstructions: usageInstructions.substring(0, 100) + (usageInstructions.length > 100 ? "..." : "")
-    });
-    
-    onSmartContext(context, usageInstructions);
+    // Only set and pass context if valid data was provided
+    if (context) {
+      const contextData = { context, usageInstructions };
+      setSmartContext(contextData);
+      console.log("StepOneContent: Smart context set:", {
+        context: context.substring(0, 100) + (context.length > 100 ? "..." : ""),
+        usageInstructions: usageInstructions.substring(0, 100) + (usageInstructions.length > 100 ? "..." : "")
+      });
+      
+      onSmartContext(context, usageInstructions);
+    }
   };
 
   const handleAnalyzeWithContext = () => {
@@ -148,7 +157,7 @@ export const StepOneContent = ({
       smartContext: smartContext ? "Provided" : "None",
       selectedPrimary,
       selectedSecondary,
-      model: GPT41_ID // Using the constant instead of hardcoded string
+      model: GPT41_ID
     });
     
     onAnalyze();

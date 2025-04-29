@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 import { useToast } from "@/hooks/use-toast";
-import { GPT41_ID } from "@/services/model/ModelFetchService"; // Import the GPT-4.1 ID constant
+import { GPT41_ID } from "@/services/model/ModelFetchService";
 
 // Define loading states for better user feedback
 type LoadingState = {
@@ -50,7 +50,7 @@ export const usePromptAnalysis = (
     console.log(`Loading state: ${stage} - ${message}`);
   };
 
-  // ─── image scrubber ──────────────────────────────
+  // ─── improved image processor ──────────────────────────────
   /**
    * Strip un-serialisable fields (`file`) and guarantee the edge-function
    * payload stays well below Supabase's 1 MB limit.
@@ -60,16 +60,22 @@ export const usePromptAnalysis = (
    *   will simply analyse the text without vision.
    */
   const processSafeImages = (images: any[] | null) => {
-    if (!images || !images.length) return null;
+    if (!images || !images.length) {
+      console.log("No images to process");
+      return null;
+    }
 
-    return images.map(({ id, base64 = "", context = "" }) => {
-      if (base64.length > 650_000) {
-        console.warn(
-          `[SAFE-IMG] image ${id} base64 is ${base64.length} chars – redacted`
-        );
+    console.log(`Processing ${images.length} images for analysis`);
+    
+    return images.map(({ id, base64 = "", context = "", url = "" }) => {
+      // If base64 is too large, don't send it
+      if (base64 && base64.length > 650_000) {
+        console.warn(`[SAFE-IMG] image ${id} base64 is ${base64.length} chars – too large, sending without base64`);
         return { id, context, base64: null };
       }
-      return { id, context, base64 };
+      
+      console.log(`[SAFE-IMG] image ${id} base64 length: ${base64?.length || 0} chars, has context: ${!!context}`);
+      return { id, context, base64: base64 || null };
     });
   };
 
@@ -85,6 +91,13 @@ export const usePromptAnalysis = (
       if (!promptText?.trim()) {
         throw new Error("Prompt text is required");
       }
+      
+      // Only process additional context if provided by user
+      const hasImageData = uploadedImages && uploadedImages.length > 0;
+      const hasWebsiteContext = websiteContext && websiteContext.url && websiteContext.instructions;
+      const hasSmartContext = smartContext && smartContext.context;
+      
+      console.log(`Context analysis - Images: ${hasImageData ? 'YES' : 'NO'}, Website: ${hasWebsiteContext ? 'YES' : 'NO'}, Smart: ${hasSmartContext ? 'YES' : 'NO'}`);
 
       // Check cache first to see if we've already analyzed this prompt with similar parameters
       const key = cacheKey(promptText, uploadedImages, websiteContext, smartContext);
@@ -113,30 +126,43 @@ export const usePromptAnalysis = (
 
       // Set up timeout handling using Promise.race
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Analysis timed out after 60 seconds")), 60000);
+        setTimeout(() => reject(new Error("Analysis timed out after 90 seconds")), 90000);
       });
 
       // Main analysis promise
       const analysisPromise = async () => {
         updateLoadingState('analyzing', "Connecting to AI model...");
         
-        // Process images safely before sending
-        const safeImages = processSafeImages(uploadedImages);
-        
-        console.log(`Sending request to analyze-prompt with model: ${GPT41_ID}`);
-        console.log(`Image data: ${safeImages ? safeImages.length : 0} images being sent`);
-        
-        const payload = {
+        // Build the payload with only user-provided context
+        const payload: any = {
           promptText,
           userId: user?.id ?? null,
           promptId: currentPromptId,
-          websiteData: websiteContext,
-          // ⚠️ only attach when we actually have something to send
-          ...(safeImages && { imageData: safeImages }),
-          smartContextData: smartContext,
           template: currentTemplate,
           model: GPT41_ID
         };
+        
+        // Only add context data if actually provided by user
+        if (hasWebsiteContext) {
+          payload.websiteData = websiteContext;
+          console.log("Adding website context to payload:", websiteContext.url);
+        }
+        
+        if (hasSmartContext) {
+          payload.smartContextData = smartContext;
+          console.log("Adding smart context to payload");
+        }
+        
+        // Process images if provided
+        if (hasImageData) {
+          const safeImages = processSafeImages(uploadedImages);
+          if (safeImages && safeImages.length > 0) {
+            payload.imageData = safeImages;
+            console.log(`Adding ${safeImages.length} processed images to payload`);
+          }
+        }
+        
+        console.log(`Sending request to analyze-prompt with model: ${GPT41_ID}`);
         
         const { data, error } = await supabase.functions.invoke(
           "analyze-prompt", 
@@ -145,7 +171,7 @@ export const usePromptAnalysis = (
         
         if (error || !data) {
           console.error('Analysis error:', error);
-          throw new Error(error?.message || "No data returned");
+          throw new Error(error?.message || "No data returned from analysis");
         }
         
         console.log(`Received response from analyze-prompt with model: ${GPT41_ID}`);
@@ -222,7 +248,7 @@ export const usePromptAnalysis = (
       
       // Similar timeout pattern for enhancement
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Enhancement timed out after 60 seconds")), 60000);
+        setTimeout(() => reject(new Error("Enhancement timed out after 90 seconds")), 90000);
       });
       
       const enhancePromise = async () => {
@@ -268,6 +294,7 @@ export const usePromptAnalysis = (
   };
 };
 
+// Keep the existing enhancePromptWithTemplate function
 export const enhancePromptWithTemplate = async (
   promptToEnhance: string,
   answeredQuestions: Question[],
