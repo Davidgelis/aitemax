@@ -91,7 +91,7 @@ const pillarSuggestions = (pillar: string) => {
     { txt: 'Should the background be detailed or minimal?', ex: ['detailed', 'clean white', 'blurred'] }
   ];
   if (p.includes('subject')) return [
-    { txt: 'What is the main subject's pose or action?', ex: ['running', 'sitting', 'jumping'] },
+    { txt: "What is the main subject's pose or action?", ex: ['running', 'sitting', 'jumping'] },
     { txt: 'Any composition guidelines?',             ex: ['rule-of-thirds', 'centre focus', 'symmetry'] },
     { txt: 'Camera angle preference?',                ex: ['eye level', 'bird's-eye', 'low angle'] }
   ];
