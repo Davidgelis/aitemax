@@ -364,7 +364,7 @@ serve(async (req) => {
       tempVars = tempVars.filter((_, i) => varKeep[i]);
 
       // Process variables after question cleanup
-      const { finalVariables } = processVariables(
+      let { finalVariables } = processVariables(
         tempVars,
         processedQuestions
       );
