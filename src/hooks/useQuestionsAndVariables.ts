@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -34,10 +35,10 @@ export const useQuestionsAndVariables = (
   };
 
   // Variable handling functions
-  const handleVariableChange = (id: string, value: string) => {
+  const handleVariableChange = (id: string, field: keyof Variable, content: string) => {
     setVariables(
       variables.map((v) =>
-        v.id === id ? { ...v, value } : v
+        v.id === id ? { ...v, [field]: content } : v
       )
     );
   };
@@ -55,14 +56,14 @@ export const useQuestionsAndVariables = (
       id: `var-${Date.now()}`,
       name: '',
       value: '',
-      category: 'Other', // Added category to match interface
-      code: '', // Added code to match interface
+      category: 'Other', 
+      code: '', 
       isRelevant: true
-      // Removed the 'isCustom' property as it doesn't exist in the Variable interface
     };
     setVariables([...variables, newVariable]);
   };
 
+  // Updated to correctly accept the id parameter
   const removeVariable = (id: string) => {
     setVariables(variables.filter(v => v.id !== id));
     setVariableToDelete(null);
