@@ -63,10 +63,13 @@ export const useQuestionsAndVariables = (
     setVariables([...variables, newVariable]);
   };
 
-  // Updated to correctly accept the id parameter
-  const removeVariable = (id: string) => {
-    setVariables(variables.filter(v => v.id !== id));
-    setVariableToDelete(null);
+  // This function will be called with no arguments by the components
+  // but needs to use the variableToDelete value from the parent state
+  const removeVariable = () => {
+    if (variableToDelete) {
+      setVariables(variables.filter(v => v.id !== variableToDelete));
+      setVariableToDelete(null);
+    }
   };
 
   // Check if all required questions have been answered and we can proceed to step 3

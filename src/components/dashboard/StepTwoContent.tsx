@@ -15,7 +15,7 @@ interface StepTwoContentProps {
   onVariableChange: (variableId: string, field: keyof Variable, content: string) => void;
   onVariableRelevance: (variableId: string, isRelevant: boolean) => void;
   onAddVariable: () => void;
-  onDeleteVariable: (id: string) => void; // Updated to match the expected function signature
+  onDeleteVariable: () => void; // Changed to match expected function signature
   variableToDelete: string | null;
   setVariableToDelete: (id: string | null) => void;
   canProceedToStep3: boolean;

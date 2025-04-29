@@ -1,3 +1,4 @@
+
 import { Plus, Trash } from "lucide-react";
 import { Variable } from "./types";
 import { RefObject, useState, useEffect } from "react";
@@ -11,7 +12,7 @@ interface VariableListProps {
   onVariableChange: (variableId: string, field: keyof Variable, content: string) => void;
   onVariableRelevance: (variableId: string, isRelevant: boolean) => void;
   onAddVariable: () => void;
-  onDeleteVariable: () => void;
+  onDeleteVariable: () => void; // Changed to match expected signature
   variableToDelete: string | null;
   setVariableToDelete: (id: string | null) => void;
   containerRef: RefObject<HTMLDivElement>;
