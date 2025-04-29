@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
@@ -13,7 +12,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
 import { GPT41_ID } from "@/services/model/ModelFetchService";
-
 interface StepOneContentProps {
   promptText: string;
   setPromptText: (text: string) => void;
@@ -32,7 +30,6 @@ interface StepOneContentProps {
   onSmartContext?: (context: string, usageInstructions: string) => void;
   setPreventStepChange?: (prevent: boolean) => void;
 }
-
 export const StepOneContent = ({
   promptText,
   setPromptText,
@@ -52,36 +49,42 @@ export const StepOneContent = ({
   setPreventStepChange = () => {}
 }: StepOneContentProps) => {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
-  const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
-  const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
+  const [websiteContext, setWebsiteContext] = useState<{
+    url: string;
+    instructions: string;
+  } | null>(null);
+  const [smartContext, setSmartContext] = useState<{
+    context: string;
+    usageInstructions: string;
+  } | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const maxCharacterLimit = 3000;
-
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { currentLanguage } = useLanguage();
+  const {
+    user
+  } = useAuth();
+  const {
+    currentLanguage
+  } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
-  
+
   // Extract user intent from prompt for better context display
   const extractUserIntent = (text: string): string => {
     if (!text || text.length < 10) return '';
-    
+
     // For short prompts, return the whole prompt
     if (text.length < 60) return text;
-    
+
     // Otherwise extract first sentence or first 8-10 words
     const firstSentence = text.split(/[.!?]/).filter(s => s.trim().length > 0)[0];
-    
     if (firstSentence && firstSentence.length < 80) {
       return firstSentence.trim();
     }
-    
+
     // Fall back to first 8-10 words
     return text.split(' ').slice(0, 10).join(' ');
   };
-  
   const userIntent = extractUserIntent(promptText);
-  
   const handleAnalyzeWithAuth = () => {
     if (!user) {
       // Store current prompt in sessionStorage before redirecting
@@ -90,7 +93,7 @@ export const StepOneContent = ({
         // Add a flag to indicate we want to stay on step 1
         sessionStorage.setItem("stayOnStepOne", "true");
       }
-      
+
       // Redirect to auth page with return URL to dashboard
       navigate("/auth?returnUrl=/dashboard");
       return;
@@ -99,7 +102,6 @@ export const StepOneContent = ({
     // If user is authenticated, proceed with analysis
     handleAnalyzeWithContext();
   };
-
   const handleImagesChange = (images: UploadedImage[]) => {
     setUploadedImages(images);
     console.log("StepOneContent: Images updated:", images.map(img => ({
@@ -109,38 +111,39 @@ export const StepOneContent = ({
       hasContext: !!img.context,
       contextText: img.context ? img.context.substring(0, 30) + '...' : 'none'
     })));
-    
+
     // Only pass images to parent if there are actually images to pass
     if (images && images.length > 0) {
       onImagesChange(images);
     }
   };
-
   const handleWebsiteScan = (url: string, instructions: string = "") => {
     // Only set and pass context if valid data was provided
     if (url && instructions) {
-      const contextData = { url, instructions };
+      const contextData = {
+        url,
+        instructions
+      };
       setWebsiteContext(contextData);
       console.log("StepOneContent: Website context set:", contextData);
-      
       onWebsiteScan(url, instructions);
     }
   };
-
   const handleSmartContext = (context: string, usageInstructions: string = "") => {
     // Only set and pass context if valid data was provided
     if (context) {
-      const contextData = { context, usageInstructions };
+      const contextData = {
+        context,
+        usageInstructions
+      };
       setSmartContext(contextData);
       console.log("StepOneContent: Smart context set:", {
         context: context.substring(0, 100) + (context.length > 100 ? "..." : ""),
         usageInstructions: usageInstructions.substring(0, 100) + (usageInstructions.length > 100 ? "..." : "")
       });
-      
       onSmartContext(context, usageInstructions);
     }
   };
-
   const handleAnalyzeWithContext = () => {
     console.log("StepOneContent: Analyzing with GPT-4.1:", {
       promptText,
@@ -159,20 +162,17 @@ export const StepOneContent = ({
       selectedSecondary,
       model: GPT41_ID
     });
-    
     onAnalyze();
   };
-
   const handleOpenUploadDialog = () => {
     // Set the flag to prevent step change during image context operations
     setPreventStepChange(true);
     console.log("StepOneContent: Opening image upload dialog, preventing step change");
     setDialogOpen(true);
   };
-
   const handleDialogOpenChange = (open: boolean) => {
     setDialogOpen(open);
-    
+
     // If dialog is closing, make sure we reset the prevent step change flag
     // but with a slight delay to ensure any context dialog actions
     if (!open) {
@@ -192,26 +192,14 @@ export const StepOneContent = ({
       setUploadedImages([]);
     };
   }, []);
-
-  return (
-    <div className="border rounded-xl p-6 bg-card">
+  return <div className="border rounded-xl p-6 bg-card">
       <div className="mb-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <WebScanner 
-            onWebsiteScan={handleWebsiteScan}
-            variant="modelReplacement"
-          />
-          <SmartContext
-            onSmartContext={handleSmartContext}
-            variant="modelReplacement"
-          />
+          <WebScanner onWebsiteScan={handleWebsiteScan} variant="modelReplacement" />
+          <SmartContext onSmartContext={handleSmartContext} variant="modelReplacement" />
           <div className="w-full">
             <div className="flex items-center">
-              <button 
-                onClick={handleOpenUploadDialog}
-                className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
-                title="Upload and analyze images with GPT-4o"
-              >
+              <button onClick={handleOpenUploadDialog} className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4" title="Upload and analyze images with GPT-4o">
                 <span className="truncate ml-1">{t.steps.imageSmartScan}</span>
                 <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
               </button>
@@ -220,90 +208,36 @@ export const StepOneContent = ({
         </div>
       </div>
 
-      {uploadedImages.length > 0 && (
-        <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
-          <h3 className="text-sm font-medium text-[#545454] mb-2">
-            {t.steps.uploadedImages} 
-            {userIntent && (
-              <span className="ml-1 text-green-700">
-                • {t.steps.analyzeFor}: <span className="italic">"{userIntent}"</span>
-              </span>
-            )}
-          </h3>
+      {uploadedImages.length > 0 && <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
+          
           <div className="flex flex-col gap-2">
-            {uploadedImages.map((img, index) => (
-              <div key={img.id || index} className="flex flex-col">
-                <div className="flex items-center">
-                  <div className="w-16 h-16 overflow-hidden rounded-md mr-3 flex-shrink-0">
-                    {img.base64 && (
-                      <img 
-                        src={img.base64} 
-                        alt="Uploaded" 
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    {img.context && (
-                      <p className="text-xs text-[#545454] italic line-clamp-2">
-                        <span className="font-medium">Context:</span> {img.context}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+            {uploadedImages.map((img, index) => <div key={img.id || index} className="flex flex-col">
+                
+              </div>)}
           </div>
-          <ImageUploader
-            images={uploadedImages}
-            onImagesChange={handleImagesChange}
-            open={dialogOpen}
-            onOpenChange={handleDialogOpenChange}
-          />
-        </div>
-      )}
+          <ImageUploader images={uploadedImages} onImagesChange={handleImagesChange} open={dialogOpen} onOpenChange={handleDialogOpenChange} />
+        </div>}
 
-      {smartContext && smartContext.context && (
-        <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
+      {smartContext && smartContext.context && <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
           <h3 className="text-sm font-medium text-[#545454] mb-2">{t.steps.smartContextAdded}</h3>
           <p className="text-xs text-[#545454] italic truncate">
             {smartContext.context.substring(0, 100)}
             {smartContext.context.length > 100 ? "..." : ""}
           </p>
-        </div>
-      )}
+        </div>}
 
       <div className="mb-6">
         <TemplateSelector />
       </div>
 
       <div className="mb-6">
-        <PromptInput 
-          value={promptText}
-          onChange={setPromptText}
-          onSubmit={handleAnalyzeWithContext}
-          className="w-full"
-          images={uploadedImages}
-          onImagesChange={handleImagesChange}
-          isLoading={isLoading}
-          onOpenUploadDialog={handleOpenUploadDialog}
-          dialogOpen={dialogOpen}
-          setDialogOpen={setDialogOpen}
-          maxLength={maxCharacterLimit}
-          placeholder={t.steps.promptTextPlaceholder}
-        />
+        <PromptInput value={promptText} onChange={setPromptText} onSubmit={handleAnalyzeWithContext} className="w-full" images={uploadedImages} onImagesChange={handleImagesChange} isLoading={isLoading} onOpenUploadDialog={handleOpenUploadDialog} dialogOpen={dialogOpen} setDialogOpen={setDialogOpen} maxLength={maxCharacterLimit} placeholder={t.steps.promptTextPlaceholder} />
       </div>
 
       <div className="flex justify-end mt-8">
-        <Button
-          onClick={handleAnalyzeWithAuth}
-          disabled={isLoading || !promptText.trim()}
-          variant="aurora"
-          className="ml-2"
-        >
+        <Button onClick={handleAnalyzeWithAuth} disabled={isLoading || !promptText.trim()} variant="aurora" className="ml-2">
           {isLoading ? t.steps.analyzing : t.prompts.analyze}
         </Button>
       </div>
-    </div>
-  );
+    </div>;
 };
