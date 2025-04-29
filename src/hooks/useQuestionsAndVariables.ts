@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -76,13 +75,15 @@ export const useQuestionsAndVariables = (
 
   // Check if all required questions have been answered and we can proceed to step 3
   const canProceedToStep3 = () => {
-    // Filter questions that are marked as relevant
     const relevantQuestions = questions.filter(q => q.isRelevant !== false);
-    
-    // Check if all relevant questions have answers
-    const allRelevantQuestionsAnswered = relevantQuestions.every(q => q.answer?.trim());
-    
-    return allRelevantQuestionsAnswered;
+    const allQuestionsAnswered = relevantQuestions.every(q => q.answer?.trim());
+
+    // Must have at least one relevant variable OR question set
+    const hasUsefulData =
+      variables.some(v => v.isRelevant !== false) || relevantQuestions.length;
+
+    // If there are zero questions we treat "answers complete" as true
+    return hasUsefulData && (relevantQuestions.length === 0 || allQuestionsAnswered);
   };
 
   // Implementation for qvEnhancePromptWithGPT
@@ -157,9 +158,8 @@ export const enhancePromptWithTemplate = async (
     // Clone template to avoid mutating the original
     const templateCopy = template ? { ...template } : null;
     
-    // Clean template and consolidate its form before sending
+    // Clean template of any non-serializable fields
     if (templateCopy) {
-      // Clean template of any non-serializable fields
       delete templateCopy.draftId;
       delete templateCopy.status;
       delete templateCopy.isDefault;

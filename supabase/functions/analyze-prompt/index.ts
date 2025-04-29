@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI } from "./openai-client.ts";
@@ -281,6 +280,22 @@ serve(async (req) => {
       });
 
       processedQuestions = Object.values(byPillar).flat();
+
+      // ──────────────────────────────────────────────────────────────
+      // Safety-net: the model occasionally returns 0 questions even
+      // with ambiguity ≥ 0.6.  We insert one generic clarifier so
+      // the UI never hits an empty-question edge-case.
+      // ──────────────────────────────────────────────────────────────
+      if (processedQuestions.length === 0) {
+        processedQuestions.push({
+          id: "q_auto_1",
+          text: "Any extra style or mood preferences?",
+          examples: ["photorealistic", "vintage postcard", "neon cyber-punk"],
+          category: "Other",
+          isRelevant: true
+        });
+        console.log("⚠️  Inserted fallback question because LLM gave none");
+      }
 
       // --------------------------------------------------------------
       //  Balance questions vs. variables when they target the same slot
