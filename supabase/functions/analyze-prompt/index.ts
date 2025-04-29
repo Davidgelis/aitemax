@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI, describeImage } from "./openai-client.ts";
@@ -72,7 +71,7 @@ const addFallbackExamples = (q: any, vars: any[]) => {
 
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
-// ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 const pillarSuggestions = (pillar: string) => {
   const p = pillar.toLowerCase();
   if (p.includes('mood')) return [
@@ -477,42 +476,60 @@ serve(async (req) => {
       );
 
       //------------------------------------------------------------------
-      // Prefill from image-scan tags (no badge text added in UI)
+      // Prefill from image-scan (strict one-to-one matching)
       //------------------------------------------------------------------
       if (imageMeta && imageMeta.tags) {
-        const t = imageMeta.tags;      // short alias
+        const { caption, tags } = imageMeta;
 
-        const has = (v?:string) => v && v.trim().length;
+        /** util ------------------------------------------------------ **/
+        const has = (v?: string) => v && v.trim().length > 0;
+        const regex = (r: RegExp) => (s: string) => r.test(s.toLowerCase());
 
-        // ---------- questions ----------
+        const mapTagToReg = {
+          subject   : regex(/(subject|main (?:object|figure)|dog|cat|person)/),
+          style     : regex(/(style|aesthetic|genre|art\s*style)/),
+          palette   : regex(/(palette|colour|color)/),
+          background: regex(/(background|setting|environment|scene)/),
+          mood      : regex(/(mood|tone|feeling|emotion)/)
+        } as Record<string,(s:string)=>boolean>;
+
+        /* -------------------- QUESTIONS --------------------------- */
+        let usedTagForQ = new Set<string>();
+
         processedQuestions = processedQuestions.map(q => {
-          if (q.answer) return q;                 // already filled by user/LLM
+          if (q.answer) return q;                                  // already filled
 
-          const low = q.text.toLowerCase();
-          let fill = "";
+          // 1️⃣ full-image description questions → caption
+          if (/describe|what(?:'s| is) happening|give.*overview/i.test(q.text)) {
+            return has(caption)
+              ? { ...q,
+                  answer        : caption,
+                  contextSource : "image" }
+              : q;
+          }
 
-          if (has(t.subject)    && /subject|object|main.*in (?:image|scene)/.test(low))       fill = t.subject;
-          if (has(t.style)      && /style|aesthetic|genre/.test(low))                         fill = t.style;
-          if (has(t.palette)    && /palette|colour|color/.test(low))                          fill = t.palette;
-          if (has(t.background) && /background|setting|environment/.test(low))                fill = t.background;
-          if (has(t.mood)       && /mood|feeling|emotion|tone/.test(low))                     fill = t.mood;
-
-          return fill
-            ? { ...q, answer: fill, contextSource: "image" }   // UI already prints the badge
-            : q;
+          // 2️⃣ specific tag questions (subject, style …)
+          for (const [tag, test] of Object.entries(mapTagToReg)) {
+            if (!usedTagForQ.has(tag) && has(tags[tag]) && test(q.text)) {
+              usedTagForQ.add(tag);
+              return { ...q, answer: tags[tag], contextSource: "image" };
+            }
+          }
+          return q;
         });
 
-        // ---------- variables ----------
+        /* --------------------- VARIABLES -------------------------- */
+        const usedTagForV = new Set<string>();
+
         finalVariables = finalVariables.map(v => {
           if (v.value) return v;
-          const key = v.name.toLowerCase();
 
-          if (has(t.subject)    && /subject|object|dog|cat|person/.test(key)) return { ...v, value: t.subject,  prefillSource:"image" };
-          if (has(t.style)      && /style|aesthetic|genre/.test(key))         return { ...v, value: t.style,    prefillSource:"image" };
-          if (has(t.palette)    && /palette|colour|color/.test(key))          return { ...v, value: t.palette,  prefillSource:"image" };
-          if (has(t.background) && /background|env|setting/.test(key))       return { ...v, value: t.background,prefillSource:"image" };
-          if (has(t.mood)       && /mood|feeling|tone/.test(key))             return { ...v, value: t.mood,     prefillSource:"image" };
-
+          for (const [tag, test] of Object.entries(mapTagToReg)) {
+            if (!usedTagForV.has(tag) && has(tags[tag]) && test(v.name)) {
+              usedTagForV.add(tag);
+              return { ...v, value: tags[tag], prefillSource: "image" };
+            }
+          }
           return v;
         });
       }

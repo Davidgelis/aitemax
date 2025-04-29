@@ -1,4 +1,3 @@
-
 import { X, FileText, Edit } from "lucide-react";
 import { Question } from "./types";
 import { RefObject, useState } from "react";
@@ -281,9 +280,6 @@ export const QuestionList = ({
                       <div className={`pl-8 pr-2 text-sm text-gray-600 line-clamp-2 italic p-2 rounded 
                                     ${question.contextSource === 'image' ? 'bg-emerald-50' : 'bg-gray-50'}`}>
                         {getAnswerPreview(question.answer)}
-                        {question.contextSource === 'image' && (
-                          <span className="block text-xs text-emerald-600 mt-1">Suggested from image</span>
-                        )}
                       </div>
                     )}
                   </div>
