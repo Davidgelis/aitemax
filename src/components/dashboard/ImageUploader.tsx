@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { ImageUp, Info, X } from 'lucide-react';
 import { ImageUploadDialog } from './ImageUploadDialog';
@@ -68,7 +67,7 @@ export const ImageUploader = ({
     
     console.log("Adding context to image:", {
       imageId: currentImage.id,
-      fileName: currentImage.file.name,
+      fileName: currentImage.file?.name,
       contextLength: context.length,
       contextPreview: context.substring(0, 30) + "..."
     });
@@ -85,7 +84,7 @@ export const ImageUploader = ({
     if (updatedImage) {
       console.log("Image updated with context:", {
         imageId: updatedImage.id,
-        fileName: updatedImage.file.name,
+        fileName: updatedImage.file?.name,
         hasContext: !!updatedImage.context,
         contextLength: updatedImage.context ? updatedImage.context.length : 0,
         hasBase64: !!updatedImage.base64,
@@ -95,7 +94,11 @@ export const ImageUploader = ({
     
     // Strip the dangerous File handle before lifting the state up
     onImagesChange(
-      updatedImages.map(({ file, ...rest }) => rest)
+      updatedImages.map(({ file, ...rest }) => ({
+        ...rest,
+        // Keep file property if it exists to maintain compatibility
+        ...(file && { file })
+      }))
     );
     
     // Close the context dialog
