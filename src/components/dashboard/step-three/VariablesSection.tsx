@@ -96,7 +96,8 @@ export const VariablesSection = ({
                 <Input 
                   value={variable.value || ""}
                   onChange={(e) => handleInputChange(variable.id, e.target.value)}
-                  className="h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16"
+                  className={`h-9 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16
+                    ${variable.prefillSource === 'image' ? 'border-emerald-400 bg-emerald-50/50' : ''}`}
                   data-variable-id={variable.id}
                   data-source="variables-section"
                   placeholder="Type here..."

@@ -1,4 +1,3 @@
-
 import { Plus, Trash } from "lucide-react";
 import { Variable } from "./types";
 import { RefObject, useState, useEffect } from "react";
@@ -12,7 +11,7 @@ interface VariableListProps {
   onVariableChange: (variableId: string, field: keyof Variable, content: string) => void;
   onVariableRelevance: (variableId: string, isRelevant: boolean) => void;
   onAddVariable: () => void;
-  onDeleteVariable: () => void; // Changed to match expected signature
+  onDeleteVariable: () => void;
   variableToDelete: string | null;
   setVariableToDelete: (id: string | null) => void;
   containerRef: RefObject<HTMLDivElement>;
@@ -212,11 +211,7 @@ export const VariableList = ({
                     <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
                       {(variableValues[variable.id] || "").length}/{maxCharacterLimit}
                     </div>
-                    {variable.prefillSource === 'image' && (
-                      <div className="absolute -bottom-5 left-0 text-xs text-emerald-600">
-                        Suggested from image
-                      </div>
-                    )}
+                    {/* Removed the "Suggested from image" text here */}
                   </div>
                 </div>
                 <div className="flex">
