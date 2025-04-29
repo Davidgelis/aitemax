@@ -125,19 +125,25 @@ export async function analyzePromptWithAI(
 //  HELPER: call vision endpoint once to get a 1-paragraph description
 // ─────────────────────────────────────────────────────────────────────────
 export async function describeImage(
-  base64: string,
-  instructions = "Describe the image in one concise paragraph focusing on subject, colours, style and composition."
-): Promise<string | null> {
+  base64: string
+): Promise<{ caption: string; tags: Record<string, string> }> {
   try {
     const openai = new OpenAI({
       apiKey: openAIApiKey
     });
     
+    const sys = `You are a vision assistant. 
+Return valid JSON with:
+  - caption  : one descriptive paragraph
+  - tags     : an object whose keys are
+      subject, style, palette, background, mood (use "" if unknown)`;
+    
     const res = await openai.chat.completions.create({
-      model: "gpt-4o-mini",               // fast & cheap caption
+      model: "gpt-4o-mini",
       max_tokens: 120,
       temperature: 0.2,
       messages: [
+        { role: "system", content: sys },
         {
           role: "user",
           content: [
@@ -145,14 +151,16 @@ export async function describeImage(
               type: "image_url",
               image_url: { url: `data:image/png;base64,${base64}` }
             },
-            { type: "text", text: instructions }
+            { type: "text", text: "Describe this image" }
           ]
         }
       ]
     });
-    return res.choices[0]?.message?.content?.trim() || null;
+    
+    const raw = res.choices[0].message.content.replace(/```json|```/g,'').trim();
+    return JSON.parse(raw);
   } catch (err) {
     console.log("⚠️  Vision call failed, continuing without image caption →", err);
-    return null;
+    return { caption: "", tags: {} };
   }
 }
