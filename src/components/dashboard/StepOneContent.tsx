@@ -11,6 +11,7 @@ import { ImageUploader } from "./ImageUploader";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
+import { GPT41_ID } from "@/services/model/ModelFetchService"; // Import the GPT-4.1 ID constant
 
 interface StepOneContentProps {
   promptText: string;
@@ -147,7 +148,7 @@ export const StepOneContent = ({
       smartContext: smartContext ? "Provided" : "None",
       selectedPrimary,
       selectedSecondary,
-      model: "gpt-4.1" // Explicitly set to 'gpt-4.1'
+      model: GPT41_ID // Using the constant instead of hardcoded string
     });
     
     onAnalyze();

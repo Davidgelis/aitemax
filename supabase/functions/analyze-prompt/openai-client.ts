@@ -10,7 +10,7 @@ if (!openAIApiKey) {
 export async function analyzePromptWithAI(
   promptText: string,
   systemPrompt: string,
-  model: string = 'gpt-4o',
+  model: string = 'gpt-4.1',
   additionalContext: string = '',
   imageBase64: string | null = null
 ) {
@@ -21,11 +21,11 @@ export async function analyzePromptWithAI(
   try {
     console.log(`Processing prompt with model: ${model}`);
 
-    // Updated models whitelist to include GPT-4.1
-    const ALLOWED = new Set(['gpt-4o', 'gpt-4o-mini', 'gpt-4.1']);
+    // Updated models whitelist to include GPT-4.1 as priority
+    const ALLOWED = new Set(['gpt-4.1', 'gpt-4o', 'gpt-4o-mini']);
     if (!ALLOWED.has(model)) {
-      console.warn(`[AI] model "${model}" not enabled; falling back to gpt-4o`);
-      model = 'gpt-4o';
+      console.warn(`[AI] model "${model}" not enabled; falling back to gpt-4.1`);
+      model = 'gpt-4.1';
     }
 
     // Optimize content by truncating extremely long text

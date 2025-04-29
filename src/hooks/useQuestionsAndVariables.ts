@@ -230,7 +230,8 @@ export const useQuestionsAndVariables = (
       });
       
       const { data, error } = await supabase.functions.invoke('enhance-prompt', {
-        body: {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           originalPrompt: promptToEnhance,
           answeredQuestions,
           relevantVariables,
@@ -239,7 +240,7 @@ export const useQuestionsAndVariables = (
           userId: user?.id,
           promptId,
           template: templateCopy // Pass the clean template copy
-        }
+        })
       });
       
       if (error) {

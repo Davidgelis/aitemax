@@ -100,7 +100,8 @@ export const usePromptAnalysis = (
         
         console.log(`Sending request to analyze-prompt with model: ${GPT41_ID}`); // Using the constant
         const { data, error } = await supabase.functions.invoke("analyze-prompt", {
-          body: {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
             promptText,
             userId: user?.id || null,
             promptId: currentPromptId,
@@ -109,7 +110,7 @@ export const usePromptAnalysis = (
             smartContextData: smartContext,
             template: currentTemplate,
             model: GPT41_ID // Using GPT-4.1 as the model
-          }
+          })
         });
         
         if (error || !data) {
@@ -196,7 +197,8 @@ export const usePromptAnalysis = (
       
       const enhancePromise = async () => {
         const { data, error } = await supabase.functions.invoke('enhance-prompt', {
-          body: {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
             originalPrompt: promptToEnhance,
             answeredQuestions,
             relevantVariables,
@@ -205,7 +207,7 @@ export const usePromptAnalysis = (
             userId: user?.id || null,
             promptId: currentPromptId,
             template: selectedTemplate
-          }
+          })
         });
         
         if (error || !data?.enhancedPrompt) {

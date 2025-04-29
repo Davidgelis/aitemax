@@ -17,6 +17,7 @@ import { primaryToggles, secondaryToggles } from "./constants";
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 import { useLanguage } from "@/context/LanguageContext";
 import { dashboardTranslations } from "@/translations/dashboard";
+import { GPT41_ID } from "@/services/model/ModelFetchService"; // Import the GPT-4.1 ID constant
 
 interface StepControllerProps {
   user: any;
@@ -423,7 +424,7 @@ export const StepController = ({
   useEffect(() => {
     if (!selectedModel) {
       const gpt41Model = {
-        id: "gpt-4.1",
+        id: GPT41_ID, // Using the constant instead of hardcoded string
         name: "GPT-4.1",
         provider: "OpenAI",
         description: "The latest GPT-4.1 model from OpenAI",
