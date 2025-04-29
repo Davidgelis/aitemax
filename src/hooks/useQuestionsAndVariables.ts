@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -58,8 +57,8 @@ export const useQuestionsAndVariables = (
       value: '',
       category: 'Other', // Added category to match interface
       code: '', // Added code to match interface
-      isRelevant: true,
-      isCustom: true // This might need verification in Variable interface
+      isRelevant: true
+      // Removed the 'isCustom' property as it doesn't exist in the Variable interface
     };
     setVariables([...variables, newVariable]);
   };
