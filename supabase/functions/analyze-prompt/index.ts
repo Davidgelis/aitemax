@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI } from "./openai-client.ts";
@@ -67,6 +68,38 @@ const addFallbackExamples = (q: any, vars: any[]) => {
 
   const ex = hints.length ? hints : ['example 1', 'example 2'];
   return { ...q, text: `${q.text.replace(/\?$/, '')}? (${ex.join(', ')})` };
+};
+
+// ─────────────────────────────────────────────────────────────
+// Pillar-aware question bank  (feel free to extend later)
+// ─────────────────────────────────────────────────────────────
+const pillarSuggestions = (pillar: string) => {
+  const p = pillar.toLowerCase();
+  if (p.includes('mood')) return [
+    { txt: 'What feeling should the image evoke?', ex: ['playful', 'serene', 'dramatic'] },
+    { txt: 'Is the mood subtle or bold?',            ex: ['soft pastels', 'vibrant neon', 'gritty noir'] },
+    { txt: 'What is the main intention of the image?', ex: ['social ad', 'personal gift', 'storytelling'] }
+  ];
+  if (p.includes('style')) return [
+    { txt: 'Which visual style best fits?',           ex: ['water-colour', 'comic', 'photorealistic'] },
+    { txt: 'Do you prefer a specific era or genre?',  ex: ['80s retro', 'futuristic', 'baroque'] },
+    { txt: 'Any colour palette constraints?',         ex: ['brand colours', 'monochrome', 'pastel set'] }
+  ];
+  if (p.includes('environment')) return [
+    { txt: 'Where is the scene set?',                 ex: ['beach', 'city park', 'outer space'] },
+    { txt: 'Time of day or season?',                  ex: ['sunset', 'winter morning', 'mid-day'] },
+    { txt: 'Should the background be detailed or minimal?', ex: ['detailed', 'clean white', 'blurred'] }
+  ];
+  if (p.includes('subject')) return [
+    { txt: 'What is the main subject's pose or action?', ex: ['running', 'sitting', 'jumping'] },
+    { txt: 'Any composition guidelines?',             ex: ['rule-of-thirds', 'centre focus', 'symmetry'] },
+    { txt: 'Camera angle preference?',                ex: ['eye level', 'bird's-eye', 'low angle'] }
+  ];
+
+  // default generic
+  return [
+    { txt: `What important details about ${pillar.toLowerCase()}?`, ex: ['example 1', 'example 2'] }
+  ];
 };
 
 // Function to process variables with performance optimizations
@@ -307,14 +340,17 @@ serve(async (req) => {
           q => (q.category || "Other").toLowerCase() === pillar.toLowerCase()
         );
         if (!hasOne) {
-          processedQuestions.push({
-            id: `q_auto_${pillar.replace(/\s+/g, "_").toLowerCase()}`,
-            category: pillar,
-            isRelevant: true,
-            text: `What important details about ${pillar.toLowerCase()}? (e.g. example 1, example 2)`,
-            examples: ["example 1", "example 2"]
+          const need = ambiguityLevel >= 0.6 ? 3 : 1;    // 📈 3 if ambiguous
+          pillarSuggestions(pillar).slice(0, need).forEach((s, idx) => {
+            processedQuestions.push({
+              id: `q_auto_${pillar.replace(/\s+/g, "_").toLowerCase()}_${idx+1}`,
+              category: pillar,
+              isRelevant: true,
+              text: `${s.txt} (${s.ex.slice(0, MAX_EXAMPLES).join(', ')})`,
+              examples: s.ex
+            });
           });
-          console.log(`🛠  Auto-inserted question for missing pillar «${pillar}»`);
+          console.log(`🛠  Auto-inserted ${need} question(s) for missing pillar «${pillar}»`);
         }
       });
 
