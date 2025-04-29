@@ -1,4 +1,3 @@
-
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -48,11 +47,23 @@ export async function analyzePromptWithAI(
 
     // Add image if available, but skip if too large
     if (imageBase64 && imageBase64.length < 650_000) {
-      console.log("Including image in OpenAI request");
-      messages[1].content = [
-        { type: "text", text: content },
-        { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
-      ];
+      // Use the incoming data-URL as-is when it already contains a header;
+      // otherwise prepend one (default to jpeg).
+      const asDataURL = imageBase64.startsWith("data:image/")
+        ? imageBase64
+        : `data:image/jpeg;base64,${imageBase64}`;
+
+      // Accept only png / jpg / jpeg / webp / gif
+      const ok = /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(asDataURL);
+      if (ok) {
+        console.log("Including image in OpenAI request");
+        messages[1].content = [
+          { type: "text", text: content },
+          { type: "image_url", image_url: { url: asDataURL } }
+        ];
+      } else {
+        console.warn("🛑  Unsupported image mime – skipping image for chat call");
+      }
     } else if (imageBase64) {
       console.warn("Image omitted – payload was redacted client side");
     }
