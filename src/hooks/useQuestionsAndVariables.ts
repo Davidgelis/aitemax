@@ -1,7 +1,134 @@
-// Only updating the enhancePromptWithTemplate function to match our approach
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
 
+// Create the hook that StepController.tsx is trying to import
+export const useQuestionsAndVariables = (
+  questions: Question[],
+  setQuestions: (questions: Question[]) => void,
+  variables: Variable[],
+  setVariables: (variables: Variable[]) => void,
+  variableToDelete: string | null,
+  setVariableToDelete: (id: string | null) => void,
+  user: any,
+  promptId: string | null
+) => {
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhancingError, setEnhancingError] = useState<string | null>(null);
+  
+  // Question handling functions
+  const handleQuestionAnswer = (id: string, answer: string) => {
+    setQuestions(
+      questions.map((q) =>
+        q.id === id ? { ...q, answer, hasBeenAnswered: true } : q
+      )
+    );
+  };
+
+  const handleQuestionRelevance = (id: string, isRelevant: boolean) => {
+    setQuestions(
+      questions.map((q) =>
+        q.id === id ? { ...q, isRelevant } : q
+      )
+    );
+  };
+
+  // Variable handling functions
+  const handleVariableChange = (id: string, value: string) => {
+    setVariables(
+      variables.map((v) =>
+        v.id === id ? { ...v, value } : v
+      )
+    );
+  };
+
+  const handleVariableRelevance = (id: string, isRelevant: boolean) => {
+    setVariables(
+      variables.map((v) =>
+        v.id === id ? { ...v, isRelevant } : v
+      )
+    );
+  };
+
+  const addVariable = () => {
+    const newVariable: Variable = {
+      id: `var-${Date.now()}`,
+      name: '',
+      value: '',
+      description: '',
+      isRelevant: true,
+      isCustom: true
+    };
+    setVariables([...variables, newVariable]);
+  };
+
+  const removeVariable = (id: string) => {
+    setVariables(variables.filter(v => v.id !== id));
+    setVariableToDelete(null);
+  };
+
+  // Check if all required questions have been answered and we can proceed to step 3
+  const canProceedToStep3 = () => {
+    // Filter questions that are marked as relevant
+    const relevantQuestions = questions.filter(q => q.isRelevant !== false);
+    
+    // Check if all relevant questions have answers
+    const allRelevantQuestionsAnswered = relevantQuestions.every(q => q.answer?.trim());
+    
+    return allRelevantQuestionsAnswered;
+  };
+
+  // Implementation for qvEnhancePromptWithGPT
+  const enhancePromptWithGPT = async (
+    originalPrompt: string,
+    answeredQuestions: Question[],
+    relevantVariables: Variable[],
+    setFinalPrompt: (prompt: string) => void
+  ) => {
+    setIsEnhancing(true);
+    setEnhancingError(null);
+    
+    try {
+      const enhancedPrompt = await enhancePromptWithTemplate(
+        originalPrompt,
+        answeredQuestions,
+        relevantVariables,
+        null, // primaryToggle
+        null, // secondaryToggle
+        user,
+        promptId,
+        null // template
+      );
+      
+      if (enhancedPrompt) {
+        setFinalPrompt(enhancedPrompt);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error enhancing prompt:', error);
+      setEnhancingError(error instanceof Error ? error.message : 'Unknown error enhancing prompt');
+      return false;
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  return {
+    handleQuestionAnswer,
+    handleQuestionRelevance,
+    handleVariableChange,
+    handleVariableRelevance,
+    addVariable,
+    removeVariable,
+    canProceedToStep3,
+    enhancePromptWithGPT,
+    isEnhancing,
+    enhancingError
+  };
+};
+
+// Keep the existing enhancePromptWithTemplate function
 export const enhancePromptWithTemplate = async (
   promptToEnhance: string,
   answeredQuestions: Question[],
