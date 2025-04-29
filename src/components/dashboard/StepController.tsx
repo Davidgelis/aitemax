@@ -372,7 +372,8 @@ export const StepController = ({
             onVariableChange={handleVariableChange}
             onVariableRelevance={handleVariableRelevance}
             onAddVariable={addVariable}
-            onDeleteVariable={removeVariable}
+            // Fix the error by creating a wrapper function that doesn't require a parameter
+            onDeleteVariable={() => removeVariable(variableToDelete || '')}
             variableToDelete={variableToDelete}
             setVariableToDelete={setVariableToDelete}
             canProceedToStep3={canProceedToStep3()}

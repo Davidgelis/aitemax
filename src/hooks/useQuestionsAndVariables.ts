@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -55,9 +56,10 @@ export const useQuestionsAndVariables = (
       id: `var-${Date.now()}`,
       name: '',
       value: '',
-      description: '',
+      category: 'Other', // Added category to match interface
+      code: '', // Added code to match interface
       isRelevant: true,
-      isCustom: true
+      isCustom: true // This might need verification in Variable interface
     };
     setVariables([...variables, newVariable]);
   };
