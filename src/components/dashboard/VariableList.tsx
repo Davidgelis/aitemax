@@ -57,9 +57,6 @@ export const VariableList = ({
   const hasValidVariables = categories.length > 0 && 
     categories.some(category => groupedVariables[category].length > 0);
 
-  // Count variables with image-based suggestions
-  const imageSuggestedCount = variables.filter(v => v.prefillSource === 'image-scan').length;
-
   // Initialize state from props
   useEffect(() => {
     const names: Record<string, string> = {};
@@ -171,15 +168,6 @@ export const VariableList = ({
         </button>
       </div>
       
-      {imageSuggestedCount > 0 && (
-        <div className="mb-4 p-2 bg-emerald-50 rounded-md flex items-center gap-2 text-sm">
-          <Info size={16} className="text-emerald-600" />
-          <p className="text-emerald-800">
-            {imageSuggestedCount} {imageSuggestedCount === 1 ? 'variable' : 'variables'} suggested from image analysis
-          </p>
-        </div>
-      )}
-      
       <div ref={containerRef} className="max-h-[280px] overflow-y-auto pr-2 space-y-4">
         {!hasValidVariables && variables.length === 0 && (
           <div className="text-center text-muted-foreground py-4">
@@ -200,9 +188,7 @@ export const VariableList = ({
                     placeholder="Variable name (1-3 words)"
                     value={variableNames[variable.id] || ""}
                     onChange={(e) => handleNameChange(variable.id, e.target.value)}
-                    className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] ${
-                      variable.prefillSource === 'image-scan' ? 'border-l-4 border-emerald-400 pl-2 bg-emerald-50' : ''
-                    }`}
+                    className="flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6]"
                     autoComplete="off"
                     aria-label={`Name for variable ${index + 1}`}
                   />
@@ -218,8 +204,6 @@ export const VariableList = ({
                       }}
                       className={`flex-1 h-9 px-3 py-1 rounded-md border text-[#545454] focus:outline-none focus:ring-1 focus:ring-[#33fea6] focus:border-[#33fea6] pr-16 ${
                         highlightedVariables[variable.id] ? 'border-[#33fea6] ring-1 ring-[#33fea6]' : ''
-                      } ${
-                        variable.prefillSource === 'image-scan' ? 'border-l-4 border-emerald-400 pl-2 bg-emerald-50' : ''
                       }`}
                       autoComplete="off"
                       aria-label={`Value for ${variable.name || 'variable'} ${index + 1}`}
@@ -257,11 +241,6 @@ export const VariableList = ({
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
-                {variable.prefillSource === 'image-scan' && (
-                  <span className="text-xs italic text-emerald-600 absolute -mt-6">
-                    suggested from image
-                  </span>
-                )}
               </div>
             ))}
           </div>

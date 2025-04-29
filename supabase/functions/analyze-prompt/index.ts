@@ -260,7 +260,7 @@ serve(async (req) => {
     }
     
     // ── If firstImageBase64 present → attempt a single-shot caption ──
-    let imageCaption: any = null;
+    let imageCaption: string | null = null;
     if (firstImageBase64) {
       // accept only png | jpeg | jpg | webp | gif to avoid 400s
       const ok = /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(firstImageBase64.slice(0,40));
@@ -271,7 +271,7 @@ serve(async (req) => {
       }
     }
     
-    const systemPrompt = createSystemPrompt(template, imageCaption?.caption || "");
+    const systemPrompt = createSystemPrompt(template, imageCaption || "");
     console.log("System prompt created");
     
     try {
@@ -475,42 +475,6 @@ serve(async (req) => {
       processedQuestions = processedQuestions.map(q =>
         addFallbackExamples(q, finalVariables)
       );
-      
-      // ------------------------------------------------------------------
-      // Prefill answers from image tags
-      // ------------------------------------------------------------------
-      if (imageCaption && imageCaption.tags) {
-        const tagMap = imageCaption.tags;              // subject, style, …
-        processedQuestions = processedQuestions.map(q => {
-          const key = (q.category || '').toLowerCase();      // pillar name
-          const lower = q.text.toLowerCase();
-
-          const match =
-            (lower.includes('subject')     && tagMap.subject)   ||
-            (lower.includes('style')       && tagMap.style)     ||
-            (lower.includes('palette')     && tagMap.palette)   ||
-            (lower.includes('background')  && tagMap.background)||
-            (lower.includes('mood')        && tagMap.mood);
-
-          return match
-            ? { ...q,
-                answer     : match,               // new field you already use in UI
-                prefillSource : 'image-scan' }    // for green highlight, etc.
-            : q;
-        });
-
-        // Do exactly the same for variables
-        finalVariables = finalVariables.map(v => {
-          const canon = v.name.toLowerCase();
-          const match =
-            (canon.includes('subject')     && tagMap.subject)   ||
-            (canon.includes('style')       && tagMap.style)     ||
-            (canon.includes('palette')     && tagMap.palette)   ||
-            (canon.includes('background')  && tagMap.background)||
-            (canon.includes('mood')        && tagMap.mood);
-          return match ? { ...v, value: match, prefillSource:'image-scan' } : v;
-        });
-      }
 
       console.timeEnd("totalProcessingTime");
       return new Response(
