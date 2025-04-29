@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -51,17 +50,27 @@ export const usePromptAnalysis = (
     console.log(`Loading state: ${stage} - ${message}`);
   };
 
-  // Helper to safely process images before sending to edge function
+  // ─── image scrubber ──────────────────────────────
+  /**
+   * Strip un-serialisable fields (`file`) and guarantee the edge-function
+   * payload stays well below Supabase's 1 MB limit.
+   *
+   * • keeps only id + context + (base64 ≤ 650 kB)  
+   * • if the base64 is bigger we send **no base64 at all** – the server
+   *   will simply analyse the text without vision.
+   */
   const processSafeImages = (images: any[] | null) => {
     if (!images || !images.length) return null;
-    
-    return images.map(img => ({
-      id: img.id,
-      base64: img.base64?.length > 1_500_000   // ~1.5 MB ≈ 2 MB post-JSON
-        ? img.base64.slice(0, 1_500_000) + '...[truncated]'
-        : img.base64,
-      context: img.context || ''
-    }));
+
+    return images.map(({ id, base64 = "", context = "" }) => {
+      if (base64.length > 650_000) {
+        console.warn(
+          `[SAFE-IMG] image ${id} base64 is ${base64.length} chars – redacted`
+        );
+        return { id, context, base64: null };
+      }
+      return { id, context, base64 };
+    });
   };
 
   const handleAnalyze = async (
@@ -117,13 +126,13 @@ export const usePromptAnalysis = (
         console.log(`Sending request to analyze-prompt with model: ${GPT41_ID}`);
         console.log(`Image data: ${safeImages ? safeImages.length : 0} images being sent`);
         
-        // Create payload and let supabase client handle serialization
         const payload = {
           promptText,
-          userId: user?.id || null,
+          userId: user?.id ?? null,
           promptId: currentPromptId,
           websiteData: websiteContext,
-          imageData: safeImages,
+          // ⚠️ only attach when we actually have something to send
+          ...(safeImages && { imageData: safeImages }),
           smartContextData: smartContext,
           template: currentTemplate,
           model: GPT41_ID
@@ -257,4 +266,65 @@ export const usePromptAnalysis = (
     handleAnalyze,
     enhancePromptWithGPT
   };
+};
+
+export const enhancePromptWithTemplate = async (
+  promptToEnhance: string,
+  answeredQuestions: Question[],
+  relevantVariables: Variable[],
+  primaryToggle: string | null,
+  secondaryToggle: string | null,
+  user: any,
+  promptId: string | null,
+  template: any | null
+): Promise<string | null> => {
+  try {
+    console.log(`Enhancing prompt template with ${answeredQuestions.length} questions and ${relevantVariables.length} variables`);
+    
+    if (!promptToEnhance) {
+      console.error('No prompt to enhance');
+      return null;
+    }
+    
+    // Clone template to avoid mutating the original
+    const templateCopy = template ? { ...template } : null;
+    
+    // Clean template of any non-serializable fields
+    if (templateCopy) {
+      delete templateCopy.draftId;
+      delete templateCopy.status;
+      delete templateCopy.isDefault;
+      delete templateCopy.created_at;
+      delete templateCopy.updated_at;
+      delete templateCopy.__typename;
+    }
+    
+    // Create payload and let supabase client handle serialization
+    const payload = {
+      originalPrompt: promptToEnhance,
+      answeredQuestions,
+      relevantVariables,
+      primaryToggle,
+      secondaryToggle,
+      userId: user?.id,
+      promptId,
+      template: templateCopy // Pass the clean template copy
+    };
+    
+    const { data, error } = await supabase.functions.invoke(
+      'enhance-prompt',
+      { body: payload }
+    );
+    
+    if (error) {
+      console.error('Error enhancing prompt:', error);
+      throw new Error(error.message);
+    }
+    
+    console.log('Prompt enhanced successfully');
+    return data?.enhancedPrompt || null;
+  } catch (error) {
+    console.error('Error in enhancePromptWithTemplate:', error);
+    return null;
+  }
 };

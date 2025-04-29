@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 
 export interface AIModel {
@@ -38,6 +39,8 @@ export interface Variable {
   isRelevant: boolean | null;
   category?: string;  // Task, Persona, Conditions, Instructions categories
   code?: string;      // Internal code reference
+  description?: string;   // NEW (keeps TS happy)
+  isCustom?: boolean;     // NEW
 }
 
 // Define a proper type for the tag structure

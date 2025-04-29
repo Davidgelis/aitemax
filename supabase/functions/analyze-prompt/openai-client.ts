@@ -46,13 +46,15 @@ export async function analyzePromptWithAI(
       { role: "user", content }
     ];
 
-    // Add image if available, but optimize its size
-    if (imageBase64) {
-      console.log("Including image data in request");
+    // Add image if available, but skip if too large
+    if (imageBase64 && imageBase64.length < 650_000) {
+      console.log("Including image in OpenAI request");
       messages[1].content = [
         { type: "text", text: content },
         { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
       ];
+    } else if (imageBase64) {
+      console.warn("Image omitted – payload was redacted client side");
     }
 
     // Use promise timeout instead of the timeout parameter

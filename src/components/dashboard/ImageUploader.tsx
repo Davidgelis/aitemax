@@ -93,7 +93,10 @@ export const ImageUploader = ({
       });
     }
     
-    onImagesChange(updatedImages);
+    // Strip the dangerous File handle before lifting the state up
+    onImagesChange(
+      updatedImages.map(({ file, ...rest }) => rest)
+    );
     
     // Close the context dialog
     setContextDialogOpen(false);
@@ -140,7 +143,7 @@ export const ImageUploader = ({
               <div className="relative">
                 <img 
                   src={image.url} 
-                  alt={image.file.name} 
+                  alt={image.file?.name || 'Uploaded image'} 
                   className="w-10 h-10 object-cover rounded-md"
                 />
                 {hoveredImageId === image.id && (
@@ -153,7 +156,7 @@ export const ImageUploader = ({
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[#545454] truncate">{image.file.name}</p>
+                <p className="text-xs font-medium text-[#545454] truncate">{image.file?.name || 'Image'}</p>
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-[#545454]/70 truncate">
                     {image.context 
@@ -209,7 +212,7 @@ export const ImageUploader = ({
           }
         }}
         onConfirm={handleAddContext}
-        imageName={currentImage?.file.name}
+        imageName={currentImage?.file?.name}
         savedContext={currentImage?.context || ''}
         required={true}
         stayOnCurrentStep={true}

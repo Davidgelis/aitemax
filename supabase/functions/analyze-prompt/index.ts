@@ -205,13 +205,15 @@ serve(async (req) => {
     try {
       console.time("aiAnalysisTime");
       
-      // Get first image base64 if available
-      let firstImageBase64 = null;
-      if (imageData && Array.isArray(imageData) && imageData.length > 0) {
-        firstImageBase64 = imageData[0].base64 || null;
-        if (firstImageBase64) {
-          const truncated = firstImageBase64.includes('...[truncated]');
-          console.log(`Found image base64 (${firstImageBase64.length} chars${truncated ? ", truncated" : ""})`);
+      // ─── pick first usable base64 ─────────────────────
+      let firstImageBase64: string | null = null;
+      if (Array.isArray(imageData) && imageData.length) {
+        const candidate = imageData.find((i: any) => typeof i?.base64 === "string");
+        if (candidate?.base64) {
+          firstImageBase64 = candidate.base64;
+          console.log(
+            `Image base64 provided (${firstImageBase64.length} chars)`
+          );
         }
       }
       

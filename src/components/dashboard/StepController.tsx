@@ -244,7 +244,6 @@ export const StepController = ({
     }
 
     if (step === 3) {
-      // When moving to step 3, don't save draft
       setIsEnhancingPrompt(true);
       
       // Set the fixed message for step 3 transition
@@ -372,8 +371,7 @@ export const StepController = ({
             onVariableChange={handleVariableChange}
             onVariableRelevance={handleVariableRelevance}
             onAddVariable={addVariable}
-            // Fix the error by creating a wrapper function that doesn't require a parameter
-            onDeleteVariable={() => removeVariable(variableToDelete || '')}
+            onDeleteVariable={removeVariable}
             variableToDelete={variableToDelete}
             setVariableToDelete={setVariableToDelete}
             canProceedToStep3={canProceedToStep3()}
