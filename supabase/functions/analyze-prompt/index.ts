@@ -174,6 +174,43 @@ function processVariables(variables: any[], questions: any[]) {
   return { finalVariables, variableDistribution: {} }; // Distribution computed later
 }
 
+// 🔗 helper – copy-paste once
+function fillQuestions(
+  qs: any[],
+  variables: any[],
+  imgTags: Record<string,string> = {}
+){
+  const has = (s?:string)=>s && s.trim().length>0;
+
+  // quick regex bank for Vision tags
+  const tagTest = {
+    palette    : /(palette|colour|color)/i,
+    style      : /(style|aesthetic|genre|art\s*style)/i,
+    mood       : /(mood|tone|feeling|emotion)/i,
+    background : /(background|setting|environment|scene)/i,
+    subject    : /(subject|dog|cat|person|object|figure)/i
+  };
+
+  return qs.map(q=>{
+    if (q.answer) return q;                   // already filled
+
+    // ① Try a direct hit from variables
+    const hitVar = variables.find(v =>
+      v.value && canonKey(v.name) &&
+      q.text.toLowerCase().includes(v.name.toLowerCase())
+    );
+    if (hitVar) return { ...q, answer: hitVar.value, prefillSource: hitVar.prefillSource };
+
+    // ② Try Vision tags
+    for (const [tag,re] of Object.entries(tagTest)) {
+      if (re.test(q.text) && has(imgTags[tag]))
+        return { ...q, answer: imgTags[tag], prefillSource:"image-tag" };
+    }
+
+    return q;                                // nothing suitable
+  });
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -547,6 +584,13 @@ serve(async (req) => {
             : v;
         });
       }
+
+      // ─── Final pass: pre-fill question answers ──────────────────────
+      processedQuestions = fillQuestions(
+        processedQuestions,
+        finalVariables,
+        imageMeta?.tags || {}
+      );
 
       console.timeEnd("totalProcessingTime");
       return new Response(
