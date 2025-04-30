@@ -1,4 +1,3 @@
-
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -7,7 +6,7 @@ if (!openAIApiKey) {
   throw new Error('OPENAI_API_KEY is not set in environment variables');
 }
 
-function canonKey(s: string) {
+export function canonKey(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 

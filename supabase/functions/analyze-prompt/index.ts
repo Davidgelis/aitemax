@@ -1,6 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
-import { analyzePromptWithAI, describeImage, describeAndMapImage, inferAndMapFromContext } from "./openai-client.ts";
+import {
+  analyzePromptWithAI,
+  describeImage,
+  describeAndMapImage,
+  inferAndMapFromContext,
+  canonKey
+} from "./openai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
