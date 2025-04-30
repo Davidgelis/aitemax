@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
-import { analyzePromptWithAI, describeImage } from "./openai-client.ts";
+import { analyzePromptWithAI, describeImage, describeAndMapImage } from "./openai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -116,23 +116,6 @@ const pillarSuggestions = (pillar: string, promptSnippet = "") => {
     }
   ];
 };
-
-// ── NEW ──  extract keywords from the caller-supplied image.context
-type WantedImageInfo = {
-  style?: boolean; palette?: boolean; mood?: boolean;
-  subject?: boolean; background?: boolean;
-};
-
-function wantedFromImage(imgCtx: string | undefined | null): WantedImageInfo {
-  const key = (re: RegExp) => re.test((imgCtx || "").toLowerCase());
-  return {
-    style      : key(/style|aesthetic|look|art\s*style/),
-    palette    : key(/palette|color|colour/),
-    mood       : key(/mood|tone|feeling|emotion/),
-    subject    : key(/subject|object|figure/),
-    background : key(/background|setting|environment/),
-  };
-}
 
 // Function to process variables with performance optimizations
 function processVariables(variables: any[], questions: any[]) {
@@ -290,8 +273,6 @@ serve(async (req) => {
         );
       }
     }
-    
-    const wants = wantedFromImage(imageData?.[0]?.context);
     
     // ── If firstImageBase64 present → attempt a single-shot caption ──
     let imageMeta: { caption: string; tags: Record<string,string> } | null = null;
@@ -514,101 +495,18 @@ serve(async (req) => {
       );
 
       //------------------------------------------------------------------
-      // Prefill from image-scan (strict one-to-one matching)
+      // Prefill from image using Vision API
       //------------------------------------------------------------------
-      if (imageMeta && imageMeta.tags) {
-        const { caption, tags } = imageMeta;
-
-        /** util ------------------------------------------------------ **/
-        const has = (v?: string) => v && v.trim().length > 0;
-        const regex = (r: RegExp) => (s: string) => r.test(s.toLowerCase());
-
-        const mapTagToReg = {
-          subject   : regex(/(subject|main (?:object|figure)|dog|cat|person)/),
-          style     : regex(/(style|aesthetic|genre|art\s*style)/),
-          palette   : regex(/(palette|colour|color)/),
-          background: regex(/(background|setting|environment|scene)/),
-          mood      : regex(/(mood|tone|feeling|emotion)/)
-        } as Record<string,(s:string)=>boolean>;
-
-        /* -------------------- QUESTIONS --------------------------- */
-        let usedTagForQ = new Set<string>();
-
-        processedQuestions = processedQuestions.map(q => {
-          if (q.answer) return q;                                  // already filled
-
-          // 1️⃣ full-image description questions → caption
-          if (/describe|what(?:'s| is) happening|give.*overview/i.test(q.text)) {
-            if (!has(caption)) return q;
-            
-            // merge caption + any remaining tag details
-            const tagSummary = Object.values(tags).filter(Boolean).join(", ");
-            let detailed = caption;
-            if (tagSummary && !caption.includes(tagSummary)) {
-              detailed += `  (key details: ${tagSummary})`;
-            }
-            return {
-              ...q,
-              answer: detailed.slice(0, MAX_IMG_ANSWER),
-              contextSource: "image"
-            };
-          }
-
-          // 2️⃣ specific tag questions (subject, style …)
-          for (const [tag, test] of Object.entries(mapTagToReg)) {
-            // ⬇ skip if the caller didn't ask for this kind of info
-            if (!wants[tag as keyof WantedImageInfo]) continue;
-            
-            if (!usedTagForQ.has(tag) && has(tags[tag]) && test(q.text)) {
-              usedTagForQ.add(tag);
-            
-              // ── NEW – much richer answer for style / palette / mood ──────────
-              let detailed = tags[tag];                                  // "abstract"
-
-              // use caption to add concrete detail
-              if (tag === "style" && has(caption)) {
-                // keep the whole Vision caption
-                detailed = `${tags.style} – ${caption.trim()}`;
-              }
-
-              // add up to FOUR other tags for extra colour or mood info
-              const extrasList = Object.entries(tags)
-                .filter(([k,v]) => k !== tag && has(v))
-                .slice(0,4)
-                .map(([k,v]) => {
-                    if (k === "palette")    return `dominant palette: ${v}`;
-                    if (k === "mood")       return `overall mood: ${v}`;
-                    if (k === "background") return `background setting: ${v}`;
-                    return v;
-                });
-
-              if (extrasList.length) {
-                detailed += ". " + extrasList.join(". ") + ".";
-              }
-            
-              return {
-                ...q,
-                answer: detailed.slice(0, MAX_IMG_ANSWER),
-                contextSource: "image"
-              };
-            }
-          }
-          return q;
-        });
-
-        /* --------------------- VARIABLES -------------------------- */
-        const usedTagForV = new Set<string>();
+      if (firstImageBase64 && finalVariables.length) {
+        const labels = finalVariables.map(v => v.name);
+        const picMap = await describeAndMapImage(firstImageBase64, labels);
 
         finalVariables = finalVariables.map(v => {
-          if (v.value) return v;
-
-          for (const [tag, test] of Object.entries(mapTagToReg)) {
-            if (!usedTagForV.has(tag) && has(tags[tag]) && test(v.name)) {
-              usedTagForV.add(tag);
-              return { ...v, value: tags[tag], prefillSource: "image" };
-            }
+          const hit = picMap?.fill?.[v.name];
+          if (hit && hit.confidence >= 0.7 && hit.value?.length) {
+            return { ...v, value: hit.value, prefillSource: "image" };
           }
-          return v;
+          return v;   // leave blank
         });
       }
 

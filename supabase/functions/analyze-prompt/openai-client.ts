@@ -129,6 +129,57 @@ export async function analyzePromptWithAI(
   }
 }
 
+export async function describeAndMapImage(
+  base64: string,
+  variableNames: string[]
+) {
+  try {
+    const openai = new OpenAI({
+      apiKey: openAIApiKey
+    });
+    
+    // Clean base64 by removing data URL prefix if present
+    if (base64.startsWith('data:image/')) {
+      base64 = base64.split(',')[1];
+    }
+    
+    const messages = [
+      { role: "system", content:
+        "You are a vision assistant. " +
+        "Extract concise property values from the image." },
+      // 📷  the image itself
+      { role: "user",  content: [
+          { type: "text",
+            text: "Fill ONLY the variables you are confident about. " +
+                 "Return JSON: {fill:{<var>: {value:<string>, confidence:<0-1>}}}" },
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64}` } },
+          { type: "text", text: `Variable list: ${variableNames.join(" | ")}` }
+      ]}
+    ];
+
+    console.log(`Sending image analysis request for ${variableNames.length} variables`);
+    
+    const { choices } = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0,
+      messages
+    });
+
+    const content = choices[0].message.content || "{}";
+    console.log(`Received vision response: ${content.slice(0, 100)}${content.length > 100 ? '...' : ''}`);
+    
+    try {
+      return JSON.parse(content);  // ⬅ { fill:{…} }
+    } catch (error) {
+      console.error("Failed to parse vision response:", error);
+      return { fill: {} };
+    }
+  } catch (err) {
+    console.log("⚠️ Vision mapping call failed, continuing without image prefills →", err);
+    return { fill: {} };
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 //  Updated: describeImage now returns structured data with caption and tags
 // ─────────────────────────────────────────────────────────────────────────
