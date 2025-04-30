@@ -1,3 +1,4 @@
+
 import { Plus, Trash } from "lucide-react";
 import { Variable } from "./types";
 import { RefObject, useState, useEffect } from "react";
@@ -5,6 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { filterCategoryVariables } from "./constants";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { shorten } from "@/lib/utils";
 
 interface VariableListProps {
   variables: Variable[];
@@ -104,8 +106,20 @@ export const VariableList = ({
       onVariableRelevance(variableId, true);
     }
     
-    // Call the original change handler
-    onVariableChange(variableId, 'value', value);
+    // Store both shortened and full versions of the value
+    const valueLong = value.trim().replace(/\s+/g, " ");
+    const shortValue = shorten(valueLong, 3);
+    
+    // First update the displayed value (which is the short one)
+    onVariableChange(variableId, 'value', shortValue);
+    
+    // Then add the long value property if it's supported
+    const variable = variables.find(v => v.id === variableId);
+    if (variable) {
+      // This ensures both short and long forms are stored
+      // even if the backend doesn't explicitly use valueLong yet
+      variable.valueLong = valueLong;
+    }
   };
 
   // Handle name change with validation for word count
