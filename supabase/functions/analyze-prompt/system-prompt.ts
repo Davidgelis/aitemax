@@ -46,7 +46,11 @@ Hard Requirements (❌ invalid JSON if broken):
 
 4. If you cannot think of a question for a pillar, INSERT
    at least one *placeholder* question ("Need more info about …")
-   so the questions array is **never empty**.`;
+   so the questions array is **never empty**.
+
+5. **Illustrative answers must be concrete**  
+   – never use "example 1/2/3". Replace with a fitting, real-world value
+   (colour names, objects, roles, etc.).`;
 
   if (Array.isArray(template?.pillars)) {
     prompt += `\nPillars to cover:\n${template.pillars

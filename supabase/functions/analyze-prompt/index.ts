@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI, describeImage } from "./openai-client.ts";
@@ -65,7 +66,15 @@ const addFallbackExamples = (q: any, vars: any[]) => {
     .filter(Boolean)
     .slice(0, 3);
 
-  const ex = hints.length ? hints : ['example 1', 'example 2'];
+  // If no hints, pull two content-words from the question itself
+  const ex = hints.length
+    ? hints
+    : q.text
+        .split(/\W+/)
+        .filter(w => w.length > 3)
+        .slice(0, 2)
+        .map(w => w.toLowerCase());
+
   return { ...q, text: `${q.text.replace(/\?$/, '')}? (${ex.join(', ')})` };
 };
 
