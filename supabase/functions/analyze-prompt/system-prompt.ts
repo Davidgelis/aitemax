@@ -42,7 +42,11 @@ Hard Requirements (❌ invalid JSON if broken):
    clear, everyday-language questions.
 2. Each question **must** end with 1–4 short illustrative answers in parentheses.
 3. Output **max eight** unique variables (1-3-word labels) – no duplicates
-   after stop-words are removed, and never overlapping with the questions.`;
+   after stop-words are removed, and never overlapping with the questions.
+
+4. If you cannot think of a question for a pillar, INSERT
+   at least one *placeholder* question ("Need more info about …")
+   so the questions array is **never empty**.`;
 
   if (Array.isArray(template?.pillars)) {
     prompt += `\nPillars to cover:\n${template.pillars

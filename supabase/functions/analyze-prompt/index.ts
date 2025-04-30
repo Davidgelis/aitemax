@@ -334,9 +334,7 @@ serve(async (req) => {
 
       // Keep all unique questions up to 3 per pillar
       Object.keys(byPillar).forEach(cat => {
-        if (byPillar[cat].length > 3) {
-          byPillar[cat] = byPillar[cat].slice(0, 3);
-        }
+        byPillar[cat] = byPillar[cat].slice(0, 3);   // <-- hard-slice
       });
 
       processedQuestions = Object.values(byPillar).flat();
@@ -433,7 +431,9 @@ serve(async (req) => {
         finalVariables.push(...extras);
       }
 
-      // ── final dedup (after top-up) ──
+      /* -------------------------------------------------
+         FINAL GUARANTEE – unique labels after stop-words
+      ------------------------------------------------- */
       const seen = new Set<string>();
       finalVariables = finalVariables.filter(v => {
         const sig = v.name.toLowerCase().replace(/\b(of|the|a|an)\b/g, '').trim();
