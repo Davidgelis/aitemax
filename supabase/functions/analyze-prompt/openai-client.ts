@@ -7,6 +7,10 @@ if (!openAIApiKey) {
   throw new Error('OPENAI_API_KEY is not set in environment variables');
 }
 
+function canonKey(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function normaliseDataURL(b64: string, fallback = "jpeg") {
   // remove any accidental whitespace
   const cleaned = b64.replace(/\s+/g, "");
@@ -161,7 +165,7 @@ export async function describeAndMapImage(
     console.log(`Sending image analysis request for ${variableNames.length} variables`);
     
     const { choices } = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1",
       temperature: 0,
       messages
     });
@@ -216,7 +220,7 @@ export async function inferAndMapFromContext(
     ];
 
     const { choices } = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1",
       temperature: 0,
       messages
     });
@@ -236,9 +240,6 @@ export async function inferAndMapFromContext(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-//  Updated: describeImage now returns structured data with caption and tags
-// ─────────────────────────────────────────────────────────────────────────
 export async function describeImage(
   base64: string,
   instructions =

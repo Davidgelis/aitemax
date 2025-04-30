@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI, describeImage, describeAndMapImage, inferAndMapFromContext } from "./openai-client.ts";
@@ -81,7 +80,7 @@ const addFallbackExamples = (q: any, vars: any[]) => {
 
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 const pillarSuggestions = (pillar: string, promptSnippet = "") => {
   const short = promptSnippet.length > 60
     ? promptSnippet.slice(0, 57) + "…"
@@ -507,9 +506,11 @@ serve(async (req) => {
         const picMap = await describeAndMapImage(firstImageBase64, labels);
 
         finalVariables = finalVariables.map(v => {
-          const hit = picMap?.fill?.[v.name];
-          return (hit && hit.confidence >= 0.7 && hit.value?.length)
-            ? { ...v, value: hit.value, prefillSource: "image" }
+          const visionHit = Object.entries(picMap?.fill ?? {})
+            .find(([k]) => canonKey(k) === canonKey(v.name))?.[1];
+          
+          return (visionHit && visionHit.confidence >= 0.7 && visionHit.value?.length)
+            ? { ...v, value: visionHit.value, prefillSource: "image" }
             : v;
         });
       }
@@ -532,9 +533,11 @@ serve(async (req) => {
         const map = await inferAndMapFromContext(ctx, names);
 
         finalVariables = finalVariables.map(v => {
-          const hit = map?.fill?.[v.name];
-          return (hit && hit.confidence >= 0.7 && hit.value?.length)
-            ? { ...v, value: hit.value, prefillSource: "context" }
+          const ctxHit = Object.entries(map?.fill ?? {})
+            .find(([k]) => canonKey(k) === canonKey(v.name))?.[1];
+          
+          return (ctxHit && ctxHit.confidence >= 0.7 && ctxHit.value?.length)
+            ? { ...v, value: ctxHit.value, prefillSource: "context" }
             : v;
         });
       }
