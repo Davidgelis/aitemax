@@ -118,6 +118,23 @@ const pillarSuggestions = (pillar: string, promptSnippet = "") => {
   ];
 };
 
+// ── NEW ──  extract keywords from the caller-supplied image.context
+type WantedImageInfo = {
+  style?: boolean; palette?: boolean; mood?: boolean;
+  subject?: boolean; background?: boolean;
+};
+
+function wantedFromImage(imgCtx: string | undefined | null): WantedImageInfo {
+  const key = (re: RegExp) => re.test((imgCtx || "").toLowerCase());
+  return {
+    style      : key(/style|aesthetic|look|art\s*style/),
+    palette    : key(/palette|color|colour/),
+    mood       : key(/mood|tone|feeling|emotion/),
+    subject    : key(/subject|object|figure/),
+    background : key(/background|setting|environment/),
+  };
+}
+
 // Function to process variables with performance optimizations
 function processVariables(variables: any[], questions: any[]) {
   console.time("variableProcessing");
@@ -274,6 +291,8 @@ serve(async (req) => {
         );
       }
     }
+    
+    const wants = wantedFromImage(imageData?.[0]?.context);
     
     // ── If firstImageBase64 present → attempt a single-shot caption ──
     let imageMeta: { caption: string; tags: Record<string,string> } | null = null;
@@ -538,12 +557,27 @@ serve(async (req) => {
 
           // 2️⃣ specific tag questions (subject, style …)
           for (const [tag, test] of Object.entries(mapTagToReg)) {
+            // ⬇ skip if the caller didn't ask for this kind of info
+            if (!wants[tag as keyof WantedImageInfo]) continue;
+            
             if (!usedTagForQ.has(tag) && has(tags[tag]) && test(q.text)) {
               usedTagForQ.add(tag);
-              return { 
-                ...q, 
-                answer: `${tags[tag]} – based on the uploaded image`.slice(0, MAX_IMG_ANSWER), 
-                contextSource: "image" 
+              
+              // build a richer answer (caption + 2 most relevant tags)
+              const extras = Object.entries(tags)
+                .filter(([k,v]) => k !== tag && has(v))
+                .slice(0,2)              // <- keep it short, we have 1 000-char budget
+                .map(([,v]) => v)
+                .join("; ");
+              
+              const detailed = extras
+                ? `${tags[tag]} (${extras})`
+                : tags[tag];
+              
+              return {
+                ...q,
+                answer: detailed.slice(0, MAX_IMG_ANSWER),
+                contextSource: "image"
               };
             }
           }
@@ -611,4 +645,3 @@ serve(async (req) => {
     );
   }
 });
-
