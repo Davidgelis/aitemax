@@ -82,7 +82,11 @@ const addFallbackExamples = (q: any, vars: any[]) => {
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────
-const pillarSuggestions = (pillar: string) => {
+const pillarSuggestions = (pillar: string, promptSnippet = "") => {
+  const short = promptSnippet.length > 60
+    ? promptSnippet.slice(0, 57) + "…"
+    : promptSnippet;
+
   const p = pillar.toLowerCase();
   if (p.includes('mood')) return [
     { txt: "What feeling should the image evoke?", ex: ['playful', 'serene', 'dramatic'] },
@@ -105,9 +109,12 @@ const pillarSuggestions = (pillar: string) => {
     { txt: "Camera angle preference?",                ex: ["eye level", "bird's-eye", "low angle"] }
   ];
 
-  // default generic
+  // default generic - now contextual
   return [
-    { txt: `What important details about ${pillar.toLowerCase()}?`, ex: ['example 1', 'example 2'] }
+    { 
+      txt: `Thinking of "${short}", what key ${pillar.toLowerCase()} info is still missing?`,
+      ex: [] // let addFallbackExamples fill real examples
+    }
   ];
 };
 
@@ -323,8 +330,9 @@ serve(async (req) => {
 
       const uniqSeen = new Set<string>();
       let processedQuestions = questions
-        // ignore any empty/invalid records early
+        // drop invalid items *first*
         .filter(q => typeof q?.text === "string" && q.text.trim().length)
+        // *then* normalise + add examples
         .map(q => ensureExamples({ ...q, text: plainify(q.text) }))
         .filter(q => {
           const sig = qCanonical(q.text);
@@ -362,7 +370,7 @@ serve(async (req) => {
         );
         if (!hasOne) {
           const need = ambiguityLevel >= 0.6 ? 3 : 1;    // 📈 3 if ambiguous
-          pillarSuggestions(pillar).slice(0, need).forEach((s, idx) => {
+          pillarSuggestions(pillar, promptText).slice(0, need).forEach((s, idx) => {
             processedQuestions.push({
               id: `q_auto_${pillar.replace(/\s+/g, "_").toLowerCase()}_${idx+1}`,
               category: pillar,
@@ -532,7 +540,11 @@ serve(async (req) => {
           for (const [tag, test] of Object.entries(mapTagToReg)) {
             if (!usedTagForQ.has(tag) && has(tags[tag]) && test(q.text)) {
               usedTagForQ.add(tag);
-              return { ...q, answer: tags[tag].slice(0, MAX_IMG_ANSWER), contextSource: "image" };
+              return { 
+                ...q, 
+                answer: `${tags[tag]} – based on the uploaded image`.slice(0, MAX_IMG_ANSWER), 
+                contextSource: "image" 
+              };
             }
           }
           return q;
