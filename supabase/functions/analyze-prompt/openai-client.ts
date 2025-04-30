@@ -151,7 +151,8 @@ export async function describeAndMapImage(
       { role: "user",  content: [
           { type: "text",
             text: "Fill ONLY the variables you are confident about. " +
-                 "Return JSON: {fill:{<var>: {value:<string>, confidence:<0-1>}}}" },
+                 "Respond with raw *minified* JSON **without markdown fences**: " +
+                 "{\"fill\":{<var>: {value:<string>, confidence:<0-1>}}}" },
           { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64}` } },
           { type: "text", text: `Variable list: ${variableNames.join(" | ")}` }
       ]}
@@ -169,10 +170,15 @@ export async function describeAndMapImage(
     console.log(`Received vision response: ${content.slice(0, 100)}${content.length > 100 ? '...' : ''}`);
     
     try {
-      return JSON.parse(content);  // ⬅ { fill:{…} }
+      const cleaned = content
+        .replace(/```json\n?/gi, "")
+        .replace(/```/g, "")
+        .trim();
+        
+      return JSON.parse(cleaned);  // ⬅ { fill:{…} }
     } catch (error) {
       console.error("Failed to parse vision response:", error);
-      return { fill: {} };
+      return { fill: {} };  // leave variables empty
     }
   } catch (err) {
     console.log("⚠️ Vision mapping call failed, continuing without image prefills →", err);
