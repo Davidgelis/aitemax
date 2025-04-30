@@ -567,18 +567,24 @@ serve(async (req) => {
 
               // use caption to add concrete detail
               if (tag === "style" && has(caption)) {
-                const clip = caption.length > 180 ? caption.slice(0,177) + "…" : caption;
-                detailed = `${tags.style} – ${clip}`;                    // "abstract – colourful patchwork dog …"
+                // keep the whole Vision caption
+                detailed = `${tags.style} – ${caption.trim()}`;
               }
 
               // add up to FOUR other tags for extra colour or mood info
-              const extras = Object.entries(tags)
+              const extrasList = Object.entries(tags)
                 .filter(([k,v]) => k !== tag && has(v))
                 .slice(0,4)
-                .map(([,v]) => v)
-                .join("; ");
+                .map(([k,v]) => {
+                    if (k === "palette")    return `dominant palette: ${v}`;
+                    if (k === "mood")       return `overall mood: ${v}`;
+                    if (k === "background") return `background setting: ${v}`;
+                    return v;
+                });
 
-              if (extras) detailed += `  (${extras})`;
+              if (extrasList.length) {
+                detailed += ". " + extrasList.join(". ") + ".";
+              }
             
               return {
                 ...q,
