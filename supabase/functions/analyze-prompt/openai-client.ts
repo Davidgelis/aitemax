@@ -83,13 +83,17 @@ export async function analyzePromptWithAI(
       setTimeout(() => reject(new Error("Request timed out after 30 seconds")), 30000);
     });
     
-    const apiPromise = openai.chat.completions.create({
-      model: model,
+    const opts: Record<string, any> = {
+      model,
       messages,
-      response_format: { type: "json_object" },
       temperature: 0.2,
       max_tokens: 2000,
-    });
+    };
+
+    // ⚠️  JSON-mode not supported when an image is present
+    if (!imageBase64) opts.response_format = { type: "json_object" };
+
+    const apiPromise = openai.chat.completions.create(opts);
     
     console.log(`Sending request to OpenAI with model: ${model}`);
     
@@ -104,17 +108,21 @@ export async function analyzePromptWithAI(
     // Remove any markdown formatting that might be present (like ```json)
     let cleanedContent = responseContent.replace(/```json\n|\n```|```/g, "").trim();
     
-    // Make sure it's valid JSON
+    // Make sure it's valid JSON (graceful fallback to {})
+    let parsed;
     try {
-      JSON.parse(cleanedContent);
-      console.log("Successfully parsed JSON response.");
-    } catch (e) {
-      console.error("Invalid JSON response:", cleanedContent);
-      console.error("Error parsing JSON:", e.message);
-      throw new Error("Failed to parse response as JSON");
+      parsed = JSON.parse(cleanedContent);
+    } catch {
+      if (cleanedContent.trim() === "") {
+        console.warn("OpenAI returned empty content – continuing with {}");
+        parsed = {};
+      } else {
+        console.error("Invalid JSON response:", cleanedContent);
+        throw new Error("Failed to parse response as JSON");
+      }
     }
     
-    return completion.choices[0].message;
+    return { ...completion.choices[0].message, parsed }; // pass parsed up if needed
   } catch (error) {
     console.error(`Error in analyzePromptWithAI using model ${model}:`, error);
     throw error;
