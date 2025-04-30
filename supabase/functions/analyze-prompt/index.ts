@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { analyzePromptWithAI, describeImage } from "./openai-client.ts";
@@ -562,18 +561,25 @@ serve(async (req) => {
             
             if (!usedTagForQ.has(tag) && has(tags[tag]) && test(q.text)) {
               usedTagForQ.add(tag);
-              
-              // build a richer answer (caption + 2 most relevant tags)
+            
+              // ── NEW – much richer answer for style / palette / mood ──────────
+              let detailed = tags[tag];                                  // "abstract"
+
+              // use caption to add concrete detail
+              if (tag === "style" && has(caption)) {
+                const clip = caption.length > 180 ? caption.slice(0,177) + "…" : caption;
+                detailed = `${tags.style} – ${clip}`;                    // "abstract – colourful patchwork dog …"
+              }
+
+              // add up to FOUR other tags for extra colour or mood info
               const extras = Object.entries(tags)
                 .filter(([k,v]) => k !== tag && has(v))
-                .slice(0,2)              // <- keep it short, we have 1 000-char budget
+                .slice(0,4)
                 .map(([,v]) => v)
                 .join("; ");
-              
-              const detailed = extras
-                ? `${tags[tag]} (${extras})`
-                : tags[tag];
-              
+
+              if (extras) detailed += `  (${extras})`;
+            
               return {
                 ...q,
                 answer: detailed.slice(0, MAX_IMG_ANSWER),
