@@ -186,6 +186,56 @@ export async function describeAndMapImage(
   }
 }
 
+// ────────────────────────────────────────────────────────────────
+//   inferAndMapFromContext – fills any variables from free text
+// ────────────────────────────────────────────────────────────────
+export async function inferAndMapFromContext(
+  freeText: string,
+  variableNames: string[]
+){
+  try {
+    const openai = new OpenAI({ apiKey: openAIApiKey });
+
+    const variableList = variableNames.join(" | ");
+
+    const messages = [
+      {
+        role: "system",
+        content:
+          "You are an assistant that fills a slot list from ANY text.\n" +
+          "Only answer variables you are ≥0.7 confident about.\n" +
+          "Return **minified** JSON (no markdown fences):\n" +
+          "{\"fill\":{<var>:{value:<string>,confidence:<0-1>}}}"
+      },
+      {
+        role: "user",
+        content:
+          `Variable list: ${variableList}\n\n---\nCONTEXT START\n` +
+          `${freeText}\nCONTEXT END`
+      }
+    ];
+
+    const { choices } = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0,
+      messages
+    });
+
+    const raw = choices[0].message.content ?? "{}";
+    const cleaned = raw.replace(/```json|```/g, "").trim();
+
+    try {
+      return JSON.parse(cleaned);         // { fill:{…} }
+    } catch (e) {
+      console.error("⚠️  inferAndMapFromContext → parse error", e);
+      return { fill:{} };
+    }
+  } catch (err) {
+    console.log("⚠️ Context mapping call failed, continuing without context prefills →", err);
+    return { fill: {} };
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 //  Updated: describeImage now returns structured data with caption and tags
 // ─────────────────────────────────────────────────────────────────────────

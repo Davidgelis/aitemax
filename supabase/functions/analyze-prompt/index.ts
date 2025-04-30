@@ -1,6 +1,7 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
-import { analyzePromptWithAI, describeImage, describeAndMapImage } from "./openai-client.ts";
+import { analyzePromptWithAI, describeImage, describeAndMapImage, inferAndMapFromContext } from "./openai-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -495,7 +496,11 @@ serve(async (req) => {
       );
 
       //------------------------------------------------------------------
-      // Prefill from image using Vision API
+      // Two-pass pre-fill system: Vision pass and Context pass
+      //------------------------------------------------------------------
+      
+      //------------------------------------------------------------------
+      // PASS 1 – Vision  (runs only when we actually have an image)
       //------------------------------------------------------------------
       if (firstImageBase64 && finalVariables.length) {
         const labels = finalVariables.map(v => v.name);
@@ -503,10 +508,34 @@ serve(async (req) => {
 
         finalVariables = finalVariables.map(v => {
           const hit = picMap?.fill?.[v.name];
-          if (hit && hit.confidence >= 0.7 && hit.value?.length) {
-            return { ...v, value: hit.value, prefillSource: "image" };
-          }
-          return v;   // leave blank
+          return (hit && hit.confidence >= 0.7 && hit.value?.length)
+            ? { ...v, value: hit.value, prefillSource: "image" }
+            : v;
+        });
+      }
+
+      //------------------------------------------------------------------
+      // PASS 2 – Media-agnostic GPT pre-fill  (always runs)
+      //------------------------------------------------------------------
+      const blanks = finalVariables.filter(v => !v.value);
+      if (blanks.length) {
+        const names = blanks.map(v => v.name);
+
+        /* 👇  bundle *all* auxiliary text here: the original prompt,
+              web-scraped context, OCR/Whisper transcripts … */
+        const ctx = [
+          promptText,
+          smartContextData?.context || "",
+          websiteData?.pageText      || ""
+        ].join("\n\n").trim();
+
+        const map = await inferAndMapFromContext(ctx, names);
+
+        finalVariables = finalVariables.map(v => {
+          const hit = map?.fill?.[v.name];
+          return (hit && hit.confidence >= 0.7 && hit.value?.length)
+            ? { ...v, value: hit.value, prefillSource: "context" }
+            : v;
         });
       }
 
