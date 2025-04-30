@@ -40,9 +40,10 @@ function calculateAmbiguity(promptText: string): number {
 
 // Question post-processing utilities
 const MAX_EXAMPLES = 4;
+const MAX_IMG_ANSWER = 1000;
 
-const plainify = (text: string): string =>
-  text
+const plainify = (text: string | null | undefined): string =>
+  (text ?? "")
     .replace(/resolution|dpi|rgb|hex/gi, 'colour')
     .replace(/\bn\s+image\b/gi, 'an image')
     .trim();
@@ -322,6 +323,8 @@ serve(async (req) => {
 
       const uniqSeen = new Set<string>();
       let processedQuestions = questions
+        // ignore any empty/invalid records early
+        .filter(q => typeof q?.text === "string" && q.text.trim().length)
         .map(q => ensureExamples({ ...q, text: plainify(q.text) }))
         .filter(q => {
           const sig = qCanonical(q.text);
@@ -510,18 +513,26 @@ serve(async (req) => {
 
           // 1️⃣ full-image description questions → caption
           if (/describe|what(?:'s| is) happening|give.*overview/i.test(q.text)) {
-            return has(caption)
-              ? { ...q,
-                  answer        : caption,
-                  contextSource : "image" }
-              : q;
+            if (!has(caption)) return q;
+            
+            // merge caption + any remaining tag details
+            const tagSummary = Object.values(tags).filter(Boolean).join(", ");
+            let detailed = caption;
+            if (tagSummary && !caption.includes(tagSummary)) {
+              detailed += `  (key details: ${tagSummary})`;
+            }
+            return {
+              ...q,
+              answer: detailed.slice(0, MAX_IMG_ANSWER),
+              contextSource: "image"
+            };
           }
 
           // 2️⃣ specific tag questions (subject, style …)
           for (const [tag, test] of Object.entries(mapTagToReg)) {
             if (!usedTagForQ.has(tag) && has(tags[tag]) && test(q.text)) {
               usedTagForQ.add(tag);
-              return { ...q, answer: tags[tag], contextSource: "image" };
+              return { ...q, answer: tags[tag].slice(0, MAX_IMG_ANSWER), contextSource: "image" };
             }
           }
           return q;
@@ -588,3 +599,4 @@ serve(async (req) => {
     );
   }
 });
+
