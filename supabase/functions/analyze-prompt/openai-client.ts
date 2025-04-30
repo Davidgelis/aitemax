@@ -1,4 +1,6 @@
+
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
+import { shorten } from "./utils.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
@@ -178,7 +180,24 @@ export async function describeAndMapImage(
         .replace(/```/g, "")
         .trim();
         
-      return JSON.parse(cleaned);  // ⬅ { fill:{…} }
+      const parsed = JSON.parse(cleaned);
+      
+      // Process the response to include both short and long values
+      if (parsed.fill) {
+        for (const varLabel in parsed.fill) {
+          const hit = parsed.fill[varLabel];
+          if (hit && hit.value) {
+            const phrase = hit.value.trim().replace(/\s+/g, " ");
+            parsed.fill[varLabel] = {
+              value: shorten(phrase, 3),
+              valueLong: phrase,
+              confidence: hit.confidence
+            };
+          }
+        }
+      }
+      
+      return parsed;  // ⬅ { fill:{…} }
     } catch (error) {
       console.error("Failed to parse vision response:", error);
       return { fill: {} };  // leave variables empty
@@ -228,7 +247,24 @@ export async function inferAndMapFromContext(
     const cleaned = raw.replace(/```json|```/g, "").trim();
 
     try {
-      return JSON.parse(cleaned);         // { fill:{…} }
+      const parsed = JSON.parse(cleaned);
+      
+      // Process the response to include both short and long values
+      if (parsed.fill) {
+        for (const varLabel in parsed.fill) {
+          const hit = parsed.fill[varLabel];
+          if (hit && hit.value) {
+            const phrase = hit.value.trim().replace(/\s+/g, " ");
+            parsed.fill[varLabel] = {
+              value: shorten(phrase, 3),
+              valueLong: phrase,
+              confidence: hit.confidence
+            };
+          }
+        }
+      }
+      
+      return parsed;
     } catch (e) {
       console.error("⚠️  inferAndMapFromContext → parse error", e);
       return { fill:{} };

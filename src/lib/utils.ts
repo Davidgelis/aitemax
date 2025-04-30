@@ -22,3 +22,6 @@ export function getTextLines(text: string, maxCharsPerLine: number): number {
   // Simple estimation of line count based on character count and max chars per line
   return Math.ceil(text.length / maxCharsPerLine);
 }
+
+export const shorten = (s = "", words = 3) =>
+  s.trim().split(/\s+/).slice(0, words).join(" ");

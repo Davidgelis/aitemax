@@ -7,6 +7,7 @@ import {
   inferAndMapFromContext,
   canonKey
 } from "./openai-client.ts";
+import { shorten } from "./utils.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -138,11 +139,15 @@ function processVariables(variables: any[], questions: any[]) {
     .join(" ");
 
   // 1️⃣ Trim to max three words for both name and value
-  const trimmedVariables = variables.map(v => ({
-    ...v,
-    name: v.name.trim().split(/\s+/).slice(0, 3).join(" "),
-    value: (v.value || "").trim().split(/\s+/).slice(0, 3).join(" ")
-  }));
+  const trimmedVariables = variables.map(v => {
+    const full = (v.value || "").trim().replace(/\s+/g, " ");
+    return {
+      ...v,
+      name: shorten(v.name, 3),   // keep labels concise
+      value: shorten(full, 3),     // short – UI list, badge chips, etc.
+      valueLong: full             // long  – for answers / tooltips
+    };
+  });
   console.log(`After trimming: ${trimmedVariables.length} variables`);
 
   // 2️⃣ Dedupe via canonical label
@@ -196,15 +201,23 @@ function fillQuestions(
 
     // ① Try a direct hit from variables
     const hitVar = variables.find(v =>
-      v.value && canonKey(v.name) &&
+      v.valueLong &&                          // long is required
+      canonKey(v.name) &&
       q.text.toLowerCase().includes(v.name.toLowerCase())
     );
-    if (hitVar) return { ...q, answer: hitVar.value, prefillSource: hitVar.prefillSource };
+    
+    if (hitVar) {
+      // clamp to 1000 chars – avoids gigantic blobs when the context is huge
+      const answer = hitVar.valueLong.slice(0, 1000);
+      return { ...q, answer, prefillSource: hitVar.prefillSource };
+    }
 
     // ② Try Vision tags
     for (const [tag,re] of Object.entries(tagTest)) {
-      if (re.test(q.text) && has(imgTags[tag]))
-        return { ...q, answer: imgTags[tag], prefillSource:"image-tag" };
+      if (re.test(q.text) && has(imgTags[tag])) {
+        const answer = imgTags[tag].slice(0, 1000);
+        return { ...q, answer, prefillSource:"image-tag" };
+      }
     }
 
     return q;                                // nothing suitable
@@ -553,7 +566,7 @@ serve(async (req) => {
             .find(([k]) => canonKey(k) === canonKey(v.name))?.[1];
           
           return (visionHit && visionHit.confidence >= 0.7 && visionHit.value?.length)
-            ? { ...v, value: visionHit.value, prefillSource: "image" }
+            ? { ...v, value: visionHit.value, valueLong: visionHit.valueLong, prefillSource: "image" }
             : v;
         });
       }
@@ -580,7 +593,7 @@ serve(async (req) => {
             .find(([k]) => canonKey(k) === canonKey(v.name))?.[1];
           
           return (ctxHit && ctxHit.confidence >= 0.7 && ctxHit.value?.length)
-            ? { ...v, value: ctxHit.value, prefillSource: "context" }
+            ? { ...v, value: ctxHit.value, valueLong: ctxHit.valueLong, prefillSource: "context" }
             : v;
         });
       }
