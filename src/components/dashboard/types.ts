@@ -36,6 +36,7 @@ export interface Variable {
   id: string;
   name: string;       // Simple label, 1-3 words max (e.g., "Background Color")
   value: string;      // The actual variable value
+  valueLong?: string; // Added new property for long-form variable value
   isRelevant: boolean | null;
   category?: string;  // Task, Persona, Conditions, Instructions categories
   code?: string;      // Internal code reference

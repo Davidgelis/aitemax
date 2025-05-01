@@ -22,6 +22,7 @@ export interface Variable {
   id: string;
   name: string;
   value: string;
+  valueLong?: string; // Added for long-form variable value
   isRelevant: boolean | null;
   category: string;
   code: string;
