@@ -1,6 +1,6 @@
 
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
-import { shorten } from "./utils.ts";
+import { shorten, clamp } from "./utils.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
@@ -182,14 +182,19 @@ export async function describeAndMapImage(
         
       const parsed = JSON.parse(cleaned);
       
-      // Process the response to include both short and long values
+      // Fallback: if backend did not supply valueLong use value
       if (parsed.fill) {
+        Object.values(parsed.fill).forEach((slot: any) => {
+          if (!slot.valueLong) slot.valueLong = slot.value;
+        });
+        
+        // Process the response to include both short and long values
         for (const varLabel in parsed.fill) {
           const hit = parsed.fill[varLabel];
           if (hit && hit.value) {
             const phrase = hit.value.trim().replace(/\s+/g, " ");
             parsed.fill[varLabel] = {
-              value: shorten(phrase, 3),
+              value: clamp(phrase, 100),
               valueLong: phrase,
               confidence: hit.confidence
             };
@@ -249,14 +254,19 @@ export async function inferAndMapFromContext(
     try {
       const parsed = JSON.parse(cleaned);
       
-      // Process the response to include both short and long values
+      // Fallback: if backend did not supply valueLong use value
       if (parsed.fill) {
+        Object.values(parsed.fill).forEach((slot: any) => {
+          if (!slot.valueLong) slot.valueLong = slot.value;
+        });
+        
+        // Process the response to include both short and long values
         for (const varLabel in parsed.fill) {
           const hit = parsed.fill[varLabel];
           if (hit && hit.value) {
             const phrase = hit.value.trim().replace(/\s+/g, " ");
             parsed.fill[varLabel] = {
-              value: shorten(phrase, 3),
+              value: clamp(phrase, 100),
               valueLong: phrase,
               confidence: hit.confidence
             };

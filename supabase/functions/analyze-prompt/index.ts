@@ -7,7 +7,7 @@ import {
   inferAndMapFromContext,
   canonKey
 } from "./openai-client.ts";
-import { shorten } from "./utils.ts";
+import { clamp } from "./utils.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -143,9 +143,9 @@ function processVariables(variables: any[], questions: any[]) {
     const full = (v.value || "").trim().replace(/\s+/g, " ");
     return {
       ...v,
-      name: shorten(v.name, 3),   // keep labels concise
-      value: shorten(full, 3),     // short – UI list, badge chips, etc.
-      valueLong: full             // long  – for answers / tooltips
+      name: shorten(v.name, 3),     // keep labels concise
+      value: clamp(full, 100),      // short – UI list, badge chips, etc.
+      valueLong: full               // long  – for answers / tooltips
     };
   });
   console.log(`After trimming: ${trimmedVariables.length} variables`);
@@ -207,15 +207,21 @@ function fillQuestions(
     );
     
     if (hitVar) {
-      // clamp to 1000 chars – avoids gigantic blobs when the context is huge
-      const answer = hitVar.valueLong.slice(0, 1000);
+      const raw = hitVar.valueLong || hitVar.value;
+      
+      // 🔎 quality-gate – ignore 1-word tokens or gibberish under 4 chars
+      const ok = raw.split(/\s+/).length > 1 && raw.replace(/[^a-z]/gi,"").length > 3;
+      if (!ok) return q;              // keep it un-answered
+      
+      const answer = clamp(raw, 1000);
       return { ...q, answer, prefillSource: hitVar.prefillSource };
     }
 
     // ② Try Vision tags
     for (const [tag,re] of Object.entries(tagTest)) {
       if (re.test(q.text) && has(imgTags[tag])) {
-        const answer = imgTags[tag].slice(0, 1000);
+        const raw = imgTags[tag];
+        const answer = clamp(raw, 1000);
         return { ...q, answer, prefillSource:"image-tag" };
       }
     }
