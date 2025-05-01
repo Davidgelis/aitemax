@@ -7,7 +7,7 @@ import {
   inferAndMapFromContext,
   canonKey
 } from "./openai-client.ts";
-import { clamp } from "./utils.ts";
+import { shorten, clamp } from "./utils.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
