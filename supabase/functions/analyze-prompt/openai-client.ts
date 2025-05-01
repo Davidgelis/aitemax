@@ -199,14 +199,20 @@ Guidelines for <string>:
         // Process the response to include both short and long values
         for (const varLabel in parsed.fill) {
           const hit = parsed.fill[varLabel];
-          if (hit && hit.value) {
-            const phrase = hit.value.trim().replace(/\s+/g, " ");
-            parsed.fill[varLabel] = {
-              value: clamp(phrase, 100),
-              valueLong: phrase,
-              confidence: hit.confidence
-            };
-          }
+          if (!hit?.value) continue;
+
+          const full   = hit.value.trim().replace(/\s+/g, " ");
+          /* take the very first sentence OR first 6 words –
+             this keeps the slot concise and different from the
+             long paragraph that will appear in the answer.      */
+          const firstSentence = full.split(/[.!?]/)[0];
+          const short         = firstSentence.split(/\s+/).slice(0, 6).join(" ");
+
+          parsed.fill[varLabel] = {
+            value      : short,          // ≤ ~40 chars, compact label
+            valueLong  : full,           // full paragraph (≤1000) if you need it
+            confidence : hit.confidence
+          };
         }
       }
       

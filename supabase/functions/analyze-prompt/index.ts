@@ -570,7 +570,8 @@ serve(async (req) => {
       /* ── Build a 5-bucket tag map from Vision slots ── */
       const visionTags: Record<string,string> = {};
       for (const [key, slot] of Object.entries(picMap?.fill ?? {})) {
-        const val = (slot as any)?.value ?? "";
+        /*  answers should show the complete paragraph (≤1000)        */
+        const val = (slot as any)?.valueLong ?? (slot as any)?.value ?? "";
         /* keep snippets that are at least 3 words OR contain a period */
         if (!val || (val.split(/\s+/).length < 3 && !val.includes("."))) continue;
 
