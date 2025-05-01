@@ -1,4 +1,3 @@
-
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
 import { shorten, clamp } from "./utils.ts";
 
@@ -150,9 +149,15 @@ export async function describeAndMapImage(
     
     const messages = [
       { role: "system", content:
-        "You are a vision assistant. " +
-        "For every variable you recognise, return a RICH, paragraph-level value " +
-        "(≥5 words, ≤1000 characters). Keep humour and style if present." },
+        `You are a *verbose* vision assistant.
+Return **minified JSON only**:
+  {"fill":{<var>:{value:<string>,confidence:<0-1>}}}
+
+Guidelines for <string>:
+• 1–3 sentences, ≥ 30 words, ≤ 1000 characters  
+• vivid descriptive language – colours, patterns, references, textures  
+• preserve any humour or stylistic flavour you notice
+        ` },
       // 📷  the image itself
       { role: "user",  content: [
           { type: "text",
@@ -168,7 +173,9 @@ export async function describeAndMapImage(
     
     const { choices } = await openai.chat.completions.create({
       model: "gpt-4.1",
-      temperature: 0,
+      max_tokens: 400,   // allow a full paragraph
+      temperature: 0.35, // tad more creative, still stable
+      top_p: 1,
       messages
     });
 
