@@ -359,7 +359,7 @@ serve(async (req) => {
         systemPrompt,
         model, // Pass the requested model (defaults to gpt-4.1)
         smartContextData?.context || '',
-        firstImageBase64
+        null // ← ✅ keep JSON-mode active (removed firstImageBase64)
       );
       console.timeEnd("aiAnalysisTime");
       console.log("AI analysis completed");
