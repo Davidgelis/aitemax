@@ -1,3 +1,4 @@
+
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
 import { shorten, clamp } from "./utils.ts";
 
@@ -10,6 +11,11 @@ if (!openAIApiKey) {
 export function canonKey(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
+
+const FILLER = new Set([
+  "this","the","a","an","image","picture","photo","scene",
+  "it","is","illustration","rendered","shows","depicts"
+]);
 
 function normaliseDataURL(b64: string, fallback = "jpeg") {
   // remove any accidental whitespace
@@ -201,16 +207,18 @@ Guidelines for <string>:
           const hit = parsed.fill[varLabel];
           if (!hit?.value) continue;
 
-          const full   = hit.value.trim().replace(/\s+/g, " ");
-          /* take the very first sentence OR first 6 words –
-             this keeps the slot concise and different from the
-             long paragraph that will appear in the answer.      */
-          const firstSentence = full.split(/[.!?]/)[0];
-          const short         = firstSentence.split(/\s+/).slice(0, 6).join(" ");
+          const full = hit.value.trim().replace(/\s+/g, " ");
+
+          /* 1️⃣ take the first sentence                         */
+          let words = full.split(/[.!?]/)[0].split(/\s+/);
+          /* 2️⃣ drop leading filler words                       */
+          while (words.length && FILLER.has(words[0].toLowerCase())) words.shift();
+          /* 3️⃣ keep max 6 significant words                    */
+          const short = words.slice(0, 6).join(" ");
 
           parsed.fill[varLabel] = {
-            value      : short,          // ≤ ~40 chars, compact label
-            valueLong  : full,           // full paragraph (≤1000) if you need it
+            value      : short,          // compact label (≈ 1-6 words)
+            valueLong  : full,           // full paragraph (≤1000 char)
             confidence : hit.confidence
           };
         }

@@ -495,13 +495,27 @@ serve(async (req) => {
         processedQuestions
       );
 
-      // Top-up if you still have < 8 variables (never exceeds 8)
+      /* -------------------------------------------------
+         Top-up if you still have < 8 variables (never exceeds 8)
+      ------------------------------------------------- */
       if (finalVariables.length < 8) {
         const need = 8 - finalVariables.length;
         const current = new Set(finalVariables.map(v => v.name.toLowerCase()));
+
+        /* words we never want as variables */
+        const GENERIC_SKIP = new Set([
+          "create","creates","creating","created",
+          "make","making","made",
+          "image","images","picture","photo","scene",
+          "play","playing","with","dog","dogs","ball","balls"
+        ]);
+ 
         const extras = Array.from(new Set(promptText.match(/\b[A-Za-z]+\b/g) ?? []))
-          .filter(w => w.length > 2 && !stopWords.has(w.toLowerCase())
-            && !current.has(w.toLowerCase()))
+          .filter(w =>
+            w.length > 2 &&
+            !stopWords.has(w.toLowerCase()) &&
+            !GENERIC_SKIP.has(w.toLowerCase()) &&
+            !current.has(w.toLowerCase()))
           .slice(0, need)
           .map((w,i) => ({
             id: `auto_${i}`,
