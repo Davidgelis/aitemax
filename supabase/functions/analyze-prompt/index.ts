@@ -14,6 +14,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Deduplicate variables helper
+const dedupeVars = (vars: any[]) => {
+  const seen = new Set<string>();
+  return vars.filter(v => {
+    const sig = canonKey(v.name);
+    if (seen.has(sig)) return false;
+    seen.add(sig);
+    return true;
+  });
+};
+
 // Enhanced ambiguity calculation function
 function calculateAmbiguity(promptText: string): number {
   // Basic calculation based on word count
@@ -207,10 +218,11 @@ function fillQuestions(
     );
     
     if (hitVar) {
-      const raw = hitVar.valueLong || hitVar.value;
-      
-      // 🔎 quality-gate – ignore 1-word tokens or gibberish under 4 chars
-      const ok = raw.split(/\s+/).length > 1 && raw.replace(/[^a-z]/gi,"").length > 3;
+      const raw   = hitVar.valueLong || hitVar.value;
+      const words = raw.trim().split(/\s+/);
+
+      /*  accept if …      ① ≥2 words  OR  ② a single word that's long enough  */
+      const ok = words.length > 1 || (words.length === 1 && words[0].length >= 8);
       if (!ok) return q;              // keep it un-answered
       
       const answer = clamp(raw, 1000);
@@ -567,14 +579,14 @@ serve(async (req) => {
         const labels = finalVariables.map(v => v.name);
         const picMap = await describeAndMapImage(firstImageBase64, labels);
 
-        finalVariables = finalVariables.map(v => {
+        finalVariables = dedupeVars(finalVariables.map(v => {
           const visionHit = Object.entries(picMap?.fill ?? {})
             .find(([k]) => canonKey(k) === canonKey(v.name))?.[1];
           
           return (visionHit && visionHit.confidence >= 0.7 && visionHit.value?.length)
             ? { ...v, value: visionHit.value, valueLong: visionHit.valueLong, prefillSource: "image" }
             : v;
-        });
+        }));
       }
 
       //------------------------------------------------------------------
@@ -594,14 +606,14 @@ serve(async (req) => {
 
         const map = await inferAndMapFromContext(ctx, names);
 
-        finalVariables = finalVariables.map(v => {
+        finalVariables = dedupeVars(finalVariables.map(v => {
           const ctxHit = Object.entries(map?.fill ?? {})
             .find(([k]) => canonKey(k) === canonKey(v.name))?.[1];
           
           return (ctxHit && ctxHit.confidence >= 0.7 && ctxHit.value?.length)
             ? { ...v, value: ctxHit.value, valueLong: ctxHit.valueLong, prefillSource: "context" }
             : v;
-        });
+        }));
       }
 
       // ─── Final pass: pre-fill question answers ──────────────────────

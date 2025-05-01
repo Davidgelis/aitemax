@@ -245,7 +245,9 @@ export async function inferAndMapFromContext(
     const { choices } = await openai.chat.completions.create({
       model: "gpt-4.1",
       temperature: 0,
-      messages
+      messages,
+      /* 🛡 require valid JSON back */
+      response_format: { type: "json_object" }
     });
 
     const raw = choices[0].message.content ?? "{}";
