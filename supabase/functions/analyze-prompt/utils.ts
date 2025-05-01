@@ -15,6 +15,11 @@ export const shorten = (s = "", words = 3) =>
  * @returns The clamped string
  */
 export function clamp(text = "", limit = 100): string {
-  text = text.trim().replace(/\s+/g, " ");
-  return text.length <= limit ? text : text.slice(0, limit).trimEnd();
+  const clean = (text ?? "").replace(/<[^>]+>/g, "").trim();
+  if (clean.length <= limit) return clean;
+
+  /* keep whole words, but never exceed limit */
+  const slice = clean.slice(0, limit + 1);           // +1 → look-ahead
+  const cut   = slice.lastIndexOf(" ");              // last full word
+  return (cut > 40 ? slice.slice(0, cut) : slice.slice(0, limit)).trim() + "…";
 }

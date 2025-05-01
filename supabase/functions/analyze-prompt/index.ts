@@ -210,26 +210,14 @@ function fillQuestions(
   return qs.map(q=>{
     if (q.answer) return q;                   // already filled
 
-    // ① Try a direct hit from variables
-    const hitVar = variables.find(v =>
-      v.valueLong &&                          // long is required
-      canonKey(v.name) &&
-      q.text.toLowerCase().includes(v.name.toLowerCase())
-    );
-    
-    if (hitVar) {
-      const raw   = hitVar.valueLong || hitVar.value;
-      const words = raw.trim().split(/\s+/);
+    /* ──────────────────────────────────────────────────────────────
+       We NO LONGER copy long variable descriptions into answers.
+       This keeps variables (technical slots) and question answers
+       (human-readable paragraphs) completely separate.
+       Answers now come only from Vision tags or later user input.
+    ────────────────────────────────────────────────────────────── */
 
-      /* need substance: ≥3 words OR a sentence-ending period */
-      const ok = words.length >= 3 || raw.includes(".");
-      if (!ok) return q;              // keep it un-answered
-      
-      const answer = clamp(raw, 1000);
-      return { ...q, answer, prefillSource: hitVar.prefillSource };
-    }
-
-    // ② Try Vision tags
+    // Try Vision tags first (they are crafted for full-paragraph answers)
     for (const [tag,re] of Object.entries(tagTest)) {
       if (re.test(q.text) && has(imgTags[tag])) {
         const raw   = imgTags[tag].trim();
@@ -242,7 +230,7 @@ function fillQuestions(
       }
     }
 
-    return q;                                // nothing suitable
+    return q;                          // still unanswered → go to UI
   });
 }
 
