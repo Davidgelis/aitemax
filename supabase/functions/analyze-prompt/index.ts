@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import {
@@ -222,9 +221,8 @@ function fillQuestions(
       const raw   = hitVar.valueLong || hitVar.value;
       const words = raw.trim().split(/\s+/);
 
-      /* Accept **only** multi-word answers. One-word matches are too vague
-         and tend to overwrite genuine questions.                              */
-      const ok = words.length > 1;
+      /* need substance: ≥5 words OR at least one period */
+      const ok = words.length >= 5 || raw.includes(".");
       if (!ok) return q;              // keep it un-answered
       
       const answer = clamp(raw, 1000);
@@ -236,10 +234,8 @@ function fillQuestions(
       if (re.test(q.text) && has(imgTags[tag])) {
         const raw   = imgTags[tag].trim();
         const words = raw.split(/\s+/);
-
-        /* ⛔  Reject 1-word hits – they overwrite real questions
-           (same rule we use for variable-based prefills)              */
-        if (words.length < 2) continue;
+        
+        if (words.length < 5 && !raw.includes(".")) continue;
 
         const answer = clamp(raw, 1000);
         return { ...q, answer, prefillSource:"image-tag" };
@@ -588,6 +584,27 @@ serve(async (req) => {
       if (firstImageBase64 && finalVariables.length) {
         const labels = finalVariables.map(v => v.name);
         const picMap = await describeAndMapImage(firstImageBase64, labels);
+
+        /* ── Build a 5-bucket tag map from Vision slots ── */
+        const visionTags: Record<string,string> = {};
+        for (const [key, slot] of Object.entries(picMap?.fill ?? {})) {
+          const val = (slot as any)?.value ?? "";
+          /* keep only descriptive snippets (≥5 words OR contains a period) */
+          if (!val || (val.split(/\s+/).length < 5 && !val.includes("."))) continue;
+
+          const k = key.toLowerCase();
+          if (/palette|colour|color/.test(k))        visionTags.palette    = val;
+          else if (/style|aesthetic|genre/.test(k))  visionTags.style      = val;
+          else if (/mood|tone|feeling/.test(k))      visionTags.mood       = val;
+          else if (/background|environment/.test(k)) visionTags.background = val;
+          else if (/subject|dog|cat|person/.test(k)) visionTags.subject    = val;
+        }
+
+        /* merge with caption-based tags so fillQuestions() sees everything */
+        imageMeta = {
+          caption: imageMeta?.caption ?? "",
+          tags: { ...(imageMeta?.tags ?? {}), ...visionTags }
+        };
 
         finalVariables = dedupeVars(finalVariables.map(v => {
           const visionHit = Object.entries(picMap?.fill ?? {})

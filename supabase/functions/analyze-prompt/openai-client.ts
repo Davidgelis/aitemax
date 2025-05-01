@@ -151,7 +151,8 @@ export async function describeAndMapImage(
     const messages = [
       { role: "system", content:
         "You are a vision assistant. " +
-        "Extract concise property values from the image." },
+        "For every variable you recognise, return a RICH, paragraph-level value " +
+        "(≥5 words, ≤1000 characters). Keep humour and style if present." },
       // 📷  the image itself
       { role: "user",  content: [
           { type: "text",
