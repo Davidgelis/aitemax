@@ -234,7 +234,13 @@ function fillQuestions(
     // ② Try Vision tags
     for (const [tag,re] of Object.entries(tagTest)) {
       if (re.test(q.text) && has(imgTags[tag])) {
-        const raw = imgTags[tag];
+        const raw   = imgTags[tag].trim();
+        const words = raw.split(/\s+/);
+
+        /* ⛔  Reject 1-word hits – they overwrite real questions
+           (same rule we use for variable-based prefills)              */
+        if (words.length < 2) continue;
+
         const answer = clamp(raw, 1000);
         return { ...q, answer, prefillSource:"image-tag" };
       }
