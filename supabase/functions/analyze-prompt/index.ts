@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import {
@@ -221,8 +222,9 @@ function fillQuestions(
       const raw   = hitVar.valueLong || hitVar.value;
       const words = raw.trim().split(/\s+/);
 
-      /*  accept if …      ① ≥2 words  OR  ② a single word that's long enough  */
-      const ok = words.length > 1 || (words.length === 1 && words[0].length >= 8);
+      /* Accept **only** multi-word answers. One-word matches are too vague
+         and tend to overwrite genuine questions.                              */
+      const ok = words.length > 1;
       if (!ok) return q;              // keep it un-answered
       
       const answer = clamp(raw, 1000);
@@ -484,14 +486,16 @@ serve(async (req) => {
         tempVars.forEach((v, vi) => {
           if (!varKeep[vi]) return;
           if (canon(v.name) === qSig) {
-            if (isDescriptive(q.text)) {
-              // Keep question, discard variable
+            const varHasValue = (v.value ?? "").trim().length > 0;
+
+            if (isDescriptive(q.text) || !varHasValue) {
+              /* Keep the descriptive (or still-needed) question,
+                 discard the empty/shadow variable                                   */
               varKeep[vi] = false;
-              console.log(`Keeping descriptive question "${q.text}" – dropping variable "${v.name}"`);
             } else {
-              // Keep variable, drop question
+              /* Variable already contains information – prefer it and
+                 avoid duplicating effort                                           */
               questionKeep[qi] = false;
-              console.log(`Keeping variable "${v.name}" – dropping short question "${q.text}"`);
             }
           }
         });

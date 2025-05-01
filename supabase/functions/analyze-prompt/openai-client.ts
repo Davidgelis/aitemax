@@ -254,7 +254,10 @@ export async function inferAndMapFromContext(
     const cleaned = raw.replace(/```json|```/g, "").trim();
 
     try {
-      const parsed = JSON.parse(cleaned);
+      /* Some runs prepend stray whitespace or a BOM before "{".
+         Strip anything that appears before the first brace.                */
+      const safe = cleaned.replace(/^[^{]+/, "");
+      const parsed = JSON.parse(safe);
       
       // Fallback: if backend did not supply valueLong use value
       if (parsed.fill) {
