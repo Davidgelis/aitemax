@@ -214,9 +214,10 @@ export const StepOneContent = ({
         </div>
       </div>
 
-      <ScrollArea className="flex-1 p-4" hideScrollbar>
+      {/* Reduced the ScrollArea height by making the p-4 padding class smaller and adjusting the overall layout */}
+      <ScrollArea className="flex-1 p-2" hideScrollbar>
         {uploadedImages.length > 0 && (
-          <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
+          <div className="mb-3 p-2 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
             <div className="flex flex-col gap-2">
               {uploadedImages.map((img, index) => (
                 <div key={img.id || index} className="flex flex-col"></div>
@@ -227,8 +228,8 @@ export const StepOneContent = ({
         )}
 
         {smartContext && smartContext.context && (
-          <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
-            <h3 className="text-sm font-medium text-[#545454] mb-2">{t.steps.smartContextAdded}</h3>
+          <div className="mb-3 p-2 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
+            <h3 className="text-sm font-medium text-[#545454] mb-1">{t.steps.smartContextAdded}</h3>
             <p className="text-xs text-[#545454] italic truncate">
               {smartContext.context.substring(0, 100)}
               {smartContext.context.length > 100 ? "..." : ""}
@@ -236,11 +237,12 @@ export const StepOneContent = ({
           </div>
         )}
 
-        <div className="mb-6">
+        <div className="mb-4">
           <TemplateSelector />
         </div>
 
-        <div className="mb-6 flex-1">
+        {/* Reduced the height of the prompt input area */}
+        <div className="flex-1">
           <PromptInput 
             value={promptText} 
             onChange={setPromptText} 
@@ -254,11 +256,17 @@ export const StepOneContent = ({
             setDialogOpen={setDialogOpen} 
             maxLength={maxCharacterLimit} 
             placeholder={t.steps.promptTextPlaceholder} 
+            customStyles={{
+              textareaBackground: "#fafafa",
+              textareaText: "#545454"
+            }}
+            // Reduce the height of the textarea by overriding the default height
+            textareaHeight="200px" 
           />
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t mt-auto">
+      <div className="p-3 border-t mt-auto">
         <div className="flex justify-end">
           <Button onClick={handleAnalyzeWithAuth} disabled={isLoading || !promptText.trim()} variant="aurora" className="ml-2">
             {isLoading ? t.steps.analyzing : t.prompts.analyze}

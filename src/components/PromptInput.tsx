@@ -1,4 +1,3 @@
-
 import { useState, useEffect, KeyboardEvent, useRef } from 'react';
 import { UploadedImage } from '@/components/dashboard/types';
 import { ImageCarousel } from '@/components/dashboard/ImageCarousel';
@@ -27,7 +26,8 @@ interface PromptInputProps {
   maxLength?: number;
   onKeyDown?: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
   hideFormatting?: boolean;
-  customStyles?: CustomStyles; // Add custom styles prop
+  customStyles?: CustomStyles;
+  textareaHeight?: string; // New prop for custom height
 }
 
 const PromptInput = ({ 
@@ -47,6 +47,7 @@ const PromptInput = ({
   onKeyDown,
   hideFormatting = false,
   customStyles = {},
+  textareaHeight = "320px", // Default height, can be overridden with prop
 }: PromptInputProps) => {
   const [inputValue, setInputValue] = useState(value || "");
   const [carouselOpen, setCarouselOpen] = useState(false);
@@ -300,7 +301,7 @@ const PromptInput = ({
       <div className="relative group">
         <div className="relative">
           {!hideFormatting && (
-            <div className="flex flex-wrap items-start justify-between gap-4 mb-1 p-4 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
+            <div className="flex flex-wrap items-start justify-between gap-4 mb-1 p-3 border-t border-x rounded-t-md border-[#e5e7eb] bg-[#fafafa]">
               <div className="flex gap-4 items-start self-start">
                 <button 
                   type="button" 
@@ -339,13 +340,14 @@ const PromptInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className={`w-full h-[320px] p-4 resize-none outline-none transition-all text-lg placeholder:text-gray-400 ${!hideFormatting ? 'rounded-b-xl' : 'rounded-xl'}`}
+            className={`w-full p-4 resize-none outline-none transition-all text-lg placeholder:text-gray-400 ${!hideFormatting ? 'rounded-b-xl' : 'rounded-xl'}`}
             style={{ 
               backgroundColor: textareaBackground,
               color: textareaText,
               border: "1px solid #e5e7eb",
               borderTop: hideFormatting ? "1px solid #e5e7eb" : "none",
-              fontSize: "1.2rem"
+              fontSize: "1.2rem",
+              height: textareaHeight // Use the provided height or default
             }}
             ref={textareaRef}
             maxLength={maxLength}
