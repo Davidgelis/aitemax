@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
@@ -197,8 +198,8 @@ export const StepOneContent = ({
   }, []);
   
   return (
-    <div className="flex flex-col overflow-hidden">
-      <div className="flex flex-col justify-center items-center p-4">
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-col flex-1 justify-center items-center p-4">
         {/* Contains everything in a single bordered card */}
         <div className="w-full border rounded-xl bg-card flex flex-col p-4">
           {/* Smart button controls above templates */}
