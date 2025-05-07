@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { XTemplateCard, TemplateType, PillarType } from "./XTemplateCard";
 import { useToast } from "@/hooks/use-toast";
@@ -102,7 +103,7 @@ export const XTemplatesList = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { selectTemplate, getCurrentTemplate } = useTemplateManagement();
-  const [templates, setTemplates] = useState<TemplateType[]>(defaultTemplates);
+  const [templates, setTemplates] = useState<TemplateType[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("default");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -141,8 +142,8 @@ export const XTemplatesList = () => {
             createdAt: new Date(item.created_at).toLocaleDateString()
           }));
           
-          // Combine default templates with user templates
-          setTemplates([...defaultTemplates, ...userTemplates]);
+          // Only set user templates, not including default templates
+          setTemplates(userTemplates);
           
           // Check if selectedTemplate is stored in localStorage
           const storedTemplateId = window.localStorage.getItem('selectedTemplateId');
@@ -164,18 +165,21 @@ export const XTemplatesList = () => {
   // Listen for template events
   useEffect(() => {
     const handleTemplateAdded = (event: CustomEvent<TemplateType>) => {
-      setTemplates(prevTemplates => {
-        // Check if template with this ID already exists
-        const exists = prevTemplates.some(t => t.id === event.detail.id);
-        if (exists) {
-          // Update existing template
-          return prevTemplates.map(t => 
-            t.id === event.detail.id ? event.detail : t
-          );
-        }
-        // Add new template
-        return [...prevTemplates, event.detail];
-      });
+      // Only add non-default templates
+      if (!PROTECTED_TEMPLATE_IDS.includes(event.detail.id) && !event.detail.isDefault) {
+        setTemplates(prevTemplates => {
+          // Check if template with this ID already exists
+          const exists = prevTemplates.some(t => t.id === event.detail.id);
+          if (exists) {
+            // Update existing template
+            return prevTemplates.map(t => 
+              t.id === event.detail.id ? event.detail : t
+            );
+          }
+          // Add new template
+          return [...prevTemplates, event.detail];
+        });
+      }
     };
     
     const handleTemplateDeleted = (event: CustomEvent<{id: string}>) => {
@@ -208,15 +212,7 @@ export const XTemplatesList = () => {
 
   return (
     <div>
-      {/* Disclaimer for users about the default template */}
-      <div className="mb-6 p-4 bg-[#33fea6]/10 border border-[#33fea6]/30 rounded-md flex items-start gap-3">
-        <AlertCircle className="w-5 h-5 text-[#33fea6] mt-0.5 flex-shrink-0" />
-        <div>
-          <p className="text-sm">
-            <span className="font-medium">Recommendation:</span> We strongly recommend utilizing the default Aitema X Framework template, especially if you do not have advanced expertise in prompt engineering. This proven framework provides a clear, structured methodology designed specifically to enhance your prompt-writing capabilities, enabling you to generate more precise, impactful, and effective results.
-          </p>
-        </div>
-      </div>
+      {/* Remove the disclaimer about default templates since we're not showing them anymore */}
       
       {isLoading ? (
         <div className="flex justify-center items-center h-40">
@@ -235,7 +231,7 @@ export const XTemplatesList = () => {
           
           {templates.length === 0 && (
             <div className="col-span-3 text-center py-12">
-              <h3 className="text-xl font-medium mb-2">No templates found</h3>
+              <h3 className="text-xl font-medium mb-2">No custom templates found</h3>
               <p className="text-muted-foreground mb-6">
                 Create your first template to get started.
               </p>
