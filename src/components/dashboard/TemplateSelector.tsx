@@ -61,7 +61,7 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
           onValueChange={(value) => selectTemplate(value)}
         >
           <SelectTrigger 
-            className="w-[220px] bg-[#f7f7f7] border-[#acacac] hover:border-[#9b87f5] transition-colors"
+            className="w-[220px] bg-[#f7f7f7] border-[#acacac] hover:border-[#64bf95] transition-colors"
           >
             <SelectValue placeholder="Your Templates" />
           </SelectTrigger>
@@ -71,7 +71,7 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
                 <SelectItem 
                   key={template.id} 
                   value={template.id}
-                  className="hover:bg-white hover:text-[#9b87f5] transition-colors"
+                  className="hover:bg-white hover:text-[#64bf95] transition-colors"
                 >
                   {template.name}
                 </SelectItem>
