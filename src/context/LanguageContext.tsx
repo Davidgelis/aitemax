@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { authTranslations } from '@/translations/auth';
 
 // Define types for our supported languages
 export interface Language {
@@ -61,11 +62,11 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         .use(initReactI18next)
         .init({
           resources: {
-            en: { translation: {} },
-            zh: { translation: {} },
-            es: { translation: {} },
-            fr: { translation: {} },
-            de: { translation: {} }
+            en: { translation: { ...authTranslations.en } },
+            zh: { translation: { ...authTranslations.zh } },
+            es: { translation: { ...authTranslations.es } },
+            fr: { translation: { ...authTranslations.fr } },
+            de: { translation: { ...authTranslations.de } }
           },
           lng: currentLanguage,
           fallbackLng: 'en',
