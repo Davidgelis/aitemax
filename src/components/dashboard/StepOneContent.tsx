@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
@@ -198,26 +199,30 @@ export const StepOneContent = ({
   
   return (
     <div className="h-full flex flex-col border rounded-xl bg-card overflow-hidden">
-      {/* Top Buttons Bar */}
-      <div className="p-4 border-b">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex flex-row items-center gap-4 flex-1 w-full">
-            <WebScanner onWebsiteScan={handleWebsiteScan} variant="modelReplacement" />
-            <SmartContext onSmartContext={handleSmartContext} variant="modelReplacement" />
-            <button 
-              onClick={handleOpenUploadDialog} 
-              className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4" 
-              title="Upload and analyze images with GPT-4o"
-            >
-              <span className="truncate ml-1">{t.steps.imageSmartScan}</span>
-              <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
-            </button>
+      <div className="flex-1 flex flex-col justify-center items-center px-2 py-4">
+        {/* Smart button controls moved to be right above templates */}
+        <div className="w-full mb-4">
+          <div className="flex items-center gap-4 flex-wrap mb-5">
+            <div className="flex flex-row items-center gap-4 flex-1 w-full">
+              <WebScanner onWebsiteScan={handleWebsiteScan} variant="modelReplacement" />
+              <SmartContext onSmartContext={handleSmartContext} variant="modelReplacement" />
+              <button 
+                onClick={handleOpenUploadDialog} 
+                className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4" 
+                title="Upload and analyze images with GPT-4o"
+              >
+                <span className="truncate ml-1">{t.steps.imageSmartScan}</span>
+                <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
+              </button>
+            </div>
+          </div>
+        
+          {/* Template selector appears directly under smart buttons */}
+          <div className="mb-4 w-full">
+            <TemplateSelector />
           </div>
         </div>
-      </div>
 
-      {/* Main Content Area - Centered */}
-      <div className="flex-1 flex flex-col justify-center items-center px-2">
         {uploadedImages.length > 0 && (
           <div className="mb-3 p-2 w-full bg-[#fafafa] border border-[#e5e7eb] rounded-md">
             <div className="flex flex-col gap-2">
@@ -238,10 +243,6 @@ export const StepOneContent = ({
             </p>
           </div>
         )}
-
-        <div className="mb-4 w-full">
-          <TemplateSelector />
-        </div>
 
         <div className="w-full">
           <PromptInput 
