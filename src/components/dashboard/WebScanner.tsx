@@ -59,7 +59,7 @@ export const WebScanner = ({
         <div className="flex items-center">
           <button 
             onClick={() => setDialogOpen(true)}
-            className={`w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center text-sm rounded-md px-4 transition-all duration-300 ${
+            className={`w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4 ${
               hasContext 
                 ? 'shadow-[0_0_5px_0_#33fea6]' 
                 : 'shadow-sm'
