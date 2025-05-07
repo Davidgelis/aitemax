@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Json } from "@/integrations/supabase/types";
+import { PROTECTED_TEMPLATE_IDS } from "@/components/dashboard/constants";
 
 export interface PillarType {
   id: string;
