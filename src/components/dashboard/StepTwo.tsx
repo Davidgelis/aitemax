@@ -2,6 +2,7 @@
 import { Question, Variable } from "./types";
 import { RefObject } from "react";
 import { StepTwoContent } from "./StepTwoContent";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface StepTwoProps {
   questions: Question[];
@@ -25,6 +26,8 @@ interface StepTwoProps {
 
 export const StepTwo = (props: StepTwoProps) => {
   return (
-    <StepTwoContent {...props} />
+    <ScrollArea className="h-full" hideScrollbar>
+      <StepTwoContent {...props} />
+    </ScrollArea>
   );
 };

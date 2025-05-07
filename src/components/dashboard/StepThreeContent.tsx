@@ -186,45 +186,53 @@ export const StepThreeContent = ({
   }, [toast, isRefreshingJson]);
 
   return (
-    <div className="border rounded-xl p-4 bg-card min-h-[calc(100vh-120px)] flex flex-col">
-      <ToggleSection 
-        refreshJson={handleRefreshJson}
-        isRefreshing={isRefreshingJson}
-      />
+    <div className="h-full flex flex-col border rounded-xl bg-card overflow-hidden">
+      <div className="p-4 border-b">
+        <ToggleSection 
+          refreshJson={handleRefreshJson}
+          isRefreshing={isRefreshingJson}
+        />
+      </div>
 
-      <FinalPromptDisplay 
-        finalPrompt={finalPrompt || ""}
-        updateFinalPrompt={setFinalPrompt}
-        getProcessedPrompt={getProcessedPromptFunction}
-        variables={safeVariables}
-        setVariables={setVariables}
-        showJson={false}
-        masterCommand={masterCommand || ""}
-        handleOpenEditPrompt={externalHandleOpenEditPrompt}
-        recordVariableSelection={recordVariableSelection}
-        isEditing={isEditing}
-        setIsEditing={setIsEditing}
-        editablePrompt={editablePrompt}
-        setEditablePrompt={setEditablePrompt}
-        handleSaveEditedPrompt={handleSaveInlineEdit}
-        renderTrigger={renderTrigger}
-        setRenderTrigger={setRenderTrigger}
-        isRefreshing={isRefreshingJson}
-        setIsRefreshing={setIsRefreshingJson}
-        lastSavedPrompt={lastSavedPrompt}
-        setLastSavedPrompt={setLastSavedPrompt}
-      />
+      <ScrollArea className="flex-1" hideScrollbar>
+        <div className="p-4">
+          <FinalPromptDisplay 
+            finalPrompt={finalPrompt || ""}
+            updateFinalPrompt={setFinalPrompt}
+            getProcessedPrompt={getProcessedPromptFunction}
+            variables={safeVariables}
+            setVariables={setVariables}
+            showJson={false}
+            masterCommand={masterCommand || ""}
+            handleOpenEditPrompt={externalHandleOpenEditPrompt}
+            recordVariableSelection={recordVariableSelection}
+            isEditing={isEditing}
+            setIsEditing={setIsEditing}
+            editablePrompt={editablePrompt}
+            setEditablePrompt={setEditablePrompt}
+            handleSaveEditedPrompt={handleSaveInlineEdit}
+            renderTrigger={renderTrigger}
+            setRenderTrigger={setRenderTrigger}
+            isRefreshing={isRefreshingJson}
+            setIsRefreshing={setIsRefreshingJson}
+            lastSavedPrompt={lastSavedPrompt}
+            setLastSavedPrompt={setLastSavedPrompt}
+          />
 
-      <VariablesSection 
-        variables={safeVariables}
-        handleVariableValueChange={enhancedHandleVariableValueChange}
-        onDeleteVariable={handleDeleteVariable}
-      />
+          <VariablesSection 
+            variables={safeVariables}
+            handleVariableValueChange={enhancedHandleVariableValueChange}
+            onDeleteVariable={handleDeleteVariable}
+          />
+        </div>
+      </ScrollArea>
 
-      <ActionButtons 
-        handleCopyPrompt={externalHandleCopyPrompt}
-        handleSavePrompt={handleSavePrompt}
-      />
+      <div className="p-4 border-t mt-auto">
+        <ActionButtons 
+          handleCopyPrompt={externalHandleCopyPrompt}
+          handleSavePrompt={handleSavePrompt}
+        />
+      </div>
 
       <StepThreeStyles />
     </div>

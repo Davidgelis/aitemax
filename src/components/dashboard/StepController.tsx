@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { StepHeader } from "./steps/StepHeader";
 import { SessionInfo } from "./steps/SessionInfo";
 import { DraftStatus } from "./steps/DraftStatus";
@@ -440,7 +440,7 @@ export const StepController = ({
   }, []);
 
   return (
-    <div className="w-full">
+    <div className="w-full h-full flex flex-col">
       {user && promptState.currentStep === 2 && (
         <div className="fixed top-0 right-0 left-0 z-50 bg-background/90 backdrop-blur-sm border-b p-2 flex justify-between items-center">
           <DraftStatus 
@@ -461,13 +461,17 @@ export const StepController = ({
         </div>
       )}
 
-      {renderContent()}
+      <div className="flex-grow overflow-hidden flex flex-col">
+        {renderContent()}
+      </div>
       
-      <StepIndicator 
-        currentStep={currentStep} 
-        onStepChange={handleDirectJump} 
-        isViewingSavedPrompt={isViewingSavedPrompt}
-      />
+      <div className="mt-auto">
+        <StepIndicator 
+          currentStep={currentStep} 
+          onStepChange={handleDirectJump} 
+          isViewingSavedPrompt={isViewingSavedPrompt}
+        />
+      </div>
       
       <PrivacyNoticePopup user={user} currentStep={currentStep} />
     </div>

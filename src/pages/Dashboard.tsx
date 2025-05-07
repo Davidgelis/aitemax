@@ -15,6 +15,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
 
 const Dashboard = () => {
+  
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
@@ -263,10 +264,10 @@ const Dashboard = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="h-screen flex w-full bg-background overflow-hidden">
         <XPanelButton />
-        <main className="flex-1 p-6">
-          <div className="max-w-6xl mx-auto min-h-screen flex flex-col items-center justify-center gap-8">
+        <main className="flex-1 p-4 flex flex-col overflow-hidden">
+          <div className="max-w-6xl mx-auto h-full flex flex-col w-full">
             {/* Session info and draft status bar */}
             {user && promptState.currentStep === 2 && (
               <div className="fixed top-0 right-0 left-0 z-50 bg-background/90 backdrop-blur-sm border-b p-2 flex justify-between items-center">
@@ -322,15 +323,17 @@ const Dashboard = () => {
               </div>
             )}
             
-            <StepController 
-              user={user} 
-              selectedModel={selectedModel} 
-              setSelectedModel={setSelectedModel}
-              promptState={promptState}
-              sessionTimer={sessionTimer}
-              refreshSession={refreshSession}
-              isSessionAboutToExpire={isSessionAboutToExpire}
-            />
+            <div className="flex-grow flex items-center justify-center overflow-hidden">
+              <StepController 
+                user={user} 
+                selectedModel={selectedModel} 
+                setSelectedModel={setSelectedModel}
+                promptState={promptState}
+                sessionTimer={sessionTimer}
+                refreshSession={refreshSession}
+                isSessionAboutToExpire={isSessionAboutToExpire}
+              />
+            </div>
           </div>
         </main>
 

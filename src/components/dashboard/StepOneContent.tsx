@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
 import { GPT41_ID } from "@/services/model/ModelFetchService";
+import { ScrollArea } from "@/components/ui/scroll-area";
 interface StepOneContentProps {
   promptText: string;
   setPromptText: (text: string) => void;
@@ -192,12 +193,13 @@ export const StepOneContent = ({
       setUploadedImages([]);
     };
   }, []);
-  return <div className="border rounded-xl p-6 bg-card">
-      <div className="mb-4 flex justify-between items-center">
-        <div className="flex items-center gap-4">
+  return (
+    <div className="h-full flex flex-col border rounded-xl bg-card overflow-hidden">
+      <div className="p-4 border-b">
+        <div className="flex items-center gap-4 flex-wrap">
           <WebScanner onWebsiteScan={handleWebsiteScan} variant="modelReplacement" />
           <SmartContext onSmartContext={handleSmartContext} variant="modelReplacement" />
-          <div className="w-full">
+          <div className="flex-1 min-w-[200px]">
             <div className="flex items-center">
               <button onClick={handleOpenUploadDialog} className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4" title="Upload and analyze images with GPT-4o">
                 <span className="truncate ml-1">{t.steps.imageSmartScan}</span>
@@ -208,36 +210,57 @@ export const StepOneContent = ({
         </div>
       </div>
 
-      {uploadedImages.length > 0 && <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
-          
-          <div className="flex flex-col gap-2">
-            {uploadedImages.map((img, index) => <div key={img.id || index} className="flex flex-col">
-                
-              </div>)}
+      <ScrollArea className="flex-1 p-4" hideScrollbar>
+        {uploadedImages.length > 0 && (
+          <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
+            <div className="flex flex-col gap-2">
+              {uploadedImages.map((img, index) => (
+                <div key={img.id || index} className="flex flex-col"></div>
+              ))}
+            </div>
+            <ImageUploader images={uploadedImages} onImagesChange={handleImagesChange} open={dialogOpen} onOpenChange={handleDialogOpenChange} />
           </div>
-          <ImageUploader images={uploadedImages} onImagesChange={handleImagesChange} open={dialogOpen} onOpenChange={handleDialogOpenChange} />
-        </div>}
+        )}
 
-      {smartContext && smartContext.context && <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
-          <h3 className="text-sm font-medium text-[#545454] mb-2">{t.steps.smartContextAdded}</h3>
-          <p className="text-xs text-[#545454] italic truncate">
-            {smartContext.context.substring(0, 100)}
-            {smartContext.context.length > 100 ? "..." : ""}
-          </p>
-        </div>}
+        {smartContext && smartContext.context && (
+          <div className="mb-4 p-3 bg-[#fafafa] border border-[#e5e7eb] rounded-md">
+            <h3 className="text-sm font-medium text-[#545454] mb-2">{t.steps.smartContextAdded}</h3>
+            <p className="text-xs text-[#545454] italic truncate">
+              {smartContext.context.substring(0, 100)}
+              {smartContext.context.length > 100 ? "..." : ""}
+            </p>
+          </div>
+        )}
 
-      <div className="mb-6">
-        <TemplateSelector />
+        <div className="mb-6">
+          <TemplateSelector />
+        </div>
+
+        <div className="mb-6 flex-1">
+          <PromptInput 
+            value={promptText} 
+            onChange={setPromptText} 
+            onSubmit={handleAnalyzeWithContext} 
+            className="w-full" 
+            images={uploadedImages} 
+            onImagesChange={handleImagesChange} 
+            isLoading={isLoading} 
+            onOpenUploadDialog={handleOpenUploadDialog} 
+            dialogOpen={dialogOpen} 
+            setDialogOpen={setDialogOpen} 
+            maxLength={maxCharacterLimit} 
+            placeholder={t.steps.promptTextPlaceholder} 
+          />
+        </div>
+      </ScrollArea>
+
+      <div className="p-4 border-t mt-auto">
+        <div className="flex justify-end">
+          <Button onClick={handleAnalyzeWithAuth} disabled={isLoading || !promptText.trim()} variant="aurora" className="ml-2">
+            {isLoading ? t.steps.analyzing : t.prompts.analyze}
+          </Button>
+        </div>
       </div>
-
-      <div className="mb-6">
-        <PromptInput value={promptText} onChange={setPromptText} onSubmit={handleAnalyzeWithContext} className="w-full" images={uploadedImages} onImagesChange={handleImagesChange} isLoading={isLoading} onOpenUploadDialog={handleOpenUploadDialog} dialogOpen={dialogOpen} setDialogOpen={setDialogOpen} maxLength={maxCharacterLimit} placeholder={t.steps.promptTextPlaceholder} />
-      </div>
-
-      <div className="flex justify-end mt-8">
-        <Button onClick={handleAnalyzeWithAuth} disabled={isLoading || !promptText.trim()} variant="aurora" className="ml-2">
-          {isLoading ? t.steps.analyzing : t.prompts.analyze}
-        </Button>
-      </div>
-    </div>;
+    </div>
+  );
 };
