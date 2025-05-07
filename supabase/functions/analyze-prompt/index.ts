@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import {
@@ -193,12 +194,12 @@ function processVariables(variables: any[], questions: any[]) {
 // 🔗 helper – copy-paste once
 function fillQuestions(
   qs: any[],
-  variables: any[],
+  _variables: any[],                   // (kept for future use)
   imgTags: Record<string,string> = {}
 ){
-  const has = (s?:string)=>s && s.trim().length>0;
+  const has = (s?:string)=>s && s.trim().length > 0;
 
-  // quick regex bank for Vision tags
+  /*  regex helpers -------------------------------------------------- */
   const tagTest = {
     palette    : /(palette|colour|color)/i,
     style      : /(style|aesthetic|genre|art\s*style)/i,
@@ -207,30 +208,54 @@ function fillQuestions(
     subject    : /(subject|dog|cat|person|object|figure)/i
   };
 
-  return qs.map(q=>{
-    if (q.answer) return q;                   // already filled
+  /* ── first pass – draft answers ----------------------------------- */
+  const drafted = qs.map(q=>{
+    if (q.answer) return q;                     // already set by GPT
 
-    /* ──────────────────────────────────────────────────────────────
-       We NO LONGER copy long variable descriptions into answers.
-       This keeps variables (technical slots) and question answers
-       (human-readable paragraphs) completely separate.
-       Answers now come only from Vision tags or later user input.
-    ────────────────────────────────────────────────────────────── */
+    const textLC = q.text.toLowerCase();
 
-    // Try Vision tags first (they are crafted for full-paragraph answers)
-    for (const [tag,re] of Object.entries(tagTest)) {
-      if (re.test(q.text) && has(imgTags[tag])) {
-        const raw   = imgTags[tag].trim();
-        const words = raw.split(/\s+/);
-        
-        if (words.length < 3 && !raw.includes(".")) continue;
-
-        const answer = clamp(raw, 1000);
-        return { ...q, answer, prefillSource:"image-tag" };
+    /* special-case: "subtle or bold?" question */
+    if (/subtle\s+or\s+bold/.test(textLC) && has(imgTags.mood)) {
+      const moodRaw = imgTags.mood.toLowerCase();
+      const bold    = /(bold|vibrant|psychedelic|neon|intense|high\s*contrast)/i.test(moodRaw);
+      const subtle  = /(soft|subtle|pastel|muted|delicate|gentle)/i.test(moodRaw);
+      const label   = bold ? "Bold" : subtle ? "Subtle" : "";
+      if (label) {
+        return {
+          ...q,
+          answer: clamp(`${label}. ${imgTags.mood}`, 1000),
+          prefillSource: "image-tag"
+        };
       }
     }
 
-    return q;                          // still unanswered → go to UI
+    /* generic Vision-tag mapping (paragraph-level) */
+    for (const [tag,re] of Object.entries(tagTest)) {
+      if (re.test(textLC) && has(imgTags[tag])) {
+        const raw = imgTags[tag].trim();
+        if (raw.split(/\s+/).length < 3 && !raw.includes(".")) break;
+        return {
+          ...q,
+          answer: clamp(raw, 1000),
+          prefillSource: "image-tag"
+        };
+      }
+    }
+
+    return q;                                    // still blank
+  });
+
+  /* ── second pass – drop duplicate answers ------------------------- */
+  const already = new Set<string>();
+  return drafted.map(q=>{
+    if (!q.answer) return q;
+    const sig = q.answer.toLowerCase().replace(/\s+/g," ").trim();
+    if (already.has(sig)) {
+      // wipe duplicate → user can refine it later
+      return { ...q, answer: undefined, prefillSource: undefined };
+    }
+    already.add(sig);
+    return q;
   });
 }
 
