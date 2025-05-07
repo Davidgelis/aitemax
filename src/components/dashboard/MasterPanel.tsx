@@ -5,7 +5,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 const MasterPanel = () => {
   return (
     <ScrollArea className="h-full w-full" hideScrollbar>
-      <div className="p-4">Master Panel Content</div>
+      <div className="flex flex-col items-center justify-center p-4 h-full">
+        <div className="text-center">Master Panel Content</div>
+      </div>
     </ScrollArea>
   );
 };
