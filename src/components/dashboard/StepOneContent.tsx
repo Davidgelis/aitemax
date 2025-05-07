@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
@@ -198,10 +197,10 @@ export const StepOneContent = ({
   }, []);
   
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="flex-1 flex flex-col justify-center items-center p-4">
+    <div className="flex flex-col overflow-hidden">
+      <div className="flex flex-col justify-center items-center p-4">
         {/* Contains everything in a single bordered card */}
-        <div className="w-full h-full border rounded-xl bg-card flex flex-col p-4">
+        <div className="w-full border rounded-xl bg-card flex flex-col p-4">
           {/* Smart button controls above templates */}
           <div className="w-full mb-4">
             <div className="flex items-center gap-4 flex-wrap mb-5">
@@ -246,27 +245,26 @@ export const StepOneContent = ({
             </div>
           )}
 
-          <div className="w-full flex-1 flex flex-col">
-            <PromptInput 
-              value={promptText} 
-              onChange={setPromptText} 
-              onSubmit={handleAnalyzeWithAuth} 
-              className="w-full flex-1" 
-              images={uploadedImages} 
-              onImagesChange={handleImagesChange} 
-              isLoading={isLoading} 
-              onOpenUploadDialog={handleOpenUploadDialog} 
-              dialogOpen={dialogOpen} 
-              setDialogOpen={setDialogOpen} 
-              maxLength={maxCharacterLimit} 
-              placeholder={t.steps.promptTextPlaceholder} 
-              customStyles={{
-                textareaBackground: "#fafafa",
-                textareaText: "#545454"
-              }}
-              textareaHeight="180px" 
-            />
-          </div>
+          {/* prompt input will size itself to its content */}
+          <PromptInput 
+            value={promptText} 
+            onChange={setPromptText} 
+            onSubmit={handleAnalyzeWithAuth} 
+            className="w-full"
+            images={uploadedImages} 
+            onImagesChange={handleImagesChange} 
+            isLoading={isLoading} 
+            onOpenUploadDialog={handleOpenUploadDialog} 
+            dialogOpen={dialogOpen} 
+            setDialogOpen={setDialogOpen} 
+            maxLength={maxCharacterLimit} 
+            placeholder={t.steps.promptTextPlaceholder} 
+            customStyles={{
+              textareaBackground: "#fafafa",
+              textareaText: "#545454"
+            }}
+            textareaHeight="180px" 
+          />
 
           <div className="mt-3 pt-3 border-t">
             <div className="flex justify-end">
