@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -12,6 +11,7 @@ import {
   convertEditedContentToPlaceholders, 
   convertPlaceholdersToSpans 
 } from "@/utils/promptUtils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface StepThreeContentProps {
   masterCommand: string;
