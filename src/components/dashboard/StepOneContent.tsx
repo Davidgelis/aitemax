@@ -13,6 +13,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
 import { GPT41_ID } from "@/services/model/ModelFetchService";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
 interface StepOneContentProps {
   promptText: string;
   setPromptText: (text: string) => void;
@@ -31,6 +32,7 @@ interface StepOneContentProps {
   onSmartContext?: (context: string, usageInstructions: string) => void;
   setPreventStepChange?: (prevent: boolean) => void;
 }
+
 export const StepOneContent = ({
   promptText,
   setPromptText,
@@ -197,15 +199,17 @@ export const StepOneContent = ({
     <div className="h-full flex flex-col border rounded-xl bg-card overflow-hidden">
       <div className="p-4 border-b">
         <div className="flex items-center gap-4 flex-wrap">
-          <WebScanner onWebsiteScan={handleWebsiteScan} variant="modelReplacement" />
-          <SmartContext onSmartContext={handleSmartContext} variant="modelReplacement" />
-          <div className="flex-1 min-w-[200px]">
-            <div className="flex items-center">
-              <button onClick={handleOpenUploadDialog} className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4" title="Upload and analyze images with GPT-4o">
-                <span className="truncate ml-1">{t.steps.imageSmartScan}</span>
-                <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
-              </button>
-            </div>
+          <div className="flex flex-row items-center gap-4 flex-1 w-full">
+            <WebScanner onWebsiteScan={handleWebsiteScan} variant="modelReplacement" />
+            <SmartContext onSmartContext={handleSmartContext} variant="modelReplacement" />
+            <button 
+              onClick={handleOpenUploadDialog} 
+              className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4" 
+              title="Upload and analyze images with GPT-4o"
+            >
+              <span className="truncate ml-1">{t.steps.imageSmartScan}</span>
+              <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
+            </button>
           </div>
         </div>
       </div>
