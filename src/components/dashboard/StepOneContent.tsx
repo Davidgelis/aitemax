@@ -198,80 +198,83 @@ export const StepOneContent = ({
   }, []);
   
   return (
-    <div className="h-full flex flex-col border rounded-xl bg-card overflow-hidden">
-      <div className="flex-1 flex flex-col justify-center items-center px-2 py-4">
-        {/* Smart button controls moved to be right above templates */}
-        <div className="w-full mb-4">
-          <div className="flex items-center gap-4 flex-wrap mb-5">
-            <div className="flex flex-row items-center gap-4 flex-1 w-full">
-              <WebScanner onWebsiteScan={handleWebsiteScan} variant="modelReplacement" />
-              <SmartContext onSmartContext={handleSmartContext} variant="modelReplacement" />
-              <button 
-                onClick={handleOpenUploadDialog} 
-                className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4" 
-                title="Upload and analyze images with GPT-4o"
-              >
-                <span className="truncate ml-1">{t.steps.imageSmartScan}</span>
-                <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
-              </button>
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col justify-center items-center p-4">
+        {/* Contains everything in a single bordered card */}
+        <div className="w-full h-full border rounded-xl bg-card flex flex-col p-4">
+          {/* Smart button controls above templates */}
+          <div className="w-full mb-4">
+            <div className="flex items-center gap-4 flex-wrap mb-5">
+              <div className="flex flex-row items-center gap-4 flex-1 w-full">
+                <WebScanner onWebsiteScan={handleWebsiteScan} variant="modelReplacement" />
+                <SmartContext onSmartContext={handleSmartContext} variant="modelReplacement" />
+                <button 
+                  onClick={handleOpenUploadDialog} 
+                  className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4" 
+                  title="Upload and analyze images with GPT-4o"
+                >
+                  <span className="truncate ml-1">{t.steps.imageSmartScan}</span>
+                  <ImageUp className="mr-1 h-4 w-4 text-[#084b49]" />
+                </button>
+              </div>
+            </div>
+          
+            {/* Template selector appears directly under smart buttons */}
+            <div className="mb-4 w-full">
+              <TemplateSelector />
             </div>
           </div>
-        
-          {/* Template selector appears directly under smart buttons */}
-          <div className="mb-4 w-full">
-            <TemplateSelector />
-          </div>
-        </div>
 
-        {uploadedImages.length > 0 && (
-          <div className="mb-3 p-2 w-full bg-[#fafafa] border border-[#e5e7eb] rounded-md">
-            <div className="flex flex-col gap-2">
-              {uploadedImages.map((img, index) => (
-                <div key={img.id || index} className="flex flex-col"></div>
-              ))}
+          {uploadedImages.length > 0 && (
+            <div className="mb-3 p-2 w-full bg-[#fafafa] border border-[#e5e7eb] rounded-md">
+              <div className="flex flex-col gap-2">
+                {uploadedImages.map((img, index) => (
+                  <div key={img.id || index} className="flex flex-col"></div>
+                ))}
+              </div>
+              <ImageUploader images={uploadedImages} onImagesChange={handleImagesChange} open={dialogOpen} onOpenChange={handleDialogOpenChange} />
             </div>
-            <ImageUploader images={uploadedImages} onImagesChange={handleImagesChange} open={dialogOpen} onOpenChange={handleDialogOpenChange} />
+          )}
+
+          {smartContext && smartContext.context && (
+            <div className="mb-3 p-2 w-full bg-[#fafafa] border border-[#e5e7eb] rounded-md">
+              <h3 className="text-sm font-medium text-[#545454] mb-1">{t.steps.smartContextAdded}</h3>
+              <p className="text-xs text-[#545454] italic truncate">
+                {smartContext.context.substring(0, 100)}
+                {smartContext.context.length > 100 ? "..." : ""}
+              </p>
+            </div>
+          )}
+
+          <div className="w-full flex-1 flex flex-col">
+            <PromptInput 
+              value={promptText} 
+              onChange={setPromptText} 
+              onSubmit={handleAnalyzeWithAuth} 
+              className="w-full flex-1" 
+              images={uploadedImages} 
+              onImagesChange={handleImagesChange} 
+              isLoading={isLoading} 
+              onOpenUploadDialog={handleOpenUploadDialog} 
+              dialogOpen={dialogOpen} 
+              setDialogOpen={setDialogOpen} 
+              maxLength={maxCharacterLimit} 
+              placeholder={t.steps.promptTextPlaceholder} 
+              customStyles={{
+                textareaBackground: "#fafafa",
+                textareaText: "#545454"
+              }}
+              textareaHeight="180px" 
+            />
           </div>
-        )}
 
-        {smartContext && smartContext.context && (
-          <div className="mb-3 p-2 w-full bg-[#fafafa] border border-[#e5e7eb] rounded-md">
-            <h3 className="text-sm font-medium text-[#545454] mb-1">{t.steps.smartContextAdded}</h3>
-            <p className="text-xs text-[#545454] italic truncate">
-              {smartContext.context.substring(0, 100)}
-              {smartContext.context.length > 100 ? "..." : ""}
-            </p>
+          <div className="mt-3 pt-3 border-t">
+            <div className="flex justify-end">
+              <Button onClick={handleAnalyzeWithAuth} disabled={isLoading || !promptText.trim()} variant="aurora" className="ml-2">
+                {isLoading ? t.steps.analyzing : t.prompts.analyze}
+              </Button>
+            </div>
           </div>
-        )}
-
-        <div className="w-full">
-          <PromptInput 
-            value={promptText} 
-            onChange={setPromptText} 
-            onSubmit={handleAnalyzeWithAuth} 
-            className="w-full" 
-            images={uploadedImages} 
-            onImagesChange={handleImagesChange} 
-            isLoading={isLoading} 
-            onOpenUploadDialog={handleOpenUploadDialog} 
-            dialogOpen={dialogOpen} 
-            setDialogOpen={setDialogOpen} 
-            maxLength={maxCharacterLimit} 
-            placeholder={t.steps.promptTextPlaceholder} 
-            customStyles={{
-              textareaBackground: "#fafafa",
-              textareaText: "#545454"
-            }}
-            textareaHeight="180px" 
-          />
-        </div>
-      </div>
-
-      <div className="p-3 border-t mt-auto">
-        <div className="flex justify-end">
-          <Button onClick={handleAnalyzeWithAuth} disabled={isLoading || !promptText.trim()} variant="aurora" className="ml-2">
-            {isLoading ? t.steps.analyzing : t.prompts.analyze}
-          </Button>
         </div>
       </div>
     </div>
