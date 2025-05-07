@@ -26,8 +26,19 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
     !PROTECTED_TEMPLATE_IDS.includes(template.id) && !template.isDefault
   ) || [];
 
+  // Check if current template is a default/system template
   const isCurrentTemplateDefault = currentTemplate && 
     (PROTECTED_TEMPLATE_IDS.includes(currentTemplate.id) || currentTemplate.isDefault);
+
+  // Handle selection from system templates dropdown
+  const handleSystemTemplateSelect = (value: string) => {
+    selectTemplate(value);
+  };
+
+  // Handle selection from user templates dropdown
+  const handleUserTemplateSelect = (value: string) => {
+    selectTemplate(value);
+  };
 
   return (
     <div className="space-y-6">
@@ -35,7 +46,7 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
         {/* System Templates Dropdown */}
         <Select
           value={isCurrentTemplateDefault ? currentTemplate?.id : undefined}
-          onValueChange={(value) => selectTemplate(value)}
+          onValueChange={handleSystemTemplateSelect}
         >
           <SelectTrigger 
             className="w-[220px] bg-[#f2fbf7] border-[#64bf95] hover:border-[#33fea6] transition-colors"
@@ -58,7 +69,7 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
         {/* User Templates Dropdown */}
         <Select
           value={!isCurrentTemplateDefault ? currentTemplate?.id : undefined}
-          onValueChange={(value) => selectTemplate(value)}
+          onValueChange={handleUserTemplateSelect}
         >
           <SelectTrigger 
             className="w-[220px] bg-[#f7f7f7] border-[#acacac] hover:border-[#64bf95] transition-colors"
