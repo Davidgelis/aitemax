@@ -205,12 +205,12 @@ export const StepOneContent = ({
           {/* Smart button controls above templates */}
           <div className="w-full mb-4">
             <div className="flex items-center gap-4 flex-wrap mb-5">
-              <div className="flex flex-row items-center gap-4 flex-1 w-full">
+              <div className="flex flex-row items-center gap-4">
                 <WebScanner onWebsiteScan={handleWebsiteScan} variant="modelReplacement" />
                 <SmartContext onSmartContext={handleSmartContext} variant="modelReplacement" />
                 <button 
                   onClick={handleOpenUploadDialog} 
-                  className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4" 
+                  className="w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4"
                   title="Upload and analyze images with GPT-4o"
                 >
                   <span className="truncate ml-1">{t.steps.imageSmartScan}</span>

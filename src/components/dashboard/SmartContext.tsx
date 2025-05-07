@@ -46,22 +46,28 @@ export const SmartContext = ({
   // Model replacement style button
   if (variant === 'modelReplacement') {
     return (
-      <div className={`w-full mr-auto ${className}`}>
-        <div className="flex items-center">
-          <button 
-            onClick={() => setDialogOpen(true)}
-            className={`w-[220px] h-10 bg-white border border-[#e5e7eb] text-[#545454] hover:bg-[#f8f9fa] flex justify-between items-center shadow-sm text-sm rounded-md px-4 ${
-              hasContext 
-                ? 'shadow-[0_0_5px_0_#33fea6]' 
-                : 'shadow-sm'
+      // shrink-to-fit instead of full-width
+      <div className={`flex-shrink-0 ${className}`}>
+        <button
+          onClick={() => setDialogOpen(true)}
+          className={`
+            w-[220px] h-10
+            bg-white border border-[#e5e7eb]
+            text-[#545454] hover:bg-[#f8f9fa]
+            flex justify-between items-center
+            shadow-sm text-sm rounded-md px-4
+            ${hasContext ? 'shadow-[0_0_5px_0_#33fea6]' : 'shadow-sm'}
+          `}
+          title="Add specific context to enhance your prompt"
+        >
+          <span className="truncate ml-1">Smart Context</span>
+          <MessageSquareText
+            className={`mr-1 h-4 w-4 ${
+              hasContext ? 'text-[#33fea6]' : 'text-[#084b49]'
             }`}
-            title="Add specific context to enhance your prompt"
-          >
-            <span className="truncate ml-1">Smart Context</span>
-            <MessageSquareText className={`mr-1 h-4 w-4 ${hasContext ? 'text-[#33fea6]' : 'text-[#084b49]'}`} />
-          </button>
-        </div>
-        
+          />
+        </button>
+
         <SmartContextDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
