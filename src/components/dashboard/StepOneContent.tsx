@@ -264,7 +264,7 @@ export const StepOneContent = ({
               textareaBackground: "#fafafa",
               textareaText: "#545454"
             }}
-            textareaHeight="180px" 
+            textareaHeight="360px" 
           />
 
           <div className="mt-3 pt-3 border-t">
