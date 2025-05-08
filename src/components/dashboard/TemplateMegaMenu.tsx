@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Info, X } from 'lucide-react';
 import {
   Popover,
@@ -228,7 +228,7 @@ export const TemplateMegaMenu = () => {
     return fw?.id ?? "default";
   }, [templates]);
 
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>("user-templates"); // Set user-templates as default
   const [isOpen, setIsOpen] = useState(false);
 
   // Separate templates into default/system and user-created
@@ -301,6 +301,23 @@ export const TemplateMegaMenu = () => {
         <div className="flex">
           {/* Categories sidebar */}
           <div className="w-[200px] p-2 border-r border-[#64bf95]/20 bg-[#f2fbf7]">
+            {/* Your Templates at the top with white background */}
+            {userTemplates.length > 0 && (
+              <div className="mb-4 px-3 py-2 bg-white rounded-md border border-[#64bf95]/20">
+                <div 
+                  className={cn(
+                    "px-3 py-2 rounded-md text-sm cursor-pointer transition-colors",
+                    activeCategory === "user-templates"
+                      ? "bg-[#084b49] text-white"
+                      : "hover:bg-[#64bf95]/10 text-[#041524]"
+                  )}
+                  onClick={() => setActiveCategory("user-templates")}
+                >
+                  Your Templates
+                </div>
+              </div>
+            )}
+
             <div className="mb-4 px-3 py-2 bg-[#64bf95]/10 rounded-md">
               <div 
                 className="flex items-center gap-2 cursor-pointer py-1 px-2 rounded-md hover:bg-[#33fea6]/20 transition-colors"
@@ -329,6 +346,7 @@ export const TemplateMegaMenu = () => {
                 </TooltipProvider>
               </div>
             </div>
+
             <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
               {templateCategories.map(category => (
                 <div 
@@ -344,21 +362,6 @@ export const TemplateMegaMenu = () => {
                   {category.name}
                 </div>
               ))}
-              
-              {/* Add user templates as a category */}
-              {userTemplates.length > 0 && (
-                <div 
-                  className={cn(
-                    "px-3 py-2 rounded-md text-sm cursor-pointer transition-colors",
-                    activeCategory === "user-templates"
-                      ? "bg-[#084b49] text-white"
-                      : "hover:bg-[#64bf95]/10 text-[#041524]"
-                  )}
-                  onClick={() => setActiveCategory("user-templates")}
-                >
-                  Your Templates
-                </div>
-              )}
             </div>
           </div>
           
