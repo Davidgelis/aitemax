@@ -239,7 +239,7 @@ export function useTemplateManagement() {
     subId: string | null = null
   ) => {
     try {
-      console.log(`useTemplateManagement: Selecting template with ID: ${templateId}`);
+      console.log(`useTemplateManagement: Selecting template with ID: ${templateId}, source: ${source}, subId: ${subId}`);
       
       setLastSource(source);              // single source of truth
       setSystemState({ subId: source === "system" ? subId : null });

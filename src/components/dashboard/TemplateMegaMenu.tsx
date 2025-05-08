@@ -244,13 +244,19 @@ export const TemplateMegaMenu = () => {
 
   // clicking any system template OR the framework line
   const handleTemplateSelect = (templateId: string, isUserTemplate = false) => {
+    // Log current selection for debugging
+    console.log(`TemplateMegaMenu: handleTemplateSelect called with ${templateId}, isUserTemplate=${isUserTemplate}`);
+    
     if (templateId === frameworkId) {
+      console.log(`TemplateMegaMenu: Selecting base framework template`);
       selectTemplate(frameworkId, "system", null);      // bare framework
     } else if (isUserTemplate) {
+      console.log(`TemplateMegaMenu: Selecting user template ${templateId}`);
       selectTemplate(templateId, "user", null);         // user template
     } else {
       // Check if this subcategory has specialized pillars
       const hasSpecializedPillars = templatePillarsMap[templateId] !== undefined;
+      console.log(`TemplateMegaMenu: Selecting system subcategory ${templateId}, hasSpecializedPillars=${hasSpecializedPillars}`);
       selectTemplate(frameworkId, "system", templateId); // system sub-template
       
       if (hasSpecializedPillars) {
