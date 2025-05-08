@@ -308,8 +308,8 @@ export const TemplateMegaMenu = () => {
                   className={cn(
                     "px-3 py-2 rounded-md text-sm cursor-pointer transition-colors",
                     activeCategory === "user-templates"
-                      ? "bg-[#084b49] text-white"
-                      : "hover:bg-[#64bf95]/10 text-[#041524]"
+                      ? "bg-white text-gray-500 border border-gray-300" // Changed styling here
+                      : "hover:bg-white hover:text-[#33fea6] hover:border hover:border-[#33fea6] text-gray-500 border border-gray-300" // Changed hover styling
                   )}
                   onClick={() => setActiveCategory("user-templates")}
                 >
