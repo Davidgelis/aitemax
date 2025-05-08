@@ -1,6 +1,3 @@
-
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 import { PillarType } from "@/components/x-templates/XTemplateCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +5,9 @@ import { useNavigate } from "react-router-dom";
 import { FileText } from "lucide-react";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { PROTECTED_TEMPLATE_IDS } from "@/components/dashboard/constants";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useTemplateManagement } from "@/hooks/useTemplateManagement";
+import { TemplateMegaMenu } from "./TemplateMegaMenu";
 
 interface TemplateSelectorProps {
   className?: string;
@@ -30,11 +30,6 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
   const isCurrentTemplateDefault = currentTemplate && 
     (PROTECTED_TEMPLATE_IDS.includes(currentTemplate.id) || currentTemplate.isDefault);
 
-  // Handle selection from system templates dropdown
-  const handleSystemTemplateSelect = (value: string) => {
-    selectTemplate(value);
-  };
-
   // Handle selection from user templates dropdown
   const handleUserTemplateSelect = (value: string) => {
     selectTemplate(value);
@@ -43,30 +38,10 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 flex-wrap">
-        {/* System Templates Dropdown */}
-        <Select
-          value={isCurrentTemplateDefault ? currentTemplate?.id : undefined}
-          onValueChange={handleSystemTemplateSelect}
-        >
-          <SelectTrigger 
-            className="w-[220px] bg-[#f2fbf7] border-[#64bf95] hover:border-[#33fea6] transition-colors"
-          >
-            <SelectValue placeholder="System Templates" />
-          </SelectTrigger>
-          <SelectContent>
-            {defaultTemplates.map((template) => (
-              <SelectItem 
-                key={template.id} 
-                value={template.id}
-                className="hover:bg-white hover:text-[#33fea6] transition-colors"
-              >
-                {template.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* System Templates Mega Menu - Replacing the dropdown */}
+        <TemplateMegaMenu />
 
-        {/* User Templates Dropdown */}
+        {/* User Templates Dropdown - Keep this unchanged */}
         <Select
           value={!isCurrentTemplateDefault ? currentTemplate?.id : undefined}
           onValueChange={handleUserTemplateSelect}
