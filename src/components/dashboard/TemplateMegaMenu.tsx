@@ -252,6 +252,17 @@ export const TemplateMegaMenu = () => {
     setIsOpen(false);
   };
 
+  /* ----------------------------------------------------------------
+     Whenever the *right* dropdown wins (lastSource === "user")
+     we blank out any stored sub-template immediately.  This avoids
+     the one-render lag that was letting "Code Creation" stick around.
+  ---------------------------------------------------------------- */
+  useEffect(() => {
+    if (lastSource === "user" && systemSelection !== null) {
+      setSystemSelection(null);
+    }
+  }, [lastSource, systemSelection]);
+
   useEffect(() => {
     /* Any time we leave the framework, *or* return to it without a
        sub-template, wipe the sub-selection so the left button text
@@ -269,8 +280,8 @@ export const TemplateMegaMenu = () => {
   // Build the button label (mega-menu trigger text)
   // -----------------------------------------------
   const buttonLabel = useMemo(() => {
-    /* 1️⃣ if a system sub-template is active, show its title */
-    if (systemSelection) {
+    /* 1️⃣ show sub-template ONLY if the mega-menu was picked last */
+    if (lastSource === "system" && systemSelection) {
       for (const cat of templateCategories) {
         const match = cat.subcategories.find(s => s.id === systemSelection);
         if (match) return match.title;
@@ -285,7 +296,7 @@ export const TemplateMegaMenu = () => {
     /* 3️⃣ if the user dropdown picked last -> placeholder */
     if (lastSource === "user") return "X Templates";
 
-    /* should never hit here, but stay defensive */
+    /* fallback (defensive)                              */
     return "Aitema X Framework";
   }, [systemSelection, currentTemplate?.id, frameworkId, lastSource]);
 
