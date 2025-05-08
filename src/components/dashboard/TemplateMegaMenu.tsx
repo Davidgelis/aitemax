@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Info, X } from 'lucide-react';
 import {
@@ -251,13 +252,18 @@ export const TemplateMegaMenu = () => {
     setIsOpen(false);
   };
 
-  /* Clear *any* stored sub-template when the user picks a template
-     whose id ≠ frameworkId (i.e. from "Your Templates"). */
   useEffect(() => {
-    if (currentTemplate && currentTemplate.id !== frameworkId) {
+    /* Any time we leave the framework, *or* return to it without a
+       sub-template, wipe the sub-selection so the left button text
+       falls back to "X Templates".                                 */
+    if (
+      !currentTemplate ||
+      currentTemplate.id !== frameworkId ||
+      currentTemplate.isDefault
+    ) {
       setSystemSelection(null);
     }
-  }, [currentTemplate?.id, frameworkId]);
+  }, [currentTemplate?.id, currentTemplate?.isDefault, frameworkId]);
 
   // -----------------------------------------------
   // Build the button label (mega-menu trigger text)
