@@ -237,16 +237,32 @@ export const TemplateMegaMenu = () => {
   // derive the button label purely from our local map
   const buttonLabel = React.useMemo(() => {
     if (!selectedId) return "System Templates";
+    
+    // Check if this is a custom X template
+    const isCustomTemplate = templates?.some(t => 
+      t.id === selectedId && 
+      t.id !== AITEMA_X_FRAMEWORK_ID && 
+      !templateCategories.some(cat => 
+        cat.subcategories.some(sub => sub.id === selectedId)
+      )
+    );
+    
+    if (isCustomTemplate) {
+      return "X Templates";
+    }
+    
     if (selectedId === AITEMA_X_FRAMEWORK_ID) {
       return "Aitema X Framework";
     }
+    
     for (const cat of templateCategories) {
       const m = cat.subcategories.find(s => s.id === selectedId);
       if (m) return m.title;
     }
+    
     // last resort
     return selectedId;
-  }, [selectedId]);
+  }, [selectedId, templates]);
 
   // Find the Aitema X Framework template in the templates list
   const aitemaXTemplate = templates?.find(template => template.id === AITEMA_X_FRAMEWORK_ID);
