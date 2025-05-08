@@ -4,8 +4,7 @@ import { Info, X } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger,
-  PopoverClose
+  PopoverTrigger
 } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -277,11 +276,15 @@ export const TemplateMegaMenu = () => {
                   ? templateCategories.find(c => c.id === activeCategory)?.name 
                   : "Select a Category"}
               </h3>
-              <PopoverClose asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <X className="h-4 w-4" />
-                </Button>
-              </PopoverClose>
+              {/* Custom close button */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+                onClick={() => setIsOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
             
             {activeCategory ? (
