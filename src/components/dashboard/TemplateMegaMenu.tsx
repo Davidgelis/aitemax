@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Info, X } from 'lucide-react';
 import {
   Popover,
@@ -213,40 +213,72 @@ const AITEMA_X_DESCRIPTION =
   "The Aitema X default multi-pillar framework – build structured prompts fast with variables and step logic.";
 
 export const TemplateMegaMenu = () => {
-  // single source of truth
+  // single source of truth from the global hook
   const { selectTemplate, templates, currentTemplate } = useTemplateManagement();
+
+  /* ----------------------------------------------------------------
+     Local state that remembers a system sub-template picked from
+     the mega-menu (e.g. "code-creation").  It's cleared whenever
+     the user picks any *user* template from the other dropdown.
+  ---------------------------------------------------------------- */
+  const [systemSelection, setSystemSelection] = useState<string | null>(null);
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  // clicking any system‐template or framework entry
+  // clicking any system-template or framework entry
   const handleTemplateSelect = (templateId: string) => {
-    selectTemplate(templateId);
+    if (templateId === AITEMA_X_FRAMEWORK_ID) {
+      /* They clicked the framework line: treat as "no sub-selection" */
+      setSystemSelection(null);
+      selectTemplate(AITEMA_X_FRAMEWORK_ID);
+    } else {
+      /* They clicked a system sub-template */
+      setSystemSelection(templateId);
+      /* keep the underlying template as the framework for now
+         (functionality will be wired later)                           */
+      selectTemplate(AITEMA_X_FRAMEWORK_ID);
+    }
     setIsOpen(false);
   };
 
-  // derive the single button label from currentTemplate.id
-  const buttonLabel = useMemo(() => {
-    if (!currentTemplate?.id) {
-      return "System Templates";
+  /* If the user picks a *user* template from the other dropdown,
+     clear any systemSelection so the mega-menu shows "X Templates". */
+  useEffect(() => {
+    if (
+      currentTemplate &&
+      currentTemplate.id !== AITEMA_X_FRAMEWORK_ID &&           // not the framework
+      !templateCategories.some(cat =>
+        cat.subcategories.some(sub => sub.id === currentTemplate.id)
+      )
+    ) {
+      setSystemSelection(null);
     }
-    if (currentTemplate.id === AITEMA_X_FRAMEWORK_ID) {
-      return "Aitema X Framework";
-    }
-    // look for a matching system subcategory
-    for (const cat of templateCategories) {
-      const match = cat.subcategories.find(s => s.id === currentTemplate.id);
-      if (match) {
-        return match.title;
-      }
-    }
-    // otherwise it's your own template
-    return "X Templates";
-  // 🔑 only re-run when the ID actually changes
   }, [currentTemplate?.id]);
 
+  // -----------------------------------------------
+  // Build the button label (mega-menu trigger text)
+  // -----------------------------------------------
+  const buttonLabel = useMemo(() => {
+    /* 1️⃣ if a system sub-template is active, show its title */
+    if (systemSelection) {
+      for (const cat of templateCategories) {
+        const match = cat.subcategories.find(s => s.id === systemSelection);
+        if (match) return match.title;
+      }
+    }
+
+    /* 2️⃣ show framework name */
+    if (currentTemplate?.id === AITEMA_X_FRAMEWORK_ID) {
+      return "Aitema X Framework";
+    }
+
+    /* 3️⃣ no system selection + not framework ⇒ user template */
+    return "X Templates";
+  }, [systemSelection, currentTemplate?.id]);
+
   // Find the Aitema X Framework template in the templates list
-  const aitemaXTemplate = templates?.find(template => template.id === AITEMA_X_FRAMEWORK_ID);
+  const aitemaXTemplate = templates?.find(t => t.id === AITEMA_X_FRAMEWORK_ID);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
