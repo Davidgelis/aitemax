@@ -216,7 +216,7 @@ export const TemplateMegaMenu = () => {
   // Handle template selection
   const handleTemplateSelect = (templateId: string) => {
     selectTemplate(templateId);
-    setIsOpen(false);
+    setIsOpen(false);  // Close the menu after selection
   };
 
   // Find the Aitema X Framework template in the templates list
@@ -244,7 +244,11 @@ export const TemplateMegaMenu = () => {
             <div className="mb-4 px-3 py-2 bg-[#64bf95]/10 rounded-md">
               <div 
                 className="flex items-center gap-2 cursor-pointer py-1 px-2 rounded-md hover:bg-[#33fea6]/20 transition-colors"
-                onClick={() => aitemaXTemplate && handleTemplateSelect(aitemaXTemplate.id)}
+                onClick={() => {
+                  if (aitemaXTemplate) {
+                    handleTemplateSelect(aitemaXTemplate.id);
+                  }
+                }}
               >
                 <div className="w-2 h-2 rounded-full bg-[#33fea6]"></div>
                 <span className="font-medium text-[#041524]">Aitema X Framework</span>
