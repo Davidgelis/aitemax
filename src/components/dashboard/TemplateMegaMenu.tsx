@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Info, X } from 'lucide-react';
 import {
@@ -230,35 +231,38 @@ export const TemplateMegaMenu = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
+  // Separate templates into default/system and user-created
+  const userTemplates = useMemo(() => 
+    templates?.filter(template => 
+      !template.isDefault && 
+      !templateCategories.some(cat => 
+        cat.subcategories.some(sub => sub.id === template.id)
+      )
+    ) || [], 
+  [templates]);
+
   // clicking any system template OR the framework line
-  const handleTemplateSelect = (templateId: string) => {
+  const handleTemplateSelect = (templateId: string, isUserTemplate = false) => {
     if (templateId === frameworkId) {
       selectTemplate(frameworkId, "system", null);      // bare framework
+    } else if (isUserTemplate) {
+      selectTemplate(templateId, "user", null);         // user template
     } else {
-      /* user clicked a sub-category -> keep its id */
-      selectTemplate(frameworkId, "system", templateId);
+      selectTemplate(frameworkId, "system", templateId); // system sub-template
     }
     setIsOpen(false);
   };
-
-  useEffect(() => {
-    /* Any time we leave the framework, *or* return to it without a
-       sub-template, wipe the sub-selection so the left button text
-       falls back to "X Templates".                                 */
-    if (
-      !currentTemplate ||
-      currentTemplate.id !== frameworkId ||
-      currentTemplate.isDefault
-    ) {
-      // No need to call setSystemSelection as it's now managed in the hook
-    }
-  }, [currentTemplate?.id, currentTemplate?.isDefault, frameworkId]);
 
   // -----------------------------------------------
   // Build the button label (mega-menu trigger text)
   // -----------------------------------------------
   const buttonLabel = useMemo(() => {
-    /* 1️⃣ show sub-template ONLY if the mega-menu was picked last */
+    // If a user template is selected
+    if (lastSource === "user" && currentTemplate && !currentTemplate.isDefault) {
+      return currentTemplate.name;
+    }
+
+    /* Show sub-template ONLY if the mega-menu was picked last */
     if (lastSource === "system" && systemState.subId) {
       for (const cat of templateCategories) {
         const match = cat.subcategories.find(s => s.id === systemState.subId);
@@ -266,17 +270,14 @@ export const TemplateMegaMenu = () => {
       }
     }
 
-    /* 2️⃣ show framework name */
+    /* Show framework name */
     if (currentTemplate?.id === frameworkId) {
       return "Aitema X Framework";
     }
 
-    /* 3️⃣ if the user dropdown picked last -> placeholder */
-    if (lastSource === "user") return "X Templates";
-
-    /* fallback (defensive)                              */
-    return "Aitema X Framework";
-  }, [systemState.subId, currentTemplate?.id, frameworkId, lastSource]);
+    /* Fallback (defensive) */
+    return "X Templates";
+  }, [systemState.subId, currentTemplate, frameworkId, lastSource]);
 
   // Find the Aitema X Framework template in the templates list
   const aitemaXTemplate = templates?.find(t => t.id === frameworkId);
@@ -343,6 +344,21 @@ export const TemplateMegaMenu = () => {
                   {category.name}
                 </div>
               ))}
+              
+              {/* Add user templates as a category */}
+              {userTemplates.length > 0 && (
+                <div 
+                  className={cn(
+                    "px-3 py-2 rounded-md text-sm cursor-pointer transition-colors",
+                    activeCategory === "user-templates"
+                      ? "bg-[#084b49] text-white"
+                      : "hover:bg-[#64bf95]/10 text-[#041524]"
+                  )}
+                  onClick={() => setActiveCategory("user-templates")}
+                >
+                  Your Templates
+                </div>
+              )}
             </div>
           </div>
           
@@ -350,9 +366,11 @@ export const TemplateMegaMenu = () => {
           <div className="flex-1 p-4 max-h-[450px] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-[#084b49]">
-                {activeCategory 
-                  ? templateCategories.find(c => c.id === activeCategory)?.name 
-                  : "Select a Category"}
+                {activeCategory === "user-templates" 
+                  ? "Your Templates"
+                  : activeCategory 
+                    ? templateCategories.find(c => c.id === activeCategory)?.name 
+                    : "Select a Category"}
               </h3>
               {/* Custom close button */}
               <Button 
@@ -365,7 +383,26 @@ export const TemplateMegaMenu = () => {
               </Button>
             </div>
             
-            {activeCategory ? (
+            {activeCategory === "user-templates" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {userTemplates.map(template => (
+                  <div 
+                    key={template.id}
+                    className="flex items-center gap-2 p-3 rounded-lg border border-[#64bf95]/30 hover:border-[#33fea6] hover:bg-[#f2fbf7] transition-all cursor-pointer"
+                    onClick={() => handleTemplateSelect(template.id, true)}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium">{template.name}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {template.pillars?.length || 0} pillars • Created: {template.createdAt}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : activeCategory ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {templateCategories
                   .find(c => c.id === activeCategory)
