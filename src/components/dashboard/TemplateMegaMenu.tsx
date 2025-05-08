@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Info, X } from 'lucide-react';
 import {
@@ -213,7 +212,7 @@ const AITEMA_X_DESCRIPTION =
 
 export const TemplateMegaMenu = () => {
   // single source of truth from the global hook
-  const { selectTemplate, templates, currentTemplate, lastSource } = useTemplateManagement();
+  const { selectTemplate, templates, currentTemplate, lastSource, systemState } = useTemplateManagement();
 
   /* ----------------------------------------------------------------
      Detect the real framework template ID dynamically (first match
@@ -228,40 +227,19 @@ export const TemplateMegaMenu = () => {
     return fw?.id ?? "default";
   }, [templates]);
 
-  /* ----------------------------------------------------------------
-     Local state that remembers a system sub-template picked from
-     the mega-menu (e.g. "code-creation").  It's cleared whenever
-     the user picks any *user* template from the other dropdown.
-  ---------------------------------------------------------------- */
-  const [systemSelection, setSystemSelection] = useState<string | null>(null);
-
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
   // clicking any system template OR the framework line
   const handleTemplateSelect = (templateId: string) => {
     if (templateId === frameworkId) {
-      /* They clicked the framework line */
-      setSystemSelection(null);            // always clear sub-selection
-      selectTemplate(frameworkId, "system");
+      selectTemplate(frameworkId, "system", null);      // bare framework
     } else {
-      /* They clicked a system sub-template */
-      setSystemSelection(templateId);
-      selectTemplate(frameworkId, "system");
+      /* user clicked a sub-category -> keep its id */
+      selectTemplate(frameworkId, "system", templateId);
     }
     setIsOpen(false);
   };
-
-  /* ----------------------------------------------------------------
-     Whenever the *right* dropdown wins (lastSource === "user")
-     we blank out any stored sub-template immediately.  This avoids
-     the one-render lag that was letting "Code Creation" stick around.
-  ---------------------------------------------------------------- */
-  useEffect(() => {
-    if (lastSource === "user" && systemSelection !== null) {
-      setSystemSelection(null);
-    }
-  }, [lastSource, systemSelection]);
 
   useEffect(() => {
     /* Any time we leave the framework, *or* return to it without a
@@ -272,7 +250,7 @@ export const TemplateMegaMenu = () => {
       currentTemplate.id !== frameworkId ||
       currentTemplate.isDefault
     ) {
-      setSystemSelection(null);
+      // No need to call setSystemSelection as it's now managed in the hook
     }
   }, [currentTemplate?.id, currentTemplate?.isDefault, frameworkId]);
 
@@ -281,9 +259,9 @@ export const TemplateMegaMenu = () => {
   // -----------------------------------------------
   const buttonLabel = useMemo(() => {
     /* 1️⃣ show sub-template ONLY if the mega-menu was picked last */
-    if (lastSource === "system" && systemSelection) {
+    if (lastSource === "system" && systemState.subId) {
       for (const cat of templateCategories) {
-        const match = cat.subcategories.find(s => s.id === systemSelection);
+        const match = cat.subcategories.find(s => s.id === systemState.subId);
         if (match) return match.title;
       }
     }
@@ -298,7 +276,7 @@ export const TemplateMegaMenu = () => {
 
     /* fallback (defensive)                              */
     return "Aitema X Framework";
-  }, [systemSelection, currentTemplate?.id, frameworkId, lastSource]);
+  }, [systemState.subId, currentTemplate?.id, frameworkId, lastSource]);
 
   // Find the Aitema X Framework template in the templates list
   const aitemaXTemplate = templates?.find(t => t.id === frameworkId);

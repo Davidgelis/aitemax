@@ -24,6 +24,11 @@ export interface TemplateType {
 
 export type TemplateSource = "system" | "user";
 
+// ---- NEW: remember which system sub-template is chosen -------------
+interface SystemState {
+  subId: string | null        // e.g. "code-creation"
+}
+
 // Default template as fallback
 const DEFAULT_TEMPLATE: TemplateType = {
   id: "default",
@@ -62,6 +67,7 @@ export function useTemplateManagement() {
   const [templates, setTemplates] = useState<TemplateType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastSource, setLastSource] = useState<TemplateSource>("system");
+  const [systemState, setSystemState] = useState<SystemState>({ subId: null });
   const { toast } = useToast();
 
   // Helper for deep template validation
@@ -220,15 +226,22 @@ export function useTemplateManagement() {
     fetchAndSetTemplates();
   }, [toast]);
   
-  // Function to select a template
-  const selectTemplate = async (templateId: string, source: TemplateSource = "system") => {
+  /**
+   * @param templateId   id of the *real* template to load (framework id or user id)
+   * @param source       who triggered the change ("system" | "user")
+   * @param subId        if source === "system" and user clicked a sub-category,
+   *                     pass its id so we can show it on the button
+   */
+  const selectTemplate = async (
+    templateId: string,
+    source: TemplateSource = "system",
+    subId: string | null = null
+  ) => {
     try {
       console.log(`useTemplateManagement: Selecting template with ID: ${templateId}`);
       
-      // ---------------------------------------------------------------------------------
-      // One line that solves the "who picked last?" ambiguity for every component.
-      // ---------------------------------------------------------------------------------
-      setLastSource(source);
+      setLastSource(source);              // single source of truth
+      setSystemState({ subId: source === "system" ? subId : null });
       
       // Store the selection in localStorage
       window.localStorage.setItem('selectedTemplateId', templateId);
@@ -313,6 +326,7 @@ export function useTemplateManagement() {
     isLoading,
     selectTemplate,
     lastSource,
+    systemState,          // <- expose it
     getCurrentTemplate,
     validateTemplate
   };

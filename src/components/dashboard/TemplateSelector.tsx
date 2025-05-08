@@ -8,7 +8,6 @@ import { PROTECTED_TEMPLATE_IDS } from "@/components/dashboard/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 import { TemplateMegaMenu } from "./TemplateMegaMenu";
-import { useState, useEffect } from "react";
 
 interface TemplateSelectorProps {
   className?: string;
@@ -34,25 +33,8 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
      PROTECTED_TEMPLATE_IDS.includes(currentTemplate.id) ||
      currentTemplate.isDefault);
 
-  /* ----------------------------------------------------------------
-     Local state that *solely* controls the Radix <Select>.
-     undefined → placeholder "Your Templates"
-     "abc-123" → that user template's id (shows the name)
-  ---------------------------------------------------------------- */
-  const [userSelectValue, setUserSelectValue] = useState<string | undefined>(
-    lastSource === "user" ? currentTemplate?.id : undefined
-  );
-
-  /* Sync it with the real template every time the selection changes */
-  useEffect(() => {
-    if (!currentTemplate) return;
-
-    if (lastSource === "user") {
-      setUserSelectValue(currentTemplate.id);
-    } else {
-      setUserSelectValue(undefined);   // show "Your Templates"
-    }
-  }, [currentTemplate, lastSource]);
+  // pure derived value – no local state needed
+  const userSelectValue = lastSource === "user" ? currentTemplate?.id : undefined;
 
   // Handle selection from user templates dropdown
   const handleUserTemplateSelect = (value: string) => {
@@ -71,8 +53,7 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
           key={userSelectValue ?? "placeholder"}
           value={userSelectValue}
           onValueChange={(val) => {
-            setUserSelectValue(val);       // instant UI feedback
-            handleUserTemplateSelect(val); // global change
+            handleUserTemplateSelect(val); // global change (+hook will re-render)
           }}
         >
           <SelectTrigger 
