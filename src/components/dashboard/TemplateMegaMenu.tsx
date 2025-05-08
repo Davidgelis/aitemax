@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { X } from 'lucide-react';
 import {
@@ -39,7 +38,7 @@ const templateTags: TemplateTags = {
   "data-executive-summary": ["Key Metrics", "Business Impact", "Decision Points", "Next Steps"],
   
   // Code
-  "code-creation": ["Requirements", "Language", "Architecture", "Dependencies"],
+  "code-creation": ["Language & Framework", "Functionality", "Style & Best Practices", "Documentation"],
   "code-debugging": ["Error Message", "Environment", "Expected Behavior", "Code Sample"],
   
   // Business
@@ -348,19 +347,7 @@ export const TemplateMegaMenu = () => {
   // Find the Aitema X Framework template in the templates list
   const aitemaXTemplate = templates?.find(t => t.id === frameworkId);
 
-  // Helper to get pillars for a specific template/subcategory
-  const getPillarsForTemplate = (templateId: string) => {
-    // Get specialized pillars if they exist
-    if (templatePillarsMap[templateId]) {
-      return templatePillarsMap[templateId].pillars;
-    }
-    
-    // For user templates, return their own pillars
-    const template = templates?.find(t => t.id === templateId);
-    return template?.pillars || [];
-  };
-
-  // Helper to get template tags
+  // Helper to get tags for a specific template/subcategory
   const getTemplateTags = (templateId: string) => {
     return templateTags[templateId] || [];
   };
@@ -554,9 +541,7 @@ export const TemplateMegaMenu = () => {
                   {templateCategories
                     .find(c => c.id === activeCategory)
                     ?.subcategories.map(subcategory => {
-                      // Get pillars for this subcategory
-                      const pillars = getPillarsForTemplate(subcategory.id);
-                      // Get template tags
+                      // Get template tags - these will replace the redundant pillars
                       const tags = getTemplateTags(subcategory.id);
                       
                       return (
@@ -572,27 +557,10 @@ export const TemplateMegaMenu = () => {
                             </p>
                           </div>
                           
-                          {/* Display pillars for the subcategory */}
-                          {pillars && pillars.length > 0 && (
-                            <div className="mt-3">
-                              <p className="text-xs text-gray-500 mb-1">Template Pillars:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {pillars.map((pillar, index) => (
-                                  <Badge 
-                                    key={index}
-                                    variant="outline" 
-                                    className="bg-[#64bf95]/10 text-xs"
-                                  >
-                                    {pillar.title}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Display template tags if available */}
+                          {/* Display template tags if available - this uses the tag system from templateTags */}
                           {tags && tags.length > 0 && (
                             <div className="mt-3">
+                              <p className="text-xs text-gray-500 mb-1">Template Pillars:</p>
                               <div className="flex flex-wrap gap-2">
                                 {tags.map((tag, index) => (
                                   <Badge 
