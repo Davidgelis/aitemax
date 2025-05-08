@@ -37,10 +37,12 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
 
   /* ----------------------------------------------------------------
      Local state that *solely* controls the Radix <Select>.
-     ""        → placeholder "Your Templates"
-     "abc-123" → that user template's name
+     undefined → placeholder "Your Templates"
+     "abc-123" → that user template's id (shows the name)
   ---------------------------------------------------------------- */
-  const [userSelectValue, setUserSelectValue] = useState<string>("");
+  const [userSelectValue, setUserSelectValue] = useState<string | undefined>(
+    undefined
+  );
 
   /* Sync it with the real template every time the selection changes */
   useEffect(() => {
@@ -51,7 +53,7 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
       !PROTECTED_TEMPLATE_IDS.includes(currentTemplate.id) &&
       !currentTemplate.isDefault;
 
-    setUserSelectValue(isUserTemplate ? currentTemplate.id : "");
+    setUserSelectValue(isUserTemplate ? currentTemplate.id : undefined);
   }, [currentTemplate?.id, frameworkId]);
 
   // Handle selection from user templates dropdown
@@ -68,7 +70,7 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
         {/* User Templates Dropdown - Keep this unchanged */}
         <Select
           /* key forces a fresh mount when we flip back to placeholder */
-          key={userSelectValue === "" ? "placeholder" : userSelectValue}
+          key={userSelectValue ?? "placeholder"}
           value={userSelectValue}
           onValueChange={(val) => {
             setUserSelectValue(val);       // instant UI feedback
