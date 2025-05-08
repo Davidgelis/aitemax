@@ -1,3 +1,4 @@
+
 import { PillarType } from "@/components/x-templates/XTemplateCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,8 +34,13 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
      PROTECTED_TEMPLATE_IDS.includes(currentTemplate.id) ||
      currentTemplate.isDefault);
 
-  // shadcn Select clears only when value === undefined
-  const selectValue = !isCurrentTemplateDefault ? currentTemplate?.id : undefined;
+  /* ---------------------------------------------------------------
+     Keep <Select> *controlled* at all times:
+     – When a user template is active ➜ its id (string)
+     – Otherwise                   ➜ empty string ""
+       (Radix UI treats "" as "no selection" but still controlled)
+  ---------------------------------------------------------------- */
+  const selectValue = !isCurrentTemplateDefault ? currentTemplate?.id ?? "" : "";
 
   // Handle selection from user templates dropdown
   const handleUserTemplateSelect = (value: string) => {
@@ -49,6 +55,9 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
 
         {/* User Templates Dropdown - Keep this unchanged */}
         <Select
+          /* Changing between "" ↔ actual id makes Radix show / hide
+             the placeholder without losing controlled mode.        */
+          key={selectValue === "" ? "placeholder" : selectValue}
           value={selectValue}
           onValueChange={handleUserTemplateSelect}
         >
