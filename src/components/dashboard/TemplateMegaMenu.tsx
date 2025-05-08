@@ -215,6 +215,23 @@ const AITEMA_X_DESCRIPTION =
 export const TemplateMegaMenu = () => {
   /* bring in the currentTemplate so we can preview it on the button */
   const { selectTemplate, templates, currentTemplate } = useTemplateManagement();
+
+  // derive a label that works for both the default and sub-categories
+  const buttonLabel = React.useMemo(() => {
+    if (!currentTemplate) return "System Templates";
+    // default framework
+    if (currentTemplate.id === AITEMA_X_FRAMEWORK_ID) {
+      return "Aitema X Framework";
+    }
+    // find matching subcategory title
+    for (let cat of templateCategories) {
+      const sub = cat.subcategories.find(s => s.id === currentTemplate.id);
+      if (sub) return sub.title;
+    }
+    // fallback if your template object has a .name
+    return currentTemplate.name ?? "System Templates";
+  }, [currentTemplate]);
+
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -234,8 +251,7 @@ export const TemplateMegaMenu = () => {
           variant="outline"
           className="w-[220px] justify-between bg-[#f2fbf7] border-[#64bf95] hover:border-[#33fea6] transition-colors"
         >
-          {/* show selection preview */}
-          {currentTemplate ? currentTemplate.name : "System Templates"}
+          {buttonLabel}
           <span className="ml-2 opacity-60">▼</span>
         </Button>
       </PopoverTrigger>
