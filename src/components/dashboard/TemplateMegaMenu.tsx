@@ -213,7 +213,7 @@ const AITEMA_X_DESCRIPTION =
 
 export const TemplateMegaMenu = () => {
   // single source of truth from the global hook
-  const { selectTemplate, templates, currentTemplate } = useTemplateManagement();
+  const { selectTemplate, templates, currentTemplate, lastSource } = useTemplateManagement();
 
   /* ----------------------------------------------------------------
      Detect the real framework template ID dynamically (first match
@@ -243,11 +243,11 @@ export const TemplateMegaMenu = () => {
     if (templateId === frameworkId) {
       /* They clicked the framework line */
       setSystemSelection(null);            // always clear sub-selection
-      selectTemplate(frameworkId);
+      selectTemplate(frameworkId, "system");
     } else {
       /* They clicked a system sub-template */
       setSystemSelection(templateId);
-      selectTemplate(frameworkId);
+      selectTemplate(frameworkId, "system");
     }
     setIsOpen(false);
   };
@@ -282,9 +282,12 @@ export const TemplateMegaMenu = () => {
       return "Aitema X Framework";
     }
 
-    /* 3️⃣ no system selection + not framework ⇒ user template */
-    return "X Templates";
-  }, [systemSelection, currentTemplate?.id, frameworkId]);
+    /* 3️⃣ if the user dropdown picked last -> placeholder */
+    if (lastSource === "user") return "X Templates";
+
+    /* should never hit here, but stay defensive */
+    return "Aitema X Framework";
+  }, [systemSelection, currentTemplate?.id, frameworkId, lastSource]);
 
   // Find the Aitema X Framework template in the templates list
   const aitemaXTemplate = templates?.find(t => t.id === frameworkId);

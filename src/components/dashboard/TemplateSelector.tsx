@@ -1,4 +1,3 @@
-
 import { PillarType } from "@/components/x-templates/XTemplateCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ interface TemplateSelectorProps {
 }
 
 export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
-  const { currentTemplate, selectTemplate, templates } = useTemplateManagement();
+  const { currentTemplate, selectTemplate, templates, lastSource } = useTemplateManagement();
   const navigate = useNavigate();
 
   // Separate templates into default/system and user-created
@@ -41,24 +40,23 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
      "abc-123" → that user template's id (shows the name)
   ---------------------------------------------------------------- */
   const [userSelectValue, setUserSelectValue] = useState<string | undefined>(
-    undefined
+    lastSource === "user" ? currentTemplate?.id : undefined
   );
 
   /* Sync it with the real template every time the selection changes */
   useEffect(() => {
     if (!currentTemplate) return;
 
-    const isUserTemplate =
-      currentTemplate.id !== frameworkId &&
-      !PROTECTED_TEMPLATE_IDS.includes(currentTemplate.id) &&
-      !currentTemplate.isDefault;
-
-    setUserSelectValue(isUserTemplate ? currentTemplate.id : undefined);
-  }, [currentTemplate, frameworkId]);   // 🔧 track object ref too
+    if (lastSource === "user") {
+      setUserSelectValue(currentTemplate.id);
+    } else {
+      setUserSelectValue(undefined);   // show "Your Templates"
+    }
+  }, [currentTemplate, lastSource]);
 
   // Handle selection from user templates dropdown
   const handleUserTemplateSelect = (value: string) => {
-    selectTemplate(value);
+    selectTemplate(value, "user");
   };
 
   return (

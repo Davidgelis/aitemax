@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,8 @@ export interface TemplateType {
   isDefault?: boolean;
   createdAt: string;
 }
+
+export type TemplateSource = "system" | "user";
 
 // Default template as fallback
 const DEFAULT_TEMPLATE: TemplateType = {
@@ -58,6 +61,7 @@ export function useTemplateManagement() {
   const [currentTemplate, setCurrentTemplate] = useState<TemplateType | null>(null);
   const [templates, setTemplates] = useState<TemplateType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastSource, setLastSource] = useState<TemplateSource>("system");
   const { toast } = useToast();
 
   // Helper for deep template validation
@@ -217,9 +221,14 @@ export function useTemplateManagement() {
   }, [toast]);
   
   // Function to select a template
-  const selectTemplate = async (templateId: string) => {
+  const selectTemplate = async (templateId: string, source: TemplateSource = "system") => {
     try {
       console.log(`useTemplateManagement: Selecting template with ID: ${templateId}`);
+      
+      // ---------------------------------------------------------------------------------
+      // One line that solves the "who picked last?" ambiguity for every component.
+      // ---------------------------------------------------------------------------------
+      setLastSource(source);
       
       // Store the selection in localStorage
       window.localStorage.setItem('selectedTemplateId', templateId);
@@ -303,6 +312,7 @@ export function useTemplateManagement() {
     templates,
     isLoading,
     selectTemplate,
+    lastSource,
     getCurrentTemplate,
     validateTemplate
   };
