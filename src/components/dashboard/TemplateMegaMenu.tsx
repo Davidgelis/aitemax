@@ -323,64 +323,72 @@ export const TemplateMegaMenu = () => {
         align="start"
         sideOffset={5}
       >
-        <div className="flex h-full">
-          {/* Categories sidebar - fixed height */}
-          <div className="w-[200px] p-2 border-r border-[#64bf95]/20 bg-[#f2fbf7] h-[500px] overflow-y-auto">
-            {/* My Templates at the top with white background */}
-            {userTemplates.length > 0 && (
-              <div className="mb-4 px-3 py-2 bg-white rounded-md border border-[#64bf95]/20">
-                <div 
-                  className={cn(
-                    "px-3 py-2 rounded-md text-sm cursor-pointer transition-colors",
-                    activeCategory === "user-templates"
-                      ? "bg-white text-gray-500 border border-gray-300" 
-                      : "hover:bg-white hover:text-[#33fea6] hover:border hover:border-[#33fea6] text-gray-500 border border-gray-300" 
-                  )}
-                  onClick={() => setActiveCategory("user-templates")}
-                >
-                  My Templates
+        <div className="flex h-[500px]">
+          {/* Categories sidebar - with fixed header */}
+          <div className="w-[200px] flex flex-col border-r border-[#64bf95]/20 bg-[#f2fbf7]">
+            {/* Static top section */}
+            <div className="p-2">
+              {/* My Templates section */}
+              {userTemplates.length > 0 && (
+                <div className="mb-4 px-3 py-2 bg-white rounded-md border border-[#64bf95]/20">
+                  <div 
+                    className={cn(
+                      "px-3 py-2 rounded-md text-sm cursor-pointer transition-colors",
+                      activeCategory === "user-templates"
+                        ? "bg-white text-gray-500 border border-gray-300" 
+                        : "hover:bg-white hover:text-[#33fea6] hover:border hover:border-[#33fea6] text-gray-500 border border-gray-300" 
+                    )}
+                    onClick={() => setActiveCategory("user-templates")}
+                  >
+                    My Templates
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="mb-4 px-3 py-2 bg-[#64bf95]/10 rounded-md">
-              <div 
-                className="flex items-center gap-2 cursor-pointer py-1 px-2 rounded-md hover:bg-[#33fea6]/20 transition-colors"
-                onClick={() => {
-                  if (aitemaXTemplate) {
-                    handleTemplateSelect(aitemaXTemplate.id);
-                  }
-                }}
-              >
-                <div className="w-2 h-2 rounded-full bg-[#33fea6]"></div>
-                <span className="font-medium text-[#041524]">Aitema X Framework</span>
-              </div>
-              <div className="mt-1 pl-4 pr-2 text-xs text-gray-600">
-                {AITEMA_X_DESCRIPTION}
+              {/* Aitema X Framework section */}
+              <div className="mb-4 px-3 py-2 bg-[#64bf95]/10 rounded-md">
+                <div 
+                  className="flex items-center gap-2 cursor-pointer py-1 px-2 rounded-md hover:bg-[#33fea6]/20 transition-colors"
+                  onClick={() => {
+                    if (aitemaXTemplate) {
+                      handleTemplateSelect(aitemaXTemplate.id);
+                    }
+                  }}
+                >
+                  <div className="w-2 h-2 rounded-full bg-[#33fea6]"></div>
+                  <span className="font-medium text-[#041524]">Aitema X Framework</span>
+                </div>
+                <div className="mt-1 pl-4 pr-2 text-xs text-gray-600">
+                  {AITEMA_X_DESCRIPTION}
+                </div>
               </div>
             </div>
 
-            <div className="space-y-1 pr-1">
-              {templateCategories.map(category => (
-                <div 
-                  key={category.id}
-                  className={cn(
-                    "px-3 py-2 rounded-md text-sm cursor-pointer transition-colors",
-                    activeCategory === category.id 
-                      ? "bg-[#084b49] text-white" 
-                      : "hover:bg-[#64bf95]/10 text-[#041524]"
-                  )}
-                  onClick={() => setActiveCategory(category.id)}
-                >
-                  {category.name}
-                </div>
-              ))}
+            {/* Scrollable categories */}
+            <div className="flex-1 overflow-y-auto p-2">
+              <div className="space-y-1 pr-1">
+                {templateCategories.map(category => (
+                  <div 
+                    key={category.id}
+                    className={cn(
+                      "px-3 py-2 rounded-md text-sm cursor-pointer transition-colors",
+                      activeCategory === category.id 
+                        ? "bg-[#084b49] text-white" 
+                        : "hover:bg-[#64bf95]/10 text-[#041524]"
+                    )}
+                    onClick={() => setActiveCategory(category.id)}
+                  >
+                    {category.name}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           
-          {/* Subcategories content - expandable with independent scroll */}
-          <div className="flex-1 p-4 h-[500px] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 pb-2">
+          {/* Right content area with fixed header */}
+          <div className="flex-1 flex flex-col">
+            {/* Fixed header */}
+            <div className="p-4 bg-white border-b border-[#64bf95]/20 flex justify-between items-center sticky top-0 z-10">
               <h3 className="text-lg font-medium text-[#084b49]">
                 {activeCategory === "user-templates" 
                   ? "My Templates"
@@ -399,90 +407,93 @@ export const TemplateMegaMenu = () => {
               </Button>
             </div>
             
-            {activeCategory === "user-templates" ? (
-              <div className="grid grid-cols-1 gap-4">
-                {userTemplates.length > 0 ? userTemplates.map(template => (
-                  <div 
-                    key={template.id}
-                    className="flex flex-col gap-2 p-4 rounded-lg border border-[#64bf95]/30 hover:border-[#33fea6] hover:bg-[#f2fbf7] transition-all cursor-pointer"
-                    onClick={() => handleTemplateSelect(template.id, true)}
-                  >
-                    <div className="flex-1">
-                      <div className="font-medium">{template.name}</div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Created: {template.createdAt}
-                      </p>
-                    </div>
-                    
-                    {/* Display pillars for user templates */}
-                    <div className="mt-2">
-                      <div className="flex flex-wrap gap-2">
-                        {template.pillars?.map(pillar => (
-                          <Badge 
-                            key={pillar.id}
-                            variant="outline" 
-                            className="bg-[#64bf95]/10 text-xs"
-                          >
-                            {pillar.title}
-                          </Badge>
-                        ))}
+            {/* Scrollable content */}
+            <div className="flex-1 p-4 overflow-y-auto">
+              {activeCategory === "user-templates" ? (
+                <div className="grid grid-cols-1 gap-4">
+                  {userTemplates.length > 0 ? userTemplates.map(template => (
+                    <div 
+                      key={template.id}
+                      className="flex flex-col gap-2 p-4 rounded-lg border border-[#64bf95]/30 hover:border-[#33fea6] hover:bg-[#f2fbf7] transition-all cursor-pointer"
+                      onClick={() => handleTemplateSelect(template.id, true)}
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium">{template.name}</div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Created: {template.createdAt}
+                        </p>
                       </div>
-                    </div>
-                  </div>
-                )) : (
-                  <div className="text-center p-8 text-gray-500">
-                    No custom templates yet
-                  </div>
-                )}
-              </div>
-            ) : activeCategory ? (
-              <div className="grid grid-cols-1 gap-4">
-                {templateCategories
-                  .find(c => c.id === activeCategory)
-                  ?.subcategories.map(subcategory => {
-                    // Get pillars for this subcategory
-                    const pillars = getPillarsForTemplate(subcategory.id);
-                    
-                    return (
-                      <div 
-                        key={subcategory.id}
-                        className="flex flex-col gap-2 p-5 rounded-lg border border-[#64bf95]/30 hover:border-[#33fea6] hover:bg-[#f2fbf7] transition-all cursor-pointer"
-                        onClick={() => handleTemplateSelect(subcategory.id)}
-                      >
-                        <div className="flex-1">
-                          <div className="font-medium text-lg">{subcategory.title}</div>
-                          <p className="text-sm text-gray-600 mt-2">
-                            {subcategory.description}
-                          </p>
+                      
+                      {/* Display pillars for user templates */}
+                      <div className="mt-2">
+                        <div className="flex flex-wrap gap-2">
+                          {template.pillars?.map(pillar => (
+                            <Badge 
+                              key={pillar.id}
+                              variant="outline" 
+                              className="bg-[#64bf95]/10 text-xs"
+                            >
+                              {pillar.title}
+                            </Badge>
+                          ))}
                         </div>
-                        
-                        {/* Display pillars for the subcategory */}
-                        {pillars && pillars.length > 0 && (
-                          <div className="mt-3">
-                            <p className="text-xs text-gray-500 mb-1">Template Pillars:</p>
-                            <div className="flex flex-wrap gap-2">
-                              {pillars.map((pillar, index) => (
-                                <Badge 
-                                  key={index}
-                                  variant="outline" 
-                                  className="bg-[#64bf95]/10 text-xs"
-                                >
-                                  {pillar.title}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </div>
-                    );
-                  })
-                }
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-[300px] text-center text-muted-foreground">
-                <p>Select a category from the sidebar to view templates</p>
-              </div>
-            )}
+                    </div>
+                  )) : (
+                    <div className="text-center p-8 text-gray-500">
+                      No custom templates yet
+                    </div>
+                  )}
+                </div>
+              ) : activeCategory ? (
+                <div className="grid grid-cols-1 gap-4">
+                  {templateCategories
+                    .find(c => c.id === activeCategory)
+                    ?.subcategories.map(subcategory => {
+                      // Get pillars for this subcategory
+                      const pillars = getPillarsForTemplate(subcategory.id);
+                      
+                      return (
+                        <div 
+                          key={subcategory.id}
+                          className="flex flex-col gap-2 p-5 rounded-lg border border-[#64bf95]/30 hover:border-[#33fea6] hover:bg-[#f2fbf7] transition-all cursor-pointer"
+                          onClick={() => handleTemplateSelect(subcategory.id)}
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium text-lg">{subcategory.title}</div>
+                            <p className="text-sm text-gray-600 mt-2">
+                              {subcategory.description}
+                            </p>
+                          </div>
+                          
+                          {/* Display pillars for the subcategory */}
+                          {pillars && pillars.length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-xs text-gray-500 mb-1">Template Pillars:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {pillars.map((pillar, index) => (
+                                  <Badge 
+                                    key={index}
+                                    variant="outline" 
+                                    className="bg-[#64bf95]/10 text-xs"
+                                  >
+                                    {pillar.title}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  }
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-[300px] text-center text-muted-foreground">
+                  <p>Select a category from the sidebar to view templates</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </PopoverContent>
