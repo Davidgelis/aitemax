@@ -212,57 +212,36 @@ const AITEMA_X_DESCRIPTION =
   "The Aitema X default multi-pillar framework – build structured prompts fast with variables and step logic.";
 
 export const TemplateMegaMenu = () => {
-  // backend hook
+  // single source of truth
   const { selectTemplate, templates, currentTemplate } = useTemplateManagement();
-
-  // local UI selection (defaults to framework)
-  const [selectedId, setSelectedId] = useState<string>(
-    currentTemplate?.id ?? AITEMA_X_FRAMEWORK_ID
-  );
-  // keep it in sync if backend currentTemplate ever changes
-  React.useEffect(() => {
-    if (currentTemplate?.id) setSelectedId(currentTemplate.id);
-  }, [currentTemplate]);
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Handle template selection (both UI and backend)
+  // clicking any system‐template or framework entry
   const handleTemplateSelect = (templateId: string) => {
     selectTemplate(templateId);
-    setSelectedId(templateId);
     setIsOpen(false);
   };
 
-  // derive the button label purely from our local map
+  // derive the single button label from currentTemplate
   const buttonLabel = React.useMemo(() => {
-    if (!selectedId) return "System Templates";
-    
-    // Check if this is a custom X template
-    const isCustomTemplate = templates?.some(t => 
-      t.id === selectedId && 
-      t.id !== AITEMA_X_FRAMEWORK_ID && 
-      !templateCategories.some(cat => 
-        cat.subcategories.some(sub => sub.id === selectedId)
-      )
-    );
-    
-    if (isCustomTemplate) {
-      return "X Templates";
+    if (!currentTemplate?.id) {
+      return "System Templates";
     }
-    
-    if (selectedId === AITEMA_X_FRAMEWORK_ID) {
+    if (currentTemplate.id === AITEMA_X_FRAMEWORK_ID) {
       return "Aitema X Framework";
     }
-    
+    // look for a matching system subcategory
     for (const cat of templateCategories) {
-      const m = cat.subcategories.find(s => s.id === selectedId);
-      if (m) return m.title;
+      const match = cat.subcategories.find(s => s.id === currentTemplate.id);
+      if (match) {
+        return match.title;
+      }
     }
-    
-    // last resort
-    return selectedId;
-  }, [selectedId, templates]);
+    // otherwise it's your own template
+    return "X Templates";
+  }, [currentTemplate]);
 
   // Find the Aitema X Framework template in the templates list
   const aitemaXTemplate = templates?.find(template => template.id === AITEMA_X_FRAMEWORK_ID);
