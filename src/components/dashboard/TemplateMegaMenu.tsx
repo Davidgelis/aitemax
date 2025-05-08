@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Info, X } from 'lucide-react';
 import {
@@ -213,33 +212,41 @@ const AITEMA_X_DESCRIPTION =
   "The Aitema X default multi-pillar framework – build structured prompts fast with variables and step logic.";
 
 export const TemplateMegaMenu = () => {
-  /* bring in the currentTemplate so we can preview it on the button */
+  // backend hook
   const { selectTemplate, templates, currentTemplate } = useTemplateManagement();
 
-  // derive a label that works for both the default and sub-categories
-  const buttonLabel = React.useMemo(() => {
-    if (!currentTemplate) return "System Templates";
-    // default framework
-    if (currentTemplate.id === AITEMA_X_FRAMEWORK_ID) {
-      return "Aitema X Framework";
-    }
-    // find matching subcategory title
-    for (let cat of templateCategories) {
-      const sub = cat.subcategories.find(s => s.id === currentTemplate.id);
-      if (sub) return sub.title;
-    }
-    // fallback if your template object has a .name
-    return currentTemplate.name ?? "System Templates";
+  // local UI selection (defaults to framework)
+  const [selectedId, setSelectedId] = useState<string>(
+    currentTemplate?.id ?? AITEMA_X_FRAMEWORK_ID
+  );
+  // keep it in sync if backend currentTemplate ever changes
+  React.useEffect(() => {
+    if (currentTemplate?.id) setSelectedId(currentTemplate.id);
   }, [currentTemplate]);
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Handle template selection
+  // Handle template selection (both UI and backend)
   const handleTemplateSelect = (templateId: string) => {
     selectTemplate(templateId);
-    setIsOpen(false);  // Close the menu after selection
+    setSelectedId(templateId);
+    setIsOpen(false);
   };
+
+  // derive the button label purely from our local map
+  const buttonLabel = React.useMemo(() => {
+    if (!selectedId) return "System Templates";
+    if (selectedId === AITEMA_X_FRAMEWORK_ID) {
+      return "Aitema X Framework";
+    }
+    for (const cat of templateCategories) {
+      const m = cat.subcategories.find(s => s.id === selectedId);
+      if (m) return m.title;
+    }
+    // last resort
+    return selectedId;
+  }, [selectedId]);
 
   // Find the Aitema X Framework template in the templates list
   const aitemaXTemplate = templates?.find(template => template.id === AITEMA_X_FRAMEWORK_ID);
