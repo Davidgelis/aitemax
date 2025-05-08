@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Info, X } from 'lucide-react';
 import {
@@ -238,13 +237,11 @@ export const TemplateMegaMenu = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  // clicking any system-template or the framework line
+  // clicking any system template OR the framework line
   const handleTemplateSelect = (templateId: string) => {
     if (templateId === frameworkId) {
       /* They clicked the framework line */
-      // If they clicked the top line *and* a system sub-template had been active,
-      // clear it so the button can fall back to "Aitema X Framework".
-      if (systemSelection) setSystemSelection(null);
+      setSystemSelection(null);            // always clear sub-selection
       selectTemplate(frameworkId);
     } else {
       /* They clicked a system sub-template */
@@ -254,19 +251,13 @@ export const TemplateMegaMenu = () => {
     setIsOpen(false);
   };
 
-  /* Clear the system sub-template whenever the global template moves
-     away from the framework, AND when it moves back to the framework
-     but no sub-template is currently chosen. */
+  /* Clear *any* stored sub-template when the user picks a template
+     whose id ≠ frameworkId (i.e. from "Your Templates"). */
   useEffect(() => {
-    if (!currentTemplate) return;
-    if (currentTemplate.id !== frameworkId) {
-      // Switched to a user template → drop systemSelection
-      if (systemSelection) setSystemSelection(null);
-    } else if (!systemSelection) {
-      // Came back to the bare framework (top line) → ensure clean state
-      if (systemSelection) setSystemSelection(null);
+    if (currentTemplate && currentTemplate.id !== frameworkId) {
+      setSystemSelection(null);
     }
-  }, [currentTemplate?.id, frameworkId, systemSelection]);
+  }, [currentTemplate?.id, frameworkId]);
 
   // -----------------------------------------------
   // Build the button label (mega-menu trigger text)

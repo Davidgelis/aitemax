@@ -27,9 +27,12 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
     !PROTECTED_TEMPLATE_IDS.includes(template.id) && !template.isDefault
   ) || [];
 
-  // Check if current template is a default/system template
+  // Treat the framework itself as "default" so the Select shows its placeholder
+  const frameworkId = templates?.find(t => t.isDefault || t.name === "Aitema X Framework")?.id ?? "default";
   const isCurrentTemplateDefault = currentTemplate &&
-    (PROTECTED_TEMPLATE_IDS.includes(currentTemplate.id) || currentTemplate.isDefault);
+    (currentTemplate.id === frameworkId ||
+     PROTECTED_TEMPLATE_IDS.includes(currentTemplate.id) ||
+     currentTemplate.isDefault);
 
   // shadcn Select clears only when value === null
   const selectValue = !isCurrentTemplateDefault ? currentTemplate?.id ?? null : null;
