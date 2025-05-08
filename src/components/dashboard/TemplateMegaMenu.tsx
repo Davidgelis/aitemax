@@ -25,6 +25,56 @@ type TemplateCategory = {
   subcategories: TemplateSubcategory[];
 };
 
+// Define common template related tags/aspects that can be shown as pills
+type TemplateTags = {
+  [key: string]: string[]; // Maps template ID to an array of tags
+}
+
+// Template tags for different templates
+const templateTags: TemplateTags = {
+  // Data Analysis
+  "trend-summaries": ["Data Description", "Time Period", "Insights Needed", "Target Audience"],
+  "chart-generation": ["Data Set", "Chart Type", "Styling & Branding", "Audience & Purpose"],
+  "statistical-analysis": ["Data Format", "Statistical Tests", "Confidence Level", "Hypothesis"],
+  "data-executive-summary": ["Key Metrics", "Business Impact", "Decision Points", "Next Steps"],
+  
+  // Code
+  "code-creation": ["Requirements", "Language", "Architecture", "Dependencies"],
+  "code-debugging": ["Error Message", "Environment", "Expected Behavior", "Code Sample"],
+  
+  // Business
+  "executive-email": ["Recipient", "Purpose", "Key Points", "Call to Action"],
+  "project-planning": ["Scope", "Timeline", "Resources", "Risks"],
+  "business-idea": ["Market Need", "Solution", "Business Model", "Competition"],
+  
+  // Long-form
+  "blog-post-drafting": ["Topic", "Audience", "Keywords", "Structure"],
+  "article-drafting": ["Research", "Thesis", "Supporting Points", "Conclusion"],
+  "executive-summary": ["Core Message", "Key Findings", "Recommendations", "Implementation"],
+  
+  // Marketing
+  "social-media-post": ["Platform", "Audience", "Content Type", "Call to Action"],
+  "advertising-copy": ["Target Market", "Value Proposition", "Tone", "Platform"],
+  "product-descriptions": ["Features", "Benefits", "Target Customer", "Differentiators"],
+  
+  // Creative
+  "story-plot": ["Setting", "Characters", "Conflict", "Resolution"],
+  "character-development": ["Background", "Motivation", "Arc", "Relationships"],
+  "chapter-writing": ["Perspective", "Pacing", "Scene Setting", "Dialog"],
+  
+  // Visual
+  "image-generation": ["Style", "Subject", "Composition", "Color Palette"],
+  "image-variations": ["Base Image", "Style Changes", "Element Swaps", "Color Adjustments"],
+  "product-visualization": ["Product Specs", "Environment", "Lighting", "Angles"],
+  "logo-creation": ["Brand Values", "Color Scheme", "Typography", "Symbolism"],
+  
+  // Video
+  "video-generation": ["Storyboard", "Style", "Duration", "Purpose"],
+  "video-script": ["Tone", "Length", "Visuals", "Narration"],
+  "video-storyboard": ["Shot List", "Transitions", "Audio", "Visual Effects"],
+  "educational-video": ["Learning Objectives", "Target Learners", "Assessment", "Engagement"]
+};
+
 const templateCategories: TemplateCategory[] = [
   {
     id: "code",
@@ -207,10 +257,13 @@ const templateCategories: TemplateCategory[] = [
 ];
 
 /* ------------------------------------------------------------------ */
-/*  Description text for tooltip                                       */
+/*  Description text for Aitema X Framework                            */
 /* ------------------------------------------------------------------ */
 const AITEMA_X_DESCRIPTION =
   "The Aitema X default multi-pillar framework – build structured prompts fast with variables and step logic.";
+
+const AITEMA_X_DISCLAIMER =
+  "This framework provides a structured approach to building prompts with multiple pillars, allowing for complex prompt engineering while maintaining clarity and control.";
 
 export const TemplateMegaMenu = () => {
   // single source of truth from the global hook
@@ -307,6 +360,55 @@ export const TemplateMegaMenu = () => {
     return template?.pillars || [];
   };
 
+  // Helper to get template tags
+  const getTemplateTags = (templateId: string) => {
+    return templateTags[templateId] || [];
+  };
+
+  // Render Aitema X Framework section
+  const renderAitemaXFramework = () => {
+    if (!aitemaXTemplate) return null;
+    
+    return (
+      <div className="p-4">
+        <h3 className="text-xl font-medium text-[#084b49] mb-4">Aitema X Framework</h3>
+        
+        <div className="bg-[#f2fbf7] rounded-lg p-4 border border-[#64bf95]/30 mb-4">
+          <h4 className="font-medium mb-2 text-[#084b49]">About this framework</h4>
+          <p className="text-sm mb-3">{AITEMA_X_DESCRIPTION}</p>
+          <p className="text-sm text-gray-600">{AITEMA_X_DISCLAIMER}</p>
+        </div>
+        
+        <div className="mb-4">
+          <h4 className="font-medium mb-2 text-[#084b49]">Core Pillars</h4>
+          <div className="grid grid-cols-2 gap-3">
+            {aitemaXTemplate.pillars?.map(pillar => (
+              <div 
+                key={pillar.id}
+                className="p-3 bg-white rounded-md border border-[#64bf95]/20 flex flex-col"
+              >
+                <div className="font-medium text-[#084b49]">{pillar.title}</div>
+                <div className="text-xs text-gray-600 mt-1">{pillar.description}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="mt-6">
+          <Button
+            variant="outline"
+            className="bg-[#f2fbf7] border-[#64bf95] hover:bg-[#64bf95]/10 hover:text-[#084b49] transition-colors"
+            onClick={() => {
+              handleTemplateSelect(aitemaXTemplate.id);
+            }}
+          >
+            Select this framework
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
@@ -348,18 +450,16 @@ export const TemplateMegaMenu = () => {
               {/* Aitema X Framework section */}
               <div className="mb-4 px-3 py-2 bg-[#64bf95]/10 rounded-md">
                 <div 
-                  className="flex items-center gap-2 cursor-pointer py-1 px-2 rounded-md hover:bg-[#33fea6]/20 transition-colors"
-                  onClick={() => {
-                    if (aitemaXTemplate) {
-                      handleTemplateSelect(aitemaXTemplate.id);
-                    }
-                  }}
+                  className={cn(
+                    "flex items-center gap-2 cursor-pointer py-2 px-2 rounded-md transition-colors",
+                    activeCategory === "aitema-x-framework"
+                      ? "bg-[#33fea6]/20"
+                      : "hover:bg-[#33fea6]/20" 
+                  )}
+                  onClick={() => setActiveCategory("aitema-x-framework")}
                 >
                   <div className="w-2 h-2 rounded-full bg-[#33fea6]"></div>
                   <span className="font-medium text-[#041524]">Aitema X Framework</span>
-                </div>
-                <div className="mt-1 pl-4 pr-2 text-xs text-gray-600">
-                  {AITEMA_X_DESCRIPTION}
                 </div>
               </div>
             </div>
@@ -392,9 +492,11 @@ export const TemplateMegaMenu = () => {
               <h3 className="text-lg font-medium text-[#084b49]">
                 {activeCategory === "user-templates" 
                   ? "My Templates"
-                  : activeCategory 
-                    ? templateCategories.find(c => c.id === activeCategory)?.name 
-                    : "Select a Category"}
+                  : activeCategory === "aitema-x-framework"
+                    ? "Aitema X Framework"
+                    : activeCategory 
+                      ? templateCategories.find(c => c.id === activeCategory)?.name 
+                      : "Select a Category"}
               </h3>
               {/* Custom close button */}
               <Button 
@@ -409,7 +511,9 @@ export const TemplateMegaMenu = () => {
             
             {/* Scrollable content */}
             <div className="flex-1 p-4 overflow-y-auto">
-              {activeCategory === "user-templates" ? (
+              {activeCategory === "aitema-x-framework" ? (
+                renderAitemaXFramework()
+              ) : activeCategory === "user-templates" ? (
                 <div className="grid grid-cols-1 gap-4">
                   {userTemplates.length > 0 ? userTemplates.map(template => (
                     <div 
@@ -452,6 +556,8 @@ export const TemplateMegaMenu = () => {
                     ?.subcategories.map(subcategory => {
                       // Get pillars for this subcategory
                       const pillars = getPillarsForTemplate(subcategory.id);
+                      // Get template tags
+                      const tags = getTemplateTags(subcategory.id);
                       
                       return (
                         <div 
@@ -478,6 +584,23 @@ export const TemplateMegaMenu = () => {
                                     className="bg-[#64bf95]/10 text-xs"
                                   >
                                     {pillar.title}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Display template tags if available */}
+                          {tags && tags.length > 0 && (
+                            <div className="mt-3">
+                              <div className="flex flex-wrap gap-2">
+                                {tags.map((tag, index) => (
+                                  <Badge 
+                                    key={index}
+                                    variant="outline" 
+                                    className="bg-white border-[#64bf95]/30 text-[#084b49] text-xs py-1 px-3"
+                                  >
+                                    {tag}
                                   </Badge>
                                 ))}
                               </div>
