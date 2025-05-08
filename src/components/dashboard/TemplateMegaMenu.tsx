@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { Info, X } from 'lucide-react';
 import {
   Popover,
@@ -224,8 +225,8 @@ export const TemplateMegaMenu = () => {
     setIsOpen(false);
   };
 
-  // derive the single button label from currentTemplate
-  const buttonLabel = React.useMemo(() => {
+  // derive the single button label from currentTemplate.id
+  const buttonLabel = useMemo(() => {
     if (!currentTemplate?.id) {
       return "System Templates";
     }
@@ -241,7 +242,8 @@ export const TemplateMegaMenu = () => {
     }
     // otherwise it's your own template
     return "X Templates";
-  }, [currentTemplate]);
+  // 🔑 only re-run when the ID actually changes
+  }, [currentTemplate?.id]);
 
   // Find the Aitema X Framework template in the templates list
   const aitemaXTemplate = templates?.find(template => template.id === AITEMA_X_FRAMEWORK_ID);
