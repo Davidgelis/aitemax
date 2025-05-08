@@ -1,5 +1,11 @@
 
-import { useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Json } from "@/integrations/supabase/types";
@@ -63,7 +69,10 @@ const DEFAULT_TEMPLATE: TemplateType = {
   createdAt: "System Default"
 };
 
-export function useTemplateManagement() {
+/* ------------------------------------------------------------------ */
+/*  INTERNAL HOOK (was the old export)                                 */
+/* ------------------------------------------------------------------ */
+function useTemplateManagementInternal() {
   const [currentTemplate, setCurrentTemplate] = useState<TemplateType | null>(null);
   const [templates, setTemplates] = useState<TemplateType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -356,4 +365,34 @@ export function useTemplateManagement() {
     getCurrentTemplate,
     validateTemplate
   };
+}
+
+/* ------------------------------------------------------------------ */
+/*  CONTEXT WIRING                                                     */
+/* ------------------------------------------------------------------ */
+const TemplateManagementContext = createContext<
+  ReturnType<typeof useTemplateManagementInternal> | null
+>(null);
+
+export const TemplateManagementProvider = ({
+  children,
+}: {
+  children: ReactNode;
+}) => {
+  const value = useTemplateManagementInternal();
+  return (
+    <TemplateManagementContext.Provider value={value}>
+      {children}
+    </TemplateManagementContext.Provider>
+  );
+};
+
+export function useTemplateManagement() {
+  const ctx = useContext(TemplateManagementContext);
+  if (!ctx) {
+    throw new Error(
+      "useTemplateManagement must be used inside <TemplateManagementProvider>"
+    );
+  }
+  return ctx;
 }

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Save, RefreshCw, Clock } from "lucide-react";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
+import { TemplateManagementProvider } from "@/hooks/useTemplateManagement";
 
 const Dashboard = () => {
   
@@ -263,101 +264,103 @@ const Dashboard = () => {
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
 
   return (
-    <SidebarProvider>
-      <div className="h-screen flex w-full bg-background overflow-hidden">
-        <XPanelButton />
-        <main className="flex-1 p-4 flex flex-col overflow-hidden">
-          <div className="max-w-6xl mx-auto h-full flex flex-col w-full">
-            {/* Session info and draft status bar */}
-            {user && promptState.currentStep === 2 && (
-              <div className="fixed top-0 right-0 left-0 z-50 bg-background/90 backdrop-blur-sm border-b p-2 flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  {promptState.isDirty && (
-                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 animate-pulse flex gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      <span>{t.userActions.unsavedChanges}</span>
-                    </Badge>
-                  )}
+    <TemplateManagementProvider>
+      <SidebarProvider>
+        <div className="h-screen flex w-full bg-background overflow-hidden">
+          <XPanelButton />
+          <main className="flex-1 p-4 flex flex-col overflow-hidden">
+            <div className="max-w-6xl mx-auto h-full flex flex-col w-full">
+              {/* Session info and draft status bar */}
+              {user && promptState.currentStep === 2 && (
+                <div className="fixed top-0 right-0 left-0 z-50 bg-background/90 backdrop-blur-sm border-b p-2 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    {promptState.isDirty && (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 animate-pulse flex gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        <span>{t.userActions.unsavedChanges}</span>
+                      </Badge>
+                    )}
+                    
+                    {promptState.isSaving && (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex gap-1">
+                        <RefreshCw className="h-3 w-3 animate-spin" />
+                        <span>{t.userActions.saving}</span>
+                      </Badge>
+                    )}
+                    
+                    {!promptState.isDirty && !promptState.isSaving && (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex gap-1">
+                        <span>{t.userActions.allChangesSaved}</span>
+                      </Badge>
+                    )}
+                  </div>
                   
-                  {promptState.isSaving && (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex gap-1">
-                      <RefreshCw className="h-3 w-3 animate-spin" />
-                      <span>{t.userActions.saving}</span>
-                    </Badge>
-                  )}
-                  
-                  {!promptState.isDirty && !promptState.isSaving && (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex gap-1">
-                      <span>{t.userActions.allChangesSaved}</span>
-                    </Badge>
-                  )}
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  {sessionTimer && (
-                    <div className="text-xs flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span className={isSessionAboutToExpire() ? "text-red-500" : "text-muted-foreground"}>
-                        {t.userActions.session}: {sessionTimer}
-                      </span>
-                      <button 
-                        onClick={refreshSession}
-                        className="text-xs text-blue-500 hover:text-blue-700 transition-colors p-1 rounded hover:bg-blue-50"
-                        title={t.userActions.refreshSession}
+                  <div className="flex items-center gap-3">
+                    {sessionTimer && (
+                      <div className="text-xs flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span className={isSessionAboutToExpire() ? "text-red-500" : "text-muted-foreground"}>
+                          {t.userActions.session}: {sessionTimer}
+                        </span>
+                        <button 
+                          onClick={refreshSession}
+                          className="text-xs text-blue-500 hover:text-blue-700 transition-colors p-1 rounded hover:bg-blue-50"
+                          title={t.userActions.refreshSession}
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    {promptState.isDirty && (
+                      <button
+                        onClick={handleSaveDraft}
+                        className="text-xs flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded transition-colors"
                       >
-                        <RefreshCw className="h-3 w-3" />
+                        <Save className="h-3 w-3" />
+                        {t.userActions.saveDraft}
                       </button>
-                    </div>
-                  )}
-                  
-                  {promptState.isDirty && (
-                    <button
-                      onClick={handleSaveDraft}
-                      className="text-xs flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded transition-colors"
-                    >
-                      <Save className="h-3 w-3" />
-                      {t.userActions.saveDraft}
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
+              )}
+              
+              <div className="flex-grow flex items-center justify-center overflow-hidden">
+                <StepController 
+                  user={user} 
+                  selectedModel={selectedModel} 
+                  setSelectedModel={setSelectedModel}
+                  promptState={promptState}
+                  sessionTimer={sessionTimer}
+                  refreshSession={refreshSession}
+                  isSessionAboutToExpire={isSessionAboutToExpire}
+                />
               </div>
-            )}
-            
-            <div className="flex-grow flex items-center justify-center overflow-hidden">
-              <StepController 
-                user={user} 
-                selectedModel={selectedModel} 
-                setSelectedModel={setSelectedModel}
-                promptState={promptState}
-                sessionTimer={sessionTimer}
-                refreshSession={refreshSession}
-                isSessionAboutToExpire={isSessionAboutToExpire}
-              />
             </div>
-          </div>
-        </main>
+          </main>
 
-        <UserSidebar 
-          user={user}
-          userProfile={userProfile}
-          savedPrompts={promptState.savedPrompts}
-          filteredPrompts={filteredPrompts}
-          searchTerm={promptState.searchTerm}
-          setSearchTerm={promptState.setSearchTerm}
-          isLoadingPrompts={promptState.isLoadingPrompts}
-          handleNewPrompt={promptState.handleNewPrompt}
-          handleDeletePrompt={promptState.handleDeletePrompt}
-          handleDuplicatePrompt={promptState.handleDuplicatePrompt}
-          handleRenamePrompt={promptState.handleRenamePrompt}
-          loadSavedPrompt={promptState.loadSavedPrompt}
-          drafts={promptState.drafts}
-          isLoadingDrafts={promptState.isLoadingDrafts}
-          loadDraft={promptState.loadSelectedDraft}
-          handleDeleteDraft={promptState.handleDeleteDraft}
-          currentDraftId={promptState.currentDraftId}
-        />
-      </div>
-    </SidebarProvider>
+          <UserSidebar 
+            user={user}
+            userProfile={userProfile}
+            savedPrompts={promptState.savedPrompts}
+            filteredPrompts={filteredPrompts}
+            searchTerm={promptState.searchTerm}
+            setSearchTerm={promptState.setSearchTerm}
+            isLoadingPrompts={promptState.isLoadingPrompts}
+            handleNewPrompt={promptState.handleNewPrompt}
+            handleDeletePrompt={promptState.handleDeletePrompt}
+            handleDuplicatePrompt={promptState.handleDuplicatePrompt}
+            handleRenamePrompt={promptState.handleRenamePrompt}
+            loadSavedPrompt={promptState.loadSavedPrompt}
+            drafts={promptState.drafts}
+            isLoadingDrafts={promptState.isLoadingDrafts}
+            loadDraft={promptState.loadSelectedDraft}
+            handleDeleteDraft={promptState.handleDeleteDraft}
+            currentDraftId={promptState.currentDraftId}
+          />
+        </div>
+      </SidebarProvider>
+    </TemplateManagementProvider>
   );
 };
 
