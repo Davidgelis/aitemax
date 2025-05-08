@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Info, X } from 'lucide-react';
 import {
@@ -240,25 +241,32 @@ export const TemplateMegaMenu = () => {
   // clicking any system-template or the framework line
   const handleTemplateSelect = (templateId: string) => {
     if (templateId === frameworkId) {
-      /* They clicked the framework line: treat as "no sub-selection" */
-      setSystemSelection(null);
+      /* They clicked the framework line */
+      // If they clicked the top line *and* a system sub-template had been active,
+      // clear it so the button can fall back to "Aitema X Framework".
+      if (systemSelection) setSystemSelection(null);
       selectTemplate(frameworkId);
     } else {
       /* They clicked a system sub-template */
       setSystemSelection(templateId);
-      /* keep the underlying template as the framework */
       selectTemplate(frameworkId);
     }
     setIsOpen(false);
   };
 
-  /* Clear the system sub-template whenever a *non-framework*
-     template (i.e. anything from "Your Templates") becomes current. */
+  /* Clear the system sub-template whenever the global template moves
+     away from the framework, AND when it moves back to the framework
+     but no sub-template is currently chosen. */
   useEffect(() => {
-    if (currentTemplate && currentTemplate.id !== frameworkId) {
-      setSystemSelection(null);
+    if (!currentTemplate) return;
+    if (currentTemplate.id !== frameworkId) {
+      // Switched to a user template → drop systemSelection
+      if (systemSelection) setSystemSelection(null);
+    } else if (!systemSelection) {
+      // Came back to the bare framework (top line) → ensure clean state
+      if (systemSelection) setSystemSelection(null);
     }
-  }, [currentTemplate?.id, frameworkId]);
+  }, [currentTemplate?.id, frameworkId, systemSelection]);
 
   // -----------------------------------------------
   // Build the button label (mega-menu trigger text)
@@ -279,7 +287,7 @@ export const TemplateMegaMenu = () => {
 
     /* 3️⃣ no system selection + not framework ⇒ user template */
     return "X Templates";
-  }, [systemSelection, currentTemplate?.id]);
+  }, [systemSelection, currentTemplate?.id, frameworkId]);
 
   // Find the Aitema X Framework template in the templates list
   const aitemaXTemplate = templates?.find(t => t.id === frameworkId);

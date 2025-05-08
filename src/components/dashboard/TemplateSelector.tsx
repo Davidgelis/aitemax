@@ -1,3 +1,4 @@
+
 import { PillarType } from "@/components/x-templates/XTemplateCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,8 +28,11 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
   ) || [];
 
   // Check if current template is a default/system template
-  const isCurrentTemplateDefault = currentTemplate && 
+  const isCurrentTemplateDefault = currentTemplate &&
     (PROTECTED_TEMPLATE_IDS.includes(currentTemplate.id) || currentTemplate.isDefault);
+
+  // shadcn Select clears only when value === null
+  const selectValue = !isCurrentTemplateDefault ? currentTemplate?.id ?? null : null;
 
   // Handle selection from user templates dropdown
   const handleUserTemplateSelect = (value: string) => {
@@ -43,7 +47,9 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
 
         {/* User Templates Dropdown - Keep this unchanged */}
         <Select
-          value={!isCurrentTemplateDefault ? currentTemplate?.id : undefined}
+          /* Changing `value` from a string → null triggers placeholder */
+          key={isCurrentTemplateDefault ? "default" : selectValue}
+          value={selectValue}
           onValueChange={handleUserTemplateSelect}
         >
           <SelectTrigger 
