@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Json } from "@/integrations/supabase/types";
 import { PROTECTED_TEMPLATE_IDS } from "@/components/dashboard/constants";
+import { templatePillarsMap } from "@/components/dashboard/templatePillars";
 
 export interface PillarType {
   id: string;
@@ -245,6 +246,31 @@ export function useTemplateManagement() {
       
       // Store the selection in localStorage
       window.localStorage.setItem('selectedTemplateId', templateId);
+      
+      // If using a system subcategory template with specialized pillars
+      if (source === "system" && subId && templatePillarsMap[subId]) {
+        console.log(`Loading specialized pillars for subcategory: ${subId}`);
+        const pillarConfig = templatePillarsMap[subId];
+        
+        // Start with the framework template but use specialized pillars
+        const baseTemplate = DEFAULT_TEMPLATE;
+        const specializedTemplate: TemplateType = {
+          ...baseTemplate,
+          name: subId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+          pillars: pillarConfig.pillars,
+          role: pillarConfig.role || baseTemplate.role,
+          temperature: pillarConfig.temperature || baseTemplate.temperature
+        };
+        
+        setCurrentTemplate(deepCopyTemplate(specializedTemplate));
+        window.__selectedTemplate = deepCopyTemplate(specializedTemplate);
+        
+        toast({
+          title: "Template selected",
+          description: `"${specializedTemplate.name}" template with specialized pillars has been applied.`
+        });
+        return;
+      }
       
       // If it's a default template
       if (templateId === "default" || templateId === "simple-framework") {

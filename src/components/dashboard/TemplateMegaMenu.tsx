@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
+import { templatePillarsMap } from './templatePillars';
 
 // Template categories with subcategories
 type TemplateSubcategory = {
@@ -248,7 +249,13 @@ export const TemplateMegaMenu = () => {
     } else if (isUserTemplate) {
       selectTemplate(templateId, "user", null);         // user template
     } else {
+      // Check if this subcategory has specialized pillars
+      const hasSpecializedPillars = templatePillarsMap[templateId] !== undefined;
       selectTemplate(frameworkId, "system", templateId); // system sub-template
+      
+      if (hasSpecializedPillars) {
+        console.log(`Using specialized pillars for: ${templateId}`);
+      }
     }
     setIsOpen(false);
   };

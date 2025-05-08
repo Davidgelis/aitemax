@@ -7,12 +7,14 @@ import { FileText } from "lucide-react";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 import { TemplateMegaMenu } from "./TemplateMegaMenu";
+import { TemplatePillarDebugger } from "./TemplatePillarDebugger";
 
 interface TemplateSelectorProps {
   className?: string;
+  showDebug?: boolean;
 }
 
-export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
+export const TemplateSelector = ({ className, showDebug = false }: TemplateSelectorProps) => {
   const { currentTemplate } = useTemplateManagement();
   const navigate = useNavigate();
 
@@ -54,6 +56,9 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
           ))}
         </div>
       )}
+      
+      {/* Show debug information in development mode if enabled */}
+      {showDebug && import.meta.env.DEV && <TemplatePillarDebugger />}
     </div>
   );
 };
