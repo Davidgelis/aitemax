@@ -1,4 +1,3 @@
-
 export const xpanelTranslations = {
   en: {
     title: "Panel",
@@ -15,7 +14,7 @@ export const xpanelTranslations = {
       clearFilters: "Clear filters"
     },
     templates: {
-      yourSystemMessageTemplates: "Your System Message Templates",
+      yourSystemMessageTemplates: "My X Templates",
       createTemplate: "Create Template"
     },
     promptActions: {
@@ -63,7 +62,7 @@ export const xpanelTranslations = {
       clearFilters: "清除筛选"
     },
     templates: {
-      yourSystemMessageTemplates: "您的系统消息模板",
+      yourSystemMessageTemplates: "我的 X 模板",
       createTemplate: "创建模板"
     },
     promptActions: {
@@ -111,7 +110,7 @@ export const xpanelTranslations = {
       clearFilters: "Limpiar filtros"
     },
     templates: {
-      yourSystemMessageTemplates: "Sus Plantillas de Mensajes del Sistema",
+      yourSystemMessageTemplates: "Mis Plantillas X",
       createTemplate: "Crear Plantilla"
     },
     promptActions: {
@@ -159,7 +158,7 @@ export const xpanelTranslations = {
       clearFilters: "Effacer les filtres"
     },
     templates: {
-      yourSystemMessageTemplates: "Vos Modèles de Messages Système",
+      yourSystemMessageTemplates: "Mes Modèles X",
       createTemplate: "Créer un Modèle"
     },
     promptActions: {
@@ -207,7 +206,7 @@ export const xpanelTranslations = {
       clearFilters: "Filter löschen"
     },
     templates: {
-      yourSystemMessageTemplates: "Ihre Systemnachrichten-Vorlagen",
+      yourSystemMessageTemplates: "Meine X-Vorlagen",
       createTemplate: "Vorlage Erstellen"
     },
     promptActions: {

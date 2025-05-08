@@ -231,7 +231,7 @@ export const XTemplatesList = () => {
           
           {templates.length === 0 && (
             <div className="col-span-3 text-center py-12">
-              <h3 className="text-xl font-medium mb-2">No custom templates found</h3>
+              <h3 className="text-xl font-medium mb-2">My X Templates</h3>
               <p className="text-muted-foreground mb-6">
                 Create your first template to get started.
               </p>
