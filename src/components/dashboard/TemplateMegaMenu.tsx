@@ -301,19 +301,19 @@ export const TemplateMegaMenu = () => {
         <div className="flex">
           {/* Categories sidebar */}
           <div className="w-[200px] p-2 border-r border-[#64bf95]/20 bg-[#f2fbf7]">
-            {/* Your Templates at the top with white background */}
+            {/* My Templates at the top with white background */}
             {userTemplates.length > 0 && (
               <div className="mb-4 px-3 py-2 bg-white rounded-md border border-[#64bf95]/20">
                 <div 
                   className={cn(
                     "px-3 py-2 rounded-md text-sm cursor-pointer transition-colors",
                     activeCategory === "user-templates"
-                      ? "bg-white text-gray-500 border border-gray-300" // Changed styling here
-                      : "hover:bg-white hover:text-[#33fea6] hover:border hover:border-[#33fea6] text-gray-500 border border-gray-300" // Changed hover styling
+                      ? "bg-white text-gray-500 border border-gray-300" 
+                      : "hover:bg-white hover:text-[#33fea6] hover:border hover:border-[#33fea6] text-gray-500 border border-gray-300" 
                   )}
                   onClick={() => setActiveCategory("user-templates")}
                 >
-                  Your Templates
+                  My Templates
                 </div>
               </div>
             )}
@@ -370,7 +370,7 @@ export const TemplateMegaMenu = () => {
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-[#084b49]">
                 {activeCategory === "user-templates" 
-                  ? "Your Templates"
+                  ? "My Templates"
                   : activeCategory 
                     ? templateCategories.find(c => c.id === activeCategory)?.name 
                     : "Select a Category"}
