@@ -54,7 +54,7 @@ export const TemplateSelector = ({ className }: TemplateSelectorProps) => {
       !currentTemplate.isDefault;
 
     setUserSelectValue(isUserTemplate ? currentTemplate.id : undefined);
-  }, [currentTemplate?.id, frameworkId]);
+  }, [currentTemplate, frameworkId]);   // 🔧 track object ref too
 
   // Handle selection from user templates dropdown
   const handleUserTemplateSelect = (value: string) => {
