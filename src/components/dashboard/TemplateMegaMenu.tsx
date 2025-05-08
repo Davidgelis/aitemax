@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Info, X } from 'lucide-react';
 import {
@@ -253,19 +252,13 @@ export const TemplateMegaMenu = () => {
     setIsOpen(false);
   };
 
-  /* If the user picks a *user* template from the other dropdown,
-     clear any systemSelection so the mega-menu shows "X Templates". */
+  /* Clear the system sub-template whenever a *non-framework*
+     template (i.e. anything from "Your Templates") becomes current. */
   useEffect(() => {
-    if (
-      currentTemplate &&
-      currentTemplate.id !== frameworkId &&                     // not the framework
-      !templateCategories.some(cat =>
-        cat.subcategories.some(sub => sub.id === currentTemplate.id)
-      )
-    ) {
+    if (currentTemplate && currentTemplate.id !== frameworkId) {
       setSystemSelection(null);
     }
-  }, [currentTemplate?.id]);
+  }, [currentTemplate?.id, frameworkId]);
 
   // -----------------------------------------------
   // Build the button label (mega-menu trigger text)
