@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { X } from 'lucide-react';
 import {
@@ -30,51 +29,7 @@ type TemplateTags = {
   [key: string]: string[]; // Maps template ID to an array of tags
 }
 
-// Template tags for different templates
-const templateTags: TemplateTags = {
-  // Data Analysis
-  "trend-summaries": ["Data Description", "Time Period", "Insights Needed", "Target Audience"],
-  "chart-generation": ["Data Set", "Chart Type", "Styling & Branding", "Audience & Purpose"],
-  "statistical-analysis": ["Data Format", "Statistical Tests", "Confidence Level", "Hypothesis"],
-  "data-executive-summary": ["Key Metrics", "Business Impact", "Decision Points", "Next Steps"],
-  
-  // Code
-  "code-creation": ["Language & Framework", "Functionality", "Style & Best Practices", "Documentation"],
-  "code-debugging": ["Error Message", "Environment", "Expected Behavior", "Code Sample"],
-  
-  // Business
-  "executive-email": ["Recipient", "Purpose", "Key Points", "Call to Action"],
-  "project-planning": ["Scope", "Timeline", "Resources", "Risks"],
-  "business-idea": ["Market Need", "Solution", "Business Model", "Competition"],
-  
-  // Long-form
-  "blog-post-drafting": ["Topic", "Audience", "Keywords", "Structure"],
-  "article-drafting": ["Research", "Thesis", "Supporting Points", "Conclusion"],
-  "executive-summary": ["Core Message", "Key Findings", "Recommendations", "Implementation"],
-  
-  // Marketing
-  "social-media-post": ["Platform", "Audience", "Content Type", "Call to Action"],
-  "advertising-copy": ["Target Market", "Value Proposition", "Tone", "Platform"],
-  "product-descriptions": ["Features", "Benefits", "Target Customer", "Differentiators"],
-  
-  // Creative
-  "story-plot": ["Setting", "Characters", "Conflict", "Resolution"],
-  "character-development": ["Background", "Motivation", "Arc", "Relationships"],
-  "chapter-writing": ["Perspective", "Pacing", "Scene Setting", "Dialog"],
-  
-  // Visual
-  "image-generation": ["Style", "Subject", "Composition", "Color Palette"],
-  "image-variations": ["Base Image", "Style Changes", "Element Swaps", "Color Adjustments"],
-  "product-visualization": ["Product Specs", "Environment", "Lighting", "Angles"],
-  "logo-creation": ["Brand Values", "Color Scheme", "Typography", "Symbolism"],
-  
-  // Video
-  "video-generation": ["Storyboard", "Style", "Duration", "Purpose"],
-  "video-script": ["Tone", "Length", "Visuals", "Narration"],
-  "video-storyboard": ["Shot List", "Transitions", "Audio", "Visual Effects"],
-  "educational-video": ["Learning Objectives", "Target Learners", "Assessment", "Engagement"]
-};
-
+// Template categories with their subcategories
 const templateCategories: TemplateCategory[] = [
   {
     id: "code",
@@ -348,11 +303,6 @@ export const TemplateMegaMenu = () => {
   // Find the Aitema X Framework template in the templates list
   const aitemaXTemplate = templates?.find(t => t.id === frameworkId);
 
-  // Helper to get tags for a specific template/subcategory
-  const getTemplateTags = (templateId: string) => {
-    return templateTags[templateId] || [];
-  };
-
   // Render Aitema X Framework section
   const renderAitemaXFramework = () => {
     if (!aitemaXTemplate) return null;
@@ -542,9 +492,6 @@ export const TemplateMegaMenu = () => {
                   {templateCategories
                     .find(c => c.id === activeCategory)
                     ?.subcategories.map(subcategory => {
-                      // Get template tags - these will be our only pillars display
-                      const tags = getTemplateTags(subcategory.id);
-                      
                       return (
                         <div 
                           key={subcategory.id}
@@ -558,26 +505,25 @@ export const TemplateMegaMenu = () => {
                             </p>
                           </div>
                           
-                          {/* Only display the template tags with white background */}
-                          {tags && tags.length > 0 && (
+                          {/* Display specialized pillars if we've just selected a system sub-template */}
+                          {templatePillarsMap[subcategory.id]?.pillars?.length > 0 && (
                             <div className="mt-3">
                               <p className="text-xs text-gray-500 mb-1">Template Pillars:</p>
                               <div className="flex flex-wrap gap-2">
-                                {tags.map((tag, index) => (
+                                {templatePillarsMap[subcategory.id].pillars.map(pillar => (
                                   <Badge 
-                                    key={index}
+                                    key={pillar.id}
                                     variant="outline" 
                                     className="bg-white border-[#64bf95]/30 text-[#084b49] text-xs py-1 px-3"
                                   >
-                                    {tag}
+                                    {pillar.title}
                                   </Badge>
                                 ))}
                               </div>
                             </div>
                           )}
                         </div>
-                      );
-                    })
+                      ))
                   }
                 </div>
               ) : (
