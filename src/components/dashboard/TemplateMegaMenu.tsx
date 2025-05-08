@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { X } from 'lucide-react';
 import {
@@ -523,7 +524,8 @@ export const TemplateMegaMenu = () => {
                             </div>
                           )}
                         </div>
-                      ))
+                      );
+                    })
                   }
                 </div>
               ) : (
