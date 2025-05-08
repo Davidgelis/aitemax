@@ -205,11 +205,16 @@ const templateCategories: TemplateCategory[] = [
   }
 ];
 
-// The default Aitema X Framework template ID
+/* ------------------------------------------------------------------ */
+/*  Constants                                                          */
+/* ------------------------------------------------------------------ */
 const AITEMA_X_FRAMEWORK_ID = "default";
+const AITEMA_X_DESCRIPTION =
+  "The Aitema X default multi-pillar framework – build structured prompts fast with variables and step logic.";
 
 export const TemplateMegaMenu = () => {
-  const { selectTemplate, templates } = useTemplateManagement();
+  /* bring in the currentTemplate so we can preview it on the button */
+  const { selectTemplate, templates, currentTemplate } = useTemplateManagement();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -225,11 +230,12 @@ export const TemplateMegaMenu = () => {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button 
+        <Button
           variant="outline"
           className="w-[220px] justify-between bg-[#f2fbf7] border-[#64bf95] hover:border-[#33fea6] transition-colors"
         >
-          System Templates
+          {/* show selection preview */}
+          {currentTemplate ? currentTemplate.name : "System Templates"}
           <span className="ml-2 opacity-60">▼</span>
         </Button>
       </PopoverTrigger>
@@ -252,6 +258,21 @@ export const TemplateMegaMenu = () => {
               >
                 <div className="w-2 h-2 rounded-full bg-[#33fea6]"></div>
                 <span className="font-medium text-[#041524]">Aitema X Framework</span>
+                {/* tooltip icon */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="inline-flex items-center justify-center rounded-full p-0.5 text-[#64bf95] hover:bg-[#64bf95]/10 hover:text-[#33fea6] transition-colors"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[250px] bg-[#041524] text-white">
+                      <p>{AITEMA_X_DESCRIPTION}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
             <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
