@@ -1,16 +1,16 @@
 
 import React, { useState, useMemo } from 'react';
-import { Info, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { cn } from '@/lib/utils';
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 import { templatePillarsMap } from './templatePillars';
+import { Badge } from '@/components/ui/badge';
 
 // Template categories with subcategories
 type TemplateSubcategory = {
@@ -295,6 +295,18 @@ export const TemplateMegaMenu = () => {
   // Find the Aitema X Framework template in the templates list
   const aitemaXTemplate = templates?.find(t => t.id === frameworkId);
 
+  // Helper to get pillars for a specific template/subcategory
+  const getPillarsForTemplate = (templateId: string) => {
+    // Get specialized pillars if they exist
+    if (templatePillarsMap[templateId]) {
+      return templatePillarsMap[templateId].pillars;
+    }
+    
+    // For user templates, return their own pillars
+    const template = templates?.find(t => t.id === templateId);
+    return template?.pillars || [];
+  };
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
@@ -342,21 +354,9 @@ export const TemplateMegaMenu = () => {
               >
                 <div className="w-2 h-2 rounded-full bg-[#33fea6]"></div>
                 <span className="font-medium text-[#041524]">Aitema X Framework</span>
-                {/* tooltip icon */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        className="inline-flex items-center justify-center rounded-full p-0.5 text-[#64bf95] hover:bg-[#64bf95]/10 hover:text-[#33fea6] transition-colors"
-                      >
-                        <Info className="h-3.5 w-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-[250px] bg-[#041524] text-white">
-                      <p>{AITEMA_X_DESCRIPTION}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+              </div>
+              <div className="mt-1 pl-4 pr-2 text-xs text-gray-600">
+                {AITEMA_X_DESCRIPTION}
               </div>
             </div>
 
@@ -400,53 +400,77 @@ export const TemplateMegaMenu = () => {
             </div>
             
             {activeCategory === "user-templates" ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 {userTemplates.map(template => (
                   <div 
                     key={template.id}
-                    className="flex items-center gap-2 p-3 rounded-lg border border-[#64bf95]/30 hover:border-[#33fea6] hover:bg-[#f2fbf7] transition-all cursor-pointer"
+                    className="flex flex-col gap-2 p-4 rounded-lg border border-[#64bf95]/30 hover:border-[#33fea6] hover:bg-[#f2fbf7] transition-all cursor-pointer"
                     onClick={() => handleTemplateSelect(template.id, true)}
                   >
                     <div className="flex-1">
-                      <div className="flex items-center gap-1">
-                        <span className="font-medium">{template.name}</span>
-                      </div>
+                      <div className="font-medium">{template.name}</div>
                       <p className="text-xs text-gray-500 mt-1">
-                        {template.pillars?.length || 0} pillars • Created: {template.createdAt}
+                        Created: {template.createdAt}
                       </p>
+                    </div>
+                    
+                    {/* Display pillars for user templates */}
+                    <div className="mt-2">
+                      <div className="flex flex-wrap gap-2">
+                        {template.pillars?.map(pillar => (
+                          <Badge 
+                            key={pillar.id}
+                            variant="outline" 
+                            className="bg-[#64bf95]/10 text-xs"
+                          >
+                            {pillar.title}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : activeCategory ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
                 {templateCategories
                   .find(c => c.id === activeCategory)
-                  ?.subcategories.map(subcategory => (
-                    <div 
-                      key={subcategory.id}
-                      className="flex items-center gap-2 p-3 rounded-lg border border-[#64bf95]/30 hover:border-[#33fea6] hover:bg-[#f2fbf7] transition-all cursor-pointer"
-                      onClick={() => handleTemplateSelect(subcategory.id)}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1">
-                          <span className="font-medium">{subcategory.title}</span>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button className="inline-flex items-center justify-center rounded-full p-0.5 text-[#64bf95] hover:bg-[#64bf95]/10 hover:text-[#33fea6] transition-colors">
-                                  <Info className="h-3.5 w-3.5" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-[250px] bg-[#041524] text-white">
-                                <p>{subcategory.description}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                  ?.subcategories.map(subcategory => {
+                    // Get pillars for this subcategory
+                    const pillars = getPillarsForTemplate(subcategory.id);
+                    
+                    return (
+                      <div 
+                        key={subcategory.id}
+                        className="flex flex-col gap-2 p-4 rounded-lg border border-[#64bf95]/30 hover:border-[#33fea6] hover:bg-[#f2fbf7] transition-all cursor-pointer"
+                        onClick={() => handleTemplateSelect(subcategory.id)}
+                      >
+                        <div className="flex-1">
+                          <div className="font-medium">{subcategory.title}</div>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {subcategory.description}
+                          </p>
                         </div>
+                        
+                        {/* Display pillars for the subcategory */}
+                        {pillars && pillars.length > 0 && (
+                          <div className="mt-2">
+                            <div className="flex flex-wrap gap-2">
+                              {pillars.map((pillar, index) => (
+                                <Badge 
+                                  key={index}
+                                  variant="outline" 
+                                  className="bg-[#64bf95]/10 text-xs"
+                                >
+                                  {pillar.title}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 }
               </div>
             ) : (
