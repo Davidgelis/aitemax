@@ -27,7 +27,7 @@ export const StepOne = ({
   onAnalyze,
   isLoading
 }: StepOneProps) => {
-  const { getCurrentTemplate, currentTemplate } = useTemplateManagement();
+  const { getCurrentTemplate, currentTemplate, systemState } = useTemplateManagement();
   const [showTemplateWarning, setShowTemplateWarning] = useState(false);
   
   useEffect(() => {
@@ -36,7 +36,8 @@ export const StepOne = ({
     console.log("StepOne: Current template:", {
       templateId: template?.id,
       templateName: template?.name,
-      pillarsCount: template?.pillars?.length
+      pillarsCount: template?.pillars?.length,
+      subId: systemState?.subId || 'none'
     });
     
     // Check if template has valid pillars
@@ -46,14 +47,15 @@ export const StepOne = ({
                            template.pillars.length > 0;
     
     setShowTemplateWarning(!hasValidPillars && !!template);
-  }, [getCurrentTemplate, currentTemplate]);
+  }, [getCurrentTemplate, currentTemplate, systemState]);
   
   const handleAnalyze = () => {
     const currentTemplate = getCurrentTemplate();
     console.log("StepOne: Analyzing with template:", {
       templateId: currentTemplate?.id,
       templateName: currentTemplate?.name,
-      pillarsCount: currentTemplate?.pillars?.length
+      pillarsCount: currentTemplate?.pillars?.length,
+      subId: systemState?.subId || 'none'
     });
     
     if (!currentTemplate || !currentTemplate.pillars || !Array.isArray(currentTemplate.pillars) || currentTemplate.pillars.length === 0) {

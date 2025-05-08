@@ -44,12 +44,12 @@ export const TemplateSelector = ({ className, showDebug = false }: TemplateSelec
       </div>
 
       {currentTemplate && (
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap bg-[#f8fefa] p-3 border border-[#64bf95]/20 rounded-md">
           {currentTemplate.pillars.map((pillar: PillarType) => (
             <Badge 
               key={pillar.id}
               variant="outline" 
-              className="bg-[#64bf95]/10 text-xs"
+              className="bg-[#64bf95]/10 text-xs hover:bg-[#64bf95]/20"
             >
               {pillar.title}
             </Badge>
