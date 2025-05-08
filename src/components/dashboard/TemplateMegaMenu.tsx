@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { X } from 'lucide-react';
 import {
@@ -541,7 +542,7 @@ export const TemplateMegaMenu = () => {
                   {templateCategories
                     .find(c => c.id === activeCategory)
                     ?.subcategories.map(subcategory => {
-                      // Get template tags - these will replace the redundant pillars
+                      // Get template tags - these will be our only pillars display
                       const tags = getTemplateTags(subcategory.id);
                       
                       return (
@@ -557,7 +558,7 @@ export const TemplateMegaMenu = () => {
                             </p>
                           </div>
                           
-                          {/* Display template tags if available - this uses the tag system from templateTags */}
+                          {/* Only display the template tags with white background */}
                           {tags && tags.length > 0 && (
                             <div className="mt-3">
                               <p className="text-xs text-gray-500 mb-1">Template Pillars:</p>
