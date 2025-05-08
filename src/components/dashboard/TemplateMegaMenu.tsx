@@ -206,15 +206,27 @@ const templateCategories: TemplateCategory[] = [
 ];
 
 /* ------------------------------------------------------------------ */
-/*  Constants                                                          */
+/*  Description text for tooltip                                       */
 /* ------------------------------------------------------------------ */
-const AITEMA_X_FRAMEWORK_ID = "default";
 const AITEMA_X_DESCRIPTION =
   "The Aitema X default multi-pillar framework – build structured prompts fast with variables and step logic.";
 
 export const TemplateMegaMenu = () => {
   // single source of truth from the global hook
   const { selectTemplate, templates, currentTemplate } = useTemplateManagement();
+
+  /* ----------------------------------------------------------------
+     Detect the real framework template ID dynamically (first match
+     marked isDefault or named "Aitema X Framework").  Fallback to
+     "default" so nothing breaks in dev data.  Memoised on template
+     list so it never flickers.
+  ---------------------------------------------------------------- */
+  const frameworkId = useMemo(() => {
+    const fw = templates?.find(
+      t => t.isDefault || t.name === "Aitema X Framework"
+    );
+    return fw?.id ?? "default";
+  }, [templates]);
 
   /* ----------------------------------------------------------------
      Local state that remembers a system sub-template picked from
@@ -226,18 +238,17 @@ export const TemplateMegaMenu = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  // clicking any system-template or framework entry
+  // clicking any system-template or the framework line
   const handleTemplateSelect = (templateId: string) => {
-    if (templateId === AITEMA_X_FRAMEWORK_ID) {
+    if (templateId === frameworkId) {
       /* They clicked the framework line: treat as "no sub-selection" */
       setSystemSelection(null);
-      selectTemplate(AITEMA_X_FRAMEWORK_ID);
+      selectTemplate(frameworkId);
     } else {
       /* They clicked a system sub-template */
       setSystemSelection(templateId);
-      /* keep the underlying template as the framework for now
-         (functionality will be wired later)                           */
-      selectTemplate(AITEMA_X_FRAMEWORK_ID);
+      /* keep the underlying template as the framework */
+      selectTemplate(frameworkId);
     }
     setIsOpen(false);
   };
@@ -247,7 +258,7 @@ export const TemplateMegaMenu = () => {
   useEffect(() => {
     if (
       currentTemplate &&
-      currentTemplate.id !== AITEMA_X_FRAMEWORK_ID &&           // not the framework
+      currentTemplate.id !== frameworkId &&                     // not the framework
       !templateCategories.some(cat =>
         cat.subcategories.some(sub => sub.id === currentTemplate.id)
       )
@@ -269,7 +280,7 @@ export const TemplateMegaMenu = () => {
     }
 
     /* 2️⃣ show framework name */
-    if (currentTemplate?.id === AITEMA_X_FRAMEWORK_ID) {
+    if (currentTemplate?.id === frameworkId) {
       return "Aitema X Framework";
     }
 
@@ -278,7 +289,7 @@ export const TemplateMegaMenu = () => {
   }, [systemSelection, currentTemplate?.id]);
 
   // Find the Aitema X Framework template in the templates list
-  const aitemaXTemplate = templates?.find(t => t.id === AITEMA_X_FRAMEWORK_ID);
+  const aitemaXTemplate = templates?.find(t => t.id === frameworkId);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
