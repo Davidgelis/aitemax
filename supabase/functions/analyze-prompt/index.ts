@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import {
@@ -454,6 +453,10 @@ serve(async (req) => {
         ? template.pillars.map((p: any) => p.title)
         : [];
 
+  /* ── Drop variables whose label is identical to any pillar title ── */
+  const pillarSig = new Set(templatePillars.map((p: string) => canonKey(p)));
+  finalVariables = finalVariables.filter(v => !pillarSig.has(canonKey(v.name)));
+
       templatePillars.forEach((pillar: string) => {
         const hasOne = processedQuestions.some(
           q => (q.category || "Other").toLowerCase() === pillar.toLowerCase()
@@ -579,9 +582,8 @@ serve(async (req) => {
 
       // Debug aid: warn about any remaining question-variable overlaps
       finalVariables.forEach(v => {
-        const dup = processedQuestions.find(q => 
-          q.text.toLowerCase().includes(v.name.toLowerCase())
-        );
+        const re = new RegExp(`\\b${canonKey(v.name)}\\b`, "i"); // whole-word match
+        const dup = processedQuestions.find(q => re.test(canonKey(q.text)));
         if (dup) {
           console.log(`⚠️  Question "${dup.text}" duplicates variable "${v.name}"`);
           // prefer descriptive question, drop variable silently

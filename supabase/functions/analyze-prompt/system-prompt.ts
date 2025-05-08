@@ -50,7 +50,11 @@ Hard Requirements (❌ invalid JSON if broken):
 
 5. **Illustrative answers must be concrete**  
    – never use "example 1/2/3". Replace with a fitting, real-world value
-   (colour names, objects, roles, etc.).`;
+   (colour names, objects, roles, etc.).
+6. 🚫 **Never use a generic pillar word by itself**  
+   (Setting, Mood, Style, Subject, Palette, Background, Environment)  
+   as a variable name. If a variable must reference one of these, add a qualifier
+   such as "Image Setting", "Lighting Mood", "Colour Palette".`;
 
   if (Array.isArray(template?.pillars)) {
     prompt += `\nPillars to cover:\n${template.pillars
