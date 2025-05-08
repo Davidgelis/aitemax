@@ -323,9 +323,9 @@ export const TemplateMegaMenu = () => {
         align="start"
         sideOffset={5}
       >
-        <div className="flex">
-          {/* Categories sidebar */}
-          <div className="w-[200px] p-2 border-r border-[#64bf95]/20 bg-[#f2fbf7]">
+        <div className="flex h-full">
+          {/* Categories sidebar - fixed height */}
+          <div className="w-[200px] p-2 border-r border-[#64bf95]/20 bg-[#f2fbf7] h-[500px] overflow-y-auto">
             {/* My Templates at the top with white background */}
             {userTemplates.length > 0 && (
               <div className="mb-4 px-3 py-2 bg-white rounded-md border border-[#64bf95]/20">
@@ -360,7 +360,7 @@ export const TemplateMegaMenu = () => {
               </div>
             </div>
 
-            <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
+            <div className="space-y-1 pr-1">
               {templateCategories.map(category => (
                 <div 
                   key={category.id}
@@ -378,9 +378,9 @@ export const TemplateMegaMenu = () => {
             </div>
           </div>
           
-          {/* Subcategories content */}
-          <div className="flex-1 p-4 max-h-[450px] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
+          {/* Subcategories content - expandable with independent scroll */}
+          <div className="flex-1 p-4 h-[500px] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 pb-2">
               <h3 className="text-lg font-medium text-[#084b49]">
                 {activeCategory === "user-templates" 
                   ? "My Templates"
@@ -400,8 +400,8 @@ export const TemplateMegaMenu = () => {
             </div>
             
             {activeCategory === "user-templates" ? (
-              <div className="grid grid-cols-1 gap-3">
-                {userTemplates.map(template => (
+              <div className="grid grid-cols-1 gap-4">
+                {userTemplates.length > 0 ? userTemplates.map(template => (
                   <div 
                     key={template.id}
                     className="flex flex-col gap-2 p-4 rounded-lg border border-[#64bf95]/30 hover:border-[#33fea6] hover:bg-[#f2fbf7] transition-all cursor-pointer"
@@ -429,10 +429,14 @@ export const TemplateMegaMenu = () => {
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center p-8 text-gray-500">
+                    No custom templates yet
+                  </div>
+                )}
               </div>
             ) : activeCategory ? (
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-1 gap-4">
                 {templateCategories
                   .find(c => c.id === activeCategory)
                   ?.subcategories.map(subcategory => {
@@ -442,19 +446,20 @@ export const TemplateMegaMenu = () => {
                     return (
                       <div 
                         key={subcategory.id}
-                        className="flex flex-col gap-2 p-4 rounded-lg border border-[#64bf95]/30 hover:border-[#33fea6] hover:bg-[#f2fbf7] transition-all cursor-pointer"
+                        className="flex flex-col gap-2 p-5 rounded-lg border border-[#64bf95]/30 hover:border-[#33fea6] hover:bg-[#f2fbf7] transition-all cursor-pointer"
                         onClick={() => handleTemplateSelect(subcategory.id)}
                       >
                         <div className="flex-1">
-                          <div className="font-medium">{subcategory.title}</div>
-                          <p className="text-sm text-gray-600 mt-1">
+                          <div className="font-medium text-lg">{subcategory.title}</div>
+                          <p className="text-sm text-gray-600 mt-2">
                             {subcategory.description}
                           </p>
                         </div>
                         
                         {/* Display pillars for the subcategory */}
                         {pillars && pillars.length > 0 && (
-                          <div className="mt-2">
+                          <div className="mt-3">
+                            <p className="text-xs text-gray-500 mb-1">Template Pillars:</p>
                             <div className="flex flex-wrap gap-2">
                               {pillars.map((pillar, index) => (
                                 <Badge 
