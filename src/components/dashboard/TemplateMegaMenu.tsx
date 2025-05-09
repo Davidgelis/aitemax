@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { X } from 'lucide-react';
 import {
@@ -335,8 +336,8 @@ export const TemplateMegaMenu = () => {
             </div>
           </div>
           
-          {/* Hover overlay with "Select this framework" */}
-          <div className="absolute inset-0 bg-[#084b49]/80 flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-200">
+          {/* Hover overlay with "Select this framework" - reduced opacity from 80% to 40% */}
+          <div className="absolute inset-0 bg-[#084b49]/40 flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-200">
             <span className="text-white font-medium text-lg">Select this framework</span>
           </div>
         </div>
