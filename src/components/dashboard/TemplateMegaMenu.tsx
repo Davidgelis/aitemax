@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { X } from 'lucide-react';
 import {
@@ -216,10 +215,10 @@ const templateCategories: TemplateCategory[] = [
 /*  Description text for Aitema X Framework                            */
 /* ------------------------------------------------------------------ */
 const AITEMA_X_DESCRIPTION =
-  "The Aitema X default multi-pillar framework – build structured prompts fast with variables and step logic.";
+  "Built for any use case. Simple. Powerful. Structured.";
 
 const AITEMA_X_DISCLAIMER =
-  "This framework provides a structured approach to building prompts with multiple pillars, allowing for complex prompt engineering while maintaining clarity and control.";
+  "The Aitema X Framework is your go-to prompt builder—designed to work with any kind of request. Whether you're creating content, analyzing data, solving problems, or brainstorming ideas, this framework helps you shape clear, effective prompts with structure and logic.\n\nBy using four core pillars, Aitema X keeps things organized so you get better, faster results from AI without losing your original goal.";
 
 export const TemplateMegaMenu = () => {
   // single source of truth from the global hook
@@ -310,16 +309,13 @@ export const TemplateMegaMenu = () => {
     
     return (
       <div className="p-4">
-        <h3 className="text-xl font-medium text-[#084b49] mb-4">Aitema X Framework</h3>
-        
         <div className="bg-[#f2fbf7] rounded-lg p-4 border border-[#64bf95]/30 mb-4">
-          <h4 className="font-medium mb-2 text-[#084b49]">About this framework</h4>
           <p className="text-sm mb-3">{AITEMA_X_DESCRIPTION}</p>
-          <p className="text-sm text-gray-600">{AITEMA_X_DISCLAIMER}</p>
+          <p className="text-sm text-gray-600 whitespace-pre-line">{AITEMA_X_DISCLAIMER}</p>
         </div>
         
         <div className="mb-4">
-          <h4 className="font-medium mb-2 text-[#084b49]">Core Pillars</h4>
+          <h4 className="font-medium mb-2 text-[#084b49]">Core Pillars (Short & Clear)</h4>
           <div className="grid grid-cols-2 gap-3">
             {aitemaXTemplate.pillars?.map(pillar => (
               <div 
@@ -327,7 +323,12 @@ export const TemplateMegaMenu = () => {
                 className="p-3 bg-white rounded-md border border-[#64bf95]/20 flex flex-col"
               >
                 <div className="font-medium text-[#084b49]">{pillar.title}</div>
-                <div className="text-xs text-gray-600 mt-1">{pillar.description}</div>
+                <div className="text-xs text-gray-600 mt-1">
+                  {pillar.title === "Task" && "Define what you want the AI to do—clearly and directly."}
+                  {pillar.title === "Persona" && "Set the tone by assigning a role or expert perspective to guide the response."}
+                  {pillar.title === "Conditions" && "Add specific rules, style, or structure the AI should follow."}
+                  {pillar.title === "Instructions" && "Tie everything together into one smooth, complete prompt."}
+                </div>
               </div>
             ))}
           </div>
