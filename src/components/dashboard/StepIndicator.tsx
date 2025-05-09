@@ -50,15 +50,15 @@ export const StepIndicator = ({
   };
 
   return (
-    <div className="mt-8 flex flex-col items-center">
+    <div className="mt-4 flex flex-col items-center">
       {/* Analyze button on top for step 1 */}
       {currentStep === 1 && onAnalyze && (
-        <div className="mb-4 w-[40%]">
+        <div className="mb-2 w-[40%] relative z-10 -mt-4">
           <Button
             onClick={onAnalyze}
             disabled={isLoading || !promptText.trim()}
             variant="aurora"
-            className="shadow-md px-8 py-2 z-10 w-full"
+            className="shadow-md px-8 py-2 w-full"
           >
             {isLoading ? t.steps.analyzing : t.prompts.analyze}
           </Button>

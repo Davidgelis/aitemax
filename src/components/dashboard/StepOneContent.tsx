@@ -200,7 +200,7 @@ export const StepOneContent = ({
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12">
         {/* Contains everything in a single bordered card */}
-        <div className="w-full border rounded-xl bg-card flex flex-col p-4 mt-4 relative">
+        <div className="w-full border rounded-xl bg-card flex flex-col p-4 mt-4 mb-6 relative">
           {/* Smart button controls above templates */}
           <div className="w-full mb-8">
             <div className="flex items-center gap-4 flex-wrap mb-5">
@@ -263,8 +263,9 @@ export const StepOneContent = ({
               customStyles={{
                 textareaBackground: "#fafafa",
                 textareaText: "#545454",
+                paddingBottom: "10px" // Reduce bottom padding of textarea
               }}
-              textareaHeight="360px" 
+              textareaHeight="280px" // Reduce height of textarea
             />
           </div>
         </div> {/* end of bordered card */}
