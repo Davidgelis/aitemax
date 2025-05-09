@@ -310,7 +310,7 @@ export const TemplateMegaMenu = () => {
     return (
       <div className="p-4">
         <div className="bg-[#f2fbf7] rounded-lg p-4 border border-[#64bf95]/30 mb-4">
-          <p className="text-sm mb-3">{AITEMA_X_DESCRIPTION}</p>
+          <h3 className="text-lg font-medium text-[#084b49] mb-3">{AITEMA_X_DESCRIPTION}</h3>
           <p className="text-sm text-gray-600 whitespace-pre-line">{AITEMA_X_DISCLAIMER}</p>
         </div>
         
