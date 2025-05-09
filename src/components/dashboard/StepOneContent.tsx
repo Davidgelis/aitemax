@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
@@ -269,12 +270,12 @@ export const StepOneContent = ({
               textareaHeight="360px" 
             />
           </div>
-          {/* floating Analyze button – bottom-center of the card */}
+          {/* floating Analyze button – bottom-center of the card, 60% less width and raised higher */}
           <Button
             onClick={handleAnalyzeWithAuth}
             disabled={isLoading || !promptText.trim()}
             variant="aurora"
-            className="absolute -bottom-5 left-1/2 -translate-x-1/2 shadow-md px-8 py-2 z-10"
+            className="absolute -bottom-5 left-1/2 -translate-x-1/2 shadow-md px-8 py-2 z-10 w-[40%] -bottom-12"
           >
             {isLoading ? t.steps.analyzing : t.prompts.analyze}
           </Button>
