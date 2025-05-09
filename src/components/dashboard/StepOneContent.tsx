@@ -247,33 +247,37 @@ export const StepOneContent = ({
             </div>
           )}
 
-          {/* prompt input will size itself to its content */}
-          <PromptInput 
-            value={promptText} 
-            onChange={setPromptText} 
-            onSubmit={handleAnalyzeWithAuth} 
-            className="w-full"
-            images={uploadedImages} 
-            onImagesChange={handleImagesChange} 
-            isLoading={isLoading} 
-            onOpenUploadDialog={handleOpenUploadDialog} 
-            dialogOpen={dialogOpen} 
-            setDialogOpen={setDialogOpen} 
-            maxLength={maxCharacterLimit} 
-            placeholder={t.steps.promptTextPlaceholder} 
-            customStyles={{
-              textareaBackground: "#fafafa",
-              textareaText: "#545454"
-            }}
-            textareaHeight="360px" 
-          />
+          {/* PromptInput with floating action button */}
+          <div className="relative">
+            <PromptInput 
+              value={promptText} 
+              onChange={setPromptText} 
+              onSubmit={handleAnalyzeWithAuth} 
+              className="w-full"
+              images={uploadedImages} 
+              onImagesChange={handleImagesChange} 
+              isLoading={isLoading} 
+              onOpenUploadDialog={handleOpenUploadDialog} 
+              dialogOpen={dialogOpen} 
+              setDialogOpen={setDialogOpen} 
+              maxLength={maxCharacterLimit} 
+              placeholder={t.steps.promptTextPlaceholder} 
+              customStyles={{
+                textareaBackground: "#fafafa",
+                textareaText: "#545454"
+              }}
+              textareaHeight="360px" 
+            />
 
-          <div className="mt-3 pt-3 border-t">
-            <div className="flex justify-end">
-              <Button onClick={handleAnalyzeWithAuth} disabled={isLoading || !promptText.trim()} variant="aurora" className="ml-2">
-                {isLoading ? t.steps.analyzing : t.prompts.analyze}
-              </Button>
-            </div>
+            {/* FAB-style Analyze button */}
+            <Button
+              onClick={handleAnalyzeWithAuth}
+              disabled={isLoading || !promptText.trim()}
+              variant="aurora"
+              className="absolute bottom-3 right-3 shadow-md px-4 py-2"
+            >
+              {isLoading ? t.steps.analyzing : t.prompts.analyze}
+            </Button>
           </div>
         </div>
       </div>
