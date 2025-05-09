@@ -211,7 +211,7 @@ export const usePromptState = (user: any = null): PromptState => {
           master_command: prompt.masterCommand,
           primary_toggle: prompt.primaryToggle,
           secondary_toggle: prompt.secondaryToggle,
-          variables: prompt.variables,
+          variables: variablesToJson(prompt.variables) as unknown as Json,  // ✅ cast to Json
         };
 
         const { error } = await supabase.from("prompts").insert(newPrompt);
@@ -226,7 +226,7 @@ export const usePromptState = (user: any = null): PromptState => {
           masterCommand: newPrompt.master_command,
           primaryToggle: newPrompt.primary_toggle,
           secondaryToggle: newPrompt.secondary_toggle,
-          variables: newPrompt.variables,
+          variables: prompt.variables,
           date: format(new Date(), "MMM d, yyyy"),
         };
 
