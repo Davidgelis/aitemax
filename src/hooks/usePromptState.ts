@@ -209,8 +209,6 @@ export const usePromptState = (user: any = null): PromptState => {
           title: `${prompt.title} (Copy)`,
           prompt_text: prompt.promptText,
           master_command: prompt.masterCommand,
-          primary_toggle: prompt.primaryToggle,
-          secondary_toggle: prompt.secondaryToggle,
           variables: variablesToJson(prompt.variables) as unknown as Json,  // ✅ cast to Json
         };
 
@@ -224,8 +222,8 @@ export const usePromptState = (user: any = null): PromptState => {
           title: newPrompt.title,
           promptText: newPrompt.prompt_text,
           masterCommand: newPrompt.master_command,
-          primaryToggle: newPrompt.primary_toggle,
-          secondaryToggle: newPrompt.secondary_toggle,
+          primaryToggle: prompt.primaryToggle,
+          secondaryToggle: prompt.secondaryToggle,
           variables: prompt.variables,
           date: format(new Date(), "MMM d, yyyy"),
         };
@@ -314,8 +312,6 @@ export const usePromptState = (user: any = null): PromptState => {
         title,
         prompt_text: promptText,
         master_command: masterCommand,
-        primary_toggle: selectedPrimary,
-        secondary_toggle: selectedSecondary,
         variables: variablesToJson(variables) as unknown as Json,
       };
 
