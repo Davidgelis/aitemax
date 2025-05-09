@@ -76,6 +76,7 @@ export type Database = {
         Row: {
           created_at: string
           current_step: number | null
+          expires_at: string | null
           id: string
           is_deleted: boolean | null
           is_private: boolean | null
@@ -91,6 +92,7 @@ export type Database = {
         Insert: {
           created_at?: string
           current_step?: number | null
+          expires_at?: string | null
           id?: string
           is_deleted?: boolean | null
           is_private?: boolean | null
@@ -106,6 +108,7 @@ export type Database = {
         Update: {
           created_at?: string
           current_step?: number | null
+          expires_at?: string | null
           id?: string
           is_deleted?: boolean | null
           is_private?: boolean | null

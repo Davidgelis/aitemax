@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -119,7 +120,7 @@ export const usePromptState = (user: any = null): PromptState => {
           masterCommand: prompt.master_command || "",
           primaryToggle: prompt.primary_toggle,
           secondaryToggle: prompt.secondary_toggle,
-          variables: prompt.variables || [],
+          variables: prompt.variables ? jsonToVariables(prompt.variables) : [],
           date: format(new Date(prompt.created_at), "MMM d, yyyy"),
         }));
 
@@ -315,7 +316,7 @@ export const usePromptState = (user: any = null): PromptState => {
         master_command: masterCommand,
         primary_toggle: selectedPrimary,
         secondary_toggle: selectedSecondary,
-        variables,
+        variables: variablesToJson(variables),
       };
 
       let operation;
@@ -330,9 +331,12 @@ export const usePromptState = (user: any = null): PromptState => {
         successMessage = "Prompt updated successfully!";
       } else {
         // Insert new prompt
-        promptData.id = uuidv4();
-        operation = supabase.from("prompts").insert(promptData);
-        setCurrentPromptId(promptData.id);
+        const newPromptWithId = {
+          ...promptData,
+          id: uuidv4()
+        };
+        operation = supabase.from("prompts").insert(newPromptWithId);
+        setCurrentPromptId(newPromptWithId.id);
       }
 
       const { error } = await operation;
