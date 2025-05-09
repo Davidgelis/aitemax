@@ -1,10 +1,11 @@
-
 import { useCallback, useEffect, useState, useRef } from "react";
+import { addDays, isBefore } from "date-fns";
 import { Variable, variablesToJson, jsonToVariables } from "@/components/dashboard/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/context/AuthContext";
+import { DRAFT_CFG } from '@/config/drafts';
 
 interface PromptDraft {
   id?: string;
@@ -38,8 +39,8 @@ export const usePromptDrafts = (
   const maxRetries = 3;
   const { sessionExpiresAt } = useAuth();
   
-  // How often to auto-save drafts (in milliseconds) - 10 seconds
-  const autoSaveInterval = 10000;
+  // How often to auto-save drafts (in milliseconds)
+  const autoSaveInterval = DRAFT_CFG.AUTO_SAVE_MS;
   
   // Track previous values to detect changes
   const prevValuesRef = useRef({
@@ -125,10 +126,19 @@ export const usePromptDrafts = (
       }
       
       if (data) {
+        // Filter out expired drafts
+        const fresh = data.filter(d => !d.expires_at || isBefore(new Date(), new Date(d.expires_at)));
+        if (fresh.length !== data.length) {
+          // hard-delete expired rows server-side (fire-and-forget)
+          await supabase.from('prompt_drafts')
+            .delete()
+            .lte('expires_at', new Date().toISOString());
+        }
+        
         // Filter out duplicates, saved prompts, and manually tracked deleted drafts
         const uniqueDrafts = new Map();
         
-        data.forEach(draft => {
+        fresh.forEach(draft => {
           // Skip if this draft has been manually marked as deleted
           if (draft.id && deletedDraftIds.has(draft.id)) {
             return;
@@ -178,13 +188,10 @@ export const usePromptDrafts = (
     // Don't save drafts if:
     // 1. No user is logged in
     // 2. No prompt text
-    // 3. We're on step 1 (haven't analyzed the prompt yet)
-    // 4. We're on step 3 (final step - should be saved as a prompt instead)
-    // 5. Nothing has changed (not dirty) unless forced
+    // 3. /* allow all steps – snapshots handle step-3 cleanup */
+    // 4. Nothing has changed (not dirty) unless forced
     if (!user || 
         !promptText.trim() || 
-        currentStep === 1 ||
-        currentStep === 3 ||
         (isSaving && saveAttempts >= maxRetries) || 
         (!isDirty && !force)) {
       console.log(`Not saving draft. Step: ${currentStep}, Has text: ${!!promptText.trim()}, User: ${!!user}, Dirty: ${isDirty}, Force: ${force}`);
@@ -245,7 +252,8 @@ export const usePromptDrafts = (
         secondary_toggle: selectedSecondary,
         variables: variablesToJson(variables),
         current_step: currentStep,
-        is_deleted: false // Explicitly mark as not deleted
+        is_deleted: false, // Explicitly mark as not deleted
+        expires_at: addDays(new Date(), DRAFT_CFG.TTL_DAYS).toISOString()
       };
 
       if (draftId) {
@@ -270,6 +278,7 @@ export const usePromptDrafts = (
         }
       }
 
+      const expiresAt = addDays(new Date(), DRAFT_CFG.TTL_DAYS).toISOString();
       localStorage.setItem('promptDraft', JSON.stringify({
         id: draftId,
         promptText: plainTextPrompt,
@@ -278,7 +287,8 @@ export const usePromptDrafts = (
         selectedPrimary,
         selectedSecondary,
         currentStep,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        expiresAt
       }));
 
       // Draft successfully saved, mark as not dirty
@@ -306,6 +316,7 @@ export const usePromptDrafts = (
         }, Math.pow(2, saveAttempts) * 1000);
       } else {
         // Still save to localStorage as a backup after max retries
+        const expiresAt = addDays(new Date(), DRAFT_CFG.TTL_DAYS).toISOString();
         localStorage.setItem('promptDraft', JSON.stringify({
           promptText: promptText.replace(/<[^>]*>/g, ''),
           masterCommand,
@@ -313,7 +324,8 @@ export const usePromptDrafts = (
           selectedPrimary,
           selectedSecondary,
           currentStep,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          expiresAt
         }));
         
         setIsSaving(false);
@@ -331,7 +343,7 @@ export const usePromptDrafts = (
 
   // Add auto-save functionality at regular intervals for steps 2 and 3
   useEffect(() => {
-    if (!user || currentStep === 1 || !isDirty) return;
+    if (!user || !isDirty) return;
     
     const autoSaveTimer = setTimeout(() => {
       console.log("Auto-saving draft...");
@@ -356,6 +368,13 @@ export const usePromptDrafts = (
       if (error) throw error;
 
       if (drafts && drafts.length > 0) {
+        // Check if draft has expired
+        if (drafts[0].expires_at && !isBefore(new Date(), new Date(drafts[0].expires_at))) {
+          // Draft expired, clean up and return null
+          await supabase.from('prompt_drafts').delete().eq('id', drafts[0].id);
+          return null;
+        }
+        
         // If the draft is for step 1, don't load it since we only want to load drafts for steps 2 and 3
         if (drafts[0].current_step === 1) {
           return null;
@@ -376,6 +395,13 @@ export const usePromptDrafts = (
       if (localDraft) {
         const parsed = JSON.parse(localDraft);
         
+        // Check if local draft has expired
+        if (parsed.expiresAt && !isBefore(new Date(), new Date(parsed.expiresAt))) {
+          // Local draft expired, remove it
+          localStorage.removeItem('promptDraft');
+          return null;
+        }
+        
         // If the draft is for step 1, don't load it
         if (parsed.currentStep === 1) {
           return null;
@@ -391,6 +417,13 @@ export const usePromptDrafts = (
       const localDraft = localStorage.getItem('promptDraft');
       if (localDraft) {
         const parsed = JSON.parse(localDraft);
+        
+        // Check if local draft has expired
+        if (parsed.expiresAt && !isBefore(new Date(), new Date(parsed.expiresAt))) {
+          // Local draft expired, remove it
+          localStorage.removeItem('promptDraft');
+          return null;
+        }
         
         // If the draft is for step 1, don't load it
         if (parsed.currentStep === 1) {
@@ -500,6 +533,7 @@ export const usePromptDrafts = (
     setCurrentDraftId(draft.id);
     
     // Update local storage with the selected draft
+    const expiresAt = addDays(new Date(), DRAFT_CFG.TTL_DAYS).toISOString();
     localStorage.setItem('promptDraft', JSON.stringify({
       id: draft.id,
       promptText: draft.promptText,
@@ -508,7 +542,8 @@ export const usePromptDrafts = (
       selectedPrimary: draft.primaryToggle,
       secondaryToggle: draft.secondaryToggle,
       currentStep: draft.currentStep,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      expiresAt
     }));
     
     // Reset dirty state when loading a draft
@@ -523,7 +558,7 @@ export const usePromptDrafts = (
       currentStep: draft.currentStep
     };
   }, [deletedDraftIds, toast]);
-  
+
   // Check for session expiration to save drafts
   useEffect(() => {
     if (sessionExpiresAt && isDirty) {
@@ -541,7 +576,7 @@ export const usePromptDrafts = (
   // Window visibility event handler to save drafts when the user leaves the page
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && isDirty && (currentStep === 2 || currentStep === 3)) {
+      if (document.visibilityState === 'hidden' && isDirty) {
         console.log("Page hidden, saving draft...");
         saveDraft(false);
       }
@@ -549,7 +584,7 @@ export const usePromptDrafts = (
     
     // Handle page unload/close
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty && (currentStep === 2 || currentStep === 3)) {
+      if (isDirty) {
         console.log("Page unloading, saving draft...");
         saveDraft(false);
         

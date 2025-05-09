@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AIModel } from "@/components/dashboard/types";
-import { UserSidebar } from "@/components/dashboard/UserSidebar";
+import { DraftSidebar } from "@/components/dashboard/DraftSidebar";
 import { StepController } from "@/components/dashboard/StepController";
 import { usePromptState } from "@/hooks/usePromptState";
 import { useToast } from "@/hooks/use-toast";
@@ -27,14 +27,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { session, loading: authLoading } = useAuth();
-  const { timer: sessionTimer, refreshSession } = useSessionControls();
+  const { timer: sessionTimer } = useSessionControls();
   
   // Create promptState after getting auth state
   const promptState = usePromptState(user);
-  
-  const filteredPrompts = promptState.savedPrompts.filter(
-    (prompt) => prompt.title.toLowerCase().includes(promptState.searchTerm.toLowerCase())
-  );
   
   // Enhanced logging for better prompt tracking
   useEffect(() => {
@@ -64,12 +60,10 @@ const Dashboard = () => {
       // 1. We're navigating away from the current page
       // 2. There is prompt text
       // 3. We're not viewing a saved prompt
-      // 4. We're on step 2 (not step 1 or 3)
-      // 5. There are unsaved changes (isDirty)
+      // 4. There are unsaved changes (isDirty)
       if (nextPath !== location.pathname && 
           promptState.promptText && 
           !promptState.isViewingSavedPrompt && 
-          promptState.currentStep === 2 &&
           promptState.isDirty) {
         promptState.saveDraft();
       }
@@ -160,40 +154,6 @@ const Dashboard = () => {
   const handleSaveDraft = () => {
     promptState.saveDraft(true);
   };
-  
-  // Add periodic session refresh for active users with better error handling
-  useEffect(() => {
-    // Only refresh if there's an active session and user is interacting with the app
-    if (!session) return;
-    
-    // Auto-refresh when fetching prompts fails due to auth issues
-    if (promptState.fetchPromptError) {
-      const errorMessage = promptState.fetchPromptError.message || '';
-      if (errorMessage.includes('JWT') || 
-          errorMessage.includes('token') ||
-          errorMessage.includes('auth')) {
-        console.log("Auth error detected in prompt fetch, refreshing session");
-        refreshSession().then(() => {
-          // Wait a bit after refresh before retrying fetch
-          setTimeout(() => {
-            promptState.fetchSavedPrompts();
-          }, 1000);
-        });
-      }
-    }
-
-    // Add additional hotfix for prompt loading issues
-    const checkPromptsInterval = setInterval(() => {
-      if (promptState.fetchPromptError && !promptState.isLoadingPrompts) {
-        console.log("Periodic retry for failed prompt fetch");
-        promptState.fetchSavedPrompts();
-      }
-    }, 30000); // Check every 30 seconds
-    
-    return () => {
-      clearInterval(checkPromptsInterval);
-    };
-  }, [session, refreshSession, promptState]);
 
   // Check for redirected prompt from index page
   useEffect(() => {
@@ -280,23 +240,16 @@ const Dashboard = () => {
             </div>
           </main>
 
-          <UserSidebar 
+          <DraftSidebar 
             user={user}
             userProfile={userProfile}
-            savedPrompts={promptState.savedPrompts}
-            filteredPrompts={filteredPrompts}
-            searchTerm={promptState.searchTerm}
-            setSearchTerm={promptState.setSearchTerm}
-            isLoadingPrompts={promptState.isLoadingPrompts}
-            handleNewPrompt={promptState.handleNewPrompt}
-            handleDeletePrompt={promptState.handleDeletePrompt}
-            handleDuplicatePrompt={promptState.handleDuplicatePrompt}
-            handleRenamePrompt={promptState.handleRenamePrompt}
-            loadSavedPrompt={promptState.loadSavedPrompt}
             drafts={promptState.drafts}
             isLoadingDrafts={promptState.isLoadingDrafts}
             loadDraft={promptState.loadSelectedDraft}
             handleDeleteDraft={promptState.handleDeleteDraft}
+            searchTerm={promptState.searchTerm}
+            setSearchTerm={promptState.setSearchTerm}
+            handleNewPrompt={promptState.handleNewPrompt}
             currentDraftId={promptState.currentDraftId}
           />
         </div>
