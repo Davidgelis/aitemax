@@ -199,7 +199,7 @@ export const StepOneContent = ({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Added top padding to create space for the X Panel button */}
-      <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12">
+      <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12 pb-20">
         {/* Contains everything in a single bordered card */}
         <div className="w-full border rounded-xl bg-card flex flex-col p-4 mt-4 relative">
           {/* Smart button controls above templates */}
@@ -270,8 +270,8 @@ export const StepOneContent = ({
           </div>
         </div>
         
-        {/* Analyze button positioned above the step indicator */}
-        <div className="mt-8 mb-2 w-full flex justify-center">
+        {/* Analyze button positioned above the step indicator with more space */}
+        <div className="mt-8 mb-12 w-full flex justify-center">
           <Button
             onClick={handleAnalyzeWithAuth}
             disabled={isLoading || !promptText.trim()}
