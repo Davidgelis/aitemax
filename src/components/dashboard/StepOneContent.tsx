@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
@@ -203,7 +202,7 @@ export const StepOneContent = ({
         {/* Contains everything in a single bordered card */}
         <div className="w-full border rounded-xl bg-card flex flex-col p-4">
           {/* Smart button controls above templates */}
-          <div className="w-full mb-4">
+          <div className="w-full mb-8"> {/* Changed from mb-4 to mb-8 to double the space */}
             <div className="flex items-center gap-4 flex-wrap mb-5">
               <div className="flex flex-row items-center gap-4">
                 <WebScanner onWebsiteScan={handleWebsiteScan} variant="modelReplacement" />
@@ -220,7 +219,7 @@ export const StepOneContent = ({
             </div>
           
             {/* Template selector appears directly under smart buttons */}
-            <div className="mb-4 w-full">
+            <div className="mb-8 w-full"> {/* Changed from mb-4 to mb-8 to double the space */}
               <TemplateSelector />
             </div>
           </div>
