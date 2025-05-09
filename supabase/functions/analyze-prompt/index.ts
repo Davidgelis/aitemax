@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import {
@@ -453,10 +454,6 @@ serve(async (req) => {
         ? template.pillars.map((p: any) => p.title)
         : [];
 
-  /* ── Drop variables whose label is identical to any pillar title ── */
-  const pillarSig = new Set(templatePillars.map((p: string) => canonKey(p)));
-  finalVariables = finalVariables.filter(v => !pillarSig.has(canonKey(v.name)));
-
       templatePillars.forEach((pillar: string) => {
         const hasOne = processedQuestions.some(
           q => (q.category || "Other").toLowerCase() === pillar.toLowerCase()
@@ -521,6 +518,12 @@ serve(async (req) => {
       let { finalVariables } = processVariables(
         tempVars,
         processedQuestions
+      );
+
+      /* ── Drop variables whose label matches any pillar title ── */
+      const pillarSig = new Set(templatePillars.map((p: string) => canonKey(p)));
+      finalVariables = finalVariables.filter(
+        v => !pillarSig.has(canonKey(v.name))
       );
 
       /* -------------------------------------------------
