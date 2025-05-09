@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
@@ -200,7 +199,7 @@ export const StepOneContent = ({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Added top padding to create space for the X Panel button */}
-      <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12 pb-16">
+      <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12">
         {/* Contains everything in a single bordered card */}
         <div className="w-full border rounded-xl bg-card flex flex-col p-4 mt-4 relative">
           {/* Smart button controls above templates */}
@@ -247,7 +246,7 @@ export const StepOneContent = ({
             </div>
           )}
 
-          {/* PromptInput + FAB */}
+          {/* PromptInput but no button inside it */}
           <div className="relative w-full">
             <PromptInput 
               value={promptText} 
@@ -265,21 +264,22 @@ export const StepOneContent = ({
               customStyles={{
                 textareaBackground: "#fafafa",
                 textareaText: "#545454",
-                paddingRight: "4rem"        // ⇢ space for the FAB
               }}
               textareaHeight="360px" 
             />
-
-            {/* FAB-style Analyze button */}
-            <Button
-              onClick={handleAnalyzeWithAuth}
-              disabled={isLoading || !promptText.trim()}
-              variant="aurora"
-              className="absolute bottom-4 right-4 z-10 shadow-md px-4 py-2"
-            >
-              {isLoading ? t.steps.analyzing : t.prompts.analyze}
-            </Button>
           </div>
+        </div>
+        
+        {/* Analyze button positioned above the step indicator */}
+        <div className="mt-8 mb-2 w-full flex justify-center">
+          <Button
+            onClick={handleAnalyzeWithAuth}
+            disabled={isLoading || !promptText.trim()}
+            variant="aurora"
+            className="shadow-md px-8 py-2"
+          >
+            {isLoading ? t.steps.analyzing : t.prompts.analyze}
+          </Button>
         </div>
       </div>
     </div>
