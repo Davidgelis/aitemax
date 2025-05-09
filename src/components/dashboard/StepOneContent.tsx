@@ -246,7 +246,7 @@ export const StepOneContent = ({
             </div>
           )}
 
-          {/* PromptInput but no button inside it */}
+          {/* PromptInput – give it bottom padding to clear the FAB */}
           <div className="relative w-full">
             <PromptInput 
               value={promptText} 
@@ -264,23 +264,21 @@ export const StepOneContent = ({
               customStyles={{
                 textareaBackground: "#fafafa",
                 textareaText: "#545454",
+                paddingBottom: "4rem",          // space for button
               }}
               textareaHeight="360px" 
             />
           </div>
-        </div>
-        
-        {/* Analyze button positioned above the step indicator with more space */}
-        <div className="mt-8 mb-12 w-full flex justify-center">
+          {/* floating Analyze button – bottom-center of the card */}
           <Button
             onClick={handleAnalyzeWithAuth}
             disabled={isLoading || !promptText.trim()}
             variant="aurora"
-            className="shadow-md px-8 py-2"
+            className="absolute -bottom-5 left-1/2 -translate-x-1/2 shadow-md px-8 py-2 z-10"
           >
             {isLoading ? t.steps.analyzing : t.prompts.analyze}
           </Button>
-        </div>
+        </div> {/* end of bordered card */}
       </div>
     </div>
   );
