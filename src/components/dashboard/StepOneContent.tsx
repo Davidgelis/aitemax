@@ -200,9 +200,9 @@ export const StepOneContent = ({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Added top padding to create space for the X Panel button */}
-      <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12">
+      <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12 pb-16">
         {/* Contains everything in a single bordered card */}
-        <div className="w-full border rounded-xl bg-card flex flex-col p-4 mt-4">
+        <div className="w-full border rounded-xl bg-card flex flex-col p-4 mt-4 relative">
           {/* Smart button controls above templates */}
           <div className="w-full mb-8">
             <div className="flex items-center gap-4 flex-wrap mb-5">
