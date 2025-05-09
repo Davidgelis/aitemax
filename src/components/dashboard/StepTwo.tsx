@@ -34,7 +34,9 @@ export const StepTwo = (props: StepTwoProps) => {
   
   return (
     <ScrollArea className="h-full" hideScrollbar>
-      <StepTwoContent {...safeProps} />
+      <div className="mt-12"> {/* Added mt-12 for consistent spacing */}
+        <StepTwoContent {...safeProps} />
+      </div>
     </ScrollArea>
   );
 };

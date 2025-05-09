@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
@@ -186,7 +187,7 @@ export const StepThreeContent = ({
   }, [toast, isRefreshingJson]);
 
   return (
-    <div className="h-full flex flex-col border rounded-xl bg-card overflow-hidden">
+    <div className="h-full flex flex-col border rounded-xl bg-card overflow-hidden mt-12"> {/* Added mt-12 for spacing */}
       <div className="p-4 border-b">
         <ToggleSection 
           refreshJson={handleRefreshJson}
