@@ -23,6 +23,9 @@ export const StepIndicator = ({
   const { currentLanguage } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
 
+  // Calculate opacity based on whether prompt text exists
+  const buttonOpacity = promptText.trim() ? '100%' : '0%';
+
   const getStepLabel = (step: number) => {
     switch (step) {
       case 1:
@@ -58,7 +61,8 @@ export const StepIndicator = ({
             onClick={onAnalyze}
             disabled={isLoading || !promptText.trim()}
             variant="aurora"
-            className="shadow-md px-8 py-2 w-full"
+            className="shadow-md px-8 py-2 w-full transition-opacity duration-300"
+            style={{ opacity: buttonOpacity }}
           >
             {isLoading ? t.steps.analyzing : t.prompts.analyze}
           </Button>
