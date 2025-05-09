@@ -59,7 +59,7 @@ export const StepTwoContent = ({
   
   if (isLoading) {
     return (
-      <div className="border rounded-xl p-6 bg-card">
+      <div className="border rounded-xl p-6 bg-card w-full mt-4 mb-6">
         <div className="flex flex-col items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
           <p className="text-lg font-medium">{loadingMessage || "Processing your prompt..."}</p>
@@ -70,7 +70,7 @@ export const StepTwoContent = ({
   }
   
   return (
-    <div className="border rounded-xl p-6 bg-card">
+    <div className="border rounded-xl p-6 bg-card w-full mt-4 mb-6">
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <p className="text-[#545454] mb-0">{t.steps.questionsToAnswer}</p>

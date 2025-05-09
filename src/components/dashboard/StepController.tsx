@@ -384,32 +384,36 @@ export const StepController = ({
 
       case 3:
         return (
-          <StepThreeContent 
-            masterCommand={masterCommand}
-            setMasterCommand={setMasterCommand}
-            selectedPrimary={selectedPrimary}
-            selectedSecondary={selectedSecondary}
-            handlePrimaryToggle={handlePrimaryToggle}
-            handleSecondaryToggle={handleSecondaryToggle}
-            showJson={showJson}
-            setShowJson={setShowJson}
-            finalPrompt={finalPrompt}
-            setFinalPrompt={setFinalPrompt}
-            variables={variables}
-            setVariables={setVariables}
-            handleVariableValueChange={handleVariableValueChange}
-            handleCopyPrompt={handleCopyPrompt}
-            handleSavePrompt={handleSavePrompt}
-            handleRegenerate={handleRegenerate}
-            editingPrompt={editingPrompt}
-            setEditingPrompt={setEditingPrompt}
-            showEditPromptSheet={showEditPromptSheet}
-            setShowEditPromptSheet={setShowEditPromptSheet}
-            handleOpenEditPrompt={handleOpenEditPrompt}
-            handleSaveEditedPrompt={handleSaveEditedPrompt}
-            handleAdaptPrompt={handleAdaptPrompt}
-            getProcessedPrompt={getProcessedPrompt}
-          />
+          <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12">
+              <StepThreeContent 
+                masterCommand={masterCommand}
+                setMasterCommand={setMasterCommand}
+                selectedPrimary={selectedPrimary}
+                selectedSecondary={selectedSecondary}
+                handlePrimaryToggle={handlePrimaryToggle}
+                handleSecondaryToggle={handleSecondaryToggle}
+                showJson={showJson}
+                setShowJson={setShowJson}
+                finalPrompt={finalPrompt}
+                setFinalPrompt={setFinalPrompt}
+                variables={variables}
+                setVariables={setVariables}
+                handleVariableValueChange={handleVariableValueChange}
+                handleCopyPrompt={handleCopyPrompt}
+                handleSavePrompt={handleSavePrompt}
+                handleRegenerate={handleRegenerate}
+                editingPrompt={editingPrompt}
+                setEditingPrompt={setEditingPrompt}
+                showEditPromptSheet={showEditPromptSheet}
+                setShowEditPromptSheet={setShowEditPromptSheet}
+                handleOpenEditPrompt={handleOpenEditPrompt}
+                handleSaveEditedPrompt={handleSaveEditedPrompt}
+                handleAdaptPrompt={handleAdaptPrompt}
+                getProcessedPrompt={getProcessedPrompt}
+              />
+            </div>
+          </div>
         );
 
       default:
