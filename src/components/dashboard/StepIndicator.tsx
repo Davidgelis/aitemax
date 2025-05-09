@@ -50,10 +50,10 @@ export const StepIndicator = ({
   };
 
   return (
-    <div className="mt-4 flex flex-col items-center">
+    <div className="mt-2 flex flex-col items-center">
       {/* Analyze button on top for step 1 */}
       {currentStep === 1 && onAnalyze && (
-        <div className="mb-2 w-[40%] relative z-10 -mt-4">
+        <div className="mb-1 w-[40%] relative z-10 -mt-5">
           <Button
             onClick={onAnalyze}
             disabled={isLoading || !promptText.trim()}
