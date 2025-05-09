@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +46,8 @@ interface PromptState {
   currentDraftId: string | null;
   isDirty: boolean;
   isSaving: boolean;
+  finalPrompt: string;
+  setFinalPrompt: (p: string) => void;
   showJson: boolean;
   setShowJson: (show: boolean) => void;
 }
@@ -54,6 +55,8 @@ interface PromptState {
 export const usePromptState = (user: any = null): PromptState => {
   const [promptText, setPromptText] = useState<string>("");
   const [masterCommand, setMasterCommand] = useState<string>("");
+  const [finalPrompt, setFinalPrompt] = useState<string>("");   // ✅
+  
   const [variables, setVariables] = useState<Variable[]>([]);
   // 👇 NEW – keep the questions coming from the analysis hook
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -469,6 +472,9 @@ export const usePromptState = (user: any = null): PromptState => {
     currentDraftId,
     isDirty,
     isSaving,
+    /* expose the missing pair */
+    finalPrompt,
+    setFinalPrompt,
     showJson,
     setShowJson,
   };
