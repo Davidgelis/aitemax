@@ -1,17 +1,24 @@
 
 import { useLanguage } from "@/context/LanguageContext";
 import { dashboardTranslations } from "@/translations/dashboard";
+import { Button } from "@/components/ui/button";
 
 interface StepIndicatorProps {
   currentStep: number;
   onStepChange: (step: number) => void;
   isViewingSavedPrompt?: boolean;
+  isLoading?: boolean;
+  onAnalyze?: () => void;
+  promptText?: string;
 }
 
 export const StepIndicator = ({ 
   currentStep, 
   onStepChange,
-  isViewingSavedPrompt = false
+  isViewingSavedPrompt = false,
+  isLoading = false,
+  onAnalyze,
+  promptText = ""
 }: StepIndicatorProps) => {
   const { currentLanguage } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
@@ -43,7 +50,22 @@ export const StepIndicator = ({
   };
 
   return (
-    <div className="mt-8 flex justify-center">
+    <div className="mt-8 flex flex-col items-center">
+      {/* Analyze button on top for step 1 */}
+      {currentStep === 1 && onAnalyze && (
+        <div className="mb-4 w-[40%]">
+          <Button
+            onClick={onAnalyze}
+            disabled={isLoading || !promptText.trim()}
+            variant="aurora"
+            className="shadow-md px-8 py-2 z-10 w-full"
+          >
+            {isLoading ? t.steps.analyzing : t.prompts.analyze}
+          </Button>
+        </div>
+      )}
+
+      {/* Step indicators */}
       <div className="flex items-center space-x-2 bg-[#f8f9fa] px-4 py-2 rounded-full">
         <button
           onClick={() => onStepChange(1)}

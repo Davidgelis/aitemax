@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PromptInput from "@/components/PromptInput";
@@ -199,8 +198,7 @@ export const StepOneContent = ({
   
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Added top padding to create space for the X Panel button */}
-      <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12 pb-20">
+      <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12 pb-8">
         {/* Contains everything in a single bordered card */}
         <div className="w-full border rounded-xl bg-card flex flex-col p-4 mt-4 relative">
           {/* Smart button controls above templates */}
@@ -247,7 +245,7 @@ export const StepOneContent = ({
             </div>
           )}
 
-          {/* PromptInput – give it bottom padding to clear the FAB */}
+          {/* PromptInput */}
           <div className="relative w-full">
             <PromptInput 
               value={promptText} 
@@ -265,20 +263,10 @@ export const StepOneContent = ({
               customStyles={{
                 textareaBackground: "#fafafa",
                 textareaText: "#545454",
-                paddingBottom: "4rem",          // space for button
               }}
               textareaHeight="360px" 
             />
           </div>
-          {/* floating Analyze button – bottom-center of the card, 60% less width and raised higher */}
-          <Button
-            onClick={handleAnalyzeWithAuth}
-            disabled={isLoading || !promptText.trim()}
-            variant="aurora"
-            className="absolute -bottom-5 left-1/2 -translate-x-1/2 shadow-md px-8 py-2 z-10 w-[40%] -bottom-12"
-          >
-            {isLoading ? t.steps.analyzing : t.prompts.analyze}
-          </Button>
         </div> {/* end of bordered card */}
       </div>
     </div>

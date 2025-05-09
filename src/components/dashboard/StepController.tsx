@@ -458,6 +458,9 @@ export const StepController = ({
           currentStep={currentStep} 
           onStepChange={handleDirectJump} 
           isViewingSavedPrompt={isViewingSavedPrompt}
+          isLoading={isAnalyzing}
+          onAnalyze={currentStep === 1 ? handleAnalyzeWithContext : undefined}
+          promptText={promptText}
         />
       </div>
       
