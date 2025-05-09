@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -186,9 +187,12 @@ export const usePromptAnalysis = (
       // Cache the result for future use
       analysisCache.set(key, data);
       
-      // Process questions
+      // Process questions with fallback options
       updateLoadingState('processing-questions', "Processing questions...");
-      const questions = Array.isArray(data.questions) ? data.questions : [];
+      // prefer data.questions, otherwise fall back to auto-inserted fields
+      const questions = Array.isArray(data.questions) && data.questions.length
+        ? data.questions
+        : (data.generatedQuestions || data.autoQuestions || []);
       setQuestions(questions);
 
       // Process and validate variables
