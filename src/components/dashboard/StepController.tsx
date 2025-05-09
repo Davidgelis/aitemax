@@ -25,9 +25,6 @@ interface StepControllerProps {
   setSelectedModel: (model: AIModel | null) => void;
   isInitializingModels?: boolean;
   promptState: any;
-  sessionTimer?: string;
-  refreshSession?: () => void;
-  isSessionAboutToExpire?: () => boolean;
 }
 
 export const StepController = ({ 
@@ -35,10 +32,7 @@ export const StepController = ({
   selectedModel,
   setSelectedModel,
   isInitializingModels = false,
-  promptState,
-  sessionTimer,
-  refreshSession,
-  isSessionAboutToExpire
+  promptState
 }: StepControllerProps) => {
   
   const questionsContainerRef = useRef<HTMLDivElement>(null);
@@ -450,13 +444,7 @@ export const StepController = ({
           />
           
           <div className="flex items-center gap-3">
-            {sessionTimer && refreshSession && isSessionAboutToExpire && (
-              <SessionInfo 
-                sessionTimer={sessionTimer}
-                refreshSession={refreshSession}
-                isSessionAboutToExpire={isSessionAboutToExpire()}
-              />
-            )}
+            <SessionInfo />
           </div>
         </div>
       )}

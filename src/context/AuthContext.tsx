@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { SESSION_CFG } from '@/config/session';
@@ -262,7 +261,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Set timeout for warning
     const warningTimeout = setTimeout(() => {
-      toast({
+      const { dismiss } = toast({
         title: "Session expiring soon",
         description: "Your session will expire soon. Would you like to stay logged in?",
         action: (
@@ -274,7 +273,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               Stay logged in
             </button>
             <button 
-              onClick={() => toast.dismiss()} 
+              onClick={() => dismiss()} 
               className="rounded bg-muted px-2 py-1 text-xs"
             >
               Snooze 15 min

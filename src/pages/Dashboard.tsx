@@ -11,11 +11,12 @@ import { useNavigate, useLocation } from "react-router-dom";
 import XPanelButton from "@/components/dashboard/XPanelButton";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Save } from "lucide-react";
+import { AlertCircle, Save, RefreshCw } from "lucide-react";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
 import { TemplateManagementProvider } from "@/hooks/useTemplateManagement";
 import { useSessionControls } from '@/hooks/useSessionControls';
+import { SessionInfo } from "@/components/dashboard/steps/SessionInfo";
 
 const Dashboard = () => {
   
