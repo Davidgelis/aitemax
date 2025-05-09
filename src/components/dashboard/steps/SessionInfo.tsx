@@ -3,18 +3,10 @@ import { Clock, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
+import { useSessionControls } from '@/hooks/useSessionControls';
 
-interface SessionInfoProps {
-  sessionTimer: string;
-  refreshSession: () => void;
-  isSessionAboutToExpire: boolean;
-}
-
-export const SessionInfo = ({ 
-  sessionTimer, 
-  refreshSession, 
-  isSessionAboutToExpire 
-}: SessionInfoProps) => {
+export const SessionInfo = () => {
+  const { timer: sessionTimer, aboutToExpire: isSessionAboutToExpire, refreshSession } = useSessionControls();
   const { currentLanguage } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
 

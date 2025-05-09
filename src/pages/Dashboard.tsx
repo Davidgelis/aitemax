@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -10,10 +11,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import XPanelButton from "@/components/dashboard/XPanelButton";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Save, RefreshCw, Clock } from "lucide-react";
+import { AlertCircle, Save } from "lucide-react";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
 import { TemplateManagementProvider } from "@/hooks/useTemplateManagement";
+import { useSessionControls } from '@/hooks/useSessionControls';
 
 const Dashboard = () => {
   
@@ -23,8 +25,8 @@ const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const { session, loading: authLoading, sessionExpiresAt, refreshSession } = useAuth();
-  const [sessionTimer, setSessionTimer] = useState<string>("");
+  const { session, loading: authLoading } = useAuth();
+  const { timer: sessionTimer, refreshSession } = useSessionControls();
   
   // Create promptState after getting auth state
   const promptState = usePromptState(user);
@@ -54,53 +56,6 @@ const Dashboard = () => {
       setUser(null);
     }
   }, [session, authLoading]);
-  
-  // Set up session timer display with more frequent updates
-  useEffect(() => {
-    if (!sessionExpiresAt) return;
-    
-    const updateTimer = () => {
-      const now = new Date();
-      const timeLeft = sessionExpiresAt.getTime() - now.getTime();
-      
-      if (timeLeft <= 0) {
-        setSessionTimer("Expired");
-        // If session has expired, try to refresh it immediately
-        refreshSession();
-        return;
-      }
-      
-      // Format time left as MM:SS
-      const minutes = Math.floor(timeLeft / 60000);
-      const seconds = Math.floor((timeLeft % 60000) / 1000);
-      setSessionTimer(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
-      
-      // Pre-emptive refresh when getting close to expiration
-      if (timeLeft < 120000) { // Less than 2 minutes remaining
-        console.log("Session expiring soon, refreshing proactively");
-        refreshSession();
-      }
-    };
-    
-    // Update timer immediately
-    updateTimer();
-    
-    // Set up interval to update timer every second
-    const interval = setInterval(updateTimer, 1000);
-    
-    return () => clearInterval(interval);
-  }, [sessionExpiresAt, refreshSession]);
-  
-  // Add a utility function to check if session is about to expire
-  const isSessionAboutToExpire = () => {
-    if (!sessionExpiresAt) return false;
-    
-    const now = new Date();
-    const timeLeft = sessionExpiresAt.getTime() - now.getTime();
-    
-    // Consider "about to expire" if less than 5 minutes remain
-    return timeLeft < 5 * 60 * 1000;
-  };
   
   useEffect(() => {
     const saveDraftBeforeNavigate = (nextPath: string) => {
@@ -297,19 +252,7 @@ const Dashboard = () => {
                   
                   <div className="flex items-center gap-3">
                     {sessionTimer && (
-                      <div className="text-xs flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span className={isSessionAboutToExpire() ? "text-red-500" : "text-muted-foreground"}>
-                          {t.userActions.session}: {sessionTimer}
-                        </span>
-                        <button 
-                          onClick={refreshSession}
-                          className="text-xs text-blue-500 hover:text-blue-700 transition-colors p-1 rounded hover:bg-blue-50"
-                          title={t.userActions.refreshSession}
-                        >
-                          <RefreshCw className="h-3 w-3" />
-                        </button>
-                      </div>
+                      <SessionInfo />
                     )}
                     
                     {promptState.isDirty && (
@@ -331,9 +274,6 @@ const Dashboard = () => {
                   selectedModel={selectedModel} 
                   setSelectedModel={setSelectedModel}
                   promptState={promptState}
-                  sessionTimer={sessionTimer}
-                  refreshSession={refreshSession}
-                  isSessionAboutToExpire={isSessionAboutToExpire}
                 />
               </div>
             </div>

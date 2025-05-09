@@ -1,5 +1,7 @@
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
+import { SESSION_CFG } from '@/config/session';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -26,20 +28,14 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Increase session refresh interval to 30 minutes (matching longer-lived sessions)
-const SESSION_REFRESH_INTERVAL = 30 * 60 * 1000; 
-
-// Increase inactivity threshold to 4 hours before requiring a session refresh
-const INACTIVITY_REFRESH_TIMEOUT = 4 * 60 * 60 * 1000;
-
-// Warning time before session expires (in milliseconds) - 30 minutes
-const SESSION_WARNING_TIME = 30 * 60 * 1000;
-
-// Maximum retry attempts for session refresh
-const MAX_REFRESH_RETRIES = 3;
-
-// Debounce time for refresh attempts
-const REFRESH_DEBOUNCE = 2000;
+// Use centralized configuration
+const {
+  REFRESH_INTERVAL:              SESSION_REFRESH_INTERVAL,
+  INACTIVITY_TIMEOUT:            INACTIVITY_REFRESH_TIMEOUT,
+  WARNING_BEFORE_EXPIRE:         SESSION_WARNING_TIME,
+  MAX_REFRESH_RETRIES,
+  REFRESH_DEBOUNCE,
+} = SESSION_CFG;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -50,6 +46,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [showSessionExpiredDialog, setShowSessionExpiredDialog] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const { toast } = useToast();
+  
+  // Sync refreshes & timers across tabs
+  const channel = new BroadcastChannel('aitema-session');
+
+  useEffect(() => {
+    channel.onmessage = (e) => {
+      if (e.data?.type === 'SESSION_REFRESHED') {
+        const { session: freshSession } = e.data;
+        setSession(freshSession);
+        setUser(freshSession.user);
+        if (freshSession.expires_at) {
+          setSessionExpiresAt(new Date(freshSession.expires_at * 1000));
+        }
+      }
+    };
+    return () => channel.close();
+  }, []);
   
   // Function to refresh the session with debounce to prevent multiple simultaneous refreshes
   const refreshSession = useCallback(async () => {
@@ -102,6 +115,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSessionExpiresAt(expiryTime);
           console.log(`Session will expire at: ${expiryTime.toLocaleString()}`);
         }
+
+        // tell sibling tabs they can skip their own refresh call
+        channel.postMessage({ type: 'SESSION_REFRESHED', session: data.session });
       } else {
         console.log("No session data returned from refresh");
         // Show session expired dialog when no session data is returned
@@ -250,12 +266,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Session expiring soon",
         description: "Your session will expire soon. Would you like to stay logged in?",
         action: (
-          <button 
-            onClick={refreshSession}
-            className="rounded bg-accent px-2 py-1 text-xs text-white"
-          >
-            Stay logged in
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={refreshSession}
+              className="rounded bg-accent px-2 py-1 text-xs text-white"
+            >
+              Stay logged in
+            </button>
+            <button 
+              onClick={() => toast.dismiss()} 
+              className="rounded bg-muted px-2 py-1 text-xs"
+            >
+              Snooze 15 min
+            </button>
+          </div>
         ),
         duration: 60000, // Show for 1 minute instead of indefinitely
       });
