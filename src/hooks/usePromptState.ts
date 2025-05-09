@@ -1,9 +1,9 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePromptDrafts } from "@/hooks/usePromptDrafts";
 import { SavedPrompt, Variable, jsonToVariables, variablesToJson } from "@/components/dashboard/types";
+import { Json } from "@/integrations/supabase/types";
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 import { DRAFT_CFG } from '@/config/drafts';
@@ -316,7 +316,7 @@ export const usePromptState = (user: any = null): PromptState => {
         master_command: masterCommand,
         primary_toggle: selectedPrimary,
         secondary_toggle: selectedSecondary,
-        variables: variablesToJson(variables),
+        variables: variablesToJson(variables) as unknown as Json,
       };
 
       let operation;
