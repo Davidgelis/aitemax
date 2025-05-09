@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePromptDrafts } from "@/hooks/usePromptDrafts";
-import { SavedPrompt, Variable } from "@/components/dashboard/types";
+import { SavedPrompt, Variable, jsonToVariables, variablesToJson } from "@/components/dashboard/types";
 import { v4 as uuidv4 } from "uuid";
 import { format } from "date-fns";
 import { DRAFT_CFG } from '@/config/drafts';
