@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -103,12 +104,54 @@ export const XTemplateCard = ({ template, isSelected = false, onSelect }: XTempl
           {/* Action Buttons */}
           <div className={`flex justify-between transition-opacity ${showActions ? "opacity-100" : "opacity-0"}`}>
             <div className="flex gap-1">
-              {!isSelected && (
-                <Button variant="outline" size="sm" onClick={handleSelect}>
-                  <Check className="h-4 w-4 mr-2" />
-                  Set Default
-                </Button>
-              )}
+              {/* "Set Default" button removed */}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-6">
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-semibold">{template.name}</h3>
+                    <p className="text-sm text-muted-foreground">Created on {template.createdAt}</p>
+                    
+                    <div className="border-t pt-4 mt-4">
+                      <h4 className="font-medium mb-2">Template Role:</h4>
+                      <p className="text-sm bg-gray-50 p-3 rounded-md">{template.role}</p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium mb-2">Pillars:</h4>
+                      <div className="space-y-3">
+                        {template.pillars.map((pillar) => (
+                          <div key={pillar.id} className="bg-gray-50 p-3 rounded-md">
+                            <div className="font-medium text-[#084b49]">{pillar.title}</div>
+                            <div className="text-sm mt-1">{pillar.description}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mt-4">
+                      <span className="text-sm font-medium">Temperature:</span>
+                      <Badge variant="outline" className="bg-[#64bf95]/10">
+                        {template.temperature}
+                      </Badge>
+                    </div>
+                    
+                    {template.characterLimit && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Character Limit:</span>
+                        <Badge variant="outline" className="bg-[#64bf95]/10">
+                          {template.characterLimit}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             
             {!isProtected && (
