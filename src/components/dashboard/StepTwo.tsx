@@ -33,8 +33,8 @@ export const StepTwo = (props: StepTwoProps) => {
   };
   
   return (
-    <ScrollArea className="h-full" hideScrollbar>
-      <div className="mt-24"> {/* Increased from mt-12 to mt-24 for more spacing */}
+    <ScrollArea className="h-full flex items-center justify-center" hideScrollbar>
+      <div className="flex items-center justify-center min-h-full py-24">
         <StepTwoContent {...safeProps} />
       </div>
     </ScrollArea>
