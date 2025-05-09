@@ -34,11 +34,7 @@ export const StepTwo = (props: StepTwoProps) => {
   
   return (
     <ScrollArea className="h-full" hideScrollbar>
-      <div className="flex flex-col h-full overflow-hidden">
-        <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12">
-          <StepTwoContent {...safeProps} />
-        </div>
-      </div>
+      <StepTwoContent {...safeProps} />
     </ScrollArea>
   );
 };
