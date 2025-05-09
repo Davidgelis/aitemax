@@ -116,10 +116,9 @@ export const usePromptAnalysis = (
         
         updateLoadingState('complete', "Analysis complete!");
         
-        // Still advance to next step if we have content
-        if ((cachedData.questions?.length > 0 || cachedData.variables?.length > 0 || cachedData.debug?.hasImageData)) {
-          setCurrentStep(2);
-        }
+        // 🛠 ensure we move to step 2 once data is ready - ALWAYS move to step 2 when using cached data
+        setCurrentStep(2);
+        console.log("Moved to step 2 (from cache) with", (cachedData.questions || []).length, "questions");
         
         return;
       }
@@ -213,16 +212,10 @@ export const usePromptAnalysis = (
       
       updateLoadingState('complete', "Analysis complete!");
 
-      // Advance to next step if we have content
-      if (questions.length > 0 || rawVars.length > 0 || data.debug?.hasImageData) {
-        setCurrentStep(2);
-      } else {
-        toast({
-          title: "Analysis incomplete",
-          description: "Add more details to your prompt.",
-          variant: "destructive",
-        });
-      }
+      // 🛠 ensure we move to step 2 once data is ready - ALWAYS move to step 2 after successful analysis
+      setCurrentStep(2);
+      console.log("Moved to step 2 with", questions.length, "questions and", rawVars.length, "variables");
+      
     } catch (err) {
       console.error("Analysis error:", err);
       toast({

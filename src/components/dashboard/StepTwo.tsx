@@ -33,10 +33,12 @@ export const StepTwo = (props: StepTwoProps) => {
   };
   
   return (
-    <ScrollArea className="h-full" hideScrollbar>
-      <div className="mt-12"> {/* Added mt-12 for consistent spacing */}
-        <StepTwoContent {...safeProps} />
-      </div>
-    </ScrollArea>
+    <div className="flex flex-col justify-center min-h-full">
+      <ScrollArea className="h-full" hideScrollbar>
+        <div className="mt-12 pb-16">
+          <StepTwoContent {...safeProps} />
+        </div>
+      </ScrollArea>
+    </div>
   );
 };

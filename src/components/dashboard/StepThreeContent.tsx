@@ -8,10 +8,6 @@ import { ActionButtons } from "./step-three/ActionButtons";
 import { StepThreeStyles } from "./step-three/StepThreeStyles";
 import { useToast } from "@/hooks/use-toast";
 import { usePromptOperations } from "@/hooks/usePromptOperations";
-import { 
-  convertEditedContentToPlaceholders, 
-  convertPlaceholdersToSpans 
-} from "@/utils/promptUtils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface StepThreeContentProps {
@@ -132,11 +128,14 @@ export const StepThreeContent = ({
   // Handle saving edited content from the FinalPromptDisplay
   const handleSaveInlineEdit = useCallback(() => {
     try {
+      // Make sure we properly update the finalPrompt state
+      if (editablePrompt) {
+        setFinalPrompt(editablePrompt);
+      }
+      
       setIsEditing(false);
       setEditablePrompt("");
       setRenderTrigger(prev => prev + 1);
-      
-      // Only manually refresh JSON if already showing
       
     } catch (error) {
       console.error("Error saving edited prompt:", error);
@@ -146,7 +145,7 @@ export const StepThreeContent = ({
         variant: "destructive",
       });
     }
-  }, [toast]);
+  }, [editablePrompt, setFinalPrompt, toast]);
 
   const getProcessedPromptFunction = useCallback(() => {
     if (typeof externalGetProcessedPrompt === 'function') {
@@ -187,7 +186,7 @@ export const StepThreeContent = ({
   }, [toast, isRefreshingJson]);
 
   return (
-    <div className="h-full flex flex-col border rounded-xl bg-card overflow-hidden mt-12"> {/* Added mt-12 for spacing */}
+    <div className="h-full flex flex-col border rounded-xl bg-card overflow-hidden mt-12"> 
       <div className="p-4 border-b">
         <ToggleSection 
           refreshJson={handleRefreshJson}
@@ -199,7 +198,7 @@ export const StepThreeContent = ({
         <div className="p-4">
           <FinalPromptDisplay 
             finalPrompt={finalPrompt || ""}
-            updateFinalPrompt={setFinalPrompt}
+            updateFinalPrompt={setFinalPrompt} // Ensure we're passing the setter function
             getProcessedPrompt={getProcessedPromptFunction}
             variables={safeVariables}
             setVariables={setVariables}
