@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 interface CustomStyles {
   textareaBackground?: string;
   textareaText?: string;
+  paddingRight?: string;
 }
 
 interface PromptInputProps {
@@ -295,6 +296,7 @@ const PromptInput = ({
   // Determine text and background colors based on customStyles prop
   const textareaBackground = customStyles.textareaBackground || "#fafafa";
   const textareaText = customStyles.textareaText || "#545454";
+  const textareaPaddingRight = customStyles.paddingRight || undefined;
 
   return (
     <form onSubmit={handleSubmit} className={`w-full mx-auto ${className}`}>
@@ -347,7 +349,8 @@ const PromptInput = ({
               border: "1px solid #e5e7eb",
               borderTop: hideFormatting ? "1px solid #e5e7eb" : "none",
               fontSize: "1.2rem",
-              height: textareaHeight // Use the provided height or default
+              height: textareaHeight, // Use the provided height or default
+              paddingRight: textareaPaddingRight // Apply right padding to avoid text being hidden by FAB
             }}
             ref={textareaRef}
             maxLength={maxLength}

@@ -247,8 +247,8 @@ export const StepOneContent = ({
             </div>
           )}
 
-          {/* PromptInput with floating action button */}
-          <div className="relative">
+          {/* PromptInput + FAB */}
+          <div className="relative w-full">
             <PromptInput 
               value={promptText} 
               onChange={setPromptText} 
@@ -264,7 +264,8 @@ export const StepOneContent = ({
               placeholder={t.steps.promptTextPlaceholder} 
               customStyles={{
                 textareaBackground: "#fafafa",
-                textareaText: "#545454"
+                textareaText: "#545454",
+                paddingRight: "4rem"        // ⇢ space for the FAB
               }}
               textareaHeight="360px" 
             />
@@ -274,7 +275,7 @@ export const StepOneContent = ({
               onClick={handleAnalyzeWithAuth}
               disabled={isLoading || !promptText.trim()}
               variant="aurora"
-              className="absolute bottom-3 right-3 shadow-md px-4 py-2"
+              className="absolute bottom-4 right-4 z-10 shadow-md px-4 py-2"
             >
               {isLoading ? t.steps.analyzing : t.prompts.analyze}
             </Button>
