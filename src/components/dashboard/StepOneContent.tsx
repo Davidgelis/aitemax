@@ -198,7 +198,7 @@ export const StepOneContent = ({
   
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12 pb-8">
+      <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12">
         {/* Contains everything in a single bordered card */}
         <div className="w-full border rounded-xl bg-card flex flex-col p-4 mt-4 relative">
           {/* Smart button controls above templates */}
