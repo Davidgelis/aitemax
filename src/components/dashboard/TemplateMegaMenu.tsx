@@ -276,7 +276,6 @@ export const TemplateMegaMenu = () => {
 
   // -----------------------------------------------
   // Build the button label (mega-menu trigger text)
-  // -----------------------------------------------
   const buttonLabel = useMemo(() => {
     // If a user template is selected
     if (lastSource === "user" && currentTemplate && !currentTemplate.isDefault) {
@@ -309,41 +308,37 @@ export const TemplateMegaMenu = () => {
     
     return (
       <div className="p-4">
-        <div className="bg-[#f2fbf7] rounded-lg p-4 border border-[#64bf95]/30 mb-4">
+        <div 
+          className="bg-[#f2fbf7] rounded-lg p-4 border border-[#64bf95]/30 mb-4 cursor-pointer transition-colors hover:border-[#33fea6] hover:bg-[#f2fbf7]/80 relative group"
+          onClick={() => handleTemplateSelect(aitemaXTemplate.id)}
+        >
           <h3 className="text-lg font-medium text-[#084b49] mb-3">{AITEMA_X_DESCRIPTION}</h3>
           <p className="text-sm text-gray-600 whitespace-pre-line">{AITEMA_X_DISCLAIMER}</p>
-        </div>
-        
-        <div className="mb-4">
-          <h4 className="font-medium mb-2 text-[#084b49]">Core Pillars (Short & Clear)</h4>
-          <div className="grid grid-cols-2 gap-3">
-            {aitemaXTemplate.pillars?.map(pillar => (
-              <div 
-                key={pillar.id}
-                className="p-3 bg-white rounded-md border border-[#64bf95]/20 flex flex-col"
-              >
-                <div className="font-medium text-[#084b49]">{pillar.title}</div>
-                <div className="text-xs text-gray-600 mt-1">
-                  {pillar.title === "Task" && "Define what you want the AI to do—clearly and directly."}
-                  {pillar.title === "Persona" && "Set the tone by assigning a role or expert perspective to guide the response."}
-                  {pillar.title === "Conditions" && "Add specific rules, style, or structure the AI should follow."}
-                  {pillar.title === "Instructions" && "Tie everything together into one smooth, complete prompt."}
+          
+          <div className="mt-4">
+            <h4 className="font-medium mb-2 text-[#084b49]">Core Pillars (Short & Clear)</h4>
+            <div className="grid grid-cols-2 gap-3">
+              {aitemaXTemplate.pillars?.map(pillar => (
+                <div 
+                  key={pillar.id}
+                  className="p-3 bg-white rounded-md border border-[#64bf95]/20 flex flex-col"
+                >
+                  <div className="font-medium text-[#084b49]">{pillar.title}</div>
+                  <div className="text-xs text-gray-600 mt-1">
+                    {pillar.title === "Task" && "Define what you want the AI to do—clearly and directly."}
+                    {pillar.title === "Persona" && "Set the tone by assigning a role or expert perspective to guide the response."}
+                    {pillar.title === "Conditions" && "Add specific rules, style, or structure the AI should follow."}
+                    {pillar.title === "Instructions" && "Tie everything together into one smooth, complete prompt."}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-        
-        <div className="mt-6">
-          <Button
-            variant="outline"
-            className="bg-[#f2fbf7] border-[#64bf95] hover:bg-[#64bf95]/10 hover:text-[#084b49] transition-colors"
-            onClick={() => {
-              handleTemplateSelect(aitemaXTemplate.id);
-            }}
-          >
-            Select this framework
-          </Button>
+          
+          {/* Hover overlay with "Select this framework" */}
+          <div className="absolute inset-0 bg-[#084b49]/80 flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-200">
+            <span className="text-white font-medium text-lg">Select this framework</span>
+          </div>
         </div>
       </div>
     );
