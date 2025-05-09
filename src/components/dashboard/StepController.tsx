@@ -91,9 +91,9 @@ export const StepController = ({
   const { isLoading: isAnalyzing, currentLoadingMessage, loadingState, handleAnalyze, enhancePromptWithGPT } = promptAnalysis;
   
   const questionVarOps = useQuestionsAndVariables(
-    questions,
+    questions || [], // Provide a default empty array when questions is undefined
     setQuestions,
-    variables,
+    variables || [], // Provide a default empty array when variables is undefined
     setVariables,
     variableToDelete,
     setVariableToDelete,
@@ -362,8 +362,8 @@ export const StepController = ({
       case 2:
         return (
           <StepTwoContent
-            questions={questions}
-            variables={variables}
+            questions={questions || []} // Make sure we pass default empty arrays
+            variables={variables || []}
             onQuestionRelevance={handleQuestionRelevance}
             onQuestionAnswer={handleQuestionAnswer}
             onVariableChange={handleVariableChange}
@@ -372,7 +372,7 @@ export const StepController = ({
             onDeleteVariable={removeVariable}
             variableToDelete={variableToDelete}
             setVariableToDelete={setVariableToDelete}
-            canProceedToStep3={canProceedToStep3()}
+            canProceedToStep3={canProceedToStep3()} 
             onContinue={() => handleStepChange(3)}
             questionsContainerRef={questionsContainerRef}
             variablesContainerRef={variablesContainerRef}

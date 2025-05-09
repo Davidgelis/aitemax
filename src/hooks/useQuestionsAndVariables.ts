@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -75,12 +76,21 @@ export const useQuestionsAndVariables = (
 
   // Check if all required questions have been answered and we can proceed to step 3
   const canProceedToStep3 = () => {
-    const relevantQuestions = questions.filter(q => q.isRelevant !== false);
+    // Make sure questions is an array before calling filter
+    const relevantQuestions = Array.isArray(questions) 
+      ? questions.filter(q => q.isRelevant !== false)
+      : [];
+    
+    // Check if all relevant questions have been answered
     const allQuestionsAnswered = relevantQuestions.every(q => q.answer?.trim());
 
+    // Make sure variables is an array before calling some
+    const hasRelevantVariables = Array.isArray(variables) 
+      ? variables.some(v => v.isRelevant !== false) 
+      : false;
+
     // Must have at least one relevant variable OR question set
-    const hasUsefulData =
-      variables.some(v => v.isRelevant !== false) || relevantQuestions.length;
+    const hasUsefulData = hasRelevantVariables || relevantQuestions.length > 0;
 
     // If there are zero questions we treat "answers complete" as true
     return hasUsefulData && (relevantQuestions.length === 0 || allQuestionsAnswered);

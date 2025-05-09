@@ -25,9 +25,16 @@ interface StepTwoProps {
 }
 
 export const StepTwo = (props: StepTwoProps) => {
+  // Ensure we pass safe values to StepTwoContent
+  const safeProps = {
+    ...props,
+    questions: props.questions || [],
+    variables: props.variables || []
+  };
+  
   return (
     <ScrollArea className="h-full" hideScrollbar>
-      <StepTwoContent {...props} />
+      <StepTwoContent {...safeProps} />
     </ScrollArea>
   );
 };
