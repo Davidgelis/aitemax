@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -46,6 +47,8 @@ interface PromptState {
   currentDraftId: string | null;
   isDirty: boolean;
   isSaving: boolean;
+  showJson: boolean;
+  setShowJson: (show: boolean) => void;
 }
 
 export const usePromptState = (user: any = null): PromptState => {
@@ -63,6 +66,7 @@ export const usePromptState = (user: any = null): PromptState => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isViewingSavedPrompt, setIsViewingSavedPrompt] = useState<boolean>(false);
   const [currentPromptId, setCurrentPromptId] = useState<string | null>(null);
+  const [showJson, setShowJson] = useState<boolean>(false);
   const { toast } = useToast();
 
   // Initialize the drafts hook with current state
@@ -465,5 +469,7 @@ export const usePromptState = (user: any = null): PromptState => {
     currentDraftId,
     isDirty,
     isSaving,
+    showJson,
+    setShowJson,
   };
 };

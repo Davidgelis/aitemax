@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect, useCallback } from "react";
 import { StepHeader } from "./steps/StepHeader";
 import { SessionInfo } from "./steps/SessionInfo";
@@ -79,8 +80,8 @@ export const StepController = ({
   
   const promptAnalysis = usePromptAnalysis(
     promptText,
-    setQuestions,
-    setVariables,
+    promptState.setQuestions,   // ✅ uses the state that lives in usePromptState
+    promptState.setVariables,
     setMasterCommand,
     setFinalPrompt,
     setCurrentStep,
