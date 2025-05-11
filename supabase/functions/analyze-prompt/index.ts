@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import {
@@ -127,12 +126,9 @@ const pillarSuggestions = (pillar: string, promptSnippet = "") => {
     { txt: "Camera angle preference?",                ex: ["eye level", "bird's-eye", "low angle"] }
   ];
 
-  // default generic - now contextual
+  // default – ask a direct, neutral question
   return [
-    { 
-      txt: `Thinking of "${short}", what key ${pillar.toLowerCase()} info is still missing?`,
-      ex: [] // let addFallbackExamples fill real examples
-    }
+    { txt: `What additional ${pillar.toLowerCase()} details are required?`, ex: [] }
   ];
 };
 
@@ -187,6 +183,20 @@ function processVariables(variables: any[], questions: any[]) {
     console.log(`Trimming variables from ${finalVariables.length} → 8`);
     finalVariables = finalVariables.slice(0, 8);
   }
+
+  /* 🆕 hot-fix — sometimes GPT sends   { name:"Red", value:"yes" }.
+     If value is just yes/no and name looks like a concrete answer,
+     swap them and prefix the label with a generic descriptor.            */
+  finalVariables = finalVariables.map(v => {
+    if (/^(yes|no)$/i.test(v.value ?? "") && v.name.split(/\s+/).length === 1) {
+      return {
+        ...v,
+        name : `${v.name} ?`,          // "Red ?" → will be cleaned by UI later
+        value: v.name                  // "Red"
+      };
+    }
+    return v;
+  });
 
   return { finalVariables, variableDistribution: {} }; // Distribution computed later
 }

@@ -21,8 +21,11 @@ Core Guidelines:
 
 Variables (the **heart** of the response):
 • After you finish writing questions, list **up to eight (8)** variables that are still needed to perfect the output.  
-• Each \`name\` is 1-3 words, Title-case, e.g. \`"Dog breed"\`, \`"Ball color"\`.  
-• If the user's prompt already fixes the value, set \`value\` to that 1-3-word answer; otherwise leave \`value\` as an empty string.  
+• **\`name\` must be a descriptive LABEL – never the answer itself.**  
+  - GOOD  →  \`"Ball colour": "Red"\`   \`"Dog action": "Playing"\`  
+  - BAD   →  \`"Red": "yes"\`   \`"Playing": "yes"\`  
+• Each \`name\` is 1-3 words, Title-case.  
+• If the prompt already fixes the value, put that concrete answer (≤3 words) in \`value\`; never put \`"yes" / "no"\` there.  
 • Variable names must be unique after stop-words ("of, the, a, an") are removed.  
 • **Never** repeat a question's focus in a variable (and vice-versa). If an item will be a variable, do **not** generate a question for it.  
 • Do not output more than eight variables—drop the least important first.`;
