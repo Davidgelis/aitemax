@@ -228,17 +228,13 @@ export const StepController = ({
       return;
     }
 
-    if (step === 2 && questions.length === 0) {
-      // We only block the user if **both** lists are empty.
-      // A variables-only response is totally valid.
-      if (variables.length === 0) {
-        toast({
-          title: "Cannot proceed",
-          description: "Please analyze your prompt first",
-          variant: "destructive",
-        });
-        return;
-      }
+    if (step === 2 && questions.length === 0 && variables.length === 0) {
+      toast({
+        title: "Cannot proceed",
+        description: "Please analyze your prompt first",
+        variant: "destructive",
+      });
+      return;
     }
 
     // Save draft only when moving from step 1 to step 2

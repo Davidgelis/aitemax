@@ -4,6 +4,7 @@ import { Question, Variable } from "@/components/dashboard/types";
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 import { useToast } from "@/hooks/use-toast";
 import { GPT41_ID } from "@/services/model/ModelFetchService";
+import { cleanTemplate } from "@/utils/cleanTemplate";   // ➊ helper you already use elsewhere
 
 // Define loading states for better user feedback
 type LoadingState = {
@@ -67,15 +68,11 @@ export const usePromptAnalysis = (
 
     console.log(`Processing ${images.length} images for analysis`);
     
-    return images.map(({ id, base64 = "", context = "", url = "" }) => {
-      // If base64 is too large, don't send it
-      if (base64 && base64.length > 650_000) {
-        console.warn(`[SAFE-IMG] image ${id} base64 is ${base64.length} chars – too large, sending without base64`);
-        return { id, context, base64: null };
-      }
-      
-      console.log(`[SAFE-IMG] image ${id} base64 length: ${base64?.length || 0} chars, has context: ${!!context}`);
-      return { id, context, base64: base64 || null };
+    let budget = 650_000;                 // ➌ TOTAL budget, not per-image
+    return images.flatMap(({ id, base64 = "", context = "" }) => {
+      if (!base64 || base64.length > budget) return [{ id, context, base64: null }];
+      budget -= base64.length;
+      return [{ id, context, base64 }];
     });
   };
 
@@ -137,7 +134,7 @@ export const usePromptAnalysis = (
           promptText,
           userId: user?.id ?? null,
           promptId: currentPromptId,
-          template: currentTemplate,
+          template: cleanTemplate(currentTemplate),   // ➋ trims non-serialisable fields
           model: GPT41_ID
         };
         
@@ -318,7 +315,6 @@ export const enhancePromptWithTemplate = async (
       delete templateCopy.status;
       delete templateCopy.isDefault;
       delete templateCopy.created_at;
-      delete templateCopy.updated_at;
       delete templateCopy.__typename;
     }
     

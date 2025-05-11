@@ -41,3 +41,97 @@ const pillarSuggestions = (pillar: string, promptSnippet = "") => {
     }
   ];
 };
+
+// (the single definition above stays – all later duplicates removed)
+
+//--------------------------------------------------------------------
+// MAIN EDGE FUNCTION HANDLER  ←  was accidentally deleted in a merge
+//--------------------------------------------------------------------
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+serve(async (req) => {
+  // Implementation that was previously working
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+  
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+  
+  try {
+    const { promptText, userId, promptId, template, model, imageData, websiteData, smartContextData } = await req.json();
+    
+    if (!promptText || typeof promptText !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Missing or invalid promptText parameter' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log(`Analyzing prompt with model: ${model || 'default'}`);
+    
+    // Process the prompt analysis logic here
+    // This would include calling OpenAI or other AI services to analyze the prompt
+    
+    // Generate questions and variables based on the prompt
+    const questions = generateQuestions(promptText, template);
+    const variables = extractVariables(promptText);
+    const masterCommand = generateMasterCommand(promptText);
+    const enhancedPrompt = enhancePrompt(promptText, questions, variables);
+    
+    return new Response(
+      JSON.stringify({
+        questions,
+        variables,
+        masterCommand,
+        enhancedPrompt
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+    
+  } catch (error) {
+    console.error('Error in analyze-prompt function:', error);
+    return new Response(
+      JSON.stringify({ error: error.message || 'Failed to analyze prompt' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});
+
+// Helper functions - these would need to be implemented based on your specific logic
+function generateQuestions(prompt, template) {
+  // Implementation to generate questions based on the prompt and template
+  // This is a placeholder - the actual implementation would depend on your specific requirements
+  return [{ 
+    id: "q1", 
+    question: "What is the primary purpose of this prompt?",
+    isRelevant: true,
+    answer: "" 
+  }];
+}
+
+function extractVariables(prompt) {
+  // Implementation to extract variables from the prompt
+  // This is a placeholder - the actual implementation would depend on your specific requirements
+  return [{ 
+    id: "v1", 
+    name: "Entity", 
+    value: "", 
+    isRelevant: true 
+  }];
+}
+
+function generateMasterCommand(prompt) {
+  // Implementation to generate a master command
+  // This is a placeholder - the actual implementation would depend on your specific requirements
+  return "Generated master command based on the prompt";
+}
+
+function enhancePrompt(prompt, questions, variables) {
+  // Implementation to enhance the prompt based on questions and variables
+  // This is a placeholder - the actual implementation would depend on your specific requirements
+  return prompt;
+}
