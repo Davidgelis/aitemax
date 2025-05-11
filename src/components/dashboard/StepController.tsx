@@ -97,13 +97,14 @@ export const StepController = ({
   const { isLoading: isAnalyzing, currentLoadingMessage, loadingState, handleAnalyze, enhancePromptWithGPT } = promptAnalysis;
   
   const questionVarOps = useQuestionsAndVariables(
-    questions || [], // Provide a default empty array when questions is undefined
-    setQuestions,
-    variables || [], // Provide a default empty array when variables is undefined
-    variableToDelete,
-    setVariableToDelete,
-    user,
-    currentPromptId
+    questions || [],            // 1  questions
+    setQuestions,               // 2  setQuestions
+    variables || [],            // 3  variables
+    setVariables,               // 4  ➜ **NEW** – required setter
+    variableToDelete,           // 5  variableToDelete
+    setVariableToDelete,        // 6  setVariableToDelete
+    user,                       // 7  user
+    currentPromptId             // 8  promptId
   );
   
   const {
