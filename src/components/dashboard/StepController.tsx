@@ -96,15 +96,17 @@ export const StepController = ({
   
   const { isLoading: isAnalyzing, currentLoadingMessage, loadingState, handleAnalyze, enhancePromptWithGPT } = promptAnalysis;
   
+  /* param order in the hook:                                          *
+   * (questions, setQuestions, variables, setVariables, variableToDelete …) */
   const questionVarOps = useQuestionsAndVariables(
-    questions || [],            // 1  questions
-    setQuestions,               // 2  setQuestions
-    variables || [],            // 3  variables
-    setVariables,               // 4  ➜ **NEW** – required setter
-    variableToDelete,           // 5  variableToDelete
-    setVariableToDelete,        // 6  setVariableToDelete
-    user,                       // 7  user
-    currentPromptId             // 8  promptId
+    questions || [],
+    setQuestions,
+    variables || [],
+    setVariables,          // ➊  ← MISSING before (caused TS2554 & runtime shift)
+    variableToDelete,
+    setVariableToDelete,
+    user,
+    currentPromptId
   );
   
   const {

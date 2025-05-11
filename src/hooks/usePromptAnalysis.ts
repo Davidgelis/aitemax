@@ -1,132 +1,101 @@
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
-import { ModelService } from "@/services/model";
 import { useToast } from "@/hooks/use-toast";
+import { GPT41_ID } from "@/services/model/ModelFetchService";
+import { cleanTemplate } from "@/utils/cleanTemplate";
 
-interface LoadingState {
+type LoadingState = {
   isLoading: boolean;
-  message: string;
-}
+  message:  string;
+};
 
 export const usePromptAnalysis = (
-  promptText: string,
-  setQuestions: (questions: Question[]) => void,
-  setVariables: (variables: Variable[]) => void,
-  setMasterCommand: (command: string) => void,
-  setFinalPrompt: (prompt: string) => void,
-  jumpToStep: (step: number) => void,
-  user: any,
-  currentPromptId: string | null
+  promptText:         string,
+  setQuestions:       (q: Question[]) => void,
+  setVariables:       (v: Variable[]) => void,
+  setMasterCommand:   (c: string)      => void,
+  setFinalPrompt:     (p: string)      => void,
+  jumpToStep:         (n: number)      => void,
+  user:               any,
+  currentPromptId:    string | null
 ) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentLoadingMessage, setCurrentLoadingMessage] = useState("");
-  const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
-  const { toast } = useToast();
+  const [loading, setLoading] = useState<LoadingState>({ isLoading:false, message:"" });
+  const { toast }  = useToast();
 
-  const setLoading = (loading: boolean, message: string = "") => {
-    setIsLoading(loading);
-    setCurrentLoadingMessage(message);
-    setLoadingState({ isLoading: loading, message });
+  /* ---------- helpers ---------- */
+  const setLoad = (msg = "", flag = true) => setLoading({ isLoading: flag, message: msg });
+
+  const handleAnalyze = async (
+    images: UploadedImage[] | null,
+    websiteCtx: {url:string; instructions:string} | null,
+    smartCtx  : {context:string; usageInstructions:string} | null
+  ) => {
+    if (!promptText.trim()) {
+      toast({ title:"Empty prompt", description:"Type something first.", variant:"destructive" });
+      return;
+    }
+
+    try {
+      setLoad("Analyzing your prompt…");
+
+      const payload: any = {
+        promptText,
+        userId   : user?.id ?? null,
+        promptId : currentPromptId,
+        model    : GPT41_ID,
+        template : cleanTemplate(null),    // you may pass a template later
+        imageData: images ?? undefined,
+        websiteData: websiteCtx ?? undefined,
+        smartContextData: smartCtx ?? undefined,
+      };
+
+      const { data, error } = await supabase.functions.invoke("analyze-prompt", { body: payload });
+      if (error || !data) throw new Error(error?.message || "No data returned");
+
+      setQuestions(  data.questions  ?? [] );
+      setVariables(  data.variables  ?? [] );
+      setMasterCommand(data.masterCommand ?? "");
+      setFinalPrompt( data.enhancedPrompt ?? "" );
+
+      jumpToStep(2);                       // 👈 move on
+    } catch (err: any) {
+      console.error(err);
+      toast({ title:"Analysis failed", description: err.message ?? String(err), variant:"destructive" });
+    } finally {
+      setLoad("", false);
+    }
   };
 
-  const handleAnalyze = useCallback(
-    async (images: UploadedImage[] | null, websiteContext: { url: string; instructions: string } | null, smartContext: { context: string; usageInstructions: string } | null) => {
-      if (!promptText.trim()) {
-        toast({
-          title: "Error",
-          description: "Please enter a prompt before analyzing.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setLoading(true, "Analyzing your prompt...");
-
-      try {
-        // Using ModelService directly as an object, not as a constructor
-        const analysisResult = await ModelService.analyzePrompt(
-          promptText,
-          user?.id,
-          images,
-          websiteContext,
-          smartContext,
-          currentPromptId
-        );
-
-        if (analysisResult) {
-          setQuestions(analysisResult.questions);
-          setVariables(analysisResult.variables);
-          setMasterCommand(analysisResult.masterCommand);
-          setFinalPrompt(""); // Clear any previous final prompt
-          jumpToStep(2);
-        } else {
-          toast({
-            title: "Analysis Failed",
-            description: "Failed to analyze the prompt. Please try again.",
-            variant: "destructive",
-          });
-        }
-      } catch (error: any) {
-        console.error("Error during prompt analysis:", error);
-        toast({
-          title: "Analysis Error",
-          description: error.message || "Failed to analyze the prompt due to an unexpected error.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [promptText, setQuestions, setVariables, setMasterCommand, setFinalPrompt, jumpToStep, user, toast, currentPromptId]
-  );
-
   const enhancePromptWithGPT = async (
-    prompt: string,
-    primary: string | null,
-    secondary: string | null,
-    setFinalPrompt: (prompt: string) => void,
-    answeredQuestions: Question[],
-    relevantVariables: Variable[],
-    template: any
+    prompt:            string,
+    primary:           string | null,
+    secondary:         string | null,
+    setFinal:          (p:string)=>void,
+    answered:          Question[],
+    vars:              Variable[],
+    template:          any
   ) => {
-    setLoading(true, "Enhancing prompt with GPT...");
+    setLoad("Enhancing prompt with GPT-4.1…");
     try {
-      // Using ModelService directly as an object, not as a constructor
-      const enhancedPrompt = await ModelService.enhancePrompt(
-        prompt,
-        primary,
-        secondary,
-        answeredQuestions,
-        relevantVariables,
-        template
-      );
-
-      if (enhancedPrompt) {
-        setFinalPrompt(enhancedPrompt);
-      } else {
-        toast({
-          title: "Enhancement Failed",
-          description: "Failed to enhance the prompt. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error("Error during prompt enhancement:", error);
-      toast({
-        title: "Enhancement Error",
-        description: error.message || "Failed to enhance the prompt due to an unexpected error.",
-        variant: "destructive",
+      const { data, error } = await supabase.functions.invoke("enhance-prompt", {
+        body: { originalPrompt:prompt, answeredQuestions:answered, relevantVariables:vars,
+                primaryToggle:primary, secondaryToggle:secondary, template }
       });
+      if (error || !data?.enhancedPrompt) throw new Error(error?.message || "No enhanced prompt returned");
+      setFinal(data.enhancedPrompt);
+    } catch (e:any) {
+      toast({ title:"Enhancement failed", description:e.message ?? String(e), variant:"destructive" });
     } finally {
-      setLoading(false);
+      setLoad("",false);
     }
   };
 
   return {
-    isLoading,
-    currentLoadingMessage,
-    loadingState,
+    isLoading:          loading.isLoading,
+    currentLoadingMessage: loading.message,
+    loadingState:       loading,
     handleAnalyze,
     enhancePromptWithGPT
   };
