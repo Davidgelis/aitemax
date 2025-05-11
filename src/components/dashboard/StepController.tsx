@@ -1,3 +1,4 @@
+
 import { useRef, useState, useEffect, useCallback } from "react";
 import { StepHeader } from "./steps/StepHeader";
 import { SessionInfo } from "./steps/SessionInfo";
@@ -83,7 +84,7 @@ export const StepController = ({
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
     : null;
   
-  // Fix: Added the currentPromptId parameter as the 8th argument
+  // Fix: Pass currentPromptId as the 8th parameter to usePromptAnalysis
   const promptAnalysis = usePromptAnalysis(
     promptText,
     setQuestions,
