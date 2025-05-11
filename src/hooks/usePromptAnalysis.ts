@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable } from "@/components/dashboard/types";
@@ -74,6 +75,47 @@ export const usePromptAnalysis = (
       budget -= base64.length;
       return [{ id, context, base64 }];
     });
+  };
+
+  // Add retry mechanism for analyze function
+  const retryAnalyze = async (payload: any, retries = 3, delay = 1000) => {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        console.log(`API attempt ${attempt}/${retries}`);
+        
+        const { data, error } = await supabase.functions.invoke(
+          "analyze-prompt", 
+          { body: payload }
+        );
+        
+        if (error) {
+          console.error(`Error on attempt ${attempt}:`, error);
+          if (attempt === retries) throw error;
+          await new Promise(r => setTimeout(r, delay));
+          // Increase delay for next attempt
+          delay *= 1.5;
+          continue;
+        }
+        
+        if (!data) {
+          console.error(`No data returned on attempt ${attempt}`);
+          if (attempt === retries) throw new Error("No data returned from analysis");
+          await new Promise(r => setTimeout(r, delay));
+          delay *= 1.5;
+          continue;
+        }
+        
+        console.log(`Successful API response on attempt ${attempt}`);
+        return data;
+      } catch (err) {
+        console.error(`Exception on attempt ${attempt}:`, err);
+        if (attempt === retries) throw err;
+        await new Promise(r => setTimeout(r, delay));
+        delay *= 1.5;
+      }
+    }
+    
+    throw new Error("All analysis attempts failed");
   };
 
   const handleAnalyze = async (
@@ -160,18 +202,8 @@ export const usePromptAnalysis = (
         
         console.log(`Sending request to analyze-prompt with model: ${GPT41_ID}`);
         
-        const { data, error } = await supabase.functions.invoke(
-          "analyze-prompt", 
-          { body: payload }
-        );
-        
-        if (error || !data) {
-          console.error('Analysis error:', error);
-          throw new Error(error?.message || "No data returned from analysis");
-        }
-        
-        console.log(`Received response from analyze-prompt with model: ${GPT41_ID}`);
-        return data;
+        // Use the retry mechanism for better reliability
+        return await retryAnalyze(payload);
       };
 
       // Race the API call against the timeout
@@ -189,12 +221,21 @@ export const usePromptAnalysis = (
       const questions = Array.isArray(data.questions) && data.questions.length
         ? data.questions
         : (data.generatedQuestions || data.autoQuestions || []);
+      
+      // Log received questions for debugging
+      console.log("Received questions from analysis:", JSON.stringify(questions.slice(0, 2)));
+      
       setQuestions(questions);
 
       // Process and validate variables
       updateLoadingState('processing-variables', "Processing variables...");
       const rawVars = Array.isArray(data.variables) ? data.variables : [];
       console.log(`usePromptAnalysis: received ${rawVars.length} variables`);
+      
+      // Log received variables for debugging
+      if (rawVars.length > 0) {
+        console.log("Sample variables:", JSON.stringify(rawVars.slice(0, 2)));
+      }
 
       setVariables(rawVars);
 

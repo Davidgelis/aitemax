@@ -43,12 +43,44 @@ const pillarSuggestions = (pillar: string, promptSnippet = "") => {
 };
 
 //--------------------------------------------------------------------
-// MAIN EDGE FUNCTION HANDLER  ←  was accidentally deleted in a merge
+// MAIN EDGE FUNCTION HANDLER
 //--------------------------------------------------------------------
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { analyzePromptWithAI, describeImage, describeAndMapImage, inferAndMapFromContext } from "./openai-client.ts";
+import { createSystemPrompt } from "./system-prompt.ts";
+import { generateContextQuestionsForPrompt, generateContextualVariablesForPrompt } from "./utils/generators.ts";
+import { computeAmbiguity, organizeQuestionsByPillar } from "./utils/questionUtils.ts";
+
+// Define types
+interface Question {
+  id: string;
+  text: string;
+  answer?: string;
+  isRelevant: boolean;
+  category?: string;
+  contextSource?: string;
+  examples?: string[];
+}
+
+interface Variable {
+  id: string;
+  name: string;
+  value: string;
+  isRelevant: boolean;
+  category?: string;
+  code?: string;
+}
+
+interface AnalyzePromptResponse {
+  questions: Question[];
+  variables: Variable[];
+  masterCommand: string;
+  enhancedPrompt: string;
+  ambiguityLevel?: number;
+}
 
 serve(async (req) => {
-  // Implementation that was previously working
+  // Implementation of the analyze-prompt function
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -71,65 +103,159 @@ serve(async (req) => {
     
     console.log(`Analyzing prompt with model: ${model || 'default'}`);
     
-    // Process the prompt analysis logic here
-    // This would include calling OpenAI or other AI services to analyze the prompt
+    // Calculate ambiguity of the prompt
+    const ambiguityLevel = computeAmbiguity(promptText);
     
-    // Generate questions and variables based on the prompt
-    const questions = generateQuestions(promptText, template);
-    const variables = extractVariables(promptText);
-    const masterCommand = generateMasterCommand(promptText);
-    const enhancedPrompt = enhancePrompt(promptText, questions, variables);
+    // Generate the system prompt for OpenAI
+    let imageCaption = "";
+    let imageAnalysis = null;
+    
+    // Process image data for context if available
+    if (imageData && Array.isArray(imageData) && imageData.length > 0) {
+      try {
+        // Get the first image with a valid base64
+        const firstImageWithBase64 = imageData.find(img => img.base64);
+        
+        if (firstImageWithBase64) {
+          // Get image caption
+          imageCaption = await describeImage(firstImageWithBase64.base64)
+            .then(result => result.caption || "")
+            .catch(() => "");
+          
+          console.log("Generated image caption for analysis");
+        }
+      } catch (err) {
+        console.error("Error processing image data:", err);
+        // Continue without image caption
+      }
+    }
+    
+    const systemPrompt = createSystemPrompt(template, imageCaption);
+    
+    // Query OpenAI for analysis
+    const openAIResult = await analyzePromptWithAI(
+      promptText,
+      systemPrompt,
+      model || 'gpt-4.1',
+      smartContextData?.context || '',
+      imageData && imageData[0]?.base64
+    ).catch(err => {
+      console.error("OpenAI analysis error:", err);
+      return null;
+    });
+    
+    // Generate questions based on the prompt analysis
+    let questions: Question[] = [];
+    
+    if (openAIResult && openAIResult.parsed && Array.isArray(openAIResult.parsed.questions)) {
+      // Map OpenAI results to our Question structure
+      questions = openAIResult.parsed.questions.map((q: any, index: number) => ({
+        id: `q-${index + 1}`,
+        text: q.text || q.question || "", // Handle both formats
+        answer: "",
+        isRelevant: true,
+        examples: q.examples || [],
+        category: q.category || "General"
+      }));
+    } else {
+      // Fallback to our own question generation if OpenAI fails
+      const userIntent = "improve prompt";
+      questions = generateContextQuestionsForPrompt(promptText, template, smartContextData, imageAnalysis, userIntent);
+    }
+    
+    // Organize questions by pillars and ambiguity
+    questions = organizeQuestionsByPillar(questions, ambiguityLevel);
+    
+    // Generate or extract variables
+    let variables: Variable[] = [];
+    
+    if (openAIResult && openAIResult.parsed && Array.isArray(openAIResult.parsed.variables)) {
+      // Map OpenAI results to our Variable structure
+      variables = openAIResult.parsed.variables.map((v: any, index: number) => ({
+        id: `v-${index + 1}`,
+        name: v.name || "",
+        value: v.value || "",
+        isRelevant: true,
+        category: v.category || "General",
+        code: v.code || v.name?.toLowerCase().replace(/\s+/g, '_') || ""
+      }));
+    } else {
+      // Fallback to our own variable generation
+      variables = generateContextualVariablesForPrompt(promptText, template, imageAnalysis, smartContextData);
+    }
+    
+    // If we have images, try to pre-fill variables from image analysis
+    if (imageData && Array.isArray(imageData) && imageData.length > 0 && variables.length > 0) {
+      try {
+        const firstImageWithBase64 = imageData.find(img => img.base64);
+        
+        if (firstImageWithBase64) {
+          // Get variable names to look for in the image
+          const variableNames = variables.map(v => v.name);
+          
+          // Map image content to variables
+          const imageMapping = await describeAndMapImage(firstImageWithBase64.base64, variableNames);
+          
+          if (imageMapping && imageMapping.fill) {
+            // Update variables with values from image analysis
+            variables = variables.map(v => {
+              const match = imageMapping.fill[v.name];
+              if (match && match.value) {
+                return {
+                  ...v,
+                  value: match.value,
+                  contextSource: 'image'
+                };
+              }
+              return v;
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error mapping image content to variables:", err);
+        // Continue with original variables
+      }
+    }
+    
+    // Extract or generate master command
+    let masterCommand = "";
+    if (openAIResult && openAIResult.parsed && openAIResult.parsed.masterCommand) {
+      masterCommand = openAIResult.parsed.masterCommand;
+    } else {
+      // Generate a simple master command
+      masterCommand = `Generate a high-quality result based on: "${promptText.slice(0, 100)}${promptText.length > 100 ? '...' : ''}"`;
+    }
+    
+    // Generate or extract enhanced prompt
+    let enhancedPrompt = promptText;
+    if (openAIResult && openAIResult.parsed && openAIResult.parsed.enhancedPrompt) {
+      enhancedPrompt = openAIResult.parsed.enhancedPrompt;
+    }
+    
+    const response: AnalyzePromptResponse = {
+      questions,
+      variables,
+      masterCommand,
+      enhancedPrompt,
+      ambiguityLevel
+    };
     
     return new Response(
-      JSON.stringify({
-        questions,
-        variables,
-        masterCommand,
-        enhancedPrompt
-      }),
+      JSON.stringify(response),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
     
   } catch (error) {
     console.error('Error in analyze-prompt function:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Failed to analyze prompt' }),
+      JSON.stringify({ 
+        error: error.message || 'Failed to analyze prompt',
+        questions: [],
+        variables: [],
+        masterCommand: "",
+        enhancedPrompt: ""
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
-
-// Helper functions - these would need to be implemented based on your specific logic
-function generateQuestions(prompt, template) {
-  // Implementation to generate questions based on the prompt and template
-  // This is a placeholder - the actual implementation would depend on your specific requirements
-  return [{ 
-    id: "q1", 
-    question: "What is the primary purpose of this prompt?",
-    isRelevant: true,
-    answer: "" 
-  }];
-}
-
-function extractVariables(prompt) {
-  // Implementation to extract variables from the prompt
-  // This is a placeholder - the actual implementation would depend on your specific requirements
-  return [{ 
-    id: "v1", 
-    name: "Entity", 
-    value: "", 
-    isRelevant: true 
-  }];
-}
-
-function generateMasterCommand(prompt) {
-  // Implementation to generate a master command
-  // This is a placeholder - the actual implementation would depend on your specific requirements
-  return "Generated master command based on the prompt";
-}
-
-function enhancePrompt(prompt, questions, variables) {
-  // Implementation to enhance the prompt based on questions and variables
-  // This is a placeholder - the actual implementation would depend on your specific requirements
-  return prompt;
-}

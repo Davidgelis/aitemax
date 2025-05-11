@@ -100,7 +100,6 @@ export const StepController = ({
     questions || [], // Provide a default empty array when questions is undefined
     setQuestions,
     variables || [], // Provide a default empty array when variables is undefined
-    setVariables,
     variableToDelete,
     setVariableToDelete,
     user,
@@ -198,6 +197,14 @@ export const StepController = ({
     const validImages = Array.isArray(uploadedImages) && uploadedImages.length > 0 ? uploadedImages : null;
     const validWebsiteContext = websiteContext && websiteContext.url ? websiteContext : null;
     const validSmartContext = smartContext && smartContext.context ? smartContext : null;
+    
+    // Add console logs for debugging
+    console.log("Starting prompt analysis with:", {
+      promptText: promptText.substring(0, 50) + (promptText.length > 50 ? "..." : ""),
+      imageCount: validImages?.length || 0,
+      hasWebContext: !!validWebsiteContext,
+      hasSmartContext: !!validSmartContext
+    });
     
     handleAnalyze(validImages, validWebsiteContext, validSmartContext);
   };
@@ -432,8 +439,14 @@ export const StepController = ({
         updated_at: new Date().toISOString()
       };
       setSelectedModel(gpt41Model);
+      console.log("Auto-selected GPT-4.1 model");
     }
   }, []);
+
+  // Add diagnostic logs for step transitions and data state
+  useEffect(() => {
+    console.log(`Current step: ${currentStep}, Questions: ${questions.length}, Variables: ${variables.length}`);
+  }, [currentStep, questions.length, variables.length]);
 
   return (
     <div className="w-full h-full flex flex-col">
