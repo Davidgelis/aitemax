@@ -57,7 +57,13 @@ Hard Requirements (❌ invalid JSON if broken):
 6. 🚫 **Never use a generic pillar word by itself**  
    (Setting, Mood, Style, Subject, Palette, Background, Environment)  
    as a variable name. If a variable must reference one of these, add a qualifier
-   such as "Image Setting", "Lighting Mood", "Colour Palette".`;
+   such as "Image Setting", "Lighting Mood", "Colour Palette".
+
+# CONTEXTUALITY -------------------------------------------------
+# Each question must clearly refer to the USER'S INTENT.
+# • Re-use the nouns/keywords from the prompt whenever it helps the user.
+# • Never ask about the pillar in the abstract
+#   (❌ "What is the style?" → ✅ "What visual style suits **the dog-and-red-ball scene**?")`;
 
   if (Array.isArray(template?.pillars)) {
     prompt += `\nPillars to cover:\n${template.pillars

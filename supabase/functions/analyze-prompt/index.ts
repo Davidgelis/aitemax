@@ -126,9 +126,16 @@ const pillarSuggestions = (pillar: string, promptSnippet = "") => {
     { txt: "Camera angle preference?",                ex: ["eye level", "bird's-eye", "low angle"] }
   ];
 
-  // default – ask a direct, neutral question
+  // default – weave the user's intent into the question
+  const obj = short        // e.g. "an image of a dog playing…"
+               .replace(/^create\s+(an|a)?\s*/i, '')  // trim verbs
+               .replace(/^\w+\s+of\s+/i, '');         // "image of …" → "…"
+
   return [
-    { txt: `What additional ${pillar.toLowerCase()} details are required?`, ex: [] }
+    {
+      txt: `For **${obj}**, what ${pillar.toLowerCase()} details are still missing?`,
+      ex: []   // examples get added later by addFallbackExamples()
+    }
   ];
 };
 
