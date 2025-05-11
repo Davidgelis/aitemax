@@ -1,6 +1,7 @@
+
 import { useState, useCallback } from "react";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
-import { ModelFetchService } from "@/services/model/ModelFetchService";
+import { ModelService } from "@/services/model";
 import { useToast } from "@/hooks/use-toast";
 
 interface LoadingState {
@@ -43,8 +44,8 @@ export const usePromptAnalysis = (
       setLoading(true, "Analyzing your prompt...");
 
       try {
-        const modelService = new ModelFetchService();
-        const analysisResult = await modelService.analyzePrompt(
+        // Using ModelService directly as an object, not as a constructor
+        const analysisResult = await ModelService.analyzePrompt(
           promptText,
           user?.id,
           images,
@@ -91,8 +92,8 @@ export const usePromptAnalysis = (
   ) => {
     setLoading(true, "Enhancing prompt with GPT...");
     try {
-      const modelService = new ModelFetchService();
-      const enhancedPrompt = await modelService.enhancePrompt(
+      // Using ModelService directly as an object, not as a constructor
+      const enhancedPrompt = await ModelService.enhancePrompt(
         prompt,
         primary,
         secondary,

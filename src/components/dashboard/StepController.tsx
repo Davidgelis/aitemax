@@ -68,7 +68,7 @@ export const StepController = ({
   // 🔒 stable setter so hooks executed later always mutate *this* state
   const jumpToStep = useCallback(
     (s: number) => setCurrentStep(s),
-    []                                            // never changes
+    [setCurrentStep]  // Changed from [] to [setCurrentStep] to properly capture the dependency
   );
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
@@ -85,13 +85,13 @@ export const StepController = ({
   
   const promptAnalysis = usePromptAnalysis(
     promptText,
-    promptState.setQuestions,   // ✅ uses the state that lives in usePromptState
-    promptState.setVariables,
+    setQuestions,
+    setVariables,
     setMasterCommand,
     setFinalPrompt,
-    jumpToStep,              //  ✅ always the same function
+    jumpToStep,
     user,
-    currentPromptId
+    currentPromptId  // Make sure all 8 arguments are provided
   );
   
   const { isLoading: isAnalyzing, currentLoadingMessage, loadingState, handleAnalyze, enhancePromptWithGPT } = promptAnalysis;
