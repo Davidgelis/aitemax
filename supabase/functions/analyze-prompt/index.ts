@@ -1,4 +1,3 @@
-
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -222,40 +221,48 @@ serve(async (req) => {
       return null;
     });
     
-    // Generate questions based on the prompt analysis
+    // ───────────────────────────────────────────────
+    // 1️⃣ Try to use LLM-returned questions—but **drop** any generic "For **…**, what … details are still missing? ()" fallbacks
     let questions: Question[] = [];
-    
-    if (openAIResult 
-      && openAIResult.parsed 
-      && Array.isArray(openAIResult.parsed.questions) 
-      && openAIResult.parsed.questions.length > 0
-    ) {
-      // Map OpenAI results to our Question structure
-      questions = openAIResult.parsed.questions.map((q: any, index: number) => ({
-        id: `q-${index + 1}`,
-        text: q.text || q.question || "",
-        answer: "",
-        isRelevant: true,
-        examples: q.examples || [],
-        category: q.category || "General"
-      }));
-    } else {
-      // Fallback to our own question generation if OpenAI fails OR returns []
+
+    if (openAIResult?.parsed?.questions) {
+      // filter out the completely-empty fallback questions
+      const rawQs = (openAIResult.parsed.questions as any[])
+        .filter(q =>
+          // keep it if it has examples OR does *not* match our generic fallback pattern
+          (Array.isArray(q.examples) && q.examples.length > 0)
+            || !/^For \*\*.+\*\*, what .+\?\s*\(\)$/.test(q.text)
+        );
+
+      if (rawQs.length > 0) {
+        questions = rawQs.map((q: any, i: number) => ({
+          id: `q-${i + 1}`,
+          text: q.text   || q.question   || "",
+          answer: "",
+          isRelevant: true,
+          examples: q.examples || [],
+          category: q.category || "General"
+        }));
+      }
+    }
+
+    // 2️⃣ If after filtering we have nothing, generate truly contextual questions
+    if (questions.length === 0) {
       const userIntent = extractUserIntent(promptText);
       questions = generateContextQuestionsForPrompt(
-        promptText, 
-        template, 
-        smartContextData, 
-        imageAnalysis, 
+        promptText,
+        template,
+        smartContextData,
+        imageAnalysis,
         userIntent
       );
     }
-    
-    //──────────────── 1️⃣ Base pillar re-ordering & examples ───────────────
+
+    //──────────────── 1️⃣ Pillar-aware re-ordering & (re-)annotate examples ────
     questions = organizeQuestionsByPillar(questions, ambiguityLevel)
       .map(q => ensureExamples({ ...q, text: plainify(q.text) }));
 
-    //──────────────── 2️⃣ Guarantee every template pillar is covered ───────
+    // ──────────────────────── guarantee every template pillar is covered ───────────────────────
     const tplPillars = Array.isArray(template?.pillars)
       ? template.pillars.map((p: any) => p.title)
       : [];
