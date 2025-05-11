@@ -42,11 +42,89 @@ const pillarSuggestions = (pillar: string, promptSnippet = "") => {
   ];
 };
 
+//------------------------------------------------------------------
+// 🔸 modernised helpers  (merged old + new logic) 
+//------------------------------------------------------------------
+const MAX_EXAMPLES = 4;
+const STOP        = new Set(["of","the","a","an"]);
+
+const plainify = (t = "") =>
+  t.replace(/resolution|dpi|rgb|hex/gi, "colour")
+   .replace(/\bn\s+image\b/gi, "an image")
+   .trim();
+
+const ensureExamples = (q: any) => {
+  if (!Array.isArray(q.examples) || !q.examples.length) return q;
+  const ex = q.examples.slice(0, MAX_EXAMPLES).join(", ");
+  return /\(.+\)$/.test(q.text) ? q : { ...q, text: `${q.text} (${ex})` };
+};
+
+//────────  variable post-processing  ────────────
+const processVariables = (vars: any[]) => {
+  const canonical = (l: string) =>
+    l.toLowerCase().split(/\s+/).filter(w => !STOP.has(w)).sort().join(" ");
+
+  let v = vars.map((x: any) => ({
+    ...x,
+    name : (x.name  || "").trim().split(/\s+/).slice(0, 3).join(" "),
+    value: (x.value || "").trim().split(/\s+/).slice(0, 3).join(" "),
+    category: x.category || "Other"
+  }));
+  const seen = new Set<string>();
+  v = v.filter(x => {
+    const sig = canonical(x.name);
+    if (!sig || seen.has(sig)) return false;
+    seen.add(sig);
+    return true;
+  });
+  return v.slice(0, 8);
+};
+
+//────────  auto-answer questions from Vars / Vision tags  ─────────
+const fillQuestions = (qs: any[], vars: any[], imgTags: Record<string, string> = {}) => {
+  const has = (s?: string) => s && s.trim().length > 0;
+  const tagTest = {
+    palette   : /(palette|colour|color)/i,
+    style     : /(style|aesthetic|genre|art\s*style)/i,
+    mood      : /(mood|tone|feeling|emotion)/i,
+    background: /(background|setting|environment|scene)/i,
+    subject   : /(subject|object|figure|person)/i
+  };
+  return qs.map(q => {
+    if (q.answer) return q;
+    const hit = vars.find(v => v.value && q.text.toLowerCase().includes(v.name.toLowerCase()));
+    if (hit) return { ...q, answer: hit.value, prefillSource: hit.prefillSource };
+
+    for (const [tag, re] of Object.entries(tagTest)) {
+      if (re.test(q.text) && has(imgTags[tag])) {
+        return { ...q, answer: imgTags[tag], prefillSource: "image-tag" };
+      }
+    }
+    return q;
+  });
+};
+
+//------------------------------------------------------------------
+//  ✨ concise "user-intent" extractor (from previous patch)
+//------------------------------------------------------------------
+const extractUserIntent = (txt = ""): string => {
+  if (txt.length < 60) return txt.trim();
+  const firstSentence = txt.split(/[.!?]/).find(s => s.trim().length > 20);
+  if (firstSentence) return firstSentence.trim();
+  return txt.split(/\s+/).slice(0, 12).join(" ").trim();
+};
+
 //--------------------------------------------------------------------
 // MAIN EDGE FUNCTION HANDLER
 //--------------------------------------------------------------------
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { analyzePromptWithAI, describeImage, describeAndMapImage, inferAndMapFromContext } from "./openai-client.ts";
+import {
+  analyzePromptWithAI,
+  describeImage,
+  describeAndMapImage,
+  inferAndMapFromContext,
+  canonKey
+} from "./openai-client.ts";
 import { createSystemPrompt } from "./system-prompt.ts";
 import { generateContextQuestionsForPrompt, generateContextualVariablesForPrompt } from "./utils/generators.ts";
 import { computeAmbiguity, organizeQuestionsByPillar } from "./utils/questionUtils.ts";
@@ -163,10 +241,34 @@ serve(async (req) => {
       questions = generateContextQuestionsForPrompt(promptText, template, smartContextData, imageAnalysis, userIntent);
     }
     
-    // Organize questions by pillars and ambiguity
-    questions = organizeQuestionsByPillar(questions, ambiguityLevel);
+    //──────────────── 1️⃣ Base pillar re-ordering & examples ───────────────
+    questions = organizeQuestionsByPillar(questions, ambiguityLevel)
+      .map(q => ensureExamples({ ...q, text: plainify(q.text) }));
+
+    //──────────────── 2️⃣ Guarantee every template pillar is covered ───────
+    const tplPillars = Array.isArray(template?.pillars)
+      ? template.pillars.map((p: any) => p.title)
+      : [];
+    const have = new Set(questions.map(q => (q.category || "Other").toLowerCase()));
+    const userIntent = extractUserIntent(promptText);
+
+    tplPillars.forEach(p => {
+      if (!have.has(p.toLowerCase())) {
+        const need = ambiguityLevel >= 0.6 ? 3 : 1;
+        pillarSuggestions(p, userIntent).slice(0, need).forEach((s, i) =>
+          questions.push({
+            id: `q_auto_${canonKey(p)}_${i}`,
+            text: `${s.txt} (${s.ex.slice(0, MAX_EXAMPLES).join(", ")})`,
+            category: p,
+            answer: "",
+            isRelevant: true,
+            examples: s.ex
+          })
+        );
+      }
+    });
     
-    // Generate or extract variables
+    //──────────────────  VARIABLE creation + pre-fill steps  ──────────────
     let variables: Variable[] = [];
     
     if (openAIResult && openAIResult.parsed && Array.isArray(openAIResult.parsed.variables)) {
@@ -184,7 +286,7 @@ serve(async (req) => {
       variables = generateContextualVariablesForPrompt(promptText, template, imageAnalysis, smartContextData);
     }
     
-    // If we have images, try to pre-fill variables from image analysis
+    // ----------  Image-based pre-fill  ----------
     if (imageData && Array.isArray(imageData) && imageData.length > 0 && variables.length > 0) {
       try {
         const firstImageWithBase64 = imageData.find(img => img.base64);
@@ -216,6 +318,37 @@ serve(async (req) => {
         // Continue with original variables
       }
     }
+    
+    // ----------  Context-based pre-fill  ----------
+    const blanks = variables.filter(v => !v.value);
+    if (blanks.length) {
+      const names   = blanks.map(v => v.name);
+      const bigCtx  = [
+        promptText,
+        smartContextData?.context || "",
+        websiteData?.pageText || ""
+      ].join("\n\n").trim();
+      try {
+        const map = await inferAndMapFromContext(bigCtx, names);
+        variables = variables.map(v => {
+          const hit = Object.entries(map?.fill || {})
+            .find(([k]) => canonKey(k) === canonKey(v.name))?.[1];
+          return hit && hit.value
+            ? { ...v, value: hit.value, prefillSource: "context" }
+            : v;
+        });
+      } catch(_) {/* non-fatal */}
+    }
+
+    // Final tidy-up
+    variables = processVariables(variables);
+
+    // ----------  Auto-answer questions ----------
+    const imgTags = imageCaption
+      ? (await describeImage(firstImageWithBase64?.base64 || "")).tags || {}
+      : {};
+
+    questions = fillQuestions(questions, variables, imgTags);
     
     // Extract or generate master command
     let masterCommand = "";
