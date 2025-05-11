@@ -5,6 +5,7 @@ import { Question, Variable, UploadedImage } from "@/components/dashboard/types"
 import { useToast } from "@/hooks/use-toast";
 import { GPT41_ID } from "@/services/model/ModelFetchService";
 import { cleanTemplate } from "@/utils/cleanTemplate";
+import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 
 type LoadingState = {
   isLoading: boolean;
@@ -23,9 +24,22 @@ export const usePromptAnalysis = (
 ) => {
   const [loading, setLoading] = useState<LoadingState>({ isLoading:false, message:"" });
   const { toast }  = useToast();
+  const { getCurrentTemplate } = useTemplateManagement();   // ⬅ current template
 
   /* ---------- helpers ---------- */
   const setLoad = (msg = "", flag = true) => setLoading({ isLoading: flag, message: msg });
+
+  // 🔐 strip un-serialisable fields & stay below 1 MB
+  const processSafeImages = (imgs: UploadedImage[] | null) => {
+    if (!imgs?.length) return null;
+    let budget = 650_000;                // total bytes for ALL base64 strings
+    return imgs.flatMap(({ id, base64 = "", context = "" }) => {
+      if (!base64 || base64.length > budget)
+        return [{ id, context, base64: null }];
+      budget -= base64.length;
+      return [{ id, context, base64 }];
+    });
+  };
 
   const handleAnalyze = async (
     images: UploadedImage[] | null,
@@ -40,13 +54,17 @@ export const usePromptAnalysis = (
     try {
       setLoad("Analyzing your prompt…");
 
+      /* prepare data exactly like the original edge-function expects */
+      const templateClean = cleanTemplate(getCurrentTemplate());
+      const safeImages    = processSafeImages(images);
+
       const payload: any = {
         promptText,
         userId   : user?.id ?? null,
         promptId : currentPromptId,
         model    : GPT41_ID,
-        template : cleanTemplate(null),    // you may pass a template later
-        imageData: images ?? undefined,
+        template : templateClean,
+        imageData: safeImages ?? undefined,
         websiteData: websiteCtx ?? undefined,
         smartContextData: smartCtx ?? undefined,
       };
@@ -54,8 +72,27 @@ export const usePromptAnalysis = (
       const { data, error } = await supabase.functions.invoke("analyze-prompt", { body: payload });
       if (error || !data) throw new Error(error?.message || "No data returned");
 
-      setQuestions(  data.questions  ?? [] );
-      setVariables(  data.variables  ?? [] );
+      /* ---------- normalise server response for front-end ---------- */
+      const normQ = (q: any, i: number): Question => ({
+        id        : q.id        || `q-${i+1}`,
+        text      : q.text      || q.question || "",
+        answer    : q.answer    || "",
+        isRelevant: q.isRelevant !== false,
+        category  : q.category  || "General",
+        examples  : q.examples  || []
+      });
+
+      const normV = (v: any, i: number): Variable => ({
+        id        : v.id        || `v-${i+1}`,
+        name      : v.name      || "",
+        value     : v.value     || "",
+        isRelevant: v.isRelevant !== false,
+        category  : v.category  || "General",
+        code      : v.code      || v.name?.toLowerCase().replace(/\s+/g,"_") || ""
+      });
+
+      setQuestions( (data.questions ?? []).map(normQ) );
+      setVariables( (data.variables ?? []).map(normV) );
       setMasterCommand(data.masterCommand ?? "");
       setFinalPrompt( data.enhancedPrompt ?? "" );
 
