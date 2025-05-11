@@ -1,3 +1,4 @@
+
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -224,20 +225,30 @@ serve(async (req) => {
     // Generate questions based on the prompt analysis
     let questions: Question[] = [];
     
-    if (openAIResult && openAIResult.parsed && Array.isArray(openAIResult.parsed.questions)) {
+    if (openAIResult 
+      && openAIResult.parsed 
+      && Array.isArray(openAIResult.parsed.questions) 
+      && openAIResult.parsed.questions.length > 0
+    ) {
       // Map OpenAI results to our Question structure
       questions = openAIResult.parsed.questions.map((q: any, index: number) => ({
         id: `q-${index + 1}`,
-        text: q.text || q.question || "", // Handle both formats
+        text: q.text || q.question || "",
         answer: "",
         isRelevant: true,
         examples: q.examples || [],
         category: q.category || "General"
       }));
     } else {
-      // Fallback to our own question generation if OpenAI fails
-      const userIntent = "improve prompt";
-      questions = generateContextQuestionsForPrompt(promptText, template, smartContextData, imageAnalysis, userIntent);
+      // Fallback to our own question generation if OpenAI fails OR returns []
+      const userIntent = extractUserIntent(promptText);
+      questions = generateContextQuestionsForPrompt(
+        promptText, 
+        template, 
+        smartContextData, 
+        imageAnalysis, 
+        userIntent
+      );
     }
     
     //──────────────── 1️⃣ Base pillar re-ordering & examples ───────────────
