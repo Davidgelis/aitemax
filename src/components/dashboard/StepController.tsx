@@ -83,6 +83,7 @@ export const StepController = ({
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
     : null;
   
+  // Fix: Added the currentPromptId parameter as the 8th argument
   const promptAnalysis = usePromptAnalysis(
     promptText,
     setQuestions,
@@ -91,7 +92,7 @@ export const StepController = ({
     setFinalPrompt,
     jumpToStep,
     user,
-    currentPromptId  // Make sure all 8 arguments are provided
+    currentPromptId
   );
   
   const { isLoading: isAnalyzing, currentLoadingMessage, loadingState, handleAnalyze, enhancePromptWithGPT } = promptAnalysis;
