@@ -51,6 +51,12 @@ Hard Requirements (❌ invalid JSON if broken):
    at least one *placeholder* question ("Need more info about …")
    so the questions array is **never empty**.
 
+# ABSOLUTE RULE -------------------------------------------------
+# ❌ If the \`questions\` array is empty or missing you MUST return
+#    the string  "_INVALID_RESPONSE_"  as the **only** top-level key.
+# The edge-function will treat that as an error.
+# This is safer than silently omitting the key.
+
 5. **Illustrative answers must be concrete**  
    – never use "example 1/2/3". Replace with a fitting, real-world value
    (colour names, objects, roles, etc.).
