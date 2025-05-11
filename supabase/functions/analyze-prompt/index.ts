@@ -42,8 +42,6 @@ const pillarSuggestions = (pillar: string, promptSnippet = "") => {
   ];
 };
 
-// (the single definition above stays – all later duplicates removed)
-
 //--------------------------------------------------------------------
 // MAIN EDGE FUNCTION HANDLER  ←  was accidentally deleted in a merge
 //--------------------------------------------------------------------
