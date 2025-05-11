@@ -1,3 +1,4 @@
+
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -221,33 +222,30 @@ serve(async (req) => {
       return null;
     });
     
-    // ───────────────────────────────────────────────
-    // 1️⃣ Try to use LLM-returned questions—but **drop** any generic "For **…**, what … details are still missing? ()" fallbacks
-    let questions: Question[] = [];
+    //–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+    // 1️⃣ Build our question list, but drop any "generic fallback" items
+    //–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
+    // see exactly what came back
+    console.log("LLM returned questions:", openAIResult?.parsed?.questions);
 
-    if (openAIResult?.parsed?.questions) {
-      // filter out the completely-empty fallback questions
-      const rawQs = (openAIResult.parsed.questions as any[])
-        .filter(q =>
-          // keep it if it has examples OR does *not* match our generic fallback pattern
-          (Array.isArray(q.examples) && q.examples.length > 0)
-            || !/^For \*\*.+\*\*, what .+\?\s*\(\)$/.test(q.text)
-        );
+    // generic fallback pattern:
+    const genericRegex = /^For \*\*.+\*\*, what .+\?\s*\(\)$/;
 
-      if (rawQs.length > 0) {
-        questions = rawQs.map((q: any, i: number) => ({
-          id: `q-${i + 1}`,
-          text: q.text   || q.question   || "",
-          answer: "",
-          isRelevant: true,
-          examples: q.examples || [],
-          category: q.category || "General"
-        }));
-      }
-    }
+    // pick only non-generic questions
+    let questions: Question[] = (openAIResult?.parsed?.questions ?? [])
+      .filter((q: any) => !genericRegex.test(q.text))
+      .map((q: any, i: number) => ({
+        id:       `q-${i+1}`,
+        text:     q.text   || q.question   || "",
+        answer:   "",
+        isRelevant: true,
+        examples: q.examples || [],
+        category: q.category || "General"
+      }));
 
-    // 2️⃣ If after filtering we have nothing, generate truly contextual questions
+    // if *all* got filtered out (or none existed), generate your contextual questions:
     if (questions.length === 0) {
+      console.log("All LLM questions were generic, falling back to generateContextQuestionsForPrompt()");
       const userIntent = extractUserIntent(promptText);
       questions = generateContextQuestionsForPrompt(
         promptText,
@@ -258,7 +256,9 @@ serve(async (req) => {
       );
     }
 
-    //──────────────── 1️⃣ Pillar-aware re-ordering & (re-)annotate examples ────
+    //───────────────────────────────────────────────────────────
+    // 2️⃣  Pillar-based reordering + examples (same as before)
+    //───────────────────────────────────────────────────────────
     questions = organizeQuestionsByPillar(questions, ambiguityLevel)
       .map(q => ensureExamples({ ...q, text: plainify(q.text) }));
 
