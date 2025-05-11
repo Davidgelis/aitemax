@@ -1,4 +1,3 @@
-
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -254,17 +253,21 @@ serve(async (req) => {
 
     tplPillars.forEach(p => {
       if (!have.has(p.toLowerCase())) {
-        const need = ambiguityLevel >= 0.6 ? 3 : 1;
-        pillarSuggestions(p, userIntent).slice(0, need).forEach((s, i) =>
-          questions.push({
-            id: `q_auto_${canonKey(p)}_${i}`,
-            text: `${s.txt} (${s.ex.slice(0, MAX_EXAMPLES).join(", ")})`,
-            category: p,
-            answer: "",
-            isRelevant: true,
-            examples: s.ex
-          })
-        );
+        // always exactly one fallback per pillar
+        const [s] = pillarSuggestions(p, userIntent);
+        // build parentheses only if we have any examples
+        const exStr = Array.isArray(s.ex) && s.ex.length
+          ? ` (${s.ex.slice(0, MAX_EXAMPLES).join(", ")})`
+          : "";
+
+        questions.push({
+          id: `q_auto_${canonKey(p)}`,
+          text: s.txt + exStr,
+          category: p,
+          answer: "",
+          isRelevant: true,
+          examples: s.ex
+        });
       }
     });
     
