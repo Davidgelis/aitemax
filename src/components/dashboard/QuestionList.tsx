@@ -35,7 +35,7 @@ export const QuestionList = ({
   // Format question text to handle both formats
   const formatQuestionText = (question: Question): string => {
     // Handle both text and question fields from the API
-    return question.text || question.question || "No question text";
+    return question.text || (question as any).question || "No question text";
   };
   
   // Check if we have any questions to render
@@ -57,19 +57,24 @@ export const QuestionList = ({
             {category}
           </h2>
           <div className="grid gap-2">
-            {categoryQuestions.map((question) => (
-              <QuestionItem
-                key={question.id}
-                question={{
-                  ...question,
-                  text: formatQuestionText(question) // Ensure we use the correctly formatted text
-                }}
-                onRelevanceChange={(isRelevant) => onQuestionRelevance(question.id, isRelevant)}
-                onAnswerChange={(answer) => onQuestionAnswer(question.id, answer)}
-                originalPrompt={originalPrompt}
-                exampleAnswers={question.examples || []}
-              />
-            ))}
+            {categoryQuestions.map((question) => {
+              // Ensure question.text is properly set
+              const processedQuestion = {
+                ...question,
+                text: formatQuestionText(question) // Use the formatted text
+              };
+              
+              return (
+                <QuestionItem
+                  key={question.id}
+                  question={processedQuestion}
+                  onRelevanceChange={(isRelevant) => onQuestionRelevance(question.id, isRelevant)}
+                  onAnswerChange={(answer) => onQuestionAnswer(question.id, answer)}
+                  originalPrompt={originalPrompt}
+                  exampleAnswers={question.examples || []}
+                />
+              );
+            })}
           </div>
         </div>
       ))}

@@ -1,18 +1,12 @@
-
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Question, Variable } from "@/components/dashboard/types";
-import { useTemplateManagement } from "@/hooks/useTemplateManagement";
+import { useState, useCallback } from "react";
+import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
+import { ModelFetchService } from "@/services/model/ModelFetchService";
 import { useToast } from "@/hooks/use-toast";
-import { GPT41_ID } from "@/services/model/ModelFetchService";
-import { cleanTemplate } from "@/utils/cleanTemplate";   // ➊ helper you already use elsewhere
 
-// Define loading states for better user feedback
-type LoadingState = {
+interface LoadingState {
   isLoading: boolean;
-  stage: 'initial' | 'analyzing' | 'processing-variables' | 'processing-questions' | 'enhancing' | 'complete';
   message: string;
-};
+}
 
 export const usePromptAnalysis = (
   promptText: string,
@@ -20,302 +14,111 @@ export const usePromptAnalysis = (
   setVariables: (variables: Variable[]) => void,
   setMasterCommand: (command: string) => void,
   setFinalPrompt: (prompt: string) => void,
-  setCurrentStep: (step: number) => void,
+  jumpToStep: (step: number) => void,
   user: any,
   currentPromptId: string | null
 ) => {
-  const [loadingState, setLoadingState] = useState<LoadingState>({
-    isLoading: false,
-    stage: 'initial',
-    message: ""
-  });
-  
-  const { getCurrentTemplate } = useTemplateManagement();
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentLoadingMessage, setCurrentLoadingMessage] = useState("");
+  const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const { toast } = useToast();
-  
-  // Create a derived isLoading state for backward compatibility
-  const isLoading = loadingState.isLoading;
-  const currentLoadingMessage = loadingState.message;
 
-  // Cache for recent analyses to prevent unnecessary API calls
-  const analysisCache = new Map<string, any>();
-  const cacheKey = (text: string, images?: any[], website?: any, context?: any) => {
-    return `${text}|${images ? images.length : 0}|${website ? 'y' : 'n'}|${context ? 'y' : 'n'}`;
+  const setLoading = (loading: boolean, message: string = "") => {
+    setIsLoading(loading);
+    setCurrentLoadingMessage(message);
+    setLoadingState({ isLoading: loading, message });
   };
 
-  const updateLoadingState = (stage: LoadingState['stage'], message: string) => {
-    setLoadingState({
-      isLoading: stage !== 'complete',
-      stage,
-      message
-    });
-    console.log(`Loading state: ${stage} - ${message}`);
-  };
-
-  // ─── improved image processor ──────────────────────────────
-  /**
-   * Strip un-serialisable fields (`file`) and guarantee the edge-function
-   * payload stays well below Supabase's 1 MB limit.
-   *
-   * • keeps only id + context + (base64 ≤ 650 kB)  
-   * • if the base64 is bigger we send **no base64 at all** – the server
-   *   will simply analyse the text without vision.
-   */
-  const processSafeImages = (images: any[] | null) => {
-    if (!images || !images.length) {
-      console.log("No images to process");
-      return null;
-    }
-
-    console.log(`Processing ${images.length} images for analysis`);
-    
-    let budget = 650_000;                 // ➌ TOTAL budget, not per-image
-    return images.flatMap(({ id, base64 = "", context = "" }) => {
-      if (!base64 || base64.length > budget) return [{ id, context, base64: null }];
-      budget -= base64.length;
-      return [{ id, context, base64 }];
-    });
-  };
-
-  // Add retry mechanism for analyze function
-  const retryAnalyze = async (payload: any, retries = 3, delay = 1000) => {
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        console.log(`API attempt ${attempt}/${retries}`);
-        
-        const { data, error } = await supabase.functions.invoke(
-          "analyze-prompt", 
-          { body: payload }
-        );
-        
-        if (error) {
-          console.error(`Error on attempt ${attempt}:`, error);
-          if (attempt === retries) throw error;
-          await new Promise(r => setTimeout(r, delay));
-          // Increase delay for next attempt
-          delay *= 1.5;
-          continue;
-        }
-        
-        if (!data) {
-          console.error(`No data returned on attempt ${attempt}`);
-          if (attempt === retries) throw new Error("No data returned from analysis");
-          await new Promise(r => setTimeout(r, delay));
-          delay *= 1.5;
-          continue;
-        }
-        
-        console.log(`Successful API response on attempt ${attempt}`);
-        return data;
-      } catch (err) {
-        console.error(`Exception on attempt ${attempt}:`, err);
-        if (attempt === retries) throw err;
-        await new Promise(r => setTimeout(r, delay));
-        delay *= 1.5;
-      }
-    }
-    
-    throw new Error("All analysis attempts failed");
-  };
-
-  const handleAnalyze = async (
-    uploadedImages: any[] | null = null,
-    websiteContext: { url: string; instructions: string } | null = null,
-    smartContext: { context: string; usageInstructions: string } | null = null
-  ) => {
-    updateLoadingState('analyzing', "Analyzing your prompt...");
-    
-    try {
-      const currentTemplate = getCurrentTemplate();
-      if (!promptText?.trim()) {
-        throw new Error("Prompt text is required");
-      }
-      
-      // Only process additional context if provided by user
-      const hasImageData = uploadedImages && uploadedImages.length > 0;
-      const hasWebsiteContext = websiteContext && websiteContext.url && websiteContext.instructions;
-      const hasSmartContext = smartContext && smartContext.context;
-      
-      console.log(`Context analysis - Images: ${hasImageData ? 'YES' : 'NO'}, Website: ${hasWebsiteContext ? 'YES' : 'NO'}, Smart: ${hasSmartContext ? 'YES' : 'NO'}`);
-
-      // Check cache first to see if we've already analyzed this prompt with similar parameters
-      const key = cacheKey(promptText, uploadedImages, websiteContext, smartContext);
-      if (analysisCache.has(key)) {
-        console.log("Using cached analysis result");
-        const cachedData = analysisCache.get(key);
-        
-        updateLoadingState('processing-questions', "Processing questions...");
-        setQuestions(cachedData.questions || []);
-        
-        updateLoadingState('processing-variables', "Processing variables...");
-        setVariables(cachedData.variables || []);
-        
-        setMasterCommand(cachedData.masterCommand || "");
-        setFinalPrompt(cachedData.enhancedPrompt || "");
-        
-        updateLoadingState('complete', "Analysis complete!");
-        
-        // 🛠 ensure we move to step 2 once data is ready - ALWAYS move to step 2 when using cached data
-        setCurrentStep(2);
-        console.log("Moved to step 2 (from cache) with", (cachedData.questions || []).length, "questions");
-        
+  const handleAnalyze = useCallback(
+    async (images: UploadedImage[] | null, websiteContext: { url: string; instructions: string } | null, smartContext: { context: string; usageInstructions: string } | null) => {
+      if (!promptText.trim()) {
+        toast({
+          title: "Error",
+          description: "Please enter a prompt before analyzing.",
+          variant: "destructive",
+        });
         return;
       }
 
-      // Set up timeout handling using Promise.race
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Analysis timed out after 90 seconds")), 90000);
-      });
+      setLoading(true, "Analyzing your prompt...");
 
-      // Main analysis promise
-      const analysisPromise = async () => {
-        updateLoadingState('analyzing', "Connecting to AI model...");
-        
-        // Build the payload with only user-provided context
-        const payload: any = {
+      try {
+        const modelService = new ModelFetchService();
+        const analysisResult = await modelService.analyzePrompt(
           promptText,
-          userId: user?.id ?? null,
-          promptId: currentPromptId,
-          template: cleanTemplate(currentTemplate),   // ➋ trims non-serialisable fields
-          model: GPT41_ID
-        };
-        
-        // Only add context data if actually provided by user
-        if (hasWebsiteContext) {
-          payload.websiteData = websiteContext;
-          console.log("Adding website context to payload:", websiteContext.url);
+          user?.id,
+          images,
+          websiteContext,
+          smartContext,
+          currentPromptId
+        );
+
+        if (analysisResult) {
+          setQuestions(analysisResult.questions);
+          setVariables(analysisResult.variables);
+          setMasterCommand(analysisResult.masterCommand);
+          setFinalPrompt(""); // Clear any previous final prompt
+          jumpToStep(2);
+        } else {
+          toast({
+            title: "Analysis Failed",
+            description: "Failed to analyze the prompt. Please try again.",
+            variant: "destructive",
+          });
         }
-        
-        if (hasSmartContext) {
-          payload.smartContextData = smartContext;
-          console.log("Adding smart context to payload");
-        }
-        
-        // Process images if provided
-        if (hasImageData) {
-          const safeImages = processSafeImages(uploadedImages);
-          if (safeImages && safeImages.length > 0) {
-            payload.imageData = safeImages;
-            console.log(`Adding ${safeImages.length} processed images to payload`);
-          }
-        }
-        
-        console.log(`Sending request to analyze-prompt with model: ${GPT41_ID}`);
-        
-        // Use the retry mechanism for better reliability
-        return await retryAnalyze(payload);
-      };
-
-      // Race the API call against the timeout
-      const data = await Promise.race([
-        analysisPromise(),
-        timeoutPromise
-      ]) as any;
-
-      // Cache the result for future use
-      analysisCache.set(key, data);
-      
-      // Process questions with fallback options
-      updateLoadingState('processing-questions', "Processing questions...");
-      // prefer data.questions, otherwise fall back to auto-inserted fields
-      const questions = Array.isArray(data.questions) && data.questions.length
-        ? data.questions
-        : (data.generatedQuestions || data.autoQuestions || []);
-      
-      // Log received questions for debugging
-      console.log("Received questions from analysis:", JSON.stringify(questions.slice(0, 2)));
-      
-      setQuestions(questions);
-
-      // Process and validate variables
-      updateLoadingState('processing-variables', "Processing variables...");
-      const rawVars = Array.isArray(data.variables) ? data.variables : [];
-      console.log(`usePromptAnalysis: received ${rawVars.length} variables`);
-      
-      // Log received variables for debugging
-      if (rawVars.length > 0) {
-        console.log("Sample variables:", JSON.stringify(rawVars.slice(0, 2)));
-      }
-
-      setVariables(rawVars);
-
-      // Notify if no variables were generated
-      if (!rawVars.length) {
+      } catch (error: any) {
+        console.error("Error during prompt analysis:", error);
         toast({
-          title: "No variables detected",
-          description: "Try adding more specific details to your prompt.",
-          variant: "default"
+          title: "Analysis Error",
+          description: error.message || "Failed to analyze the prompt due to an unexpected error.",
+          variant: "destructive",
         });
+      } finally {
+        setLoading(false);
       }
-
-      setMasterCommand(data.masterCommand || "");
-      setFinalPrompt(data.enhancedPrompt || "");
-      
-      updateLoadingState('complete', "Analysis complete!");
-
-      // 🛠 ensure we move to step 2 once data is ready - ALWAYS move to step 2 after successful analysis
-      setCurrentStep(2);
-      console.log("Moved to step 2 with", questions.length, "questions and", rawVars.length, "variables");
-      
-    } catch (err) {
-      console.error("Analysis error:", err);
-      toast({
-        title: "Analysis failed",
-        description: err instanceof Error ? err.message : String(err),
-        variant: "destructive",
-      });
-      updateLoadingState('complete', "");
-    }
-  };
+    },
+    [promptText, setQuestions, setVariables, setMasterCommand, setFinalPrompt, jumpToStep, user, toast, currentPromptId]
+  );
 
   const enhancePromptWithGPT = async (
-    promptToEnhance: string,
-    primaryToggle: string | null,
-    secondaryToggle: string | null,
-    setFinalPrompt: React.Dispatch<React.SetStateAction<string>>,
+    prompt: string,
+    primary: string | null,
+    secondary: string | null,
+    setFinalPrompt: (prompt: string) => void,
     answeredQuestions: Question[],
     relevantVariables: Variable[],
-    selectedTemplate: any = null
-  ): Promise<void> => {
+    template: any
+  ) => {
+    setLoading(true, "Enhancing prompt with GPT...");
     try {
-      updateLoadingState('enhancing', "Enhancing your prompt with Aitema X...");
-      
-      // Similar timeout pattern for enhancement
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Enhancement timed out after 90 seconds")), 90000);
+      const modelService = new ModelFetchService();
+      const enhancedPrompt = await modelService.enhancePrompt(
+        prompt,
+        primary,
+        secondary,
+        answeredQuestions,
+        relevantVariables,
+        template
+      );
+
+      if (enhancedPrompt) {
+        setFinalPrompt(enhancedPrompt);
+      } else {
+        toast({
+          title: "Enhancement Failed",
+          description: "Failed to enhance the prompt. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error during prompt enhancement:", error);
+      toast({
+        title: "Enhancement Error",
+        description: error.message || "Failed to enhance the prompt due to an unexpected error.",
+        variant: "destructive",
       });
-      
-      const enhancePromise = async () => {
-        // Create payload and let supabase client handle serialization
-        const payload = {
-          originalPrompt: promptToEnhance,
-          answeredQuestions,
-          relevantVariables,
-          primaryToggle,
-          secondaryToggle,
-          userId: user?.id || null,
-          promptId: currentPromptId,
-          template: selectedTemplate
-        };
-        
-        const { data, error } = await supabase.functions.invoke(
-          'enhance-prompt', 
-          { body: payload }
-        );
-        
-        if (error || !data?.enhancedPrompt) {
-          throw new Error(error?.message || 'Failed to enhance prompt');
-        }
-        
-        return data;
-      };
-      
-      const data = await Promise.race([enhancePromise(), timeoutPromise]);
-      setFinalPrompt((data as any).enhancedPrompt);
-      updateLoadingState('complete', "Enhancement complete!");
-    } catch (error) {
-      updateLoadingState('complete', "");
-      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -326,65 +129,4 @@ export const usePromptAnalysis = (
     handleAnalyze,
     enhancePromptWithGPT
   };
-};
-
-// Keep the existing enhancePromptWithTemplate function
-export const enhancePromptWithTemplate = async (
-  promptToEnhance: string,
-  answeredQuestions: Question[],
-  relevantVariables: Variable[],
-  primaryToggle: string | null,
-  secondaryToggle: string | null,
-  user: any,
-  promptId: string | null,
-  template: any | null
-): Promise<string | null> => {
-  try {
-    console.log(`Enhancing prompt template with ${answeredQuestions.length} questions and ${relevantVariables.length} variables`);
-    
-    if (!promptToEnhance) {
-      console.error('No prompt to enhance');
-      return null;
-    }
-    
-    // Clone template to avoid mutating the original
-    const templateCopy = template ? { ...template } : null;
-    
-    // Clean template of any non-serializable fields
-    if (templateCopy) {
-      delete templateCopy.draftId;
-      delete templateCopy.status;
-      delete templateCopy.isDefault;
-      delete templateCopy.created_at;
-      delete templateCopy.__typename;
-    }
-    
-    // Create payload and let supabase client handle serialization
-    const payload = {
-      originalPrompt: promptToEnhance,
-      answeredQuestions,
-      relevantVariables,
-      primaryToggle,
-      secondaryToggle,
-      userId: user?.id,
-      promptId,
-      template: templateCopy // Pass the clean template copy
-    };
-    
-    const { data, error } = await supabase.functions.invoke(
-      'enhance-prompt',
-      { body: payload }
-    );
-    
-    if (error) {
-      console.error('Error enhancing prompt:', error);
-      throw new Error(error.message);
-    }
-    
-    console.log('Prompt enhanced successfully');
-    return data?.enhancedPrompt || null;
-  } catch (error) {
-    console.error('Error in enhancePromptWithTemplate:', error);
-    return null;
-  }
 };
