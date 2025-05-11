@@ -221,74 +221,70 @@ serve(async (req) => {
       return null;
     });
     
-    //–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
-    // 1️⃣ Build our question list, but drop any "generic fallback" items
-    //–––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
-    // see exactly what came back
-    console.log("LLM returned questions:", openAIResult?.parsed?.questions);
-
-    // generic fallback pattern:
-    const genericRegex = /^For \*\*.+\*\*, what .+\?\s*\(\)$/;
-
-    // pick only non-generic questions
-    let questions: Question[] = (openAIResult?.parsed?.questions ?? [])
-      .filter((q: any) => !genericRegex.test(q.text))
-      .map((q: any, i: number) => ({
-        id:       `q-${i+1}`,
-        text:     q.text   || q.question   || "",
-        answer:   "",
-        isRelevant: true,
-        examples: q.examples || [],
-        category: q.category || "General"
+    //---------------------------------------------------------------
+    // NEW QUESTION PROCESSING LOGIC
+    //---------------------------------------------------------------
+    
+    // 1️⃣ How many pillars does our template have?
+    const pillars: string[] = Array.isArray(template?.pillars)
+      ? template.pillars.map((p: any) => p.title)
+      : [];
+    
+    // 2️⃣ Grab the LLM's raw questions, if any
+    const rawQs = Array.isArray(openAIResult?.parsed?.questions) ? openAIResult.parsed.questions : [];
+    console.log("LLM returned questions:", rawQs);
+    
+    // 3️⃣ Only trust them if there are at least as many as pillars
+    let questions: Question[];
+    if (rawQs.length >= pillars.length) {
+      questions = rawQs.map((q: any, i: number) => ({
+        id:           q.id    || `q-${i+1}`,
+        text:         q.text  || q.question || "",
+        answer:       "",
+        isRelevant:   true,
+        examples:     q.examples || [],
+        category:     q.category || pillars[i] || "General"
       }));
-
-    // if *all* got filtered out (or none existed), generate your contextual questions:
-    if (questions.length === 0) {
-      console.log("All LLM questions were generic, falling back to generateContextQuestionsForPrompt()");
-      const userIntent = extractUserIntent(promptText);
+    } else {
+      // 4️⃣ Otherwise, fall back to your built-in generator
+      console.log(
+        `LLM returned ${rawQs.length} < ${pillars.length} pillars, ` +
+        `falling back to generateContextQuestionsForPrompt()`
+      );
       questions = generateContextQuestionsForPrompt(
         promptText,
         template,
         smartContextData,
         imageAnalysis,
-        userIntent
+        extractUserIntent(promptText)
       );
     }
-
-    //───────────────────────────────────────────────────────────
-    // 2️⃣  Pillar-based reordering + examples (same as before)
-    //───────────────────────────────────────────────────────────
-    questions = organizeQuestionsByPillar(questions, ambiguityLevel)
-      .map(q => ensureExamples({ ...q, text: plainify(q.text) }));
-
-    // ──────────────────────── guarantee every template pillar is covered ───────────────────────
-    const tplPillars = Array.isArray(template?.pillars)
-      ? template.pillars.map((p: any) => p.title)
-      : [];
-    const have = new Set(questions.map(q => (q.category || "Other").toLowerCase()));
-    const userIntent = extractUserIntent(promptText);
-
-    tplPillars.forEach(p => {
-      if (!have.has(p.toLowerCase())) {
-        // always exactly one fallback per pillar
-        const [s] = pillarSuggestions(p, userIntent);
-        // build parentheses only if we have any examples
-        const exStr = Array.isArray(s.ex) && s.ex.length
-          ? ` (${s.ex.slice(0, MAX_EXAMPLES).join(", ")})`
-          : "";
-
-        questions.push({
-          id: `q_auto_${canonKey(p)}`,
-          text: s.txt + exStr,
-          category: p,
-          answer: "",
-          isRelevant: true,
-          examples: s.ex
-        });
-      }
+    
+    // 5️⃣ Finally, *guarantee* exactly one question per pillar
+    const finalQs: Question[] = pillars.map((pillar, idx) => {
+      // first match in whatever we have
+      const match = questions.find(q =>
+        (q.category || "").toLowerCase() === pillar.toLowerCase()
+      );
+      if (match) return match;
+    
+      // hand-rolled fallback
+      const s = pillarSuggestions(pillar, extractUserIntent(promptText))[0];
+      return {
+        id:           `q_auto_${canonKey(pillar)}`,
+        text:         s.txt + (s.ex.length ? ` (${s.ex.slice(0,MAX_EXAMPLES).join(", ")})` : ""),
+        answer:       "",
+        isRelevant:   true,
+        examples:     s.ex,
+        category:     pillar
+      };
     });
     
-    //──────────────────  VARIABLE creation + pre-fill steps  ──────────────
+    // 6️⃣ Now you can re-organize, plainify & ensureExamples exactly once
+    questions = organizeQuestionsByPillar(finalQs, ambiguityLevel)
+      .map(q => ensureExamples({ ...q, text: plainify(q.text) }));
+    
+    //──────────────  VARIABLE creation + pre-fill steps  ──────────────
     let variables: Variable[] = [];
     
     if (openAIResult && openAIResult.parsed && Array.isArray(openAIResult.parsed.variables)) {
