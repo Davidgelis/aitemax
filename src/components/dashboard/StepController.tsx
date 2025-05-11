@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect, useCallback } from "react";
 import { StepHeader } from "./steps/StepHeader";
 import { SessionInfo } from "./steps/SessionInfo";
@@ -66,6 +65,12 @@ export const StepController = ({
     isSaving
   } = promptState;
   
+  // 🔒 stable setter so hooks executed later always mutate *this* state
+  const jumpToStep = useCallback(
+    (s: number) => setCurrentStep(s),
+    []                                            // never changes
+  );
+  
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
   const [enhancingMessage, setEnhancingMessage] = useState("Building your final prompt with Aitema X");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
@@ -84,7 +89,7 @@ export const StepController = ({
     promptState.setVariables,
     setMasterCommand,
     setFinalPrompt,
-    setCurrentStep,
+    jumpToStep,              //  ✅ always the same function
     user,
     currentPromptId
   );
