@@ -33,10 +33,10 @@ export function organizeQuestionsByPillar(qs: Question[], ambiguity = 0.5, count
   // Default per-pillar count fallback based on overall ambiguity
   
   const result: Question[] = [];
-  for (const pillar of Object.keys(groups)) {
+  for (const pillarKey of Object.keys(groups)) {
     // Determine limit: per-pillar override or default
-    const limit = counts?.[pillar] ?? (ambiguity >= 0.6 ? 3 : 2);
-    result.push(...groups[pillar].slice(0, limit));
+    const limit = counts?.[pillarKey] ?? (ambiguity >= 0.6 ? 3 : 2);
+    result.push(...groups[pillarKey].slice(0, limit));
   }
 
   return result;

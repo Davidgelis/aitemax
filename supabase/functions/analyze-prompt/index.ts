@@ -157,13 +157,11 @@ interface AnalyzePromptResponse {
 }
 
 serve(async (req) => {
-  // Implementation of the analyze-prompt function
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   };
   
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -180,21 +178,16 @@ serve(async (req) => {
     
     console.log(`Analyzing prompt with model: ${model || 'default'}`);
     
-    // Calculate ambiguity of the prompt
     const ambiguityLevel = computeAmbiguity(promptText);
     
-    // Generate the system prompt for OpenAI
     let imageCaption = "";
     let imageAnalysis = null;
     
-    // Process image data for context if available
     if (imageData && Array.isArray(imageData) && imageData.length > 0) {
       try {
-        // Get the first image with a valid base64
         const firstImageWithBase64 = imageData.find(img => img.base64);
         
         if (firstImageWithBase64) {
-          // Get image caption
           imageCaption = await describeImage(firstImageWithBase64.base64)
             .then(result => result.caption || "")
             .catch(() => "");
@@ -203,13 +196,11 @@ serve(async (req) => {
         }
       } catch (err) {
         console.error("Error processing image data:", err);
-        // Continue without image caption
       }
     }
     
     const systemPrompt = createSystemPrompt(template, imageCaption);
     
-    // Query OpenAI for analysis
     const openAIResult = await analyzePromptWithAI(
       promptText,
       systemPrompt,
@@ -359,6 +350,13 @@ serve(async (req) => {
 
     // Final tidy-up
     variables = processVariables(variables);
+    // Remove any variable whose value simply repeats its name (unhelpful prefill)
+    variables = variables.map(v => {
+      if (v.value && v.name && v.value.trim().toLowerCase() === v.name.trim().toLowerCase()) {
+        return { ...v, value: "" };
+      }
+      return v;
+    });
 
     // ----------  Auto-answer questions ----------
     const imgTags = imageCaption
@@ -366,25 +364,29 @@ serve(async (req) => {
       : {};
 
     questions = fillQuestions(questions, variables, imgTags);
+    questions = fillQuestions(questions, variables, imgTags);
 
-    // Determine questions per pillar based on missing variables
-    const varsByCategory: Record<string, typeof variables> = {};
-    variables.forEach(v => {
-      const cat = v.category || 'General';
-      (varsByCategory[cat] ||= []).push(v);
-    });
-    const questionsPerPillar: Record<string, number> = {};
-    pillars.forEach(pillar => {
-      const vars = varsByCategory[pillar] || [];
-      const missing = vars.filter(v => !v.value).length;
-      // 0 missing → 1 question, ≥2 missing → 3, else 2
-      questionsPerPillar[pillar] = missing === 0 ? 1 : (missing >= 2 ? 3 : 2);
-    });
+    export function organizeQuestionsByPillar(qs: Question[], ambiguity = 0.5, counts?: Record<string, number>): Question[] {
+  if (!Array.isArray(qs) || qs.length === 0) return [];
 
-    // Apply per-pillar question count
+  // Group questions by their `category` (we treat that as a pillar label)
+  const groups: Record<string, Question[]> = {};
+  qs.forEach(q => {
+    const key = (q.category || "Misc").toLowerCase();
+    (groups[key] ||= []).push(q);
+  });
+
+  const result: Question[] = [];
+  for (const pillarKey of Object.keys(groups)) {
+    // Determine limit: per-pillar override or default
+    const limit = counts?.[pillarKey] ?? (ambiguity >= 0.6 ? 3 : 2);
+    result.push(...groups[pillarKey].slice(0, limit));
+  }
+
+  return result;
+}
     questions = organizeQuestionsByPillar(questions, ambiguityLevel, questionsPerPillar);
     
-    // Extract or generate master command
     let masterCommand = "";
     if (openAIResult && openAIResult.parsed && openAIResult.parsed.masterCommand) {
       masterCommand = openAIResult.parsed.masterCommand;
@@ -393,7 +395,6 @@ serve(async (req) => {
       masterCommand = `Generate a high-quality result based on: "${promptText.slice(0, 100)}${promptText.length > 100 ? '...' : ''}"`;
     }
     
-    // Generate or extract enhanced prompt
     let enhancedPrompt = promptText;
     if (openAIResult && openAIResult.parsed && openAIResult.parsed.enhancedPrompt) {
       enhancedPrompt = openAIResult.parsed.enhancedPrompt;
