@@ -1,3 +1,4 @@
+
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -381,6 +382,27 @@ serve(async (req) => {
         });
       } catch(_) {/* non-fatal */}
     }
+
+    // ───────────────────────────────────────────────────────────────
+    // 1) De-dupe any variable whose name exactly matches a question prompt
+    const lowerQ = questions.map(q => q.text.toLowerCase());
+    variables = variables.filter(v => {
+      const nv = v.name.trim().toLowerCase();
+      return !lowerQ.some(qt => qt.includes(nv));
+    });
+
+    // 2) Plain-language-ify each variable name & any prefilled value
+    variables = variables.map(v => ({
+      ...v,
+      name:   plainify(v.name),
+      value:  plainify(v.value || "")
+    }));
+
+    // 3) **DROP** the old "one Main subject" injection.
+    //    We now trust generateContextualVariablesForPrompt + LLM merges
+    //   to extract *all* the real focal points as variables,
+    //   even if the user hasn't provided those values yet.
+    // ───────────────────────────────────────────────────────────────
 
     // Final tidy-up
     variables = processVariables(variables);
