@@ -1,5 +1,12 @@
-
 import { Question, Variable } from '../types.ts';
+
+// Add a STOP set for filtering out common/useless variable names
+const STOP = new Set([
+  'a', 'an', 'the', 'this', 'that', 'these', 'those', 'it', 'its',
+  'image', 'picture', 'photo', 'illustration', 'drawing', 'artwork',
+  'example', 'something', 'anything', 'nothing', 'everything',
+  'one', 'ones', 'someone', 'anyone', 'no one', 'everyone'
+]);
 
 export function generateContextQuestionsForPrompt(
   promptText: string,
@@ -597,19 +604,23 @@ export function generateContextualVariablesForPrompt(
   
   // Generate variables for subjects (most important)
   elements.subjects.forEach(subject => {
-    if (subject.text.length > 2 && !isCommonWord(subject.text)) {
-      const cleanedSubject = cleanSubjectText(subject.text);
-      const variableName = capitalizeFirstLetter(cleanedSubject) + (subject.context ? ` (${subject.context})` : '');
-      
-      variables.push({
-        id: `var-${variableId++}`,
-        name: variableName,
-        value: '',
-        isRelevant: true,
-        category: 'Subject',
-        code: toCamelCase(cleanedSubject)
-      });
-    }
+    const raw = subject.text.trim();
+    // skip filler/very short subjects
+    if (raw.length < 3 || isCommonWord(raw)) return;
+    const cleaned = cleanSubjectText(raw);
+    // skip if cleaned ends up empty or blacklisted
+    const key = cleaned.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (STOP.has(key) || key === '') return;
+
+    const variableName = capitalizeFirstLetter(cleaned) + (subject.context ? ` (${subject.context})` : '');
+    variables.push({
+      id: `var-${variableId++}`,
+      name: variableName,
+      value: '',
+      isRelevant: true,
+      category: 'Subject',
+      code: toCamelCase(cleaned)
+    });
   });
   
   // Generate variables for attributes
@@ -678,10 +689,14 @@ export function generateContextualVariablesForPrompt(
   const validatedVariables = variables.map(v => {
     // Fix any remaining grammatical issues in names
     v.name = fixGrammaticalErrors(v.name);
+    // drop any whose value ended up as "yes" or repeats name
+    if (v.value.toLowerCase() === 'yes' || v.value.toLowerCase() === v.name.toLowerCase()) {
+      return null;
+    }
     return v;
   });
-
-  return validatedVariables;
+  // filter out nulls
+  return validatedVariables.filter((v): v is Variable => v !== null);
 }
 
 function capitalizeFirstLetter(str: string): string {
