@@ -1,4 +1,3 @@
-
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -223,27 +222,27 @@ serve(async (req) => {
       : [];
     
     // 2️⃣ Grab the LLM's raw questions, if any
-    const rawQs = Array.isArray(openAIResult?.parsed?.questions) ? openAIResult.parsed.questions : [];
+    const rawQs: any[] = Array.isArray(openAIResult?.parsed?.questions)
+      ? openAIResult.parsed.questions
+      : [];
     console.log("LLM returned questions:", rawQs);
     
-    // 3️⃣ Only trust them if there are at least as many as pillars
+    // 3️⃣ Map them into our shape (or fall back)
     let questions: Question[];
-    if (rawQs.length >= pillars.length) {
+    if (rawQs.length > 0) {
       questions = rawQs.map((q: any, i: number) => ({
         id:           q.id    || `q-${i+1}`,
-        // fall back to `q` property if text/question missing
         text:         q.text  || q.question || (q.q as string) || "",
         answer:       "",
         isRelevant:   true,
         examples:     q.examples || [],
-        category:     q.category || pillars[i] || "General"
+        // ← use q.pillar first, then q.category, then fallback by index
+        category:     (q.pillar as string)
+                         || q.category
+                         || pillars[i]
+                         || "General"
       }));
     } else {
-      // 4️⃣ Otherwise, fall back to your built-in generator
-      console.log(
-        `LLM returned ${rawQs.length} < ${pillars.length} pillars, ` +
-        `falling back to generateContextQuestionsForPrompt()`
-      );
       questions = generateContextQuestionsForPrompt(
         promptText,
         template,
