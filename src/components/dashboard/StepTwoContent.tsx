@@ -82,133 +82,145 @@ export const StepTwoContent = ({
   };
   
   if (isLoading) {
+    // wrap loading spinner in the same centering wrappers
     return (
-      <div className="border rounded-xl p-6 bg-card">
-        <div className="flex flex-col items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-          <p className="text-lg font-medium">{loadingMessage || "Processing your prompt..."}</p>
-          <p className="text-sm text-muted-foreground mt-2">This may take a moment for complex prompts.</p>
+      <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12">
+          <div className="w-full border rounded-xl p-6 bg-card">
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+              <p className="text-lg font-medium">{loadingMessage || "Processing your prompt..."}</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                This may take a moment for complex prompts.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
   
+  // normal (non-loading) state
   return (
-    <div className="border rounded-xl p-6 bg-card">
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <p className="text-[#545454] mb-0">{t.steps.questionsToAnswer}</p>
-          <div className="flex items-center gap-2">
-            {hasPrefilledQuestions && (
-              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-md">
-                {prefilledCount} {t.steps.prefilledAnswers}
-              </span>
-            )}
-            {hasImageAnalysis && (
-              <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-                {imageAnalysisQuestions.length} from image
-              </span>
-            )}
-          </div>
-        </div>
-        
-        <div className="max-h-64 overflow-y-auto border rounded-md p-2 mb-4" ref={questionsContainerRef}>
-          {questions.map((question, index) => (
-            <div 
-              key={question.id} 
-              className={`mb-3 p-3 border rounded-md flex items-start gap-3 transition-opacity ${
-                question.isRelevant === false ? 'opacity-50' : 'opacity-100'
-              }`}
-            >
-              <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium flex-shrink-0">
-                {index + 1}
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12">
+        <div className="w-full border rounded-xl p-6 bg-card">
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-[#545454] mb-0">{t.steps.questionsToAnswer}</p>
+              <div className="flex items-center gap-2">
+                {hasPrefilledQuestions && (
+                  <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-md">
+                    {prefilledCount} {t.steps.prefilledAnswers}
+                  </span>
+                )}
+                {hasImageAnalysis && (
+                  <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                    {imageAnalysisQuestions.length} from image
+                  </span>
+                )}
               </div>
-              <div className="flex-1">
-                <div className="text-sm font-medium mb-1">{question.text}</div>
+            </div>
+            
+            <div className="max-h-64 overflow-y-auto border rounded-md p-2 mb-4" ref={questionsContainerRef}>
+              {questions.map((question, index) => (
                 <div 
-                  className="text-sm text-muted-foreground cursor-pointer hover:underline"
-                  onClick={() => handleOpenAnswerSheet(question)}
+                  key={question.id} 
+                  className={`mb-3 p-3 border rounded-md flex items-start gap-3 transition-opacity ${
+                    question.isRelevant === false ? 'opacity-50' : 'opacity-100'
+                  }`}
                 >
-                  {question.answer 
-                    ? question.answer.length > 50 
-                      ? `${question.answer.substring(0, 50)}...` 
-                      : question.answer
-                    : "Click to add answer"}
+                  <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium flex-shrink-0">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium mb-1">{question.text}</div>
+                    <div 
+                      className="text-sm text-muted-foreground cursor-pointer hover:underline"
+                      onClick={() => handleOpenAnswerSheet(question)}
+                    >
+                      {question.answer 
+                        ? question.answer.length > 50 
+                          ? `${question.answer.substring(0, 50)}...` 
+                          : question.answer
+                        : "Click to add answer"}
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handleToggleRelevance(question.id, question.isRelevant !== false)}
+                    className="p-1 rounded-full hover:bg-gray-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <div className="max-h-64 overflow-y-auto border rounded-md">
+              <VariableList 
+                variables={variables} 
+                onVariableChange={onVariableChange} 
+                onVariableRelevance={onVariableRelevance} 
+                onAddVariable={onAddVariable} 
+                onDeleteVariable={onDeleteVariable} 
+                variableToDelete={variableToDelete} 
+                setVariableToDelete={setVariableToDelete} 
+                containerRef={variablesContainerRef} 
+                originalPrompt={originalPrompt}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end gap-2 mt-6 pt-4 border-t">
+            <div className="flex items-center text-sm text-[#545454] gap-1 italic">
+              <Info size={14} />
+              <span>{t.steps.continueButtonInfo}</span>
+            </div>
+            <button 
+              onClick={onContinue} 
+              className="aurora-button"
+            >
+              {t.steps.continue}
+            </button>
+          </div>
+
+          {/* Question Answer Editing Sheet */}
+          <Sheet open={selectedQuestion !== null} onOpenChange={(open) => !open && setSelectedQuestion(null)}>
+            <SheetContent className="w-full sm:max-w-md">
+              <SheetHeader>
+                <SheetTitle>Answer Question</SheetTitle>
+                <SheetDescription>
+                  {selectedQuestion?.text}
+                </SheetDescription>
+              </SheetHeader>
+              <div className="mt-6">
+                <textarea
+                  value={answerDraft}
+                  onChange={(e) => setAnswerDraft(e.target.value)}
+                  className="w-full min-h-[200px] p-4 border rounded-md resize-none"
+                  placeholder="Type your answer here..."
+                />
+                <div className="mt-4 flex justify-end gap-2">
+                  <button 
+                    onClick={() => setSelectedQuestion(null)}
+                    className="px-4 py-2 rounded-md border"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleSaveAnswer}
+                    className="px-4 py-2 rounded-md bg-[#33fea6] text-white"
+                  >
+                    Save Answer
+                  </button>
                 </div>
               </div>
-              <button 
-                onClick={() => handleToggleRelevance(question.id, question.isRelevant !== false)}
-                className="p-1 rounded-full hover:bg-gray-100"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
-
-      <div className="mb-6">
-        <div className="max-h-64 overflow-y-auto border rounded-md">
-          <VariableList 
-            variables={variables} 
-            onVariableChange={onVariableChange} 
-            onVariableRelevance={onVariableRelevance} 
-            onAddVariable={onAddVariable} 
-            onDeleteVariable={onDeleteVariable} 
-            variableToDelete={variableToDelete} 
-            setVariableToDelete={setVariableToDelete} 
-            containerRef={variablesContainerRef} 
-            originalPrompt={originalPrompt}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col items-end gap-2 mt-6 pt-4 border-t">
-        <div className="flex items-center text-sm text-[#545454] gap-1 italic">
-          <Info size={14} />
-          <span>{t.steps.continueButtonInfo}</span>
-        </div>
-        <button 
-          onClick={onContinue} 
-          className="aurora-button"
-        >
-          {t.steps.continue}
-        </button>
-      </div>
-
-      {/* Question Answer Editing Sheet */}
-      <Sheet open={selectedQuestion !== null} onOpenChange={(open) => !open && setSelectedQuestion(null)}>
-        <SheetContent className="w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>Answer Question</SheetTitle>
-            <SheetDescription>
-              {selectedQuestion?.text}
-            </SheetDescription>
-          </SheetHeader>
-          <div className="mt-6">
-            <textarea
-              value={answerDraft}
-              onChange={(e) => setAnswerDraft(e.target.value)}
-              className="w-full min-h-[200px] p-4 border rounded-md resize-none"
-              placeholder="Type your answer here..."
-            />
-            <div className="mt-4 flex justify-end gap-2">
-              <button 
-                onClick={() => setSelectedQuestion(null)}
-                className="px-4 py-2 rounded-md border"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleSaveAnswer}
-                className="px-4 py-2 rounded-md bg-[#33fea6] text-white"
-              >
-                Save Answer
-              </button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 };
