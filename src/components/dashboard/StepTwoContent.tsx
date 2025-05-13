@@ -122,7 +122,7 @@ export const StepTwoContent = ({
               </div>
             </div>
             
-            <div className="border rounded-md p-2 mb-4" ref={questionsContainerRef}>
+            <div className="max-h-64 overflow-y-auto border rounded-md p-2 mb-4" ref={questionsContainerRef}>
               <QuestionList
                 questions={questions}
                 onQuestionRelevance={onQuestionRelevance}

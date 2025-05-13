@@ -1,3 +1,4 @@
+
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -252,6 +253,21 @@ serve(async (req) => {
       );
     }
 
+    // Determine questions per pillar based on missing variables  
+    const varsByCategory: Record<string, typeof variables> = {};
+    const questionsPerPillar: Record<string, number> = {};
+    
+    pillars.forEach(pillar => {
+      // Default counts based on ambiguity
+      questionsPerPillar[pillar] = ambiguityLevel >= 0.6 ? 3 : 2;
+    });
+    
+    // 5️⃣ Now re-order & cap by pillar according to your per-pillar counts
+    questions = organizeQuestionsByPillar(questions, ambiguityLevel, questionsPerPillar)
+      .map(q => ensureExamples({ ...q, text: plainify(q.text) }));
+    
+    //──────────────  VARIABLE creation + pre-fill steps  ──────────────
+    
     // 1️⃣ Siempre arrancamos con variables de contexto (p.ej. Dog Breed, Ball Colour)
     let variables: Variable[] = generateContextualVariablesForPrompt(
       promptText,
@@ -326,26 +342,72 @@ serve(async (req) => {
     }
     
     // ----------  Context-based pre-fill  ----------
-    // 1️⃣ Agrupamos variables por categoría en minúsculas
-    const varsByCategory: Record<string, typeof variables> = {};
-    variables.forEach(v => {
-      const catKey = (v.category || 'General').toLowerCase();
-      (varsByCategory[catKey] ||= []).push(v);
+    const blanks = variables.filter(v => !v.value);
+    if (blanks.length) {
+      const names   = blanks.map(v => v.name);
+      const bigCtx  = [
+        promptText,
+        smartContextData?.context || "",
+        websiteData?.pageText || ""
+      ].join("\n\n").trim();
+      try {
+        const map = await inferAndMapFromContext(bigCtx, names);
+        variables = variables.map(v => {
+          const hit = Object.entries(map?.fill || {})
+            .find(([k]) => canonKey(k) === canonKey(v.name))?.[1];
+          return hit && hit.value
+            ? { ...v, value: hit.value, prefillSource: "context" }
+            : v;
+        });
+      } catch(_) {/* non-fatal */}
+    }
+
+    // Final tidy-up
+    variables = processVariables(variables);
+    // Remove any variable whose value simply repeats its name (unhelpful prefill)
+    variables = variables.map(v => {
+      if (v.value && v.name && v.value.trim().toLowerCase() === v.name.trim().toLowerCase()) {
+        return { ...v, value: "" };
+      }
+      return v;
     });
-    // 2️⃣ Calculamos cuántas preguntas por pilar (clave en lowercase)
-    const questionsPerPillar: Record<string, number> = {};
+
+    // Update categories in variables based on pillars
+    variables = variables.map(v => {
+      if (!v.category || v.category === "General" || v.category === "Other") {
+        // Try to match with a pillar
+        const matchedPillar = pillars.find(p => 
+          v.name.toLowerCase().includes(p.toLowerCase())
+        );
+        return matchedPillar ? { ...v, category: matchedPillar } : v;
+      }
+      return v;
+    });
+
+    // ----------  Auto-answer questions ----------
+    const imgTags = imageCaption
+      ? (await describeImage(imageData?.find((img: any) => img.base64)?.base64 || "")).tags || {}
+      : {};
+
+    questions = fillQuestions(questions, variables, imgTags);
+
+    // Organize variables by category for per-pillar question counts
+    varsByCategory.clear = Object.create(null);
+    variables.forEach(v => {
+      const cat = v.category || 'General';
+      (varsByCategory[cat] ||= []).push(v);
+    });
+
+    // Adjust questionsPerPillar based on variables
     pillars.forEach(pillar => {
-      const key = pillar.toLowerCase();
-      const vars = varsByCategory[key] || [];
+      const vars = varsByCategory[pillar] || [];
       const missing = vars.filter(v => !v.value).length;
-      questionsPerPillar[key] = missing === 0
-        ? 1
-        : (missing >= 2 ? 3 : 2);
+      // 0 missing → 1 question, ≥2 missing → 3, else 2
+      questionsPerPillar[pillar] = missing === 0 ? 1 : (missing >= 2 ? 3 : 2);
     });
     
-    // 3️⃣ Reordenamos / limitamos según counts por pilar
-    questions = organizeQuestionsByPillar(questions, ambiguityLevel, questionsPerPillar)
-      .map(q => ensureExamples({ ...q, text: plainify(q.text) }));
+    // Apply per-pillar question count
+    questions = organizeQuestionsByPillar(questions, ambiguityLevel, questionsPerPillar);
     
     let masterCommand = "";
     if (openAIResult && openAIResult.parsed && openAIResult.parsed.masterCommand) {
