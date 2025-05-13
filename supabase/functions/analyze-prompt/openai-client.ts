@@ -177,67 +177,48 @@ Guidelines for <string>:
 
     console.log(`Sending image analysis request for ${variableNames.length} variables`);
     
+    // ─── force JSON mode so we get back a real object ───────────────────────
     const { choices } = await openai.chat.completions.create({
       model: "gpt-4.1",
-      max_tokens: 400,   // allow a full paragraph
-      temperature: 0.35, // tad more creative, still stable
+      response_format: { type: "json_object" },
+      max_tokens: 400,
+      temperature: 0.35,
       top_p: 1,
       messages
     });
 
-    const content = choices[0].message.content || "{}";
-    console.log(`Received vision response: ${content.slice(0, 100)}${content.length > 100 ? '...' : ''}`);
+    // content is already parsed JSON
+    const parsed = JSON.parse(choices[0].message.content || "{}");
     
-    try {
-      const cleaned = content
-        .replace(/```json\n?/gi, "")
-        .replace(/```/g, "")
-        .trim();
-        
-      // --- HEALING: quote any bare keys (e.g. {value:"..."} → {"value":"..."})
-      const healed = cleaned.replace(/([{,]\s*)([A-Za-z_]\w*)\s*:/g, '$1"$2":');
-      let parsed;
-      try {
-        parsed = JSON.parse(healed);
-      } catch (e) {
-        console.error("Failed to parse vision response after healing:", e, healed);
-        // give up silently—return empty fills so we continue without breaking
-        return { fill: {} as Record<string, { value: string }> };
-      }
+    // Fallback: if backend did not supply valueLong use value
+    if (parsed.fill) {
+      Object.values(parsed.fill).forEach((slot: any) => {
+        if (!slot.valueLong) slot.valueLong = slot.value;
+      });
       
-      // Fallback: if backend did not supply valueLong use value
-      if (parsed.fill) {
-        Object.values(parsed.fill).forEach((slot: any) => {
-          if (!slot.valueLong) slot.valueLong = slot.value;
-        });
-        
-        // Process the response to include both short and long values
-        for (const varLabel in parsed.fill) {
-          const hit = parsed.fill[varLabel];
-          if (!hit?.value) continue;
+      // Process the response to include both short and long values
+      for (const varLabel in parsed.fill) {
+        const hit = parsed.fill[varLabel];
+        if (!hit?.value) continue;
 
-          const full = hit.value.trim().replace(/\s+/g, " ");
+        const full = hit.value.trim().replace(/\s+/g, " ");
 
-          /* 1️⃣ take the first sentence                         */
-          let words = full.split(/[.!?]/)[0].split(/\s+/);
-          /* 2️⃣ drop leading filler words                       */
-          while (words.length && FILLER.has(words[0].toLowerCase())) words.shift();
-          /* 3️⃣ keep max 6 significant words                    */
-          const short = words.slice(0, 6).join(" ");
+        /* 1️⃣ take the first sentence                         */
+        let words = full.split(/[.!?]/)[0].split(/\s+/);
+        /* 2️⃣ drop leading filler words                       */
+        while (words.length && FILLER.has(words[0].toLowerCase())) words.shift();
+        /* 3️⃣ keep max 6 significant words                    */
+        const short = words.slice(0, 6).join(" ");
 
-          parsed.fill[varLabel] = {
-            value      : short,          // compact label (≈ 1-6 words)
-            valueLong  : full,           // full paragraph (≤1000 char)
-            confidence : hit.confidence
-          };
-        }
+        parsed.fill[varLabel] = {
+          value      : short,          // compact label (≈ 1-6 words)
+          valueLong  : full,           // full paragraph (≤1000 char)
+          confidence : hit.confidence
+        };
       }
-      
-      return parsed;  // ⬅ { fill:{…} }
-    } catch (error) {
-      console.error("Failed to parse vision response:", error);
-      return { fill: {} };  // leave variables empty
     }
+    
+    return parsed as { fill: Record<string, { value: string, confidence: number }> };
   } catch (err) {
     console.log("⚠️ Vision mapping call failed, continuing without image prefills →", err);
     return { fill: {} };
