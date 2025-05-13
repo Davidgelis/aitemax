@@ -20,7 +20,7 @@ export function computeAmbiguity(prompt: string): number {
 //     Very lightweight – no fancy NLP, just groups by category.
 // ─────────────────────────────────────────────────────────────
 
-export function organizeQuestionsByPillar(qs: Question[], ambiguity = 0.5): Question[] {
+export function organizeQuestionsByPillar(qs: Question[], ambiguity = 0.5, counts?: Record<string, number>): Question[] {
   if (!Array.isArray(qs) || qs.length === 0) return [];
 
   // Group questions by their `category` (we treat that as a pillar label)
@@ -30,12 +30,13 @@ export function organizeQuestionsByPillar(qs: Question[], ambiguity = 0.5): Ques
     (groups[key] ||= []).push(q);
   });
 
-  const maxPerPillar = ambiguity >= 0.6 ? 3 : 2; // more Qs when ambiguous
-
+  // Default per-pillar count fallback based on overall ambiguity
+  
   const result: Question[] = [];
   for (const pillar of Object.keys(groups)) {
-    // Stable sort so original generation order is respected
-    result.push(...groups[pillar].slice(0, maxPerPillar));
+    // Determine limit: per-pillar override or default
+    const limit = counts?.[pillar] ?? (ambiguity >= 0.6 ? 3 : 2);
+    result.push(...groups[pillar].slice(0, limit));
   }
 
   return result;

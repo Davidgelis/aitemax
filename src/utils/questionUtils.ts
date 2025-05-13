@@ -45,7 +45,7 @@ export function appendExamples(text: string, examples?: string[]): string {
   return `${text} (e.g., ${ex})`;
 }
 
-export function organizeQuestionsByPillar(questions: Question[], ambiguity: number): Question[] {
+export function organizeQuestionsByPillar(questions: Question[], ambiguity: number, counts?: Record<string, number>): Question[] {
   // Group questions by category
   const byCat = questions.reduce((acc, q) => {
     acc[q.category || 'Other'] = acc[q.category || 'Other'] || [];
@@ -58,11 +58,13 @@ export function organizeQuestionsByPillar(questions: Question[], ambiguity: numb
   
   // Process each category
   Object.entries(byCat).forEach(([category, categoryQuestions]) => {
-    // Calculate optimal number of questions based on ambiguity
-    // More ambiguous prompts might need more questions
+    // Calculate optimal number of questions based on ambiguity or provided counts
     let optimalCount: number;
     
-    if (ambiguity > 0.7) {
+    if (counts?.[category]) {
+      // Use provided count if available
+      optimalCount = counts[category];
+    } else if (ambiguity > 0.7) {
       // Highly ambiguous - need more questions
       optimalCount = 3;
     } else if (ambiguity > 0.4) {

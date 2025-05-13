@@ -1,4 +1,3 @@
-
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -367,6 +366,23 @@ serve(async (req) => {
       : {};
 
     questions = fillQuestions(questions, variables, imgTags);
+
+    // Determine questions per pillar based on missing variables
+    const varsByCategory: Record<string, typeof variables> = {};
+    variables.forEach(v => {
+      const cat = v.category || 'General';
+      (varsByCategory[cat] ||= []).push(v);
+    });
+    const questionsPerPillar: Record<string, number> = {};
+    pillars.forEach(pillar => {
+      const vars = varsByCategory[pillar] || [];
+      const missing = vars.filter(v => !v.value).length;
+      // 0 missing → 1 question, ≥2 missing → 3, else 2
+      questionsPerPillar[pillar] = missing === 0 ? 1 : (missing >= 2 ? 3 : 2);
+    });
+
+    // Apply per-pillar question count
+    questions = organizeQuestionsByPillar(questions, ambiguityLevel, questionsPerPillar);
     
     // Extract or generate master command
     let masterCommand = "";
