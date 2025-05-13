@@ -1,3 +1,4 @@
+
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -239,7 +240,8 @@ serve(async (req) => {
     if (rawQs.length >= pillars.length) {
       questions = rawQs.map((q: any, i: number) => ({
         id:           q.id    || `q-${i+1}`,
-        text:         q.text  || q.question || "",
+        // fall back to `q` property if text/question missing
+        text:         q.text  || q.question || (q.q as string) || "",
         answer:       "",
         isRelevant:   true,
         examples:     q.examples || [],

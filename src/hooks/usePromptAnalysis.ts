@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Question, Variable, UploadedImage } from "@/components/dashboard/types";
@@ -75,7 +74,8 @@ export const usePromptAnalysis = (
       /* ---------- normalise server response for front-end ---------- */
       const normQ = (q: any, i: number): Question => ({
         id        : q.id        || `q-${i+1}`,
-        text      : q.text      || q.question || "",
+        // include fallback for `q` field
+        text      : q.text      || q.question || (q.q as string) || "",
         answer    : q.answer    || "",
         isRelevant: q.isRelevant !== false,
         category  : q.category  || "General",
