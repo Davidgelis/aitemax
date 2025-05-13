@@ -364,27 +364,22 @@ serve(async (req) => {
       : {};
 
     questions = fillQuestions(questions, variables, imgTags);
-    questions = fillQuestions(questions, variables, imgTags);
 
-    export function organizeQuestionsByPillar(qs: Question[], ambiguity = 0.5, counts?: Record<string, number>): Question[] {
-  if (!Array.isArray(qs) || qs.length === 0) return [];
-
-  // Group questions by their `category` (we treat that as a pillar label)
-  const groups: Record<string, Question[]> = {};
-  qs.forEach(q => {
-    const key = (q.category || "Misc").toLowerCase();
-    (groups[key] ||= []).push(q);
-  });
-
-  const result: Question[] = [];
-  for (const pillarKey of Object.keys(groups)) {
-    // Determine limit: per-pillar override or default
-    const limit = counts?.[pillarKey] ?? (ambiguity >= 0.6 ? 3 : 2);
-    result.push(...groups[pillarKey].slice(0, limit));
-  }
-
-  return result;
-}
+    // Determine questions per pillar based on missing variables  
+    const varsByCategory: Record<string, typeof variables> = {};
+    variables.forEach(v => {
+      const cat = v.category || 'General';
+      (varsByCategory[cat] ||= []).push(v);
+    });
+    const questionsPerPillar: Record<string, number> = {};
+    pillars.forEach(pillar => {
+      const vars = varsByCategory[pillar] || [];
+      const missing = vars.filter(v => !v.value).length;
+      // 0 missing → 1 question, ≥2 missing → 3, else 2
+      questionsPerPillar[pillar] = missing === 0 ? 1 : (missing >= 2 ? 3 : 2);
+    });
+    
+    // Apply per-pillar question count
     questions = organizeQuestionsByPillar(questions, ambiguityLevel, questionsPerPillar);
     
     let masterCommand = "";
