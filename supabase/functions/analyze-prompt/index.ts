@@ -1,4 +1,3 @@
-
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -250,7 +249,8 @@ serve(async (req) => {
         text:         q.text  || q.question || (q.q as string) || "",
         answer:       "",
         isRelevant:   true,
-        examples:     q.examples || [],
+        // we may get raw "(a,b,c)" in the text; we'll pull those out below
+        examples:     Array.isArray(q.examples) ? q.examples : [],
         // ← use q.pillar first, then q.category, then fallback by index
         category:     (q.pillar as string)
                          || q.category
@@ -266,6 +266,23 @@ serve(async (req) => {
         extractUserIntent(promptText)
       );
     }
+
+    // ──────────────────────────────────────────────────
+    // extract any trailing "(ex1, ex2, ex3)" into our .examples array
+    questions = questions.map(q => {
+      const m = q.text.match(/\(([^)]+)\)\s*$/);
+      if (m) {
+        const exs = m[1]
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean)
+          .slice(0, MAX_EXAMPLES);
+        const cleaned = q.text.replace(/\s*\([^)]*\)\s*$/, '').trim();
+        return { ...q, text: cleaned, examples: exs };
+      }
+      return q;
+    });
+    // ──────────────────────────────────────────────────
 
     // —> DROP the "one-per-pillar" fallback entirely.
     
@@ -452,4 +469,3 @@ serve(async (req) => {
     );
   }
 });
-
