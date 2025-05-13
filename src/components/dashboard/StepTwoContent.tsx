@@ -123,37 +123,13 @@ export const StepTwoContent = ({
             </div>
             
             <div className="max-h-64 overflow-y-auto border rounded-md p-2 mb-4" ref={questionsContainerRef}>
-              {questions.map((question, index) => (
-                <div 
-                  key={question.id} 
-                  className={`mb-3 p-3 border rounded-md flex items-start gap-3 transition-opacity ${
-                    question.isRelevant === false ? 'opacity-50' : 'opacity-100'
-                  }`}
-                >
-                  <div className="w-6 h-6 flex items-center justify-center rounded-full bg-[#33fea6]/20 text-xs font-medium flex-shrink-0">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium mb-1">{question.text}</div>
-                    <div 
-                      className="text-sm text-muted-foreground cursor-pointer hover:underline"
-                      onClick={() => handleOpenAnswerSheet(question)}
-                    >
-                      {question.answer 
-                        ? question.answer.length > 50 
-                          ? `${question.answer.substring(0, 50)}...` 
-                          : question.answer
-                        : "Click to add answer"}
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => handleToggleRelevance(question.id, question.isRelevant !== false)}
-                    className="p-1 rounded-full hover:bg-gray-100"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+              <QuestionList
+                questions={questions}
+                onQuestionRelevance={onQuestionRelevance}
+                onQuestionAnswer={onQuestionAnswer}
+                containerRef={questionsContainerRef}
+                originalPrompt={originalPrompt}
+              />
             </div>
           </div>
 
