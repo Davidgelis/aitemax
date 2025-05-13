@@ -163,7 +163,7 @@ export const StepTwoContent = ({
         </div>
       </div>
 
-      <div className="flex flex-col items-end gap-2 mt-6 pt-4 border-t sticky bottom-0 bg-white">
+      <div className="flex flex-col items-end gap-2 mt-6 pt-4 border-t">
         <div className="flex items-center text-sm text-[#545454] gap-1 italic">
           <Info size={14} />
           <span>{t.steps.continueButtonInfo}</span>
