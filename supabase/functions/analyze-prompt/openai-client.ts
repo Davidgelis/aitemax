@@ -100,8 +100,8 @@ export async function analyzePromptWithAI(
       max_tokens: 2000,
     };
 
-    // ⚠️  JSON-mode not supported when an image is present
-    if (!imageBase64) opts.response_format = { type: "json_object" };
+    // Always request JSON so we can reliably parse—even when an image is included
+    opts.response_format = { type: "json_object" };
 
     const apiPromise = openai.chat.completions.create(opts);
     
