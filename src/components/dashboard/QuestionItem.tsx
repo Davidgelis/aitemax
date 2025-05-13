@@ -20,14 +20,22 @@ export const QuestionItem = ({
   exampleAnswers = []
 }: QuestionItemProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const maxCharLimit = 1000;
   
   const handleAnswerChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onAnswerChange(e.target.value);
+    // Limit the answer to the maximum character count
+    const value = e.target.value.slice(0, maxCharLimit);
+    onAnswerChange(value);
   };
   
   const toggleRelevance = () => {
     onRelevanceChange(question.isRelevant === false);
   };
+
+  // Calculate the character count
+  const charCount = question.answer?.length || 0;
+  const isNearLimit = charCount > maxCharLimit * 0.8;
+  const isAtLimit = charCount >= maxCharLimit;
 
   return (
     <div className={`border rounded-lg p-3 ${question.isRelevant === false ? 'bg-gray-50 opacity-70' : 'bg-white'}`}>
@@ -53,7 +61,13 @@ export const QuestionItem = ({
                 onChange={handleAnswerChange}
                 placeholder="Enter your answer here..."
                 className="min-h-[80px] text-sm"
+                maxLength={maxCharLimit}
               />
+              
+              {/* Character counter */}
+              <div className={`flex justify-end text-xs ${isAtLimit ? 'text-red-500' : isNearLimit ? 'text-amber-500' : 'text-gray-500'}`}>
+                <span>{charCount}/{maxCharLimit}</span>
+              </div>
               
               {exampleAnswers && exampleAnswers.length > 0 && (
                 <div className="mt-2">
