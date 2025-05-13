@@ -1,4 +1,3 @@
-
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -328,6 +327,21 @@ serve(async (req) => {
         }
       });
     }
+    
+    // ─── Sanitize any boolean-y values & drop boilerplate "An image of" vars ───
+    variables = variables
+      // 1) Blank out bogus "yes"/"no" answers
+      .map(v => ({
+        ...v,
+        value: ['yes','no'].includes(String(v.value).toLowerCase())
+          ? ''
+          : v.value
+      }))
+      // 2) Remove any var whose name literally starts with "an image of"
+      .filter(v => {
+        const n = v.name.trim().toLowerCase();
+        return !n.startsWith('an image of');
+      });
     
     // ----------  Image-based pre-fill  ----------
     if (imageData && Array.isArray(imageData) && imageData.length > 0 && variables.length > 0) {
