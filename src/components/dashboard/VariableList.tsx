@@ -170,7 +170,7 @@ export const VariableList = ({
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between px-4 py-3">
         <h3 className="text-lg font-medium">Variables</h3>
         <button 
           onClick={onAddVariable}
@@ -181,7 +181,7 @@ export const VariableList = ({
         </button>
       </div>
       
-      <div ref={containerRef} className="max-h-[280px] overflow-y-auto pr-2 space-y-4">
+      <div className="px-4 pb-4 space-y-4">
         {!hasValidVariables && variables.length === 0 && (
           <div className="text-center text-muted-foreground py-4">
             No variables available
@@ -225,7 +225,6 @@ export const VariableList = ({
                     <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground">
                       {(variableValues[variable.id] || "").length}/{maxCharacterLimit}
                     </div>
-                    {/* Removed the "Suggested from image" text here */}
                   </div>
                 </div>
                 <div className="flex">
