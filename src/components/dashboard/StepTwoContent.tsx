@@ -3,7 +3,7 @@ import { Question, Variable } from "./types";
 import { RefObject, useState } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
-import { Info, Loader2, X } from "lucide-react";
+import { Info, Loader2 } from "lucide-react";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -122,7 +122,7 @@ export const StepTwoContent = ({
               </div>
             </div>
             
-            <div className="max-h-64 overflow-y-auto border rounded-md p-2 mb-4" ref={questionsContainerRef}>
+            <div className="max-h-[380px] overflow-y-auto border rounded-md p-2 mb-4" ref={questionsContainerRef}>
               <QuestionList
                 questions={questions}
                 onQuestionRelevance={onQuestionRelevance}

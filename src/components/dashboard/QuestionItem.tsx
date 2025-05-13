@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Question } from "./types";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -38,7 +37,7 @@ export const QuestionItem = ({
   const isAtLimit = charCount >= maxCharLimit;
 
   return (
-    <div className={`border rounded-lg p-3 ${question.isRelevant === false ? 'bg-gray-50 opacity-70' : 'bg-white'}`}>
+    <div className={`border rounded-lg p-3 mb-2 ${question.isRelevant === false ? 'bg-gray-50 opacity-70' : 'bg-white'}`}>
       <div className="flex items-start gap-2">
         <Checkbox 
           id={`question-${question.id}`}
