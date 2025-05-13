@@ -112,7 +112,7 @@ export const StepTwoContent = ({
           </div>
         </div>
         
-        <div className="h-64 overflow-y-auto border rounded-md p-2 mb-4" ref={questionsContainerRef}>
+        <div className="max-h-64 overflow-y-auto border rounded-md p-2 mb-4" ref={questionsContainerRef}>
           {questions.map((question, index) => (
             <div 
               key={question.id} 
@@ -148,7 +148,7 @@ export const StepTwoContent = ({
       </div>
 
       <div className="mb-6">
-        <div className="h-64 overflow-y-auto border rounded-md">
+        <div className="max-h-64 overflow-y-auto border rounded-md">
           <VariableList 
             variables={variables} 
             onVariableChange={onVariableChange} 
