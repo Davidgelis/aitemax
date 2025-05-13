@@ -194,7 +194,16 @@ Guidelines for <string>:
         .replace(/```/g, "")
         .trim();
         
-      const parsed = JSON.parse(cleaned);
+      // --- HEALING: quote any bare keys (e.g. {value:"..."} → {"value":"..."})
+      const healed = cleaned.replace(/([{,]\s*)([A-Za-z_]\w*)\s*:/g, '$1"$2":');
+      let parsed;
+      try {
+        parsed = JSON.parse(healed);
+      } catch (e) {
+        console.error("Failed to parse vision response after healing:", e, healed);
+        // give up silently—return empty fills so we continue without breaking
+        return { fill: {} as Record<string, { value: string }> };
+      }
       
       // Fallback: if backend did not supply valueLong use value
       if (parsed.fill) {
