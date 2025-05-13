@@ -1,3 +1,4 @@
+
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -47,15 +48,29 @@ const pillarSuggestions = (pillar: string, promptSnippet = "") => {
 const MAX_EXAMPLES = 4;
 const STOP        = new Set(["of","the","a","an"]);
 
+/**
+ * Normalize question text:
+ *  • replace "resolution/dpi/rgb/hex" → "colour"  
+ *  • "n image" → "an image"  
+ *  • strip any trailing "(…examples…)" that LLM may have appended  
+ */
 const plainify = (t = "") =>
-  t.replace(/resolution|dpi|rgb|hex/gi, "colour")
-   .replace(/\bn\s+image\b/gi, "an image")
-   .trim();
+  t
+    .replace(/resolution|dpi|rgb|hex/gi, "colour")
+    .replace(/\bn\s+image\b/gi, "an image")
+    // remove any trailing parentheses and their contents
+    .replace(/\s*\([^)]*\)\s*$/, "")
+    .trim();
 
+/**
+ * Just trim the examples array to MAX_EXAMPLES.
+ * We no longer shove them into `q.text`—the UI will toggle them out of `q.examples`.
+ */
 const ensureExamples = (q: any) => {
-  if (!Array.isArray(q.examples) || !q.examples.length) return q;
-  const ex = q.examples.slice(0, MAX_EXAMPLES).join(", ");
-  return /\(.+\)$/.test(q.text) ? q : { ...q, text: `${q.text} (${ex})` };
+  if (!Array.isArray(q.examples)) {
+    return { ...q, examples: [] };
+  }
+  return { ...q, examples: q.examples.slice(0, MAX_EXAMPLES) };
 };
 
 //────────  variable post-processing  ────────────
@@ -390,7 +405,12 @@ serve(async (req) => {
     
     // 5️⃣ FINAL: re-order & cap questions using your per-pillar counts
     questions = organizeQuestionsByPillar(questions, ambiguityLevel, questionsPerPillar)
-      .map(q => ensureExamples({ ...q, text: plainify(q.text) }));
+      .map(q => {
+        // 1) clean out any "(…examples…)" left in the text
+        const cleanedText = plainify(q.text);
+        // 2) trim their .examples to MAX_EXAMPLES
+        return ensureExamples({ ...q, text: cleanedText });
+      });
     
     let masterCommand = "";
     if (openAIResult && openAIResult.parsed && openAIResult.parsed.masterCommand) {
@@ -432,3 +452,4 @@ serve(async (req) => {
     );
   }
 });
+
