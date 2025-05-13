@@ -33,7 +33,8 @@ export const StepTwo = (props: StepTwoProps) => {
   };
   
   return (
-    <div className="flex flex-col justify-center min-h-full">
+    // center content both vertically and horizontally
+    <div className="flex flex-col justify-center items-center min-h-full">
       <ScrollArea className="h-full" hideScrollbar={false}>
         <div className="pb-16">
           <StepTwoContent {...safeProps} />
