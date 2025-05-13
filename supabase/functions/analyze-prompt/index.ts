@@ -253,18 +253,7 @@ serve(async (req) => {
       );
     }
 
-    // Determine questions per pillar based on missing variables  
-    const varsByCategory: Record<string, typeof variables> = {};
-    const questionsPerPillar: Record<string, number> = {};
-    
-    pillars.forEach(pillar => {
-      // Default counts based on ambiguity
-      questionsPerPillar[pillar] = ambiguityLevel >= 0.6 ? 3 : 2;
-    });
-    
-    // 5️⃣ Now re-order & cap by pillar according to your per-pillar counts
-    questions = organizeQuestionsByPillar(questions, ambiguityLevel, questionsPerPillar)
-      .map(q => ensureExamples({ ...q, text: plainify(q.text) }));
+    // —> DROP the "one-per-pillar" fallback entirely.
     
     //──────────────  VARIABLE creation + pre-fill steps  ──────────────
     
@@ -391,23 +380,18 @@ serve(async (req) => {
 
     questions = fillQuestions(questions, variables, imgTags);
 
-    // Organize variables by category for per-pillar question counts
-    varsByCategory.clear = Object.create(null);
-    variables.forEach(v => {
-      const cat = v.category || 'General';
-      (varsByCategory[cat] ||= []).push(v);
-    });
-
-    // Adjust questionsPerPillar based on variables
+    // Determine questions per pillar based on missing variables  
+    const varsByCategory: Record<string, typeof variables> = {};
+    const questionsPerPillar: Record<string, number> = {};
+    
     pillars.forEach(pillar => {
-      const vars = varsByCategory[pillar] || [];
-      const missing = vars.filter(v => !v.value).length;
-      // 0 missing → 1 question, ≥2 missing → 3, else 2
-      questionsPerPillar[pillar] = missing === 0 ? 1 : (missing >= 2 ? 3 : 2);
+      // Default counts based on ambiguity
+      questionsPerPillar[pillar] = ambiguityLevel >= 0.6 ? 3 : 2;
     });
     
-    // Apply per-pillar question count
-    questions = organizeQuestionsByPillar(questions, ambiguityLevel, questionsPerPillar);
+    // 5️⃣ FINAL: re-order & cap questions using your per-pillar counts
+    questions = organizeQuestionsByPillar(questions, ambiguityLevel, questionsPerPillar)
+      .map(q => ensureExamples({ ...q, text: plainify(q.text) }));
     
     let masterCommand = "";
     if (openAIResult && openAIResult.parsed && openAIResult.parsed.masterCommand) {
