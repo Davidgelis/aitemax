@@ -1,3 +1,4 @@
+
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -251,47 +252,60 @@ serve(async (req) => {
         extractUserIntent(promptText)
       );
     }
+
+    // Determine questions per pillar based on missing variables  
+    const varsByCategory: Record<string, typeof variables> = {};
+    const questionsPerPillar: Record<string, number> = {};
     
-    // 5️⃣ Finally, *guarantee* exactly one question per pillar
-    const finalQs: Question[] = pillars.map((pillar, idx) => {
-      // first match in whatever we have
-      const match = questions.find(q =>
-        (q.category || "").toLowerCase() === pillar.toLowerCase()
-      );
-      if (match) return match;
-    
-      // hand-rolled fallback
-      const s = pillarSuggestions(pillar, extractUserIntent(promptText))[0];
-      return {
-        id:           `q_auto_${canonKey(pillar)}`,
-        text:         s.txt + (s.ex.length ? ` (${s.ex.slice(0,MAX_EXAMPLES).join(", ")})` : ""),
-        answer:       "",
-        isRelevant:   true,
-        examples:     s.ex,
-        category:     pillar
-      };
+    pillars.forEach(pillar => {
+      // Default counts based on ambiguity
+      questionsPerPillar[pillar] = ambiguityLevel >= 0.6 ? 3 : 2;
     });
     
-    // 6️⃣ Now you can re-organize, plainify & ensureExamples exactly once
-    questions = organizeQuestionsByPillar(finalQs, ambiguityLevel)
+    // 5️⃣ Now re-order & cap by pillar according to your per-pillar counts
+    questions = organizeQuestionsByPillar(questions, ambiguityLevel, questionsPerPillar)
       .map(q => ensureExamples({ ...q, text: plainify(q.text) }));
     
     //──────────────  VARIABLE creation + pre-fill steps  ──────────────
-    let variables: Variable[] = [];
     
-    if (openAIResult && openAIResult.parsed && Array.isArray(openAIResult.parsed.variables)) {
-      // Map OpenAI results to our Variable structure
-      variables = openAIResult.parsed.variables.map((v: any, index: number) => ({
-        id: `v-${index + 1}`,
-        name: v.name || "",
-        value: v.value || "",
-        isRelevant: true,
-        category: v.category || "General",
-        code: v.code || v.name?.toLowerCase().replace(/\s+/g, '_') || ""
-      }));
-    } else {
-      // Fallback to our own variable generation
-      variables = generateContextualVariablesForPrompt(promptText, template, imageAnalysis, smartContextData);
+    // 1️⃣ Siempre arrancamos con variables de contexto (p.ej. Dog Breed, Ball Colour)
+    let variables: Variable[] = generateContextualVariablesForPrompt(
+      promptText,
+      template,
+      imageAnalysis,
+      smartContextData
+    );
+
+    // 2️⃣ Si el LLM devolvió variables, las fusionamos
+    if (openAIResult?.parsed?.variables && Array.isArray(openAIResult.parsed.variables)) {
+      const llmVars: any[] = openAIResult.parsed.variables;
+      // Actualizamos las existentes
+      variables = variables.map(v => {
+        const match = llmVars.find(l => canonKey(l.name) === canonKey(v.name));
+        if (!match) return v;
+        return {
+          ...v,
+          // preferimos valor LLM si existe
+          value: match.value || v.value,
+          prefillSource: match.prefillSource || v.prefillSource,
+          code:         match.code         || v.code,
+          category:     match.category     || v.category
+        };
+      });
+      // Añadimos las que LLM propuso y no estaban en el fallback
+      llmVars.forEach(l => {
+        if (!variables.some(v => canonKey(v.name) === canonKey(l.name))) {
+          variables.push({
+            id:         `v-${variables.length + 1}`,
+            name:       l.name,
+            value:      l.value || "",
+            isRelevant: true,
+            category:   l.category || "General",
+            code:       l.code     || canonKey(l.name),
+            prefillSource: l.prefillSource
+          });
+        }
+      });
     }
     
     // ----------  Image-based pre-fill  ----------
@@ -358,20 +372,33 @@ serve(async (req) => {
       return v;
     });
 
+    // Update categories in variables based on pillars
+    variables = variables.map(v => {
+      if (!v.category || v.category === "General" || v.category === "Other") {
+        // Try to match with a pillar
+        const matchedPillar = pillars.find(p => 
+          v.name.toLowerCase().includes(p.toLowerCase())
+        );
+        return matchedPillar ? { ...v, category: matchedPillar } : v;
+      }
+      return v;
+    });
+
     // ----------  Auto-answer questions ----------
     const imgTags = imageCaption
-      ? (await describeImage(firstImageWithBase64?.base64 || "")).tags || {}
+      ? (await describeImage(imageData?.find((img: any) => img.base64)?.base64 || "")).tags || {}
       : {};
 
     questions = fillQuestions(questions, variables, imgTags);
 
-    // Determine questions per pillar based on missing variables  
-    const varsByCategory: Record<string, typeof variables> = {};
+    // Organize variables by category for per-pillar question counts
+    varsByCategory.clear = Object.create(null);
     variables.forEach(v => {
       const cat = v.category || 'General';
       (varsByCategory[cat] ||= []).push(v);
     });
-    const questionsPerPillar: Record<string, number> = {};
+
+    // Adjust questionsPerPillar based on variables
     pillars.forEach(pillar => {
       const vars = varsByCategory[pillar] || [];
       const missing = vars.filter(v => !v.value).length;
