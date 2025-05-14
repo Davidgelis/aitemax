@@ -121,26 +121,46 @@ const fillQuestions = (qs: any[], vars: any[], imgTags: Record<string, string> =
     background: /(background|setting|environment|scene)/i,
     subject   : /(subject|object|figure|person)/i
   };
+
   return qs.map(q => {
     if (q.answer) return q;
-    // 1️⃣ variable‐based prefill: whenever we have a valueLong, use that rich text,
-    // otherwise fall back to the short .value.  Applies to any fillSource.
+
+    // 1️⃣ if this question clearly asks about one of our image‐derived variables,
+    //    grab the rich valueLong that GPT-4o just gave us.
+    for (const [tag, re] of Object.entries(tagTest)) {
+      if (re.test(q.text)) {
+        // find the same‐category variable that was prefilled by image
+        const iv = vars.find(v =>
+          v.prefillSource === 'image' &&
+          (v.category || "").toLowerCase() === tag
+        );
+        if (iv) {
+          const full = (iv as any).valueLong as string;
+          return {
+            ...q,
+            answer: full.slice(0, 1000),   // clamp at 1000 chars
+            prefillSource: 'image'
+          };
+        }
+        // otherwise fall back to the simple imgTags
+        if (has(imgTags[tag])) {
+          return { ...q, answer: imgTags[tag], prefillSource: "image-tag" };
+        }
+      }
+    }
+
+    // 2️⃣ generic variable match (any non‐image source)
     const hit = vars.find(v =>
       v.value && q.text.toLowerCase().includes(v.name.toLowerCase())
     );
     if (hit) {
-      const rich = (hit as any).valueLong as string | undefined;
-      const answer = rich && rich.length > hit.value.length
-        ? rich.slice(0,1000)  // clamp to 1000 chars
-        : hit.value;
-      return { ...q, answer, prefillSource: hit.prefillSource };
+      return {
+        ...q,
+        answer: hit.valueLong ?? hit.value,
+        prefillSource: hit.prefillSource
+      };
     }
 
-    for (const [tag, re] of Object.entries(tagTest)) {
-      if (re.test(q.text) && has(imgTags[tag])) {
-        return { ...q, answer: imgTags[tag], prefillSource: "image-tag" };
-      }
-    }
     return q;
   });
 };

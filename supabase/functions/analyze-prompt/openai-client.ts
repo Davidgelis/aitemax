@@ -178,6 +178,7 @@ Guidelines for <string>:
     
     // ─── force JSON mode so we get back a real object ───────────────────────
     const { choices } = await openai.chat.completions.create({
+      // switch back to GPT-4.1 per request
       model: "gpt-4.1",
       response_format: { type: "json_object" },
       max_tokens: 400,
