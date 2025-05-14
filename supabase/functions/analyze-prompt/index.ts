@@ -439,6 +439,42 @@ serve(async (req) => {
       ? (await describeImage(imageData?.find((img: any) => img.base64)?.base64 || "")).tags || {}
       : {};
     
+    // ─── IMAGE-ANALYSIS "style" PRE-FILL via smartContextData.context ───
+    if (
+      imageData && Array.isArray(imageData) && imageData.length > 0
+      && smartContextData?.context?.trim().length
+    ) {
+      const styleQRe = /(style|visual aesthetic|palette|colour|color|mood|era|genre)/i;
+      const pendingStyleQs = questions.filter(q => !q.answer && styleQRe.test(q.text));
+      if (pendingStyleQs.length) {
+        const keys = pendingStyleQs.map(q => q.text);
+        const ctxForStyle = smartContextData.context;
+        console.log(`🖼️  style-pre-fill: running on ${keys.length} questions`);
+        try {
+          const styleMap = await inferAndMapFromContext(ctxForStyle, keys);
+          if (styleMap?.fill) {
+            questions = questions.map(q => {
+              if (!q.answer && styleQRe.test(q.text)) {
+                const hit = styleMap.fill[q.text];
+                if (hit?.value) {
+                  console.log(`   ↳ pre-filled "${q.text}" → "${hit.value}"`);
+                  return {
+                    ...q,
+                    answer: hit.value,
+                    prefillSource: "style-analysis"
+                  };
+                }
+              }
+              return q;
+            });
+            console.log("✅ style-pre-fill applied");
+          }
+        } catch (err) {
+          console.error("❌ style-pre-fill error:", err);
+        }
+      }
+    }
+    
     // 2️⃣ Smart-Context-based question pre-fill
     if (smartContextData?.context) {
       // only for questions that aren't already answered
@@ -462,9 +498,6 @@ serve(async (req) => {
         }
       }
     }
-
-    // then do your existing var/image-based auto-answer
-    questions = fillQuestions(questions, variables, imgTags);
 
     // Determine questions per pillar based on missing variables  
     const varsByCategory: Record<string, typeof variables> = {};
