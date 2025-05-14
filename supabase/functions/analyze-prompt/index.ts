@@ -1,3 +1,4 @@
+
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -227,45 +228,44 @@ serve(async (req) => {
     });
     
     //---------------------------------------------------------------
-    // NEW QUESTION PROCESSING LOGIC
+    //  NEW QUESTION & VARIABLE GENERATION (step 1–3)
     //---------------------------------------------------------------
-    
-    // 1️⃣ How many pillars does our template have?
-    const pillars: string[] = Array.isArray(template?.pillars)
-      ? template.pillars.map((p: any) => p.title)
-      : [];
-    
-    // 2️⃣ Grab the LLM's raw questions, if any
-    const rawQs: any[] = Array.isArray(openAIResult?.parsed?.questions)
-      ? openAIResult.parsed.questions
-      : [];
-    console.log("LLM returned questions:", rawQs);
-    
-    // 3️⃣ Map them into our shape (or fall back)
-    let questions: Question[];
-    if (rawQs.length > 0) {
-      questions = rawQs.map((q: any, i: number) => ({
-        id:           q.id    || `q-${i+1}`,
-        text:         q.text  || q.question || (q.q as string) || "",
-        answer:       "",
-        isRelevant:   true,
-        // we may get raw "(a,b,c)" in the text; we'll pull those out below
-        examples:     Array.isArray(q.examples) ? q.examples : [],
-        // ← use q.pillar first, then q.category, then fallback by index
-        category:     (q.pillar as string)
-                         || q.category
-                         || pillars[i]
-                         || "General"
-      }));
-    } else {
-      questions = generateContextQuestionsForPrompt(
-        promptText,
-        template,
-        smartContextData,
-        imageAnalysis,
-        extractUserIntent(promptText)
-      );
-    }
+
+    // 1️⃣ Extract the user's main intent from their prompt
+    const userIntent = extractUserIntent(promptText);
+
+    // 2️⃣ Generate all questions via your contextual generator
+    let questions: Question[] = generateContextQuestionsForPrompt(
+      promptText,
+      template,
+      smartContextData,
+      imageAnalysis,
+      userIntent
+    ).map((q: any, i: number) => ({
+      id:         q.id    || `q-${i+1}`,
+      text:       q.text,
+      answer:     "",
+      isRelevant: true,
+      examples:   Array.isArray(q.examples) ? q.examples.slice(0, MAX_EXAMPLES) : [],
+      category:   q.category || (template?.pillars?.[i]?.title as string) || "General"
+    }));
+
+    // 3️⃣ Generate all variables via your contextual generator
+    let variables: Variable[] = generateContextualVariablesForPrompt(
+      promptText,
+      template,
+      imageAnalysis,
+      smartContextData
+    );
+
+    // 4️⃣ Remove any variable whose name is already asked by a question
+    const qTexts = questions.map(q => q.text.toLowerCase());
+    variables = variables.filter(v =>
+      !qTexts.some(text => text.includes(v.name.toLowerCase()))
+    );
+
+    // 5️⃣ Apply your usual post-processing (dedupe, cap at 8)
+    variables = processVariables(variables);
 
     // ──────────────────────────────────────────────────
     // extract any trailing "(ex1, ex2, ex3)" into our .examples array
@@ -284,35 +284,25 @@ serve(async (req) => {
     });
     // ──────────────────────────────────────────────────
 
-    // —> DROP the "one-per-pillar" fallback entirely.
-    
     //──────────────  VARIABLE creation + pre-fill steps  ──────────────
     
-    // 1️⃣ Siempre arrancamos con variables de contexto (p.ej. Dog Breed, Ball Colour)
-    let variables: Variable[] = generateContextualVariablesForPrompt(
-      promptText,
-      template,
-      imageAnalysis,
-      smartContextData
-    );
-
-    // 2️⃣ Si el LLM devolvió variables, las fusionamos
+    // 1️⃣ If the LLM returned variables, merge them with ours
     if (openAIResult?.parsed?.variables && Array.isArray(openAIResult.parsed.variables)) {
       const llmVars: any[] = openAIResult.parsed.variables;
-      // Actualizamos las existentes
+      // Update existing variables
       variables = variables.map(v => {
         const match = llmVars.find(l => canonKey(l.name) === canonKey(v.name));
         if (!match) return v;
         return {
           ...v,
-          // preferimos valor LLM si existe
+          // prefer LLM value if it exists
           value: match.value || v.value,
           prefillSource: match.prefillSource || v.prefillSource,
           code:         match.code         || v.code,
           category:     match.category     || v.category
         };
       });
-      // Añadimos las que LLM propuso y no estaban en el fallback
+      // Add variables that LLM proposed but weren't in our fallback
       llmVars.forEach(l => {
         if (!variables.some(v => canonKey(v.name) === canonKey(l.name))) {
           variables.push({
@@ -412,12 +402,6 @@ serve(async (req) => {
       value:  plainify(v.value || "")
     }));
 
-    // 3) **DROP** the old "one Main subject" injection.
-    //    We now trust generateContextualVariablesForPrompt + LLM merges
-    //   to extract *all* the real focal points as variables,
-    //   even if the user hasn't provided those values yet.
-    // ───────────────────────────────────────────────────────────────
-
     // Final tidy-up
     variables = processVariables(variables);
     // Remove any variable whose value simply repeats its name (unhelpful prefill)
@@ -432,14 +416,15 @@ serve(async (req) => {
     variables = variables.map(v => {
       if (!v.category || v.category === "General" || v.category === "Other") {
         // Try to match with a pillar
-        const matchedPillar = pillars.find(p => 
-          v.name.toLowerCase().includes(p.toLowerCase())
-        );
+        const matchedPillar = template?.pillars?.find((p: any) => 
+          v.name.toLowerCase().includes(p.title.toLowerCase())
+        )?.title;
         return matchedPillar ? { ...v, category: matchedPillar } : v;
       }
       return v;
     });
 
+    // ─── Auto-answer questions from variables & image tags ──────────
     // ----------  Auto-answer questions ----------
     const imgTags = imageCaption
       ? (await describeImage(imageData?.find((img: any) => img.base64)?.base64 || "")).tags || {}
@@ -450,6 +435,10 @@ serve(async (req) => {
     // Determine questions per pillar based on missing variables  
     const varsByCategory: Record<string, typeof variables> = {};
     const questionsPerPillar: Record<string, number> = {};
+    
+    const pillars: string[] = Array.isArray(template?.pillars)
+      ? template.pillars.map((p: any) => p.title)
+      : [];
     
     pillars.forEach(pillar => {
       // Default counts based on ambiguity
