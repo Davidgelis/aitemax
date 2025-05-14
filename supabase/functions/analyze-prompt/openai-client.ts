@@ -1,3 +1,4 @@
+
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
 import { shorten, clamp } from "./utils.ts";
 
@@ -204,10 +205,28 @@ Guidelines for <string>:
         const full = hit.value.trim().replace(/\s+/g, " ");
 
         /* 1️⃣ take the first sentence                         */
-        let words = full.split(/[.!?]/)[0].split(/\s+/);
+        // grab just up to first period/question/!
+        const sentence = full.split(/[.!?]/)[0];
+        let words = sentence.split(/\s+/);
+        
         /* 2️⃣ drop leading filler words                       */
         while (words.length && FILLER.has(words[0].toLowerCase())) words.shift();
-        /* 3️⃣ keep max 6 significant words                    */
+        
+        /* 3️⃣ drop any leading "<varLabel> is/are" so we start
+              cleanly on the actual descriptor words */
+        const labelTokens = varLabel.toLowerCase().split(/\s+/);
+        let i = 0;
+        // strip off variable-name tokens
+        while (i < labelTokens.length && words[0]?.toLowerCase() === labelTokens[i]) {
+          words.shift();
+          i++;
+        }
+        // then strip a copula if present
+        if (words[0]?.toLowerCase().match(/^(is|are)$/)) {
+          words.shift();
+        }
+
+        /* 4️⃣ keep max 6 significant words                    */
         const short = words.slice(0, 6).join(" ");
 
         parsed.fill[varLabel] = {
