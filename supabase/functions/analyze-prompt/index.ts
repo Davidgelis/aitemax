@@ -439,6 +439,23 @@ serve(async (req) => {
       return v;
     });
 
+    // ——————————————————————————————————————————————————————————————————————
+    // Only keep prefilled values for variables requested by the smart-button
+    if (smartContextData?.context?.trim()) {
+      const ctx = smartContextData.context.toLowerCase();
+      variables = variables.map(v => {
+        const name = v.name.toLowerCase();
+        const category = (v.category || "").toLowerCase();
+        // if the user's smart context mentions this variable name or its category, keep it
+        if (ctx.includes(name) || ctx.includes(category)) {
+          return v;
+        }
+        // otherwise clear any prefill
+        return { ...v, value: "" };
+      });
+    }
+    // ——————————————————————————————————————————————————————————————————————
+
     // ─── Auto-answer questions from variables & image tags ──────────
     // use the tags we already fetched up front
     const imgTags = imageAnalysis?.tags || {};
