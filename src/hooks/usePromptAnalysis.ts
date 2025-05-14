@@ -7,6 +7,9 @@ import { GPT41_ID } from "@/services/model/ModelFetchService";
 import { cleanTemplate } from "@/utils/cleanTemplate";
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 
+// Match the server's trimming logic
+const MAX_EXAMPLES = 4;
+
 type LoadingState = {
   isLoading: boolean;
   message:  string;
