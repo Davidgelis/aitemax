@@ -77,12 +77,17 @@ const processVariables = (vars: any[]) => {
   const canonical = (l: string) =>
     l.toLowerCase().split(/\s+/).filter(w => !STOP.has(w)).sort().join(" ");
 
-  let v = vars.map((x: any) => ({
-    ...x,
-    name : (x.name  || "").trim().split(/\s+/).slice(0, 3).join(" "),
-    value: (x.value || "").trim().split(/\s+/).slice(0, 3).join(" "),
-    category: x.category || "Other"
-  }));
+  let v = vars.map((x: any) => {
+    // keep any valueLong around, but only trim display‐value if you want to cap words
+    const words = (x.value || "").trim().split(/\s+/);
+    return {
+      ...x,
+      name    : (x.name  || "").trim().split(/\s+/).slice(0, 3).join(" "),
+      // leave v.value intact (or slice to 4 words if preferred)
+      value   : words.slice(0, 4).join(" "),
+      category: x.category || "Other"
+    };
+  });
   const seen = new Set<string>();
   v = v.filter(x => {
     const sig = canonical(x.name);
@@ -105,8 +110,20 @@ const fillQuestions = (qs: any[], vars: any[], imgTags: Record<string, string> =
   };
   return qs.map(q => {
     if (q.answer) return q;
-    const hit = vars.find(v => v.value && q.text.toLowerCase().includes(v.name.toLowerCase()));
-    if (hit) return { ...q, answer: hit.value, prefillSource: hit.prefillSource };
+    // 1️⃣ variable‐based prefill: use rich valueLong if from image
+    const hit = vars.find(v =>
+      v.value && q.text.toLowerCase().includes(v.name.toLowerCase())
+    );
+    if (hit) {
+      const rich = hit.prefillSource === 'image' && (hit as any).valueLong;
+      return {
+        ...q,
+        answer: rich
+          ? (rich.length > 1000 ? rich.slice(0,1000) : rich)
+          : hit.value,
+        prefillSource: hit.prefillSource
+      };
+    }
 
     for (const [tag, re] of Object.entries(tagTest)) {
       if (re.test(q.text) && has(imgTags[tag])) {
@@ -442,8 +459,8 @@ serve(async (req) => {
     
     // ─── IMAGE-ANALYSIS "style" PRE-FILL via smartContextData.context ───
     if (
-      imageData && Array.isArray(imageData) && imageData.length > 0
-      && smartContextData?.context?.trim().length
+      imageData && Array.isArray(imageData) && imageData.length > 0 &&
+      smartContextData?.context?.trim().length
     ) {
       const styleQRe = /(style|visual aesthetic|palette|colour|color|mood|era|genre)/i;
       const pendingStyleQs = questions.filter(q => !q.answer && styleQRe.test(q.text));
@@ -456,12 +473,21 @@ serve(async (req) => {
           if (styleMap?.fill) {
             questions = questions.map(q => {
               if (!q.answer && styleQRe.test(q.text)) {
-                const hit = styleMap.fill[q.text];
-                if (hit?.value) {
-                  console.log(`   ↳ pre-filled "${q.text}" → "${hit.value}"`);
+                const slot = styleMap.fill[q.text];
+                if (slot?.valueLong) {
+                  const val = slot.valueLong.length > 1000
+                    ? slot.valueLong.slice(0,1000)
+                    : slot.valueLong;
+                  console.log(`   ↳ rich pre-fill "${q.text}" → …${val.slice(0,30)}`);
                   return {
                     ...q,
-                    answer: hit.value,
+                    answer: val,
+                    prefillSource: "style-analysis"
+                  };
+                } else if (slot?.value) {
+                  return {
+                    ...q,
+                    answer: slot.value,
                     prefillSource: "style-analysis"
                   };
                 }
