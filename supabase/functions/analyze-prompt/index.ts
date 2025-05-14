@@ -88,10 +88,9 @@ const ensureExamples = (q: any) => {
 const processVariables = (vars: any[]) => {
   const canonical = (l: string) =>
     l.toLowerCase().split(/\s+/).filter(w => !STOP.has(w)).sort().join(" ");
-
   let v = vars.map((x: any) => {
-    // always pick the SHORT label—either the explicit valueLong or the raw value
-    const raw  = (x.valueLong || x.value || "").trim();
+    // always pick the SHORT label—use the compact `value` (never the full `valueLong`)
+    const raw  = (x.value || "").trim();
     // take up to 4 words, strip trailing punctuation
     const words = raw.split(/\s+/).slice(0, 4).map(w => w.replace(/[.,;:]$/,""));
     return {
@@ -125,43 +124,39 @@ const fillQuestions = (qs: any[], vars: any[], imgTags: Record<string, string> =
   return qs.map(q => {
     if (q.answer) return q;
 
-    // 1️⃣ if this question clearly asks about one of our image‐derived variables,
-    //    grab the rich valueLong that GPT-4o just gave us.
+    // 1️⃣ Image‐derived prefill (rich `valueLong`) – but skip "unspecified"
     for (const [tag, re] of Object.entries(tagTest)) {
       if (re.test(q.text)) {
-        // find the same‐category variable that was prefilled by image
         const iv = vars.find(v =>
           v.prefillSource === 'image' &&
           (v.category || "").toLowerCase() === tag
         );
         if (iv) {
-          // guard against missing valueLong
           const full = (iv as any).valueLong;
-          if (typeof full === 'string' && full.length > 0) {
-            return {
-              ...q,
-              answer: full.length > 1000 ? full.slice(0, 1000) : full,
-              prefillSource: 'image'
-            };
+          if (typeof full === 'string' && full.trim() && !/^unspecified$/i.test(full.trim())) {
+            const ans = full.length > 1000 ? full.slice(0,1000) : full;
+            return { ...q, answer: ans, prefillSource: 'image' };
           }
         }
-        // otherwise fall back to the simple imgTags
+        // fallback to simple imgTags (skip "unspecified" too)
         if (has(imgTags[tag])) {
-          return { ...q, answer: imgTags[tag], prefillSource: "image-tag" };
+          const tagVal = imgTags[tag].trim();
+          if (!/^unspecified$/i.test(tagVal)) {
+            return { ...q, answer: tagVal, prefillSource: 'image-tag' };
+          }
         }
       }
     }
 
-    // 2️⃣ generic variable match (any non‐image source)
+    // 2️⃣ Generic variable match – skip "unspecified"
     const hit = vars.find(v =>
-      v.value && q.text.toLowerCase().includes(v.name.toLowerCase())
+      v.value &&
+      !/^unspecified$/i.test(v.value.trim()) &&
+      q.text.toLowerCase().includes(v.name.toLowerCase())
     );
     if (hit) {
-      return {
-        ...q,
-        answer: hit.valueLong ?? hit.value,
-        prefillSource: hit.prefillSource
-      };
+      const ans = hit.valueLong ?? hit.value;
+      return { ...q, answer: ans, prefillSource: hit.prefillSource };
     }
 
     return q;
