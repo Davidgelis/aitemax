@@ -620,6 +620,37 @@ export function generateContextualVariablesForPrompt(
   const variables: Variable[] = [];
   let variableId = 1;
 
+  // 1️⃣ If we have imageAnalysis.tags, inject those as high-priority variables
+  if (imageAnalysis && imageAnalysis.tags) {
+    for (const [tag, val] of Object.entries(imageAnalysis.tags)) {
+      if (!val.trim()) continue;
+      let name: string, category: string, code: string;
+      switch (tag.toLowerCase()) {
+        case "style":
+          name = "Visual Style"; category = "Style"; code = "visualStyle"; break;
+        case "palette":
+        case "colour":
+        case "color":
+          name = "Colour Palette"; category = "Color"; code = "colourPalette"; break;
+        case "mood":
+          name = "Mood"; category = "Mood"; code = "mood"; break;
+        case "background":
+        case "environment":
+          name = "Background"; category = "Background"; code = "background"; break;
+        default:
+          continue;
+      }
+      variables.push({
+        id: `var-${variableId++}`,
+        name,
+        value: val,
+        isRelevant: true,
+        category,
+        code
+      });
+    }
+  }
+
   // Extract meaningful elements from the prompt
   const elements = extractMeaningfulElements(promptText);
   

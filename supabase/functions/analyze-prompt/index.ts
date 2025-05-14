@@ -195,17 +195,18 @@ serve(async (req) => {
     const ambiguityLevel = computeAmbiguity(promptText);
     
     let imageCaption = "";
-    let imageAnalysis = null;
+    // capture both caption AND tags
+    let imageAnalysis: { caption: string; tags: Record<string,string> } | null = null;
     
     if (imageData && Array.isArray(imageData) && imageData.length > 0) {
       try {
         const firstImageWithBase64 = imageData.find(img => img.base64);
         
         if (firstImageWithBase64) {
-          imageCaption = await describeImage(firstImageWithBase64.base64)
-            .then(result => result.caption || "")
-            .catch(() => "");
-          
+          // get full vision result
+          const vision = await describeImage(firstImageWithBase64.base64);
+          imageCaption = vision.caption || "";
+          imageAnalysis = vision;
           console.log("Generated image caption for analysis");
         }
       } catch (err) {
@@ -378,11 +379,13 @@ serve(async (req) => {
     // ----------  Context-based pre-fill  ----------
     const blanks = variables.filter(v => !v.value);
     if (blanks.length) {
-      const names   = blanks.map(v => v.name);
-      const bigCtx  = [
+      const names = blanks.map(v => v.name);
+      // include imageCaption as part of the context
+      const bigCtx = [
         promptText,
         smartContextData?.context || "",
-        websiteData?.pageText || ""
+        websiteData?.pageText || "",
+        imageCaption || ""
       ].join("\n\n").trim();
       try {
         const map = await inferAndMapFromContext(bigCtx, names);
@@ -434,10 +437,8 @@ serve(async (req) => {
     });
 
     // ─── Auto-answer questions from variables & image tags ──────────
-    // ----------  Auto-answer questions ----------
-    const imgTags = imageCaption
-      ? (await describeImage(imageData?.find((img: any) => img.base64)?.base64 || "")).tags || {}
-      : {};
+    // use the tags we already fetched up front
+    const imgTags = imageAnalysis?.tags || {};
     
     // ─── IMAGE-ANALYSIS "style" PRE-FILL via smartContextData.context ───
     if (
@@ -498,6 +499,9 @@ serve(async (req) => {
         }
       }
     }
+
+    // then do your existing var/image-based auto-answer
+    questions = fillQuestions(questions, variables, imgTags);
 
     // Determine questions per pillar based on missing variables  
     const varsByCategory: Record<string, typeof variables> = {};

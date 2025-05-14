@@ -1,4 +1,3 @@
-
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
 import { shorten, clamp } from "./utils.ts";
 
@@ -312,9 +311,21 @@ Return *valid minified JSON* with keys:
 If a tag is unknown use an empty string.`
 ): Promise<{ caption: string; tags: Record<string,string> }> {
   try {
-    const openai = new OpenAI({
-      apiKey: openAIApiKey
-    });
+    const openai = new OpenAI({ apiKey: openAIApiKey });
+    
+    // strip any existing dataUrl prefix and detect mime
+    let raw = base64;
+    let mime = "png";
+    if (raw.startsWith("data:image/")) {
+      const m = raw.match(/^data:image\/(png|jpe?g|gif|webp);base64,(.*)$/i);
+      if (m) {
+        mime = m[1].toLowerCase() === "jpg" ? "jpeg" : m[1].toLowerCase();
+        raw = m[2];
+      } else {
+        raw = raw.replace(/^data:image\/[^;]+;base64,/, "");
+      }
+    }
+    const dataUrl = `data:image/${mime};base64,${raw}`;
     
     const res = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -324,8 +335,7 @@ If a tag is unknown use an empty string.`
         {
           role: "user",
           content: [
-            { type: "image_url",
-              image_url: { url: `data:image/png;base64,${base64}` } },
+            { type: "image_url", image_url: { url: dataUrl } },
             { type: "text", text: instructions }
           ]
         }
