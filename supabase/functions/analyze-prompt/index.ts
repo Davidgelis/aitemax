@@ -1,3 +1,15 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import {
+  analyzePromptWithAI,
+  describeImage,
+  describeAndMapImage,
+  inferAndMapFromContext,
+  canonKey
+} from "./openai-client.ts";
+import { createSystemPrompt } from "./system-prompt.ts";
+import { generateContextQuestionsForPrompt, generateContextualVariablesForPrompt } from "./utils/generators.ts";
+import { computeAmbiguity, organizeQuestionsByPillar } from "./utils/questionUtils.ts";
+
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -78,14 +90,15 @@ const processVariables = (vars: any[]) => {
     l.toLowerCase().split(/\s+/).filter(w => !STOP.has(w)).sort().join(" ");
 
   let v = vars.map((x: any) => {
-    // keep any valueLong around, but only trim display‐value if you want to cap words
-    const words = (x.value || "").trim().split(/\s+/);
+    // always pick the SHORT label—either the explicit valueLong or the raw value
+    const raw  = (x.valueLong || x.value || "").trim();
+    // take up to 4 words, strip trailing punctuation
+    const words = raw.split(/\s+/).slice(0, 4).map(w => w.replace(/[.,;:]$/,""));
     return {
       ...x,
-      name    : (x.name  || "").trim().split(/\s+/).slice(0, 3).join(" "),
-      // leave v.value intact (or slice to 4 words if preferred)
-      value   : words.slice(0, 4).join(" "),
-      category: x.category || "Other"
+      name    : (x.name||"").trim().split(/\s+/).slice(0,3).join(" "),
+      value   : words.join(" "),
+      category: x.category||"Other"
     };
   });
   const seen = new Set<string>();
@@ -110,19 +123,17 @@ const fillQuestions = (qs: any[], vars: any[], imgTags: Record<string, string> =
   };
   return qs.map(q => {
     if (q.answer) return q;
-    // 1️⃣ variable‐based prefill: use rich valueLong if from image
+    // 1️⃣ variable‐based prefill: whenever we have a valueLong, use that rich text,
+    // otherwise fall back to the short .value.  Applies to any fillSource.
     const hit = vars.find(v =>
       v.value && q.text.toLowerCase().includes(v.name.toLowerCase())
     );
     if (hit) {
-      const rich = hit.prefillSource === 'image' && (hit as any).valueLong;
-      return {
-        ...q,
-        answer: rich
-          ? (rich.length > 1000 ? rich.slice(0,1000) : rich)
-          : hit.value,
-        prefillSource: hit.prefillSource
-      };
+      const rich = (hit as any).valueLong as string | undefined;
+      const answer = rich && rich.length > hit.value.length
+        ? rich.slice(0,1000)  // clamp to 1000 chars
+        : hit.value;
+      return { ...q, answer, prefillSource: hit.prefillSource };
     }
 
     for (const [tag, re] of Object.entries(tagTest)) {
@@ -134,9 +145,9 @@ const fillQuestions = (qs: any[], vars: any[], imgTags: Record<string, string> =
   });
 };
 
-//------------------------------------------------------------------
+//--------------------------------------------------------------------
 //  ✨ concise "user-intent" extractor (from previous patch)
-//------------------------------------------------------------------
+//--------------------------------------------------------------------
 const extractUserIntent = (txt = ""): string => {
   if (txt.length < 60) return txt.trim();
   const firstSentence = txt.split(/[.!?]/).find(s => s.trim().length > 20);
@@ -147,46 +158,6 @@ const extractUserIntent = (txt = ""): string => {
 //--------------------------------------------------------------------
 // MAIN EDGE FUNCTION HANDLER
 //--------------------------------------------------------------------
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import {
-  analyzePromptWithAI,
-  describeImage,
-  describeAndMapImage,
-  inferAndMapFromContext,
-  canonKey
-} from "./openai-client.ts";
-import { createSystemPrompt } from "./system-prompt.ts";
-import { generateContextQuestionsForPrompt, generateContextualVariablesForPrompt } from "./utils/generators.ts";
-import { computeAmbiguity, organizeQuestionsByPillar } from "./utils/questionUtils.ts";
-
-// Define types
-interface Question {
-  id: string;
-  text: string;
-  answer?: string;
-  isRelevant: boolean;
-  category?: string;
-  contextSource?: string;
-  examples?: string[];
-}
-
-interface Variable {
-  id: string;
-  name: string;
-  value: string;
-  isRelevant: boolean;
-  category?: string;
-  code?: string;
-}
-
-interface AnalyzePromptResponse {
-  questions: Question[];
-  variables: Variable[];
-  masterCommand: string;
-  enhancedPrompt: string;
-  ambiguityLevel?: number;
-}
-
 serve(async (req) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
