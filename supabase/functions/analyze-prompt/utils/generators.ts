@@ -8,6 +8,9 @@ const STOP = new Set([
   'one', 'ones', 'someone', 'anyone', 'no one', 'everyone'
 ]);
 
+// match our edge‐function's MAX_EXAMPLES
+const MAX_EXAMPLES = 4;
+
 export function generateContextQuestionsForPrompt(
   promptText: string,
   template: any,
@@ -604,128 +607,4 @@ function isCreativeAction(action: string): boolean {
 function isAnalyticalAction(action: string): boolean {
   const analyticalActions = new Set(['analyze', 'evaluate', 'assess', 'research', 'study', 'investigate', 'examine', 'review', 'interpret', 'understand']);
   return analyticalActions.has(action.toLowerCase());
-}
-
-// Export the function for generating contextual variables
-export function generateContextualVariablesForPrompt(
-  promptText: string,
-  template: any,
-  imageAnalysis: any = null,
-  smartContext: any = null,
-  isConcise: boolean = false
-): Variable[] {
-  const variables: Variable[] = [];
-  let variableId = 1;
-
-  // Extract meaningful elements from the prompt
-  const elements = extractMeaningfulElements(promptText);
-  
-  // Generate variables for subjects (most important)
-  elements.subjects.forEach(subject => {
-    const raw = subject.text.trim();
-    // skip filler/very short subjects
-    if (raw.length < 3 || isCommonWord(raw)) return;
-    const cleaned = cleanSubjectText(raw);
-    // skip if cleaned ends up empty or blacklisted
-    const key = cleaned.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (STOP.has(key) || key === '') return;
-
-    const variableName = capitalizeFirstLetter(cleaned) + (subject.context ? ` (${subject.context})` : '');
-    variables.push({
-      id: `var-${variableId++}`,
-      name: variableName,
-      value: '',
-      isRelevant: true,
-      category: 'Subject',
-      code: toCamelCase(cleaned)
-    });
-  });
-  
-  // Generate variables for attributes
-  elements.attributes.forEach(attribute => {
-    if (attribute.text.length > 2 && !isCommonWord(attribute.text)) {
-      const cleanedAttribute = cleanText(attribute.text);
-      const variableName = capitalizeFirstLetter(cleanedAttribute) + ' Style';
-      
-      variables.push({
-        id: `var-${variableId++}`,
-        name: variableName,
-        value: '',
-        isRelevant: true,
-        category: 'Attribute',
-        code: toCamelCase(cleanedAttribute + 'Style')
-      });
-    }
-  });
-  
-  // Extract potential style/format variables
-  if (promptText.toLowerCase().includes('style') || promptText.toLowerCase().includes('format')) {
-    variables.push({
-      id: `var-${variableId++}`,
-      name: 'Style Preference',
-      value: '',
-      isRelevant: true,
-      category: 'Style',
-      code: 'stylePreference'
-    });
-  }
-  
-  // Extract color-related variables
-  if (promptText.toLowerCase().includes('color')) {
-    variables.push({
-      id: `var-${variableId++}`,
-      name: 'Color Scheme',
-      value: '',
-      isRelevant: true,
-      category: 'Color',
-      code: 'colorScheme'
-    });
-  }
-  
-  // If we have too few variables, add some generic ones
-  if (variables.length < 2) {
-    variables.push({
-      id: `var-${variableId++}`,
-      name: 'Main Element',
-      value: '',
-      isRelevant: true,
-      category: 'General',
-      code: 'mainElement'
-    });
-    
-    variables.push({
-      id: `var-${variableId++}`,
-      name: 'Style',
-      value: '',
-      isRelevant: true,
-      category: 'General',
-      code: 'style'
-    });
-  }
-
-  // Final grammar validation for variable names
-  const validatedVariables = variables.map(v => {
-    // Fix any remaining grammatical issues in names
-    v.name = fixGrammaticalErrors(v.name);
-    // drop any whose value ended up as "yes" or repeats name
-    if (v.value.toLowerCase() === 'yes' || v.value.toLowerCase() === v.name.toLowerCase()) {
-      return null;
-    }
-    return v;
-  });
-  // filter out nulls
-  return validatedVariables.filter((v): v is Variable => v !== null);
-}
-
-function capitalizeFirstLetter(str: string): string {
-  if (!str) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-function toCamelCase(str: string): string {
-  if (!str) return '';
-  return str.replace(/(?:^\w|[A-Z]|\b\w|\s+)/g, function(match, index) {
-    if (+match === 0) return ""; // or if (/\s+/.test(match)) for white spaces
-    return index === 0 ? match.toLowerCase() : match.toUpperCase();
-  });
 }
