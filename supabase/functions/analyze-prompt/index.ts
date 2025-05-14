@@ -111,8 +111,7 @@ const processVariables = (vars: any[]) => {
 };
 
 //────────  auto-answer questions from Vars / Vision tags  ─────────
-const fillQuestions = (qs: any[], vars: any[], imgTags: Record<string, string> = {}) => {
-  const has = (s?: string) => s && s.trim().length > 0;
+const fillQuestions = (qs: any[], vars: any[]) => {
   const tagTest = {
     palette   : /(palette|colour|color)/i,
     style     : /(style|aesthetic|genre|art\s*style)/i,
@@ -124,38 +123,34 @@ const fillQuestions = (qs: any[], vars: any[], imgTags: Record<string, string> =
   return qs.map(q => {
     if (q.answer) return q;
 
-    // 1️⃣ Image‐derived prefill (rich `valueLong`) – but skip "unspecified"
+    // 1️⃣ strictly image-derived rich fill:
     for (const [tag, re] of Object.entries(tagTest)) {
-      if (re.test(q.text)) {
-        const iv = vars.find(v =>
-          v.prefillSource === 'image' &&
-          (v.category || "").toLowerCase() === tag
-        );
-        if (iv) {
-          const full = (iv as any).valueLong;
-          if (typeof full === 'string' && full.trim() && !/^unspecified$/i.test(full.trim())) {
-            const ans = full.length > 1000 ? full.slice(0,1000) : full;
-            return { ...q, answer: ans, prefillSource: 'image' };
-          }
-        }
-        // fallback to simple imgTags (skip "unspecified" too)
-        if (has(imgTags[tag])) {
-          const tagVal = imgTags[tag].trim();
-          if (!/^unspecified$/i.test(tagVal)) {
-            return { ...q, answer: tagVal, prefillSource: 'image-tag' };
-          }
-        }
+      if (!re.test(q.text)) continue;
+
+      // find the same-category variable that came from `describeAndMapImage(…, variableNames)`
+      const iv = vars.find(v =>
+        v.prefillSource === 'image' &&
+        (v.category || "").toLowerCase() === tag
+      );
+      if (iv && typeof iv.valueLong === 'string' && iv.valueLong.trim()) {
+        // clamp at 1000 chars
+        const rich = iv.valueLong.length > 1000
+          ? iv.valueLong.slice(0, 1000)
+          : iv.valueLong.trim();
+        return { ...q, answer: rich, prefillSource: 'image' };
       }
+
+      // **no more imgTags fallback** — leave it blank if no rich image var
     }
 
-    // 2️⃣ Generic variable match – skip "unspecified"
+    // 2️⃣ generic variable match (non-image) — still use full `valueLong` if present
     const hit = vars.find(v =>
-      v.value &&
-      !/^unspecified$/i.test(v.value.trim()) &&
-      q.text.toLowerCase().includes(v.name.toLowerCase())
+      v.valueLong && q.text.toLowerCase().includes(v.name.toLowerCase())
     );
     if (hit) {
-      const ans = hit.valueLong ?? hit.value;
+      const ans = hit.valueLong.length > 1000
+        ? hit.valueLong.slice(0,1000)
+        : hit.valueLong;
       return { ...q, answer: ans, prefillSource: hit.prefillSource };
     }
 
@@ -518,7 +513,7 @@ serve(async (req) => {
     }
 
     // then do your existing var/image-based auto-answer
-    questions = fillQuestions(questions, variables, imgTags);
+    questions = fillQuestions(questions, variables);
 
     // Determine questions per pillar based on missing variables  
     const varsByCategory: Record<string, typeof variables> = {};
