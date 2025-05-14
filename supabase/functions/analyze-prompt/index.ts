@@ -135,12 +135,15 @@ const fillQuestions = (qs: any[], vars: any[], imgTags: Record<string, string> =
           (v.category || "").toLowerCase() === tag
         );
         if (iv) {
-          const full = (iv as any).valueLong as string;
-          return {
-            ...q,
-            answer: full.slice(0, 1000),   // clamp at 1000 chars
-            prefillSource: 'image'
-          };
+          // guard against missing valueLong
+          const full = (iv as any).valueLong;
+          if (typeof full === 'string' && full.length > 0) {
+            return {
+              ...q,
+              answer: full.length > 1000 ? full.slice(0, 1000) : full,
+              prefillSource: 'image'
+            };
+          }
         }
         // otherwise fall back to the simple imgTags
         if (has(imgTags[tag])) {
@@ -371,6 +374,8 @@ serve(async (req) => {
                 return {
                   ...v,
                   value: match.value,
+                  // carry the rich, multi-sentence text into valueLong
+                  valueLong: match.valueLong ?? match.value,
                   prefillSource: "image"
                 };
               }

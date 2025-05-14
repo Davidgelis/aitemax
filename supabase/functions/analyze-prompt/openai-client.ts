@@ -211,8 +211,8 @@ Guidelines for <string>:
         const short = words.slice(0, 6).join(" ");
 
         parsed.fill[varLabel] = {
-          value      : short,          // compact label (≈ 1-6 words)
-          valueLong  : full,           // full paragraph (≤1000 char)
+          value      : short,            // compact label (≈1–6 words)
+          valueLong  : full,             // full rich paragraph
           confidence : hit.confidence
         };
       }
