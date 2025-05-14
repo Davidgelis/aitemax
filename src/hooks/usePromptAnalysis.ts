@@ -80,7 +80,7 @@ export const usePromptAnalysis = (
         answer    : q.answer    || "",
         isRelevant: q.isRelevant !== false,
         category  : q.category  || "General",
-        examples  : q.examples  || []
+        examples  : Array.isArray(q.examples) ? q.examples.slice(0, MAX_EXAMPLES) : []
       });
 
       const normV = (v: any, i: number): Variable => ({

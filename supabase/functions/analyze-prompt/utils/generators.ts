@@ -29,13 +29,16 @@ export function generateContextQuestionsForPrompt(
 
   // Generate base contextual questions based on the prompt content
   const baseQuestions = generateContentSpecificQuestions(promptText, promptElements, userIntent);
-  questions.push(...baseQuestions.map((q, index) => ({
+  questions.push(...baseQuestions.map((q: any) => ({
     id: `q-${questionId++}`,
     text: q.text,
-    answer: q.examples ? `E.g: ${q.examples.join(', ')}` : '',
+    answer: "",  // don't prefill the answer with the examples text
     isRelevant: true,
     category: q.category || 'Context',
-    contextSource: 'prompt'
+    contextSource: 'prompt',
+    examples: Array.isArray(q.examples)
+      ? q.examples.slice(0, MAX_EXAMPLES)
+      : []
   })));
 
   // Process each subject with more contextual awareness
@@ -46,10 +49,13 @@ export function generateContextQuestionsForPrompt(
       questions.push(...subjectQuestions.map(q => ({
         id: `q-${questionId++}`,
         text: q.text,
-        answer: q.examples ? `E.g: ${q.examples.join(', ')}` : '',
+        answer: "",  // don't prefill the answer with the examples text
         isRelevant: true,
         category: q.category || 'Subject Details',
-        contextSource: 'prompt'
+        contextSource: 'prompt',
+        examples: Array.isArray(q.examples)
+          ? q.examples.slice(0, MAX_EXAMPLES)
+          : []
       })));
     }
   });
@@ -61,10 +67,13 @@ export function generateContextQuestionsForPrompt(
       questions.push(...actionQuestions.map(q => ({
         id: `q-${questionId++}`,
         text: q.text,
-        answer: q.examples ? `E.g: ${q.examples.join(', ')}` : '',
+        answer: "",  // don't prefill the answer with the examples text
         isRelevant: true,
         category: 'Action Details',
-        contextSource: 'prompt'
+        contextSource: 'prompt',
+        examples: Array.isArray(q.examples)
+          ? q.examples.slice(0, MAX_EXAMPLES)
+          : []
       })));
     }
   });
@@ -76,10 +85,13 @@ export function generateContextQuestionsForPrompt(
       questions.push(...attributeQuestions.map(q => ({
         id: `q-${questionId++}`,
         text: q.text,
-        answer: q.examples ? `E.g: ${q.examples.join(', ')}` : '',
+        answer: "",  // don't prefill the answer with the examples text
         isRelevant: true,
         category: 'Attributes',
-        contextSource: 'prompt'
+        contextSource: 'prompt',
+        examples: Array.isArray(q.examples)
+          ? q.examples.slice(0, MAX_EXAMPLES)
+          : []
       })));
     }
   });
@@ -89,10 +101,13 @@ export function generateContextQuestionsForPrompt(
   questions.push(...intentQuestions.map(q => ({
     id: `q-${questionId++}`,
     text: q.text,
-    answer: q.examples ? `E.g: ${q.examples.join(', ')}` : '',
+    answer: "",  // don't prefill the answer with the examples text
     isRelevant: true,
     category: q.category || 'Intent',
-    contextSource: 'prompt'
+    contextSource: 'prompt',
+    examples: Array.isArray(q.examples)
+      ? q.examples.slice(0, MAX_EXAMPLES)
+      : []
   })));
 
   // If we still have too few questions, generate additional general questions
@@ -101,10 +116,13 @@ export function generateContextQuestionsForPrompt(
     questions.push(...generalQuestions.map(q => ({
       id: `q-${questionId++}`,
       text: q.text,
-      answer: q.examples ? `E.g: ${q.examples.join(', ')}` : '',
+      answer: "",  // don't prefill the answer with the examples text
       isRelevant: true,
       category: q.category || 'General',
-      contextSource: 'prompt'
+      contextSource: 'prompt',
+      examples: Array.isArray(q.examples)
+        ? q.examples.slice(0, MAX_EXAMPLES)
+        : []
     })));
   }
 

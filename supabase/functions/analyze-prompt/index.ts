@@ -1,4 +1,3 @@
-
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
@@ -214,7 +213,12 @@ serve(async (req) => {
       }
     }
     
-    const systemPrompt = createSystemPrompt(template, imageCaption);
+    // 1) incorporate usageInstructions into the system prompt
+    const usageInstr = smartContextData?.usageInstructions?.trim();
+    const systemPrompt = [
+      createSystemPrompt(template, imageCaption),
+      usageInstr ? `\n\nUsage Instructions:\n${usageInstr}` : ""
+    ].join("\n");
     
     const openAIResult = await analyzePromptWithAI(
       promptText,
@@ -333,7 +337,7 @@ serve(async (req) => {
         return !n.startsWith('an image of');
       });
     
-    // ----------  Image-based pre-fill  ----------
+    // ----------  Image-based pre-fill (only style/palette/mood vars) ----------
     if (imageData && Array.isArray(imageData) && imageData.length > 0 && variables.length > 0) {
       try {
         const firstImageWithBase64 = imageData.find(img => img.base64);
@@ -348,12 +352,17 @@ serve(async (req) => {
           if (imageMapping && imageMapping.fill) {
             // Update variables with values from image analysis
             variables = variables.map(v => {
+              // only prefill style/palette/color/mood variables
+              const cat = (v.category || "").toLowerCase();
+              if (!/(style|colour|color|palette|mood|aesthetic)/.test(cat)) {
+                return v;
+              }
               const match = imageMapping.fill[v.name];
               if (match && match.value) {
                 return {
                   ...v,
                   value: match.value,
-                  contextSource: 'image'
+                  prefillSource: "image"
                 };
               }
               return v;
@@ -429,7 +438,32 @@ serve(async (req) => {
     const imgTags = imageCaption
       ? (await describeImage(imageData?.find((img: any) => img.base64)?.base64 || "")).tags || {}
       : {};
+    
+    // 2️⃣ Smart-Context-based question pre-fill
+    if (smartContextData?.context) {
+      // only for questions that aren't already answered
+      const pending = questions.filter(q => !q.answer).map(q => q.text);
+      if (pending.length) {
+        const ctxMap = await inferAndMapFromContext(
+          smartContextData.context,
+          pending
+        ).catch(() => null);
+        if (ctxMap?.fill) {
+          questions = questions.map(q => {
+            if (!q.answer && ctxMap.fill[q.text]?.value) {
+              return {
+                ...q,
+                answer: ctxMap.fill[q.text].value,
+                prefillSource: 'context'
+              };
+            }
+            return q;
+          });
+        }
+      }
+    }
 
+    // then do your existing var/image-based auto-answer
     questions = fillQuestions(questions, variables, imgTags);
 
     // Determine questions per pillar based on missing variables  
