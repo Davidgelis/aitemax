@@ -1,7 +1,7 @@
-import { extractMeaningfulElements } from "./extractMeaningfulElements.ts";
-import { isCommonWord, capitalizeFirstLetter, toCamelCase, cleanSubjectText } from "./utils.ts";
 
-// a small whitelist of common color names for “red ball” detection
+import { Question, Variable } from '../types.ts';
+
+// a small whitelist of common color names for "red ball" detection
 const COLORS = new Set([
   'red','blue','green','yellow','black','white','pink','purple',
   'orange','grey','gray','brown','gold','silver','teal','cyan','magenta'
@@ -115,7 +115,7 @@ export function generateContextualVariablesForPrompt(
   // Generate variables for subjects (most important)
   elements.subjects.forEach(subject => {
     const raw = subject.text.trim().toLowerCase();
-    // 1) detect simple “<color> <object>” pattern → make “<Object> Color = <color>”
+    // 1) detect simple "<color> <object>" pattern → make "<Object> Color = <color>"
     const m = raw.match(/^([a-z]+)\s+([a-z]+)$/);
     if (m && COLORS.has(m[1])) {
       const [ , color, noun ] = m;

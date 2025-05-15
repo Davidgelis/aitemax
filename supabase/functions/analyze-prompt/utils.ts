@@ -38,6 +38,104 @@ export const hash = (s: string) => {
   return h >>> 0;
 };
 
+// Helper function implementations for generators.ts
+export const isCommonWord = (word: string): boolean => {
+  const commonWords = new Set([
+    'the', 'a', 'an', 'in', 'on', 'at', 'by', 'to', 'for', 'with', 'of', 'and', 'or', 'but',
+    'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 
+    'can', 'could', 'will', 'would', 'shall', 'should', 'may', 'might', 'must', 'that', 'this', 
+    'these', 'those', 'it', 'its', 'it\'s', 'they', 'them', 'their', 'we', 'us', 'our', 'you', 
+    'your', 'he', 'him', 'his', 'she', 'her', 'hers'
+  ]);
+  return commonWords.has(word.toLowerCase());
+};
+
+export const capitalizeFirstLetter = (str: string): string => {
+  if (!str || typeof str !== 'string') return '';
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+export const toCamelCase = (str: string): string => {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .replace(/[\s-_]+(.)/g, (_, c) => c.toUpperCase())
+    .replace(/[\s-_]+/g, '')
+    .replace(/^(.)/, (_, c) => c.toLowerCase());
+};
+
+export const cleanSubjectText = (text: string): string => {
+  if (!text) return '';
+  
+  // Remove common prefixes like "a", "the", etc.
+  const cleanedText = text.replace(/^(a|an|the)\s+/i, '');
+  
+  // Remove any trailing punctuation
+  return cleanedText.replace(/[.,;:!?]+$/, '');
+};
+
+// Extract meaningful elements from prompt text
+export const extractMeaningfulElements = (promptText: string) => {
+  // Default empty structure
+  const elements = {
+    subjects: [] as { text: string; context?: string }[],
+    styles: [] as { text: string; context?: string }[],
+    moods: [] as { text: string; context?: string }[],
+    environments: [] as { text: string; context?: string }[],
+    artConcepts: [] as { text: string; context?: string }[]
+  };
+  
+  if (!promptText) return elements;
+  
+  // Simple extraction based on common patterns
+  // This is a simplified version - in production you might want more sophisticated NLP
+  
+  // Extract subjects (nouns)
+  const subjectMatches = promptText.match(/(?:a|the|an)\s+(\w+(?:\s+\w+){0,2})/gi) || [];
+  subjectMatches.forEach(match => {
+    const subject = match.replace(/^(?:a|the|an)\s+/i, '');
+    elements.subjects.push({ text: subject });
+  });
+  
+  // Extract styles
+  const styleMatches = promptText.match(/(?:in|with)\s+(?:a|the)?\s*(\w+\s+style)/gi) || [];
+  styleMatches.forEach(match => {
+    const style = match.replace(/^(?:in|with)\s+(?:a|the)?\s*/i, '');
+    elements.styles.push({ text: style });
+  });
+  
+  // Extract moods
+  const moodKeywords = ['mood', 'feeling', 'atmosphere', 'vibe'];
+  moodKeywords.forEach(keyword => {
+    const regex = new RegExp(`(\\w+(?:\\s+\\w+){0,2})\\s+${keyword}`, 'gi');
+    const matches = promptText.match(regex) || [];
+    matches.forEach(match => {
+      const mood = match.replace(new RegExp(`\\s+${keyword}$`, 'i'), '');
+      elements.moods.push({ text: mood });
+    });
+  });
+  
+  // Extract environments
+  const envMatches = promptText.match(/(?:in|at)\s+(?:a|the)?\s*(\w+(?:\s+\w+){0,2})\s+(?:setting|environment|location|place|scene)/gi) || [];
+  envMatches.forEach(match => {
+    const env = match.replace(/^(?:in|at)\s+(?:a|the)?\s*/i, '')
+                    .replace(/\s+(?:setting|environment|location|place|scene)$/i, '');
+    elements.environments.push({ text: env });
+  });
+  
+  // Extract art concepts
+  const artConceptKeywords = ['composition', 'perspective', 'lighting', 'texture', 'pattern', 'effect'];
+  artConceptKeywords.forEach(keyword => {
+    const regex = new RegExp(`(\\w+(?:\\s+\\w+){0,2})\\s+${keyword}`, 'gi');
+    const matches = promptText.match(regex) || [];
+    matches.forEach(match => {
+      const concept = match.replace(new RegExp(`\\s+${keyword}$`, 'i'), '');
+      elements.artConcepts.push({ text: concept + ' ' + keyword });
+    });
+  });
+  
+  return elements;
+};
+
 // Nothing else here – keep file minimal!
 
 // ─────────────────────────────────────────────────────────────
