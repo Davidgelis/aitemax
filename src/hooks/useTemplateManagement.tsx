@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useContext,
@@ -261,14 +260,18 @@ function useTemplateManagementInternal() {
         console.log(`Loading specialized pillars for subcategory: ${subId}`);
         const pillarConfig = templatePillarsMap[subId];
         
-        // Start with the framework template but use specialized pillars
-        const baseTemplate = DEFAULT_TEMPLATE;
+        // Build your specialized template off the DEFAULT but override id → subId
         const specializedTemplate: TemplateType = {
-          ...baseTemplate,
-          name: subId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-          pillars: pillarConfig.pillars,
-          role: pillarConfig.role || baseTemplate.role,
-          temperature: pillarConfig.temperature || baseTemplate.temperature
+          id: subId,    // <— make sure the template.id is your sub-template ID!
+          name: subId
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' '),
+          role:         pillarConfig.role   || DEFAULT_TEMPLATE.role,
+          temperature:  pillarConfig.temperature || DEFAULT_TEMPLATE.temperature,
+          characterLimit: DEFAULT_TEMPLATE.characterLimit,
+          pillars:      pillarConfig.pillars,
+          createdAt:    "System"
         };
         
         setCurrentTemplate(deepCopyTemplate(specializedTemplate));
