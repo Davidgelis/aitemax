@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { X } from 'lucide-react';
 import {
@@ -262,15 +261,10 @@ export const TemplateMegaMenu = () => {
     } else if (isUserTemplate) {
       console.log(`TemplateMegaMenu: Selecting user template ${templateId}`);
       selectTemplate(templateId, "user", null);         // user template
-    } else {
-      // Check if this subcategory has specialized pillars
-      const hasSpecializedPillars = templatePillarsMap[templateId] !== undefined;
-      console.log(`TemplateMegaMenu: Selecting system subcategory ${templateId}, hasSpecializedPillars=${hasSpecializedPillars}`);
-      selectTemplate(frameworkId, "system", templateId); // system sub-template
-      
-      if (hasSpecializedPillars) {
-        console.log(`Using specialized pillars for: ${templateId}`);
-      }
+    } else if (templatePillarsMap[templateId]) {
+      // Pass the sub-template ID itself so selectTemplate builds { id: subId, pillars: [...] }
+      console.log(`TemplateMegaMenu: Selecting system subcategory ${templateId}`);
+      selectTemplate(templateId, "system", templateId);
     }
     setIsOpen(false);
   };
