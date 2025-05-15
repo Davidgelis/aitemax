@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   analyzePromptWithAI,
@@ -102,6 +101,9 @@ serve(async (req) => {
   try {
     // read the incoming body in one go:
     const body = await req.json();
+
+    // ─── DEBUG: Incoming template from client ───
+    console.log(`🏷️ [analyze-prompt] got template.id=${body.template?.id}, pillars=[${body.template?.pillars?.map((p: any)=>p.id).join(",")}]`);
 
     // log out exactly what we care about — template.pillars:
     console.log("🛠️  analyze-prompt got template.pillars:", JSON.stringify(body.template?.pillars, null, 2));

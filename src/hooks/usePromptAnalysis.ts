@@ -60,6 +60,9 @@ export const usePromptAnalysis = (
       /* prepare data exactly like the original edge-function expects */
       const templateClean = cleanTemplate(getCurrentTemplate());
       
+      // ─── DEBUG: show exactly what clean template we're about to send ───
+      console.log("📡 [usePromptAnalysis] analyze-prompt payload.template:", JSON.stringify(templateClean, null, 2));
+      
       // New debug log to see the full template object
       console.log("▶️  ANALYZE PAYLOAD TEMPLATE:", JSON.stringify(templateClean, null, 2));
       
@@ -78,6 +81,9 @@ export const usePromptAnalysis = (
         websiteData: websiteCtx ?? undefined,
         smartContextData: smartCtx ?? undefined,
       };
+
+      // ─── DEBUG: full payload ───
+      console.log("📡 [usePromptAnalysis] full analyze-prompt payload:", JSON.stringify(payload, null, 2));
 
       // ─── LOG THE FULL PAYLOAD & PILLARS FOR DIAGNOSIS ─────────────────
       // this will print exactly what's being POSTed, so you can copy the
