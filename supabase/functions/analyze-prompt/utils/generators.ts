@@ -53,6 +53,37 @@ const pillarSuggestions = (pillarId: string, pillarTitle: string, promptSnippet 
     ? promptSnippet.slice(0, 57) + "…"
     : promptSnippet;
 
+  // ─── explicit banks for Aitema X core pillars ───────────────────────────
+  if (pillarId === '1' || pillarTitle.toLowerCase() === 'task') {
+    return [
+      { txt: "What is the primary objective you want to achieve?",         ex: ['increase sales', 'generate leads', 'improve user retention'] },
+      { txt: "Are there any specific deliverables or outputs needed?",     ex: ['PDF report', 'PowerPoint deck', 'API endpoint'] },
+      { txt: "Who is the target audience for this task?",                  ex: ['marketing manager', 'end customer', 'internal developer'] }
+    ];
+  }
+  if (pillarId === '2' || pillarTitle.toLowerCase() === 'persona') {
+    return [
+      { txt: "What role or expertise should the AI assume when responding?",  ex: ['financial advisor', 'creative writer', 'data scientist'] },
+      { txt: "What tone or style should the response have?",                 ex: ['formal', 'conversational', 'persuasive'] },
+      { txt: "Is there any background information about the user to consider?", ex: ['technical level', 'industry sector', 'experience level'] }
+    ];
+  }
+  if (pillarId === '3' || pillarTitle.toLowerCase() === 'conditions') {
+    return [
+      { txt: "Are there any constraints or rules the output must follow?",       ex: ['under 500 words', 'uses US English', 'no jargon'] },
+      { txt: "What assumptions can the AI make about the context?",              ex: ['budget available', 'tight deadline', 'team size'] },
+      { txt: "Do you have any formatting or compliance requirements?",           ex: ['APA citations', 'company branding guidelines', 'accessibility standards'] }
+    ];
+  }
+  if (pillarId === '4' || pillarTitle.toLowerCase() === 'instructions') {
+    return [
+      { txt: "Is there a specific process or sequence to follow?",             ex: ['step-by-step tutorial', 'chronological order', 'priority-based'] },
+      { txt: "Should the output include extra examples or illustrations?",     ex: ['code snippets', 'sample use cases', 'visual diagrams'] },
+      { txt: "Do you need the answer delivered in a particular format?",        ex: ['JSON', 'bullet points', 'table'] }
+    ];
+  }
+  // ────────────────────────────────────────────────────────────────────────
+
   // IMAGE-GENERATION TEMPLATE
   if (id === 'subject') return [
     { txt: "What is the main subject's pose or action?", ex: ['running','sitting','jumping'] },
