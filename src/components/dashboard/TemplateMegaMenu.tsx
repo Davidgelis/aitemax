@@ -263,7 +263,7 @@ export const TemplateMegaMenu = () => {
       console.log(`TemplateMegaMenu: Selecting user template ${templateId}`);
       selectTemplate(templateId, "user", null);         // user template
     } else if (templatePillarsMap[templateId]) {
-      // Pass the sub-template ID itself so selectTemplate builds { id: subId, pillars: [...] }
+      // New: pass the sub-template id for both args
       console.log(`TemplateMegaMenu: Selecting system subcategory ${templateId}`);
       selectTemplate(templateId, "system", templateId);
     } else {

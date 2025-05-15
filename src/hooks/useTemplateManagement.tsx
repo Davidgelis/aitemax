@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useContext,
@@ -276,6 +277,9 @@ function useTemplateManagementInternal() {
         
         setCurrentTemplate(deepCopyTemplate(specializedTemplate));
         window.__selectedTemplate = deepCopyTemplate(specializedTemplate);
+        
+        // Before returning, explicitly override localStorage with subId
+        window.localStorage.setItem('selectedTemplateId', subId);
         
         toast({
           title: "Template selected",
