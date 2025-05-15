@@ -76,6 +76,13 @@ export const usePromptAnalysis = (
         smartContextData: smartCtx ?? undefined,
       };
 
+      // ─── LOG THE FULL PAYLOAD & PILLARS FOR DIAGNOSIS ─────────────────
+      // this will print exactly what's being POSTed, so you can copy the
+      // template.pillars array out of your browser console:
+      console.log("🔍 analyze-prompt payload →", payload);
+      console.log("🔍 analyze-prompt payload → template.pillars:", payload.template?.pillars);
+      // ───────────────────────────────────────────────────────────────────
+
       const { data, error } = await supabase.functions.invoke("analyze-prompt", { body: payload });
       if (error || !data) throw new Error(error?.message || "No data returned");
 

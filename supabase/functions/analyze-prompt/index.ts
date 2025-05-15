@@ -100,7 +100,25 @@ serve(async (req) => {
   }
   
   try {
-    const { promptText, userId, promptId, template, model, imageData, websiteData, smartContextData } = await req.json();
+    // read the incoming body in one go:
+    const body = await req.json();
+
+    // log out exactly what we care about — template.pillars:
+    console.log("🛠️  analyze-prompt got template.pillars:", JSON.stringify(body.template?.pillars, null, 2));
+    // (if you want the entire payload, uncomment the next line)
+    // console.log("🛠️  analyze-prompt full payload:", JSON.stringify(body, null, 2));
+
+    // now destructure from that same body:
+    const {
+      promptText,
+      userId,
+      promptId,
+      template,
+      model,
+      imageData,
+      websiteData,
+      smartContextData
+    } = body;
     
     if (!promptText || typeof promptText !== 'string') {
       return new Response(
