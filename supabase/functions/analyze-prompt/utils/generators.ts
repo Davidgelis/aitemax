@@ -29,7 +29,7 @@ export function generateContextQuestionsForPrompt(
     const promptSnippet = smartContextData?.context || userIntent || promptText;
 
     // Generate suggestions based on the pillar and prompt snippet
-    const suggestions = pillarSuggestions(pillarTitle, promptSnippet);
+    const suggestions = pillarSuggestions(pillar.id, pillarTitle, promptSnippet);
 
     suggestions.forEach(suggestion => {
       questions.push({
@@ -47,46 +47,63 @@ export function generateContextQuestionsForPrompt(
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
-const pillarSuggestions = (pillar: string, promptSnippet = "") => {
+const pillarSuggestions = (pillarId: string, pillarTitle: string, promptSnippet = "") => {
+  const id = pillarId.toLowerCase();
   const short = promptSnippet.length > 60
     ? promptSnippet.slice(0, 57) + "…"
     : promptSnippet;
 
-  const p = pillar.toLowerCase();
-  
-  // Subject pillar
-  if (p.includes('subject')) return [
-    { txt: "What is the main subject's pose or action?", ex: ['running', 'sitting', 'jumping'] },
-    { txt: "Any composition guidelines?",             ex: ['rule-of-thirds', 'centre focus', 'symmetry'] },
-    { txt: "Camera angle preference?",                ex: ["eye level", "bird's-eye", "low angle"] }
+  // IMAGE-GENERATION TEMPLATE
+  if (id === 'subject') return [
+    { txt: "What is the main subject's pose or action?", ex: ['running','sitting','jumping'] },
+    { txt: "Any composition guidelines?",             ex: ['rule-of-thirds','centre focus','symmetry'] },
+    { txt: "Camera angle preference?",                ex: ["eye level","bird's-eye","low angle"] }
   ];
 
-  // Art Style pillar
-  if (p.includes('style')) return [
-    { txt: "Which visual style best fits?",           ex: ['water-colour', 'comic', 'photorealistic'] },
-    { txt: "Do you prefer a specific era or genre?",  ex: ['80s retro', 'futuristic', 'baroque'] },
-    { txt: "Any colour palette constraints?",         ex: ['brand colours', 'monochrome', 'pastel set'] }
+  if (id === 'style') return [   // Art Style
+    { txt: "Which visual style best fits?",           ex: ['water-colour','comic','photorealistic'] },
+    { txt: "Do you prefer a specific era or genre?",  ex: ['80s retro','futuristic','baroque'] },
+    { txt: "Any colour-palette constraints?",         ex: ['brand colours','monochrome','pastel set'] }
   ];
 
-  // Mood & Light pillar
-  if (p.includes('mood')) return [
-    { txt: "What feeling should the image evoke?",    ex: ['playful', 'serene', 'dramatic'] },
-    { txt: "Is the mood subtle or bold?",             ex: ['soft pastels', 'vibrant neon', 'gritty noir'] },
-    { txt: "What lighting conditions do you want?",   ex: ['sunset glow', 'studio lighting', 'high contrast'] }
+  if (id === 'mood') return [    // Mood & Light
+    { txt: "What feeling should the image evoke?",    ex: ['playful','serene','dramatic'] },
+    { txt: "Is the mood subtle or bold?",             ex: ['soft pastels','vibrant neon','gritty noir'] },
+    { txt: "What lighting conditions do you want?",   ex: ['sunset glow','studio lighting','high contrast'] }
   ];
 
-  // Setting pillar (alias for environment)
-  if (p.includes('setting') || p.includes('environment')) return [
-    { txt: "Where is the scene set?",                 ex: ['beach', 'city park', 'outer space'] },
-    { txt: "Time of day or season?",                  ex: ['sunset', 'winter morning', 'mid-day'] },
-    { txt: "Should the background be detailed or minimal?", ex: ['detailed', 'clean white', 'blurred'] }
+  if (id === 'setting' || id === 'environment') return [  // Setting / Environment
+    { txt: "Where is the scene set?",                 ex: ['beach','city park','outer space'] },
+    { txt: "Time of day or season?",                  ex: ['sunset','winter morning','mid-day'] },
+    { txt: "Should the background be detailed or minimal?", ex: ['detailed','clean white','blurred'] }
   ];
 
-  // Palette pillar
-  if (p.includes('palette')) return [
-    { txt: "Which colours are your primary focus?",   ex: ['red and gold', 'pastels', 'monochrome'] },
-    { txt: "Any specific hex codes or brand colours?", ex: ['#FF5733', '#1A1A1A'] },
-    { txt: "Do you want high contrast or harmony?",   ex: ['bold contrast', 'soft gradients'] }
+  if (id === 'palette') return [  // Palette
+    { txt: "Which colours are your primary focus?",   ex: ['red and gold','pastels','monochrome'] },
+    { txt: "Any specific hex codes or brand colours?", ex: ['#FF5733','#1A1A1A'] },
+    { txt: "Do you want high contrast or harmony?",   ex: ['bold contrast','soft gradients'] }
+  ];
+
+  // CODE-CREATION TEMPLATE
+  if (id === 'goal') return [
+    { txt: "What is the exact goal of the code, including one input-output example?", ex: ['input: 2+2 → output: 4'] },
+    { txt: "How will you validate success?", ex: ['unit tests','console logs','manual review'] }
+  ];
+  if (id === 'language') return [
+    { txt: "Which language and version should be used?", ex: ['Node.js 18','Python 3.10','Go 1.20'] },
+    { txt: "Any libraries or frameworks to include or exclude?", ex: ['no external libs','use Lodash'] }
+  ];
+  if (id === 'essentials') return [
+    { txt: "List key inputs, edge cases, performance or security needs.", ex: ['handle zero values','protect against XSS'] },
+    { txt: "Should there be tests baked in?", ex: ['Jest','pytest','no tests'] }
+  ];
+  if (id === 'guidelines') return [
+    { txt: "What style or compliance rules?", ex: ['PEP8','OWASP','Google JS Style'] },
+    { txt: "Any comment or documentation requirements?", ex: ['JSDoc','docstrings'] }
+  ];
+  if (id === 'drop-in-spot') return [
+    { txt: "Where will this code live (CLI tool, web endpoint, etc.)?", ex: ['AWS Lambda','Express route'] },
+    { txt: "What exports or handlers are expected?", ex: ['module.exports','export default'] }
   ];
 
   // default – weave the user's intent into the question
@@ -96,7 +113,7 @@ const pillarSuggestions = (pillar: string, promptSnippet = "") => {
 
   return [
     {
-      txt: `For **${obj}**, what ${pillar.toLowerCase()} details are still missing?`,
+      txt: `For **${obj}**, what ${pillarTitle.toLowerCase()} details are still missing?`,
       ex: []   // examples get added later by addFallbackExamples()
     }
   ];
