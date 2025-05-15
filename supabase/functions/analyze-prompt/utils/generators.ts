@@ -264,20 +264,20 @@ export function generateContextualVariablesForPrompt(
     });
   });
 
-    // Generate variables for mood
-    elements.moods.forEach(mood => {
-      if (mood.text.length < 3 || isCommonWord(mood.text)) return;
-      const cleaned = mood.text.trim();
-      const variableName = capitalizeFirstLetter(cleaned) + (mood.context ? ` (${mood.context})` : '');
-      variables.push({
-        id: `var-${variableId++}`,
-        name: variableName,
-        value: '',
-        isRelevant: true,
-        category: 'Mood',
-        code: toCamelCase(cleaned)
-      });
+  // Generate variables for mood
+  elements.moods.forEach(mood => {
+    if (mood.text.length < 3 || isCommonWord(mood.text)) return;
+    const cleaned = mood.text.trim();
+    const variableName = capitalizeFirstLetter(cleaned) + (mood.context ? ` (${mood.context})` : '');
+    variables.push({
+      id: `var-${variableId++}`,
+      name: variableName,
+      value: '',
+      isRelevant: true,
+      category: 'Mood',
+      code: toCamelCase(cleaned)
     });
+  });
 
   // Generate variables for environment
   elements.environments.forEach(environment => {
