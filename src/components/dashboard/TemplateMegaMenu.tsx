@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { X } from 'lucide-react';
 import {
@@ -265,6 +266,9 @@ export const TemplateMegaMenu = () => {
       // Pass the sub-template ID itself so selectTemplate builds { id: subId, pillars: [...] }
       console.log(`TemplateMegaMenu: Selecting system subcategory ${templateId}`);
       selectTemplate(templateId, "system", templateId);
+    } else {
+      // fallback if you ever add more categories
+      selectTemplate(frameworkId, "system", null);
     }
     setIsOpen(false);
   };
