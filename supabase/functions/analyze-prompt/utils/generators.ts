@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 // a small whitelist of common color names for "red ball" detection
@@ -47,77 +46,80 @@ export function generateContextQuestionsForPrompt(
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
-const pillarSuggestions = (pillarId: string, pillarTitle: string, promptSnippet = "") => {
-  // Prepare a concise context excerpt
+export function pillarSuggestions(pillarId: string, pillarTitle: string, promptSnippet = "") {
+  // create a short excerpt of the user's prompt to embed
   const context = promptSnippet.length > 60
     ? promptSnippet.slice(0, 57) + "…"
     : promptSnippet;
 
-  // Aitema X core pillars with embedded context
+  // 1️⃣ Task: uncover the real-world purpose and goals
   if (pillarId === '1' || pillarTitle.toLowerCase() === 'task') {
     return [
       {
-        txt: `For **${context}**, what is the primary objective you're trying to achieve?`,
-        ex: ['increase sales', 'generate leads', 'improve user retention']
+        txt: `What's the main purpose or end use for **${context}**?`,
+        ex: ['social media post', 'print poster', 'website banner']
       },
       {
-        txt: `Regarding **${context}**, what deliverables or outputs are missing?`,
-        ex: ['PDF report', 'PowerPoint deck', 'API endpoint']
+        txt: `What specific objectives should this result achieve (e.g., attract attention, inform)?`,
+        ex: ['increase engagement', 'convey product details', 'evoke nostalgia']
       },
       {
-        txt: `Who is the target audience in **${context}** that we need more clarity on?`,
-        ex: ['marketing manager', 'end customer', 'internal developer']
+        txt: `What key message or theme must **${context}** communicate?`,
+        ex: ['joy of play', 'brand friendliness', 'dynamic energy']
       }
     ];
   }
 
+  // 2️⃣ Persona: define style, tone, and creative voice
   if (pillarId === '2' || pillarTitle.toLowerCase() === 'persona') {
     return [
       {
-        txt: `For **${context}**, what role or expertise should the AI adopt?`,
-        ex: ['financial advisor', 'creative writer', 'data scientist']
+        txt: `Which visual style or persona should the AI assume for **${context}**?`,
+        ex: ['cartoon illustration', 'photorealistic rendering', 'watercolor painting']
       },
       {
-        txt: `When working on **${context}**, what tone or style is missing?`,
-        ex: ['formal', 'conversational', 'persuasive']
+        txt: `What mood or tone should **${context}** reflect?`,
+        ex: ['playful', 'dramatic', 'serene']
       },
       {
-        txt: `What background details about the user in **${context}** are we missing?`,
-        ex: ['technical level', 'industry sector', 'experience level']
+        txt: `Should the focus lean more on the subject or the setting in **${context}**?`,
+        ex: ['subject', 'background', 'balanced']
       }
     ];
   }
 
+  // 3️⃣ Conditions: specify constraints, requirements, and limits
   if (pillarId === '3' || pillarTitle.toLowerCase() === 'conditions') {
     return [
       {
-        txt: `In **${context}**, what constraints or rules should the output follow?`,
-        ex: ['under 500 words', 'uses US English', 'no jargon']
+        txt: `What technical or visual constraints apply to **${context}** (resolution, aspect ratio)?`,
+        ex: ['1920×1080 px', 'square format', '4:3 aspect']
       },
       {
-        txt: `What assumptions about **${context}** are not yet specified?`,
-        ex: ['budget available', 'tight deadline', 'team size']
+        txt: `Are there any styles or elements to avoid in **${context}**?`,
+        ex: ['no dark backgrounds', 'no cartoon props', 'no text overlays']
       },
       {
-        txt: `Does **${context}** lack any formatting or compliance requirements?`,
-        ex: ['APA citations', 'company branding guidelines', 'accessibility standards']
+        txt: `Is any branding or logo inclusion required or prohibited for **${context}**?`,
+        ex: ['watermark', 'logo in corner', 'no branding']
       }
     ];
   }
 
+  // 4️⃣ Instructions: capture additional steps, composition details, or variations
   if (pillarId === '4' || pillarTitle.toLowerCase() === 'instructions') {
     return [
       {
-        txt: `For **${context}**, is there a specific process or sequence we haven't covered?`,
-        ex: ['step-by-step tutorial', 'chronological order', 'priority-based']
+        txt: `Are there composition guidelines for **${context}** (rule of thirds, centered)?`,
+        ex: ['rule of thirds', 'centered', 'diagonal layout']
       },
       {
-        txt: `What illustrative examples are missing for **${context}**?`,
-        ex: ['code snippets', 'sample use cases', 'visual diagrams']
+        txt: `Should any text or annotations be integrated into **${context}**?`,
+        ex: ['overlay caption', 'footer text', 'no text']
       },
       {
-        txt: `Which output format for **${context}** should be included but is unspecified?`,
-        ex: ['JSON', 'bullet points', 'table']
+        txt: `Do you need multiple variations, angles, or color treatments for **${context}**?`,
+        ex: ['three variations', 'single pose', 'alternate color palettes']
       }
     ];
   }
