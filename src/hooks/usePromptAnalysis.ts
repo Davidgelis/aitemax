@@ -60,6 +60,9 @@ export const usePromptAnalysis = (
       /* prepare data exactly like the original edge-function expects */
       const templateClean = cleanTemplate(getCurrentTemplate());
       
+      // New debug log to see the full template object
+      console.log("▶️  ANALYZE PAYLOAD TEMPLATE:", JSON.stringify(templateClean, null, 2));
+      
       // 🔍 Debug: Log template.pillars before sending the request
       console.log("🔍 analyze-prompt payload → template.pillars:", templateClean?.pillars);
       
