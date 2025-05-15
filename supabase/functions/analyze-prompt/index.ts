@@ -89,14 +89,18 @@ const processVariables = (vars: any[]) => {
   const canonical = (l: string) =>
     l.toLowerCase().split(/\s+/).filter(w => !STOP.has(w)).sort().join(" ");
   let v = vars.map((x: any) => {
-    // always pick the SHORT label—use the compact `value` (never the full `valueLong`)
-    const raw  = (x.value || "").trim();
-    // take up to 4 words, strip trailing punctuation
-    const words = raw.split(/\s+/).slice(0, 4).map(w => w.replace(/[.,;:]$/,""));
+    // pick the full rich text, then clamp to 100 chars on a word boundary
+    const raw = (x.valueLong || x.value || "").trim();
+    let short = raw;
+    if (short.length > 100) {
+      const truncated = short.slice(0, 100);
+      const lastSpace = truncated.lastIndexOf(" ");
+      short = truncated.slice(0, lastSpace > 0 ? lastSpace : 100).trim();
+    }
     return {
       ...x,
       name    : (x.name||"").trim().split(/\s+/).slice(0,3).join(" "),
-      value   : words.join(" "),
+      value   : short,
       category: x.category||"Other"
     };
   });

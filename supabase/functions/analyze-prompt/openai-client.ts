@@ -348,7 +348,7 @@ If a tag is unknown use an empty string.`
     const dataUrl = `data:image/${mime};base64,${raw}`;
     
     const res = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4.1",
       max_tokens: 200,
       temperature: 0.2,
       messages: [
