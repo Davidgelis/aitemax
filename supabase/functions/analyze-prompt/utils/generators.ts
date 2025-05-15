@@ -48,97 +48,135 @@ export function generateContextQuestionsForPrompt(
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
 const pillarSuggestions = (pillarId: string, pillarTitle: string, promptSnippet = "") => {
-  const id = pillarId.toLowerCase();
-  const short = promptSnippet.length > 60
+  // Prepare a concise context excerpt
+  const context = promptSnippet.length > 60
     ? promptSnippet.slice(0, 57) + "…"
     : promptSnippet;
 
-  // ─── explicit banks for Aitema X core pillars ───────────────────────────
+  // Aitema X core pillars with embedded context
   if (pillarId === '1' || pillarTitle.toLowerCase() === 'task') {
     return [
-      { txt: "What is the primary objective you want to achieve?",         ex: ['increase sales', 'generate leads', 'improve user retention'] },
-      { txt: "Are there any specific deliverables or outputs needed?",     ex: ['PDF report', 'PowerPoint deck', 'API endpoint'] },
-      { txt: "Who is the target audience for this task?",                  ex: ['marketing manager', 'end customer', 'internal developer'] }
+      {
+        txt: `For **${context}**, what is the primary objective you're trying to achieve?`,
+        ex: ['increase sales', 'generate leads', 'improve user retention']
+      },
+      {
+        txt: `Regarding **${context}**, what deliverables or outputs are missing?`,
+        ex: ['PDF report', 'PowerPoint deck', 'API endpoint']
+      },
+      {
+        txt: `Who is the target audience in **${context}** that we need more clarity on?`,
+        ex: ['marketing manager', 'end customer', 'internal developer']
+      }
     ];
   }
+
   if (pillarId === '2' || pillarTitle.toLowerCase() === 'persona') {
     return [
-      { txt: "What role or expertise should the AI assume when responding?",  ex: ['financial advisor', 'creative writer', 'data scientist'] },
-      { txt: "What tone or style should the response have?",                 ex: ['formal', 'conversational', 'persuasive'] },
-      { txt: "Is there any background information about the user to consider?", ex: ['technical level', 'industry sector', 'experience level'] }
+      {
+        txt: `For **${context}**, what role or expertise should the AI adopt?`,
+        ex: ['financial advisor', 'creative writer', 'data scientist']
+      },
+      {
+        txt: `When working on **${context}**, what tone or style is missing?`,
+        ex: ['formal', 'conversational', 'persuasive']
+      },
+      {
+        txt: `What background details about the user in **${context}** are we missing?`,
+        ex: ['technical level', 'industry sector', 'experience level']
+      }
     ];
   }
+
   if (pillarId === '3' || pillarTitle.toLowerCase() === 'conditions') {
     return [
-      { txt: "Are there any constraints or rules the output must follow?",       ex: ['under 500 words', 'uses US English', 'no jargon'] },
-      { txt: "What assumptions can the AI make about the context?",              ex: ['budget available', 'tight deadline', 'team size'] },
-      { txt: "Do you have any formatting or compliance requirements?",           ex: ['APA citations', 'company branding guidelines', 'accessibility standards'] }
+      {
+        txt: `In **${context}**, what constraints or rules should the output follow?`,
+        ex: ['under 500 words', 'uses US English', 'no jargon']
+      },
+      {
+        txt: `What assumptions about **${context}** are not yet specified?`,
+        ex: ['budget available', 'tight deadline', 'team size']
+      },
+      {
+        txt: `Does **${context}** lack any formatting or compliance requirements?`,
+        ex: ['APA citations', 'company branding guidelines', 'accessibility standards']
+      }
     ];
   }
+
   if (pillarId === '4' || pillarTitle.toLowerCase() === 'instructions') {
     return [
-      { txt: "Is there a specific process or sequence to follow?",             ex: ['step-by-step tutorial', 'chronological order', 'priority-based'] },
-      { txt: "Should the output include extra examples or illustrations?",     ex: ['code snippets', 'sample use cases', 'visual diagrams'] },
-      { txt: "Do you need the answer delivered in a particular format?",        ex: ['JSON', 'bullet points', 'table'] }
+      {
+        txt: `For **${context}**, is there a specific process or sequence we haven't covered?`,
+        ex: ['step-by-step tutorial', 'chronological order', 'priority-based']
+      },
+      {
+        txt: `What illustrative examples are missing for **${context}**?`,
+        ex: ['code snippets', 'sample use cases', 'visual diagrams']
+      },
+      {
+        txt: `Which output format for **${context}** should be included but is unspecified?`,
+        ex: ['JSON', 'bullet points', 'table']
+      }
     ];
   }
-  // ────────────────────────────────────────────────────────────────────────
 
   // IMAGE-GENERATION TEMPLATE
-  if (id === 'subject') return [
+  if (pillarId === 'subject') return [
     { txt: "What is the main subject's pose or action?", ex: ['running','sitting','jumping'] },
     { txt: "Any composition guidelines?",             ex: ['rule-of-thirds','centre focus','symmetry'] },
     { txt: "Camera angle preference?",                ex: ["eye level","bird's-eye","low angle"] }
   ];
 
-  if (id === 'style') return [   // Art Style
+  if (pillarId === 'style') return [   // Art Style
     { txt: "Which visual style best fits?",           ex: ['water-colour','comic','photorealistic'] },
     { txt: "Do you prefer a specific era or genre?",  ex: ['80s retro','futuristic','baroque'] },
     { txt: "Any colour-palette constraints?",         ex: ['brand colours','monochrome','pastel set'] }
   ];
 
-  if (id === 'mood') return [    // Mood & Light
+  if (pillarId === 'mood') return [    // Mood & Light
     { txt: "What feeling should the image evoke?",    ex: ['playful','serene','dramatic'] },
     { txt: "Is the mood subtle or bold?",             ex: ['soft pastels','vibrant neon','gritty noir'] },
     { txt: "What lighting conditions do you want?",   ex: ['sunset glow','studio lighting','high contrast'] }
   ];
 
-  if (id === 'setting' || id === 'environment') return [  // Setting / Environment
+  if (pillarId === 'setting' || pillarId === 'environment') return [  // Setting / Environment
     { txt: "Where is the scene set?",                 ex: ['beach','city park','outer space'] },
     { txt: "Time of day or season?",                  ex: ['sunset','winter morning','mid-day'] },
     { txt: "Should the background be detailed or minimal?", ex: ['detailed','clean white','blurred'] }
   ];
 
-  if (id === 'palette') return [  // Palette
+  if (pillarId === 'palette') return [  // Palette
     { txt: "Which colours are your primary focus?",   ex: ['red and gold','pastels','monochrome'] },
     { txt: "Any specific hex codes or brand colours?", ex: ['#FF5733','#1A1A1A'] },
     { txt: "Do you want high contrast or harmony?",   ex: ['bold contrast','soft gradients'] }
   ];
 
   // CODE-CREATION TEMPLATE
-  if (id === 'goal') return [
+  if (pillarId === 'goal') return [
     { txt: "What is the exact goal of the code, including one input-output example?", ex: ['input: 2+2 → output: 4'] },
     { txt: "How will you validate success?", ex: ['unit tests','console logs','manual review'] }
   ];
-  if (id === 'language') return [
+  if (pillarId === 'language') return [
     { txt: "Which language and version should be used?", ex: ['Node.js 18','Python 3.10','Go 1.20'] },
     { txt: "Any libraries or frameworks to include or exclude?", ex: ['no external libs','use Lodash'] }
   ];
-  if (id === 'essentials') return [
+  if (pillarId === 'essentials') return [
     { txt: "List key inputs, edge cases, performance or security needs.", ex: ['handle zero values','protect against XSS'] },
     { txt: "Should there be tests baked in?", ex: ['Jest','pytest','no tests'] }
   ];
-  if (id === 'guidelines') return [
+  if (pillarId === 'guidelines') return [
     { txt: "What style or compliance rules?", ex: ['PEP8','OWASP','Google JS Style'] },
     { txt: "Any comment or documentation requirements?", ex: ['JSDoc','docstrings'] }
   ];
-  if (id === 'drop-in-spot') return [
+  if (pillarId === 'drop-in-spot') return [
     { txt: "Where will this code live (CLI tool, web endpoint, etc.)?", ex: ['AWS Lambda','Express route'] },
     { txt: "What exports or handlers are expected?", ex: ['module.exports','export default'] }
   ];
 
   // default – weave the user's intent into the question
-  const obj = short        // e.g. "an image of a dog playing…"
+  const obj = context        // e.g. "an image of a dog playing…"
                .replace(/^create\s+(an|a)?\s*/i, '')  // trim verbs
                .replace(/^\w+\s+of\s+/i, '');         // "image of …" → "…"
 
