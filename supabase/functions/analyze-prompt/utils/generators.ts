@@ -124,6 +124,13 @@ export function pillarSuggestions(pillarId: string, pillarTitle: string, promptS
     ];
   }
 
+  // ──────────────────── remaining template-specific logic ────────────────────
+  // Call our default suggestions handler with the context
+  return defaultSuggestions(pillarId, pillarTitle, context);
+}
+
+// Helper function to handle all the specialized template logic
+function defaultSuggestions(pillarId: string, pillarTitle: string, context: string) {
   // IMAGE-GENERATION TEMPLATE
   if (pillarId === 'subject') return [
     { txt: "What is the main subject's pose or action?", ex: ['running','sitting','jumping'] },
@@ -188,7 +195,7 @@ export function pillarSuggestions(pillarId: string, pillarTitle: string, promptS
       ex: []   // examples get added later by addFallbackExamples()
     }
   ];
-};
+}
 
 // Helper functions
 const isCommonWord = (word: string): boolean => {
