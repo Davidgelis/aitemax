@@ -59,6 +59,10 @@ export const usePromptAnalysis = (
 
       /* prepare data exactly like the original edge-function expects */
       const templateClean = cleanTemplate(getCurrentTemplate());
+      
+      // 🔍 Debug: Log template.pillars before sending the request
+      console.log("🔍 analyze-prompt payload → template.pillars:", templateClean?.pillars);
+      
       const safeImages    = processSafeImages(images);
 
       const payload: any = {
