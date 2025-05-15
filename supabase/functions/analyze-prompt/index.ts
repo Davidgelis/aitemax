@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   analyzePromptWithAI,
@@ -9,6 +10,69 @@ import {
 import { createSystemPrompt } from "./system-prompt.ts";
 import { generateContextQuestionsForPrompt, generateContextualVariablesForPrompt } from "./utils/generators.ts";
 import { computeAmbiguity, organizeQuestionsByPillar } from "./utils/questionUtils.ts";
+
+// ─── Helpers you removed ─────────────────────────────────────────
+const MAX_EXAMPLES = 4;
+
+/** Normalize question text, strip trailing "(…)" */
+const plainify = (t = "") =>
+  t
+    .replace(/resolution|dpi|rgb|hex/gi, "colour")
+    .replace(/\bn\s+image\b/gi, "an image")
+    .replace(/\s*\([^)]*\)\s*$/, "")
+    .trim();
+
+/** Ensure we only keep up to MAX_EXAMPLES in .examples */
+const ensureExamples = (q: any) => ({
+  ...q,
+  examples: Array.isArray(q.examples)
+    ? q.examples.slice(0, MAX_EXAMPLES)
+    : []
+});
+
+/** Dedupe and cap variables to 8, clamp long values */
+const processVariables = (vars: any[]): any[] => {
+  const STOP = new Set(["of","the","a","an"]);
+  const canonical = (l: string) =>
+    l.toLowerCase().split(/\s+/).filter(w => !STOP.has(w)).sort().join(" ");
+  let v = vars.map((x: any) => {
+    const raw = (x.valueLong || x.value || "").trim();
+    let short = raw.length > 100
+      ? raw.slice(0, 100).replace(/\s+\S*$/, "") + "…"
+      : raw;
+    return { ...x, value: short };
+  });
+  const seen = new Set<string>();
+  return v.filter(x => {
+    const sig = canonical(x.name);
+    if (!sig || seen.has(sig)) return false;
+    seen.add(sig);
+    return true;
+  }).slice(0, 8);
+};
+
+/** Auto-answer questions from image/variable tags */
+const fillQuestions = (qs: any[], vars: any[]): any[] => {
+  const tagTest: Record<string, RegExp> = {
+    palette:   /(palette|colour|color)/i,
+    style:     /(style|aesthetic|genre|art\s*style)/i,
+    mood:      /(mood|tone|feeling|emotion)/i,
+    background:/(background|setting|environment|scene)/i,
+    subject:   /(subject|object|figure|person)/i
+  };
+  return qs.map(q => {
+    if (q.answer) return q;
+    for (const [tag, re] of Object.entries(tagTest)) {
+      if (!re.test(q.text)) continue;
+      const iv = vars.find(v => v.prefillSource === 'image' && (v.category||"").toLowerCase() === tag);
+      if (iv && iv.valueLong) return { ...q, answer: iv.valueLong.trim(), prefillSource: 'image' };
+    }
+    const hit = vars.find(v => v.valueLong && q.text.toLowerCase().includes(v.name.toLowerCase()));
+    if (hit) return { ...q, answer: hit.valueLong, prefillSource: hit.prefillSource };
+    return q;
+  });
+};
+// ───────────────────────────────────────────────────────────────────
 
 // The duplicate pillarSuggestions function has been removed as requested
 
