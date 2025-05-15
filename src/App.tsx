@@ -15,6 +15,7 @@ import Support from './pages/Support';
 import { AuthProvider } from './context/AuthContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from '@/context/LanguageContext';
+import PasswordProtectedRoute from './components/PasswordProtectedRoute';
 
 const queryClient = new QueryClient();
 
@@ -24,17 +25,19 @@ function App() {
       <AuthProvider>
         <LanguageProvider>
           <Router>
-            <div className="min-h-screen">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/x-panel" element={<XPanel />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/support" element={<Support />} />
-              </Routes>
-            </div>
+            <PasswordProtectedRoute>
+              <div className="min-h-screen">
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/x-panel" element={<XPanel />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/support" element={<Support />} />
+                </Routes>
+              </div>
+            </PasswordProtectedRoute>
           </Router>
         </LanguageProvider>
       </AuthProvider>
