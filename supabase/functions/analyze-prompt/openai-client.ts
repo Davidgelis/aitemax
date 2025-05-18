@@ -1,4 +1,3 @@
-
 import { OpenAI } from "https://esm.sh/openai@4.26.0";
 import { shorten, clamp } from "./utils.ts";
 
@@ -46,8 +45,9 @@ export async function analyzePromptWithAI(
 
     // Updated models whitelist to include GPT-4.1 as priority
     const ALLOWED = new Set(['gpt-4.1', 'gpt-4o', 'gpt-4o-mini']);
+    ALLOWED.add('gpt-3.5-turbo'); // Allow GPT-3.5-turbo for faster processing
     if (!ALLOWED.has(model)) {
-      console.warn(`[AI] model "${model}" not enabled; falling back to gpt-4.1`);
+      console.warn(`[AI] model "${model}" not enabled; defaulting to gpt-4.1`);
       model = 'gpt-4.1';
     }
 
@@ -274,7 +274,7 @@ export async function inferAndMapFromContext(
     ];
 
     const { choices } = await openai.chat.completions.create({
-      model: "gpt-4.1",
+      model: "gpt-3.5-turbo",  // Use faster model for context mapping
       temperature: 0,
       messages,
       /* 🛡 require valid JSON back */
