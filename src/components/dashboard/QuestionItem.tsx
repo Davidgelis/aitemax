@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Question } from "./types";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,6 +37,16 @@ export const QuestionItem = ({
   const isNearLimit = charCount > maxCharLimit * 0.8;
   const isAtLimit = charCount >= maxCharLimit;
 
+  // Determine if question was pre-filled from image or context for labeling
+  let sourceLabel: string | null = null;
+  if (question.prefillSource === 'image' || question.prefillSource === 'style-analysis') {
+    sourceLabel = 'from image';
+  } else if (question.prefillSource === 'context') {
+    sourceLabel = 'from context';
+  } else if (question.prefillSource === 'website') {
+    sourceLabel = 'from website';
+  }
+
   return (
     <div className={`border rounded-lg p-3 mb-2 ${question.isRelevant === false ? 'bg-gray-50 opacity-70' : 'bg-white'}`}>
       <div className="flex items-start gap-2">
@@ -51,6 +62,9 @@ export const QuestionItem = ({
             className={`block text-sm mb-2 ${question.isRelevant === false ? 'text-gray-500' : 'text-gray-700'}`}
           >
             {question.text}
+            {question.answer && sourceLabel && (
+              <span className="ml-2 text-xs italic text-gray-500">({sourceLabel})</span>
+            )}
           </label>
           
           {question.isRelevant !== false && (
