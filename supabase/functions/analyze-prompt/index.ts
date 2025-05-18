@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   analyzePromptWithAI,
@@ -194,6 +195,30 @@ serve(async (req) => {
       category:   q.category || (template?.pillars?.[i]?.title as string) || "General"
     }));
 
+    // 🔄 LLM-based fallback: add questions for pillars that had none in static suggestions
+    if (openAIResult?.parsed?.questions && Array.isArray(openAIResult.parsed.questions)) {
+      const existingCats = new Set(questions.map(q => q.category.toLowerCase()));
+      for (const pillar of (template?.pillars || [])) {
+        const pillarTitle: string = (pillar.title || "").toLowerCase();
+        if (!existingCats.has(pillarTitle)) {
+          // Use LLM-suggested questions for this missing pillar (if any)
+          const pillarQuestions = openAIResult.parsed.questions.filter(
+            (qq: any) => qq.category && qq.category.toLowerCase() === pillarTitle
+          );
+          pillarQuestions.forEach((qq: any) => {
+            questions.push({
+              id:        qq.id || `q-${questions.length + 1}`,
+              text:      qq.text,
+              answer:    qq.answer || "",
+              isRelevant: typeof qq.isRelevant === 'boolean' ? qq.isRelevant : true,
+              examples:  Array.isArray(qq.examples) ? qq.examples.slice(0, MAX_EXAMPLES) : [],
+              category:  pillar.title || qq.category || "General"
+            });
+          });
+        }
+      }
+    }
+
     // 3️⃣ Generate all variables via your contextual generator
     let variables: Variable[] = generateContextualVariablesForPrompt(
       promptText,
@@ -277,67 +302,67 @@ serve(async (req) => {
         return !n.startsWith('an image of');
       });
     
-    // ----------  Image-based pre-fill (only style/palette/mood vars) ----------
-    if (imageData && Array.isArray(imageData) && imageData.length > 0 && variables.length > 0) {
-      try {
-        const firstImageWithBase64 = imageData.find(img => img.base64);
-        
-        if (firstImageWithBase64) {
-          // Get variable names to look for in the image
-          const variableNames = variables.map(v => v.name);
-          
-          // Map image content to variables
-          const imageMapping = await describeAndMapImage(firstImageWithBase64.base64, variableNames);
-          
-          if (imageMapping && imageMapping.fill) {
-            // Update variables with values from image analysis
-            variables = variables.map(v => {
-              // only prefill style/palette/color/mood variables
-              const cat = (v.category || "").toLowerCase();
-              if (!/(style|colour|color|palette|mood|aesthetic)/.test(cat)) {
-                return v;
-              }
-              const match = imageMapping.fill[v.name];
-              if (match && match.value) {
-                return {
-                  ...v,
-                  value: match.value,
-                  // carry the rich, multi-sentence text into valueLong
-                  valueLong: match.valueLong ?? match.value,
-                  prefillSource: "image"
-                };
-              }
-              return v;
-            });
+    // ---------- Parallel image & context variable filling ----------
+    const firstImageBase64 = imageData && Array.isArray(imageData)
+      ? imageData.find(img => img.base64)?.base64
+      : null;
+    // Prepare context for blank variables (prompt + user/site context + image caption)
+    const blanks = variables.filter(v => !v.value);
+    const blankNames = blanks.map(v => v.name);
+    const bigCtx = [
+      promptText,
+      smartContextData?.context || "",
+      websiteData?.pageText || "",
+      imageCaption || ""
+    ].join("\n\n").trim();
+
+    const [imageMapping, contextMapping] = await Promise.all([
+      firstImageBase64 && variables.length
+        ? describeAndMapImage(firstImageBase64, variables.map(v => v.name))
+        : Promise.resolve(null),
+      blankNames.length
+        ? inferAndMapFromContext(bigCtx, blankNames)
+        : Promise.resolve(null)
+    ]);
+
+    // Merge image-based and context-based prefills
+    if (imageMapping && imageMapping.fill) {
+      // Apply image analysis results (style/palette/mood) to variables
+      variables = variables.map(v => {
+        const cat = (v.category || "").toLowerCase();
+        const imgHit = Object.entries(imageMapping.fill).find(([k]) => canonKey(k) === canonKey(v.name))?.[1];
+        if (imgHit && /(style|colour|color|palette|mood|aesthetic)/.test(cat) && imgHit.value) {
+          // Prefill style/palette/mood variable from image
+          v = {
+            ...v,
+            value: imgHit.value,
+            valueLong: imgHit.valueLong ?? imgHit.value,
+            prefillSource: "image"
+          };
+        }
+        // (Continue to context merge below)
+        return v;
+      });
+    }
+    if (contextMapping && contextMapping.fill) {
+      const useWebsiteLabel = !smartContextData?.context && websiteData?.pageText;
+      variables = variables.map(v => {
+        const ctxHit = Object.entries(contextMapping.fill).find(([k]) => canonKey(k) === canonKey(v.name))?.[1];
+        if (ctxHit && ctxHit.value) {
+          // If image also provided this variable and user gave context, prefer user/site context value in case of conflict
+          const existingSource = v.prefillSource;
+          if (!(existingSource === 'image' && smartContextData?.context && ctxHit.valueLong)) {
+            // Override or fill value from context if not an image conflict where user context should dominate
+            v = {
+              ...v,
+              value: ctxHit.value,
+              valueLong: ctxHit.valueLong ?? ctxHit.value,
+              prefillSource: useWebsiteLabel ? "website" : "context"
+            };
           }
         }
-      } catch (err) {
-        console.error("Error mapping image content to variables:", err);
-        // Continue with original variables
-      }
-    }
-    
-    // ----------  Context-based pre-fill  ----------
-    const blanks = variables.filter(v => !v.value);
-    if (blanks.length) {
-      const names = blanks.map(v => v.name);
-      // include imageCaption as part of the context
-      const bigCtx = [
-        promptText,
-        smartContextData?.context || "",
-        websiteData?.pageText || "",
-        imageCaption || ""
-      ].join("\n\n").trim();
-      try {
-        const map = await inferAndMapFromContext(bigCtx, names);
-        variables = variables.map(v => {
-          const hit = Object.entries(map?.fill || {})
-            .find(([k]) => canonKey(k) === canonKey(v.name))?.[1];
-          return hit && hit.value
-            ? { ...v, value: hit.value, prefillSource: "context" }
-            : v;
-        });
-      } catch(_) {/* non-fatal */}
+        return v;
+      });
     }
 
     // ───────────────────────────────────────────────────────────────
@@ -479,8 +504,11 @@ serve(async (req) => {
       : [];
     
     pillars.forEach(pillar => {
-      // Default counts based on ambiguity
-      questionsPerPillar[pillar] = ambiguityLevel >= 0.6 ? 3 : 2;
+      // Default count per pillar based on ambiguity, adjusted if extra context provided
+      const baseCount = ambiguityLevel >= 0.6 ? 3 : 2;
+      questionsPerPillar[pillar] = (smartContextData?.context?.trim() || websiteData?.pageText?.trim())
+        ? Math.max(1, baseCount - 1)  // if user provided additional context, ask one fewer question per pillar (minimum 1)
+        : baseCount;
     });
     
     // 5️⃣ FINAL: re-order & cap questions using your per-pillar counts
