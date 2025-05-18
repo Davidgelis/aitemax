@@ -77,7 +77,7 @@ export function pillarSuggestions(pillarId: string, pillarTitle: string, promptS
   if (pillarId === '2' || pillarTitle.toLowerCase() === 'persona') {
     return [
       {
-        txt: `What overall visual style would you like? Feel free to mention mediums, art movements, or artists for inspiration.`,
+        txt: `What overall visual style do you prefer? Please describe in your own words.`,
         ex: ['cartoon illustration', 'photorealistic rendering', 'watercolor painting']
       },
       {
@@ -138,13 +138,13 @@ function defaultSuggestions(pillarId: string, pillarTitle: string, context: stri
   if (pillarId === 'subject') {
     return [
       { txt: `Could you describe the [SUBJECT]'s pose or action in detail?`, ex: ['running','sitting','jumping'] },
-      { txt: `Are there notable physical traits or accessories the [SUBJECT] should have?`, ex: ['red hat','blue eyes','scar'] },
-      { txt: `From what camera angle or viewpoint should the [SUBJECT] be shown?`, ex: ["eye level","bird's-eye","low angle"] }
+      { txt: `Please list any distinctive physical traits or accessories the [SUBJECT] should include.`, ex: ['red hat','blue eyes','scar'] },
+      { txt: `Which camera angle or viewpoint would best showcase the [SUBJECT]?`, ex: ["eye level","bird's-eye","low angle"] }
     ];
   }
 
   if (pillarId === 'style') return [   // Art Style
-    { txt: "Which visual style best fits?", ex: ['water-colour','comic','photorealistic'] },
+    { txt: "What overall visual style do you prefer? Please describe in your own words.", ex: ['water-colour','comic','photorealistic'] },
     { txt: "Do you prefer a specific era or genre?",  ex: ['80s retro','futuristic','baroque'] },
     { txt: "Any colour-palette constraints?",         ex: ['brand colours','monochrome','pastel set'] }
   ];
@@ -156,15 +156,15 @@ function defaultSuggestions(pillarId: string, pillarTitle: string, context: stri
   ];
 
   if (pillarId === 'setting' || pillarId === 'environment') return [  // Setting / Environment
-    { txt: `What environment should surround the [SUBJECT]? (e.g., sunny park, modern living room)`, ex: ['beach','city park','outer space'] },
-    { txt: `What time of day or season best fits your idea?`, ex: ['sunset','winter morning','mid-day'] },
-    { txt: `Describe any important background elements or props you'd like included.`, ex: ['mountains','city skyline','fireplace'] }
+    { txt: `Which setting or environment should surround the [SUBJECT]?`, ex: ['beach','city park','outer space'] },
+    { txt: `Which time of day or season best matches your idea?`, ex: ['sunset','winter morning','mid-day'] },
+    { txt: `Please describe any key background elements or props to include.`, ex: ['mountains','city skyline','fireplace'] }
   ];
 
   if (pillarId === 'palette') return [  // Palette
-    { txt: `Which colour palette should dominate the image? Feel free to list hex codes or colour names.`, ex: ['red and gold','pastels','monochrome'] },
-    { txt: `Should any colours be avoided?`, ex: ['no bright colors','avoid greens'] },
-    { txt: `Do you prefer a high-contrast look or a more harmonious blend?`, ex: ['bold contrast','soft gradients'] }
+    { txt: `Which colour palette would you like the image to follow?`, ex: ['red and gold','pastels','monochrome'] },
+    { txt: `Are there any colours that should be avoided?`, ex: ['no bright colors','avoid greens'] },
+    { txt: `Would you like a high-contrast look or a more harmonious blend?`, ex: ['bold contrast','soft gradients'] }
   ];
 
   // CODE-CREATION TEMPLATE
