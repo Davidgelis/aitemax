@@ -1,3 +1,4 @@
+
 import { Question, Variable } from '../types.ts';
 
 // a small whitelist of common color names for "red ball" detection
@@ -56,7 +57,7 @@ export function pillarSuggestions(pillarId: string, pillarTitle: string, promptS
   if (pillarId === '1' || pillarTitle.toLowerCase() === 'task') {
     return [
       {
-        txt: `What's the main purpose or end use for **${context}**?`,
+        txt: `What's the main purpose or end use for this result?`,
         ex: ['social media post', 'print poster', 'website banner']
       },
       {
@@ -64,7 +65,7 @@ export function pillarSuggestions(pillarId: string, pillarTitle: string, promptS
         ex: ['increase engagement', 'convey product details', 'evoke nostalgia']
       },
       {
-        txt: `What key message or theme must **${context}** communicate?`,
+        txt: `What key message or theme must this result communicate?`,
         ex: ['joy of play', 'brand friendliness', 'dynamic energy']
       }
     ];
@@ -74,15 +75,15 @@ export function pillarSuggestions(pillarId: string, pillarTitle: string, promptS
   if (pillarId === '2' || pillarTitle.toLowerCase() === 'persona') {
     return [
       {
-        txt: `Which visual style or persona should the AI assume for **${context}**?`,
+        txt: `Which visual style or persona should the AI assume?`,
         ex: ['cartoon illustration', 'photorealistic rendering', 'watercolor painting']
       },
       {
-        txt: `What mood or tone should **${context}** reflect?`,
+        txt: `What mood or tone should it reflect?`,
         ex: ['playful', 'dramatic', 'serene']
       },
       {
-        txt: `Should the focus lean more on the subject or the setting in **${context}**?`,
+        txt: `Should the focus lean more on the subject or the setting?`,
         ex: ['subject', 'background', 'balanced']
       }
     ];
@@ -92,15 +93,15 @@ export function pillarSuggestions(pillarId: string, pillarTitle: string, promptS
   if (pillarId === '3' || pillarTitle.toLowerCase() === 'conditions') {
     return [
       {
-        txt: `What technical or visual constraints apply to **${context}** (resolution, aspect ratio)?`,
+        txt: `What technical or visual constraints apply to the output (e.g., resolution or aspect ratio)?`,
         ex: ['1920×1080 px', 'square format', '4:3 aspect']
       },
       {
-        txt: `Are there any styles or elements to avoid in **${context}**?`,
+        txt: `Are there any styles or elements to avoid?`,
         ex: ['no dark backgrounds', 'no cartoon props', 'no text overlays']
       },
       {
-        txt: `Is any branding or logo inclusion required or prohibited for **${context}**?`,
+        txt: `Is any branding or logo inclusion required or prohibited?`,
         ex: ['watermark', 'logo in corner', 'no branding']
       }
     ];
@@ -110,15 +111,15 @@ export function pillarSuggestions(pillarId: string, pillarTitle: string, promptS
   if (pillarId === '4' || pillarTitle.toLowerCase() === 'instructions') {
     return [
       {
-        txt: `Are there composition guidelines for **${context}** (rule of thirds, centered)?`,
+        txt: `Are there composition guidelines (e.g., rule of thirds or centered)?`,
         ex: ['rule of thirds', 'centered', 'diagonal layout']
       },
       {
-        txt: `Should any text or annotations be integrated into **${context}**?`,
+        txt: `Should any text or annotations be integrated?`,
         ex: ['overlay caption', 'footer text', 'no text']
       },
       {
-        txt: `Do you need multiple variations, angles, or color treatments for **${context}**?`,
+        txt: `Do you need multiple variations, angles, or color treatments?`,
         ex: ['three variations', 'single pose', 'alternate color palettes']
       }
     ];
