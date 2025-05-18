@@ -365,6 +365,27 @@ serve(async (req) => {
       });
     }
 
+    // ----------- 7. 𝗙𝗶𝗻𝗮𝗹 anti-hallucination pass -----------
+    // Build a corpus containing every user-supplied text source
+    const contextCorpus = [
+      promptText,
+      smartContextData?.context || "",
+      websiteData?.pageText   || "",
+      imageCaption            || ""      // caption comes from image → real evidence
+    ].join(" ").toLowerCase();
+
+    variables = variables.map(v => {
+      // Only care about values supplied by the LLM itself (no prefillSource tag)
+      if (!v.prefillSource && v.value) {
+        const valueLc = (v.value + "").toLowerCase();
+        // If the value text never occurs in any user context, wipe it
+        if (!contextCorpus.includes(valueLc)) {
+          return { ...v, value: "" };   // leave variable in list but blank
+        }
+      }
+      return v;
+    });
+
     // ───────────────────────────────────────────────────────────────
     // 1) De-dupe any variable whose name exactly matches a question prompt
     const lowerQ = questions.map(q => q.text.toLowerCase());
