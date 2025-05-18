@@ -98,11 +98,12 @@ export const usePromptAnalysis = (
       /* ---------- normalise server response for front-end ---------- */
       const normQ = (q: any, i: number): Question => ({
         id        : q.id        || `q-${i+1}`,
-        // include fallback for `q` field
         text      : q.text      || q.question || (q.q as string) || "",
         answer    : q.answer    || "",
         isRelevant: q.isRelevant !== false,
         category  : q.category  || "General",
+        prefillSource: q.prefillSource || undefined,
+        contextSource: q.contextSource || undefined,
         examples  : Array.isArray(q.examples) ? q.examples.slice(0, MAX_EXAMPLES) : []
       });
 
@@ -112,7 +113,8 @@ export const usePromptAnalysis = (
         value     : v.value     || "",
         isRelevant: v.isRelevant !== false,
         category  : v.category  || "General",
-        code      : v.code      || v.name?.toLowerCase().replace(/\s+/g,"_") || ""
+        code      : v.code      || v.name?.toLowerCase().replace(/\s+/g,"_") || "",
+        prefillSource: v.prefillSource || undefined
       });
 
       setQuestions( (data.questions ?? []).map(normQ) );
