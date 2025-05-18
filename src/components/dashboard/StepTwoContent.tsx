@@ -62,6 +62,10 @@ export const StepTwoContent = ({
   const imageAnalysisQuestions = questions.filter(q => q.contextSource === "image" || q.category === "Image Analysis");
   const hasImageAnalysis = imageAnalysisQuestions.length > 0;
   
+  // Check for context-based prefilled questions
+  const contextPrefilledQuestions = questions.filter(q => q.prefillSource === "context" || q.prefillSource === "website");
+  const hasContextPrefill = contextPrefilledQuestions.length > 0;
+  
   // Handle opening the answer sheet
   const handleOpenAnswerSheet = (question: Question) => {
     setSelectedQuestion(question);
@@ -117,6 +121,11 @@ export const StepTwoContent = ({
                 {hasImageAnalysis && (
                   <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
                     {imageAnalysisQuestions.length} from image
+                  </span>
+                )}
+                {hasContextPrefill && (
+                  <span className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-md">
+                    {contextPrefilledQuestions.length} from context
                   </span>
                 )}
               </div>
