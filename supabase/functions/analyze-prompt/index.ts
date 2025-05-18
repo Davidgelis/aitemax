@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   analyzePromptWithAI,
@@ -73,8 +74,6 @@ const fillQuestions = (qs: any[], vars: any[]): any[] => {
 };
 // ───────────────────────────────────────────────────────────────────
 
-// The duplicate pillarSuggestions function has been removed as requested
-
 //--------------------------------------------------------------------
 //  ✨ concise "user-intent" extractor (from previous patch)
 //--------------------------------------------------------------------
@@ -137,39 +136,45 @@ serve(async (req) => {
     // capture both caption AND tags
     let imageAnalysis: { caption: string; tags: Record<string,string> } | null = null;
     
-    if (imageData && Array.isArray(imageData) && imageData.length > 0) {
-      try {
-        const firstImageWithBase64 = imageData.find(img => img.base64);
-        
-        if (firstImageWithBase64) {
-          // get full vision result
-          const vision = await describeImage(firstImageWithBase64.base64);
-          imageCaption = vision.caption || "";
-          imageAnalysis = vision;
-          console.log("Generated image caption for analysis");
-        }
-      } catch (err) {
-        console.error("Error processing image data:", err);
-      }
-    }
+    // Prepare concurrent AI calls for image captioning and prompt analysis
+    const firstImageWithBase64 = imageData && Array.isArray(imageData)
+      ? imageData.find(img => img.base64)
+      : null;
+    const describeImagePromise = firstImageWithBase64
+      ? describeImage(firstImageWithBase64.base64).catch(err => {
+          console.error("Error processing image data:", err);
+          return null;
+        })
+      : Promise.resolve(null);
     
-    // 1) incorporate usageInstructions into the system prompt
+    // 1) Incorporate usageInstructions into the system prompt (no image caption to speed up parallel calls)
     const usageInstr = smartContextData?.usageInstructions?.trim();
     const systemPrompt = [
-      createSystemPrompt(template, imageCaption),
+      createSystemPrompt(template, ""),  // omit imageCaption here to avoid waiting
       usageInstr ? `\n\nUsage Instructions:\n${usageInstr}` : ""
     ].join("\n");
     
-    const openAIResult = await analyzePromptWithAI(
+    // 2) Launch prompt analysis in parallel with image description
+    const additionalContext = [
+      smartContextData?.context || "",
+      websiteData?.pageText || ""
+    ].filter(Boolean).join("\n\n");
+    const analyzePromptPromise = analyzePromptWithAI(
       promptText,
       systemPrompt,
       model || 'gpt-4.1',
-      smartContextData?.context || '',
-      imageData && imageData[0]?.base64
+      additionalContext,
+      firstImageWithBase64?.base64 || null
     ).catch(err => {
       console.error("OpenAI analysis error:", err);
       return null;
     });
+    const [openAIResult, vision] = await Promise.all([analyzePromptPromise, describeImagePromise]);
+    if (vision) {
+      imageCaption = vision.caption || "";
+      imageAnalysis = vision;
+      console.log("Image caption generated (post-analysis)");
+    }
     
     //---------------------------------------------------------------
     //  NEW QUESTION & VARIABLE GENERATION (step 1–3)
@@ -562,13 +567,35 @@ serve(async (req) => {
       enhancedPrompt = openAIResult.parsed.enhancedPrompt;
     }
     
-    const response: AnalyzePromptResponse = {
+    // Assemble response, including any warnings from partial failures
+    const warnings: string[] = [];
+    if (!openAIResult) {
+      warnings.push("AI analysis could not be completed – using default questions.");
+    } else if (openAIResult.parsed && "_INVALID_RESPONSE_" in openAIResult.parsed) {
+      warnings.push("AI analysis returned an invalid result and was replaced with default suggestions.");
+    }
+    if (imageData && Array.isArray(imageData)) {
+      // If any image was omitted (too large or removed), add a warning
+      if (imageData.some(img => img.base64 === null)) {
+        warnings.push("One or more images were too large and were not analyzed.");
+      } else if (firstImageWithBase64?.base64 && firstImageWithBase64.base64.length >= 650000) {
+        warnings.push("The provided image was very large and was skipped in analysis.");
+      }
+      // If image format was unsupported by the AI (not png/jpg/gif/webp)
+      if (firstImageWithBase64?.base64 && !/^data:image\/(png|jpe?g|gif|webp);base64,/i.test(firstImageWithBase64.base64)) {
+        warnings.push("The image format is not supported for AI analysis and was ignored.");
+      }
+    }
+    const response: any = {
       questions,
       variables,
       masterCommand,
       enhancedPrompt,
       ambiguityLevel
     };
+    if (warnings.length) {
+      response.warnings = warnings;
+    }
     
     return new Response(
       JSON.stringify(response),
