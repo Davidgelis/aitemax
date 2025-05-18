@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   analyzePromptWithAI,
@@ -178,6 +177,14 @@ serve(async (req) => {
 
     // 1️⃣ Extract the user's main intent from their prompt
     const userIntent = extractUserIntent(promptText);
+    
+    // 1.  Extract meaningful elements early
+    const extracted = extractMeaningfulElements(promptText);
+    // pick the first noun-phrase subject, strip stop-words like "image of"
+    const primarySubject = extracted?.subjects?.[0]?.text
+      ?.replace(/^image of (a|an|the)\s+/i, "")
+      ?.trim()
+      || "";
 
     // 2️⃣ Generate all questions via your contextual generator
     let questions: Question[] = generateContextQuestionsForPrompt(
@@ -185,7 +192,8 @@ serve(async (req) => {
       template,
       smartContextData,
       imageAnalysis,
-      userIntent
+      userIntent,
+      primarySubject      // 🆕  inject for subject-aware questions
     ).map((q: any, i: number) => ({
       id:         q.id    || `q-${i+1}`,
       text:       q.text,

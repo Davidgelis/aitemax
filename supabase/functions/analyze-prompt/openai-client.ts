@@ -30,6 +30,15 @@ function normaliseDataURL(b64: string, fallback = "jpeg") {
   return `data:image/${fallback};base64,${cleaned}`;
 }
 
+// Shared reusable constants
+export const NO_HALLUCINATION_RULE =
+  "When proposing variables, NEVER invent or guess values (e.g., dog breeds)...";
+
+export const QUESTION_STYLE_RULE =
+  "When asked to generate clarifying questions: write them in simple language,"+
+  " reference the user's main subject where meaningful, and invite detailed answers"+
+  " (so users type more than one word).";
+
 export async function analyzePromptWithAI(
   promptText: string,
   systemPrompt: string,

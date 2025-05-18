@@ -10,12 +10,14 @@ const COLORS = new Set([
 // Add a STOP set for filtering out common/useless variable names
 const STOP = new Set(['this','that','these','those','it','they','them','he','she','we','you','i','me']);
 
+// primarySubject: e.g., "dog", "" if unknown
 export function generateContextQuestionsForPrompt(
   promptText: string,
   template: any,
   smartContextData: any = null,
   imageAnalysis: any = null,
-  userIntent: string = ""
+  userIntent: string = "",
+  primarySubject: string = ""
 ): any[] {
   const questions: any[] = [];
   let questionId = 1;
@@ -27,14 +29,14 @@ export function generateContextQuestionsForPrompt(
   pillars.forEach((pillar: any) => {
     const pillarTitle = pillar.title;
     const promptSnippet = smartContextData?.context || userIntent || promptText;
-
-    // Generate suggestions based on the pillar and prompt snippet
-    const suggestions = pillarSuggestions(pillar.id, pillarTitle, promptSnippet);
+    // replace token [SUBJECT] with extracted subject (or generic fallback)
+    const sub = primarySubject || "subject";
+    let suggestions = pillarSuggestions(pillar.id, pillarTitle, promptSnippet, sub);
 
     suggestions.forEach(suggestion => {
       questions.push({
         id: `question-${questionId++}`,
-        text: suggestion.txt,
+        text: suggestion.txt.replace(/\[SUBJECT\]/g, sub),
         category: pillarTitle,
         examples: suggestion.ex || []
       });
@@ -47,7 +49,7 @@ export function generateContextQuestionsForPrompt(
 // ─────────────────────────────────────────────────────────────
 // Pillar-aware question bank  (feel free to extend later)
 // ─────────────────────────────────────────────────────────────
-export function pillarSuggestions(pillarId: string, pillarTitle: string, promptSnippet = "") {
+export function pillarSuggestions(pillarId: string, pillarTitle: string, promptSnippet = "", sub: string = "") {
   // create a short excerpt of the user's prompt to embed
   const context = promptSnippet.length > 60
     ? promptSnippet.slice(0, 57) + "…"
@@ -57,7 +59,7 @@ export function pillarSuggestions(pillarId: string, pillarTitle: string, promptS
   if (pillarId === '1' || pillarTitle.toLowerCase() === 'task') {
     return [
       {
-        txt: `What's the main purpose or end use for this result?`,
+        txt: `Could you describe, in a sentence or two, the primary goal of this image? (e.g., promo poster, social post)`,
         ex: ['social media post', 'print poster', 'website banner']
       },
       {
@@ -75,7 +77,7 @@ export function pillarSuggestions(pillarId: string, pillarTitle: string, promptS
   if (pillarId === '2' || pillarTitle.toLowerCase() === 'persona') {
     return [
       {
-        txt: `Which visual style or persona should the AI assume?`,
+        txt: `What overall visual style would you like? Feel free to mention mediums, art movements, or artists for inspiration.`,
         ex: ['cartoon illustration', 'photorealistic rendering', 'watercolor painting']
       },
       {
@@ -125,22 +127,24 @@ export function pillarSuggestions(pillarId: string, pillarTitle: string, promptS
     ];
   }
 
-  // ──────────────────── remaining template-specific logic ────────────────────
+  // ──────────────── remaining template-specific logic ────────────────────
   // Call our default suggestions handler with the context
-  return defaultSuggestions(pillarId, pillarTitle, context);
+  return defaultSuggestions(pillarId, pillarTitle, context, sub);
 }
 
 // Helper function to handle all the specialized template logic
-function defaultSuggestions(pillarId: string, pillarTitle: string, context: string) {
+function defaultSuggestions(pillarId: string, pillarTitle: string, context: string, sub: string = "") {
   // IMAGE-GENERATION TEMPLATE
-  if (pillarId === 'subject') return [
-    { txt: "What is the main subject's pose or action?", ex: ['running','sitting','jumping'] },
-    { txt: "Any composition guidelines?",             ex: ['rule-of-thirds','centre focus','symmetry'] },
-    { txt: "Camera angle preference?",                ex: ["eye level","bird's-eye","low angle"] }
-  ];
+  if (pillarId === 'subject') {
+    return [
+      { txt: `Could you describe the [SUBJECT]'s pose or action in detail?`, ex: ['running','sitting','jumping'] },
+      { txt: `Are there notable physical traits or accessories the [SUBJECT] should have?`, ex: ['red hat','blue eyes','scar'] },
+      { txt: `From what camera angle or viewpoint should the [SUBJECT] be shown?`, ex: ["eye level","bird's-eye","low angle"] }
+    ];
+  }
 
   if (pillarId === 'style') return [   // Art Style
-    { txt: "Which visual style best fits?",           ex: ['water-colour','comic','photorealistic'] },
+    { txt: "Which visual style best fits?", ex: ['water-colour','comic','photorealistic'] },
     { txt: "Do you prefer a specific era or genre?",  ex: ['80s retro','futuristic','baroque'] },
     { txt: "Any colour-palette constraints?",         ex: ['brand colours','monochrome','pastel set'] }
   ];
@@ -152,15 +156,15 @@ function defaultSuggestions(pillarId: string, pillarTitle: string, context: stri
   ];
 
   if (pillarId === 'setting' || pillarId === 'environment') return [  // Setting / Environment
-    { txt: "Where is the scene set?",                 ex: ['beach','city park','outer space'] },
-    { txt: "Time of day or season?",                  ex: ['sunset','winter morning','mid-day'] },
-    { txt: "Should the background be detailed or minimal?", ex: ['detailed','clean white','blurred'] }
+    { txt: `What environment should surround the [SUBJECT]? (e.g., sunny park, modern living room)`, ex: ['beach','city park','outer space'] },
+    { txt: `What time of day or season best fits your idea?`, ex: ['sunset','winter morning','mid-day'] },
+    { txt: `Describe any important background elements or props you'd like included.`, ex: ['mountains','city skyline','fireplace'] }
   ];
 
   if (pillarId === 'palette') return [  // Palette
-    { txt: "Which colours are your primary focus?",   ex: ['red and gold','pastels','monochrome'] },
-    { txt: "Any specific hex codes or brand colours?", ex: ['#FF5733','#1A1A1A'] },
-    { txt: "Do you want high contrast or harmony?",   ex: ['bold contrast','soft gradients'] }
+    { txt: `Which colour palette should dominate the image? Feel free to list hex codes or colour names.`, ex: ['red and gold','pastels','monochrome'] },
+    { txt: `Should any colours be avoided?`, ex: ['no bright colors','avoid greens'] },
+    { txt: `Do you prefer a high-contrast look or a more harmonious blend?`, ex: ['bold contrast','soft gradients'] }
   ];
 
   // CODE-CREATION TEMPLATE
