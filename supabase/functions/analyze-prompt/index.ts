@@ -156,7 +156,11 @@ serve(async (req) => {
       : Promise.resolve(null);
     
     // 1) Incorporate usageInstructions into the system prompt (no image caption to speed up parallel calls)
-    const usageInstr = smartContextData?.usageInstructions?.trim();
+    const firstImage = imageData && Array.isArray(imageData) && imageData.length > 0 ? imageData[0] : null;
+    let usageInstr = smartContextData?.usageInstructions?.trim() || "";
+    if (!usageInstr && firstImage?.context) {
+      usageInstr = firstImage.context.trim();
+    }
     const systemPrompt = [
       createSystemPrompt(template, ""),  // omit imageCaption here to avoid waiting
       usageInstr ? `\n\nUsage Instructions:\n${usageInstr}` : ""
@@ -447,17 +451,17 @@ serve(async (req) => {
 
     // ——————————————————————————————————————————————————————————————————————
     // Only keep prefilled values for variables requested by the smart-button
-    if (smartContextData?.context?.trim()) {
-      const ctx = smartContextData.context.toLowerCase();
+    if (smartContextData?.context?.trim() || usageInstr) {
+      const focusText = ((smartContextData?.context || "") + " " + (usageInstr || "")).toLowerCase();
       variables = variables.map(v => {
         const name = v.name.toLowerCase();
         const category = (v.category || "").toLowerCase();
         // if the user's smart context mentions this variable name or its category, keep it
-        if (ctx.includes(name) || ctx.includes(category)) {
+        if (focusText.includes(name) || focusText.includes(category)) {
           return v;
         }
-        // otherwise clear any prefill
-        return { ...v, value: "" };
+        // otherwise clear any prefill for unrelated variables
+        return { ...v, value: "", valueLong: "" };
       });
     }
     // ——————————————————————————————————————————————————————————————————————
@@ -513,21 +517,26 @@ serve(async (req) => {
     
     // 2️⃣ Smart-Context-based question pre-fill
     if (smartContextData?.context) {
-      // only for questions that aren't already answered
-      const pending = questions.filter(q => !q.answer).map(q => q.text);
-      if (pending.length) {
-        const ctxMap = await inferAndMapFromContext(
-          smartContextData.context,
-          pending
-        ).catch(() => null);
+      // Only auto-answer questions relevant to provided context/instructions
+      const focus = (smartContextData.context + " " + (usageInstr || "")).toLowerCase();
+      const pendingQs = questions.filter(q =>
+        !q.answer && (
+          focus.includes((q.category || "").toLowerCase()) ||
+          focus.split(/\W+/).some(word => word && q.text.toLowerCase().includes(word))
+        )
+      ).map(q => q.text);
+      if (pendingQs.length) {
+        const ctxMap = await inferAndMapFromContext(smartContextData.context, pendingQs).catch(() => null);
         if (ctxMap?.fill) {
           questions = questions.map(q => {
-            if (!q.answer && ctxMap.fill[q.text]?.value) {
-              return {
-                ...q,
-                answer: ctxMap.fill[q.text].value,
-                prefillSource: 'context'
-              };
+            if (!q.answer) {
+              const fillAns = ctxMap.fill[q.text];
+              if (fillAns?.valueLong) {
+                // use detailed answer if available (cap at 1000 chars)
+                return { ...q, answer: fillAns.valueLong.slice(0, MAX_QA_LEN), prefillSource: 'context' };
+              } else if (fillAns?.value) {
+                return { ...q, answer: fillAns.value, prefillSource: 'context' };
+              }
             }
             return q;
           });
