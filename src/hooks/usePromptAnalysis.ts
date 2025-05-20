@@ -121,7 +121,7 @@ export const usePromptAnalysis = (
           prefillSource: sourceTxt || undefined,
           contextSource: q.contextSource || undefined,
           examples  : Array.isArray(q.examples) ? q.examples.slice(0, MAX_EXAMPLES) : [],
-          hasBeenAnswered: !!q.answer                // Mark if it arrived pre-answered
+          hasBeenAnswered: q.hasBeenAnswered ?? !!q.answer                // Retain backend flag or derive from answer
         };
       };
 
@@ -142,9 +142,27 @@ export const usePromptAnalysis = (
       const normalizedVariables = (data.variables ?? []).map(normV);
       console.log("Normalized variables:", normalizedVariables);
       
-      // Update state with normalized data
-      setQuestions(normalizedQuestions);
-      setVariables(normalizedVariables);
+      // If smartContext was not provided, clear any context-derived prefilled data
+      if (!smartCtx || !smartCtx.context?.trim()) {
+        const clearedQuestions = normalizedQuestions.map(q => {
+          // Remove answers/flags that came from context or website
+          if (q.prefillSource === 'context' || q.prefillSource === 'website') {
+            return { ...q, answer: "", hasBeenAnswered: false, prefillSource: undefined };
+          }
+          return q;
+        });
+        const clearedVariables = normalizedVariables.map(v => {
+          if (v.prefillSource === 'context') {
+            return { ...v, value: "" };
+          }
+          return v;
+        });
+        setQuestions(clearedQuestions);
+        setVariables(clearedVariables);
+      } else {
+        setQuestions(normalizedQuestions);
+        setVariables(normalizedVariables);
+      }
       setMasterCommand(data.masterCommand ?? "");
       setFinalPrompt(data.enhancedPrompt ?? "");
 

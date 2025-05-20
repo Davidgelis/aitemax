@@ -146,17 +146,17 @@ export const StepTwoContent = ({
               <p className="text-[#545454] mb-0">{t.steps.questionsToAnswer}</p>
               <div className="flex items-center gap-2">
                 {hasPrefilledQuestions && (
-                  <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-md">
+                  <span className="text-xs text-[#041524] bg-[#33fea6]/20 px-2 py-1 rounded-md">
                     {prefilledCount} {t.steps.prefilledAnswers}
                   </span>
                 )}
                 {hasImageAnalysis && (
-                  <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                  <span className="text-xs text-[#33fea6] bg-[#64bf95]/20 px-2 py-1 rounded-md">
                     {imageAnalysisQuestions.length} from image
                   </span>
                 )}
                 {hasContextPrefill && (
-                  <span className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-md">
+                  <span className="text-xs text-[#33fea6] bg-[#084b49]/20 px-2 py-1 rounded-md">
                     {contextPrefilledQuestions.length} from context
                   </span>
                 )}

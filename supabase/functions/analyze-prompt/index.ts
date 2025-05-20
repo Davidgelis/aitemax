@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   analyzePromptWithAI,
@@ -288,7 +287,6 @@ serve(async (req) => {
       }
       return q;
     });
-    // ──────────────────────────────────────────────────
 
     //──────────────  VARIABLE creation + pre-fill steps  ──────────────
     
@@ -465,22 +463,13 @@ serve(async (req) => {
       return v;
     });
 
-    // ——————————————————————————————————————————————————————————————————————
-    // Only keep prefilled values for variables requested by the smart-button
+    // Relaxed smart-context filtering: keep all prefilled variable values by default.
     if (smartContextData?.context?.trim() || usageInstr) {
-      const focusText = ((smartContextData?.context || "") + " " + (usageInstr || "")).toLowerCase();
       variables = variables.map(v => {
-        const name = v.name.toLowerCase();
-        const category = (v.category || "").toLowerCase();
-        // if the user's smart context mentions this variable name or its category, keep it
-        if (focusText.includes(name) || focusText.includes(category)) {
-          return v;
-        }
-        // otherwise clear any prefill for unrelated variables
-        return { ...v, value: "", valueLong: "" };
+        // Do not clear any variable's value unless user explicitly overrides it.
+        return v;
       });
     }
-    // ——————————————————————————————————————————————————————————————————————
 
     // ─── Auto-answer questions from variables & image tags ──────────
     // use the tags we already fetched up front
