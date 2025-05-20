@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -14,29 +15,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Globe, RefreshCw, Wifi, WifiOff, AlertTriangle, LucideLoader, Signal } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const Auth = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-  const [isLogin, setIsLogin] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [usernameError, setUsernameError] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
+// Extract the health check logic to make it reusable
+const useConnectionHealthCheck = (initialCheckOnMount = true) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [reconnecting, setReconnecting] = useState(false);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const [initialConnectionCheck, setInitialConnectionCheck] = useState(false);
-  const [connectionHealth, setConnectionHealth] = useState<any>(null);
-  
-  const { signIn, signUp, session } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [initialConnectionCheck, setInitialConnectionCheck] = useState(initialCheckOnMount);
+  const [connectionHealth, setConnectionHealth] = useState<any>(getConnectionHealth());
   const { toast } = useToast();
-  const { currentLanguage, languages, setLanguage } = useLanguage();
-  const t = authTranslations[currentLanguage as keyof typeof authTranslations] || authTranslations.en;
   
+  // Define the URL and key here to avoid repeated definitions
+  const SUPABASE_URL = "https://xyfwsmblaayznplurmfa.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZndzbWJsYWF5em5wbHVybWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA4NjQ5MzAsImV4cCI6MjA1NjQ0MDkzMH0.iSMjuUMOEGVP-eU7p1xng_XlSc3pNg_DbViVwyD3Fc8";
+
   // Check online status
   useEffect(() => {
     const handleOnline = () => {
@@ -60,19 +52,6 @@ const Auth = () => {
     };
   }, []);
   
-  // Automatically redirect if session exists
-  useEffect(() => {
-    if (session) {
-      const returnUrl = new URLSearchParams(location.search).get('returnUrl');
-      navigate(returnUrl || '/dashboard');
-    }
-  }, [session, navigate, location.search]);
-
-  // Set the default selected language to match the current app language
-  useEffect(() => {
-    setSelectedLanguage(currentLanguage);
-  }, [currentLanguage]);
-
   // Check connection health periodically
   useEffect(() => {
     const checkHealth = () => {
@@ -93,31 +72,58 @@ const Auth = () => {
 
   // Perform an initial connection check when the component loads
   useEffect(() => {
+    if (!initialCheckOnMount) return;
+    
     const initialCheck = async () => {
       try {
         // First check if we're online
         if (!navigator.onLine) {
           setConnectionError("You appear to be offline. Please check your internet connection.");
+          setInitialConnectionCheck(false);
           return;
         }
         
         setInitialConnectionCheck(true);
         
-        // Test basic connectivity first
-        try {
-          await fetch(`${SUPABASE_URL}/auth/v1/`, { 
-            method: 'HEAD',
-            headers: {
-              'apikey': SUPABASE_PUBLISHABLE_KEY
+        // Test basic connectivity first - use multiple endpoints to improve reliability
+        const testEndpoints = [
+          `${SUPABASE_URL}/auth/v1/`,
+          `${SUPABASE_URL}/rest/v1/`,
+          `${SUPABASE_URL}/storage/v1/`
+        ];
+        
+        let endpointSuccess = false;
+        
+        for (const endpoint of testEndpoints) {
+          try {
+            const response = await fetch(endpoint, { 
+              method: 'HEAD',
+              headers: {
+                'apikey': SUPABASE_PUBLISHABLE_KEY
+              },
+              // Short timeout to fail fast
+              signal: AbortSignal.timeout(5000)
+            });
+            
+            if (response.ok || response.status === 404) {
+              // 404 is okay for our test - it means the endpoint exists but we don't have the right path
+              endpointSuccess = true;
+              break;
             }
-          });
-        } catch (err) {
-          console.error("Initial endpoint check failed:", err);
+          } catch (err) {
+            console.warn(`Endpoint check failed for ${endpoint}:`, err);
+            // Continue to the next endpoint
+          }
+        }
+        
+        if (!endpointSuccess) {
+          console.error("All endpoint checks failed");
           setConnectionError("Unable to reach authentication servers. Please check your connection.");
           setInitialConnectionCheck(false);
           return;
         }
         
+        // If basic endpoint check succeeds, attempt a full connection
         const success = await refreshSupabaseConnection();
         setInitialConnectionCheck(false);
         
@@ -134,7 +140,7 @@ const Auth = () => {
     };
     
     initialCheck();
-  }, []);
+  }, [initialCheckOnMount]);
 
   const handleReconnect = async () => {
     if (reconnecting) return; // Prevent multiple simultaneous reconnection attempts
@@ -144,22 +150,40 @@ const Auth = () => {
     setReconnectAttempts(prev => prev + 1);
     
     try {
-      // First try to ping the Supabase endpoint directly
-      try {
-        await fetch(`${SUPABASE_URL}/auth/v1/`, { 
-          method: 'HEAD',
-          headers: {
-            'apikey': SUPABASE_PUBLISHABLE_KEY
+      // Progressive reconnection strategy with multiple attempts
+      let endpointAccessible = false;
+      
+      // First try to ping the Supabase endpoint directly with multiple attempts
+      for (let i = 0; i < 3; i++) {
+        if (endpointAccessible) break;
+        
+        try {
+          const response = await fetch(`${SUPABASE_URL}/auth/v1/`, { 
+            method: 'HEAD',
+            headers: {
+              'apikey': SUPABASE_PUBLISHABLE_KEY
+            },
+            signal: AbortSignal.timeout(3000 * (i + 1)) // Increase timeout with each retry
+          });
+          
+          if (response.ok || response.status === 404) {
+            console.log("Basic Supabase endpoint check successful");
+            endpointAccessible = true;
+            break;
           }
-        });
-        console.log("Basic Supabase endpoint check successful");
-      } catch (err) {
-        console.error("Endpoint check failed:", err);
-        setConnectionError("Unable to reach authentication servers. Please check your network settings.");
+        } catch (err) {
+          console.warn(`Endpoint check attempt ${i+1} failed:`, err);
+          await new Promise(r => setTimeout(r, 1000)); // Wait before retrying
+        }
+      }
+      
+      if (!endpointAccessible) {
+        setConnectionError("Unable to reach authentication servers. Please check your network settings or try using a different network connection.");
         setReconnecting(false);
         return;
       }
       
+      // Now attempt a full connection
       const success = await refreshSupabaseConnection();
       if (success) {
         toast({
@@ -170,7 +194,7 @@ const Auth = () => {
         setReconnectAttempts(0);
       } else {
         if (reconnectAttempts >= 3) {
-          setConnectionError("Unable to establish a stable connection after multiple attempts. Please try again later.");
+          setConnectionError("Unable to establish a stable connection after multiple attempts. Please try refreshing the page or using a different network connection.");
         } else {
           setConnectionError("Unable to connect to the server. Please check your internet connection and try again.");
         }
@@ -182,6 +206,63 @@ const Auth = () => {
       setReconnecting(false);
     }
   };
+  
+  return {
+    isOnline,
+    connectionError,
+    reconnecting,
+    reconnectAttempts,
+    initialConnectionCheck,
+    connectionHealth,
+    handleReconnect,
+    setConnectionError
+  };
+};
+
+// The main Auth component
+const Auth = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  
+  const { 
+    isOnline, 
+    connectionError, 
+    reconnecting, 
+    initialConnectionCheck, 
+    connectionHealth,
+    handleReconnect,
+    setConnectionError
+  } = useConnectionHealthCheck(true);
+  
+  const { signIn, signUp, session } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
+  const { currentLanguage, languages, setLanguage } = useLanguage();
+  const t = authTranslations[currentLanguage as keyof typeof authTranslations] || authTranslations.en;
+
+  // Define the URL and key here to reuse them
+  const SUPABASE_URL = "https://xyfwsmblaayznplurmfa.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZndzbWJsYWF5em5wbHVybWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA4NjQ5MzAsImV4cCI6MjA1NjQ0MDkzMH0.iSMjuUMOEGVP-eU7p1xng_XlSc3pNg_DbViVwyD3Fc8";
+  
+  // Automatically redirect if session exists
+  useEffect(() => {
+    if (session) {
+      const returnUrl = new URLSearchParams(location.search).get('returnUrl');
+      navigate(returnUrl || '/dashboard');
+    }
+  }, [session, navigate, location.search]);
+
+  // Set the default selected language to match the current app language
+  useEffect(() => {
+    setSelectedLanguage(currentLanguage);
+  }, [currentLanguage]);
 
   const checkUsernameAvailability = async (username: string) => {
     if (!isOnline) {
@@ -193,26 +274,23 @@ const Auth = () => {
         .from('profiles')
         .select('username')
         .eq('username', username)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to avoid errors
 
-      if (error && error.code === 'PGRST116') {
-        // No data found means username is available
-        return true;
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error checking username:", error);
+        return false;
       }
-      return false;
+      
+      // If data is null, username is available
+      return data === null;
     } catch (error) {
       console.error("Error checking username availability:", error);
       // If we can't check, we'll assume it's available and let server validation handle it
       return true;
     }
   };
-
-  // Define constants for Supabase URL and key since we need them in the component
-  const SUPABASE_URL = "https://xyfwsmblaayznplurmfa.supabase.co";
-  const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZndzbWJsYWF5em5wbHVybWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA4NjQ5MzAsImV4cCI6MjA1NjQ0MDkzMH0.iSMjuUMOEGVP-eU7p1xng_XlSc3pNg_DbViVwyD3Fc8";
   
-  // Allow direct access to the auth API for login/signup
-  // This provides more control and better error handling than going through hooks
+  // Enhanced login with progressive fallbacks
   const handleDirectAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -232,35 +310,78 @@ const Auth = () => {
     
     try {
       if (isLogin) {
-        // Try a direct fetch to bypass potential hooks issues
-        const loginResponse = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_PUBLISHABLE_KEY,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ email, password })
-        });
-        
-        if (!loginResponse.ok) {
+        // First attempt: Try direct fetch with explicit error handling
+        try {
+          console.log("Attempting login with direct fetch...");
+          const loginResponse = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_PUBLISHABLE_KEY,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+          });
+          
+          if (loginResponse.ok) {
+            console.log("Direct login successful");
+            const loginData = await loginResponse.json();
+            
+            // Update supabase client with the new session
+            await supabase.auth.setSession({
+              access_token: loginData.access_token,
+              refresh_token: loginData.refresh_token
+            });
+            
+            toast({
+              title: "Login Successful",
+              description: "Welcome back!",
+            });
+            
+            // Navigate after successful login
+            const returnUrl = new URLSearchParams(location.search).get('returnUrl');
+            navigate(returnUrl || '/dashboard');
+            return;
+          }
+          
+          // Handle specific error cases
           const errorData = await loginResponse.json();
           
-          // Check if it's an invalid credentials error
           if (loginResponse.status === 400 && errorData.error === 'invalid_grant') {
             throw new Error("Invalid email or password. Please try again.");
           }
           
-          // Check if it's a server error
           if (loginResponse.status >= 500) {
             throw new Error("Server error. Please try again later.");
           }
           
-          // Other errors
           throw new Error(errorData.error_description || "Login failed");
+        } catch (directError: any) {
+          console.warn("Direct login approach failed:", directError);
+          
+          // Second attempt: Try using the Supabase client
+          console.log("Falling back to Supabase client login...");
+          const { error } = await supabase.auth.signInWithPassword({ 
+            email, 
+            password,
+            options: {
+              redirectTo: window.location.origin + '/dashboard'
+            }
+          });
+          
+          if (error) {
+            throw error;
+          }
+          
+          console.log("Supabase client login successful");
+          toast({
+            title: "Login Successful",
+            description: "Welcome back!",
+          });
+          
+          // Navigate after successful login
+          const returnUrl = new URLSearchParams(location.search).get('returnUrl');
+          navigate(returnUrl || '/dashboard');
         }
-        
-        // Login successful, get the session with supabase client
-        await supabase.auth.signInWithPassword({ email, password });
         
       } else {
         // Registration flow
@@ -286,7 +407,8 @@ const Auth = () => {
             data: { 
               username,
               preferred_language: selectedLanguage
-            }
+            },
+            emailRedirectTo: window.location.origin + '/dashboard'
           }
         });
         

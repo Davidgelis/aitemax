@@ -2,13 +2,33 @@
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { getConnectionHealth, refreshSupabaseConnection } from '@/integrations/supabase/client';
 
 export const useSessionControls = () => {
   const { sessionExpiresAt, refreshSession, isOnline, reconnect } = useAuth();
   const [timer, setTimer] = useState('');
   const [aboutToExpire, setAboutToExpire] = useState(false);
   const [refreshInProgress, setRefreshInProgress] = useState(false);
+  const [connectionHealth, setConnectionHealth] = useState<any>(getConnectionHealth());
   const { toast } = useToast();
+
+  // Monitor connection health
+  useEffect(() => {
+    const healthCheckInterval = setInterval(() => {
+      const health = getConnectionHealth();
+      setConnectionHealth(health);
+      
+      // If connection was degraded but is now healthy, show success toast
+      if (health.status === 'healthy' && connectionHealth?.status === 'degraded') {
+        toast({
+          title: "Connection Restored",
+          description: "Your connection to our services has been restored.",
+        });
+      }
+    }, 5000);
+    
+    return () => clearInterval(healthCheckInterval);
+  }, [connectionHealth, toast]);
 
   const calc = useCallback(() => {
     if (!sessionExpiresAt) {
@@ -59,6 +79,17 @@ export const useSessionControls = () => {
         return;
       }
       
+      // First check basic connectivity
+      const connectionCheck = await refreshSupabaseConnection();
+      if (!connectionCheck) {
+        toast({
+          title: "Connection Issue",
+          description: "Unable to establish connection to our servers. Please try again later.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       await refreshSession();
       
       toast({
@@ -91,6 +122,7 @@ export const useSessionControls = () => {
     refreshSession: handleManualRefresh, 
     isOnline, 
     reconnect,
-    refreshInProgress
+    refreshInProgress,
+    connectionHealth
   };
 };
