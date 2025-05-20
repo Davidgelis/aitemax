@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface AIModel {
@@ -30,6 +29,7 @@ export interface Question {
   contextSource?: string;
   technicalTerms?: TechnicalTerm[];
   examples?: string[]; // Add the examples property
+  hasBeenAnswered?: boolean; // Flag to track if a question arrived with an answer pre-filled
 }
 
 export interface Variable {

@@ -105,7 +105,8 @@ export const usePromptAnalysis = (
         category  : q.category  || "General",
         prefillSource: q.prefillSource || undefined,
         contextSource: q.contextSource || undefined,
-        examples  : Array.isArray(q.examples) ? q.examples.slice(0, MAX_EXAMPLES) : []
+        examples  : Array.isArray(q.examples) ? q.examples.slice(0, MAX_EXAMPLES) : [],
+        hasBeenAnswered: !!q.answer         // mark if it arrived pre-answered
       });
 
       const normV = (v: any, i: number): Variable => ({
