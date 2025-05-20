@@ -3,12 +3,13 @@ import { Question, Variable } from "./types";
 import { RefObject, useState, useEffect } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
-import { Info, Loader2, AlertCircle } from "lucide-react";
+import { Info, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { refreshSupabaseConnection } from "@/integrations/supabase/client";
+import { refreshSupabaseConnection, isAuthenticated } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface StepTwoContentProps {
   questions: Question[];
@@ -54,6 +55,28 @@ export const StepTwoContent = ({
   const { currentLanguage } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const [authStatus, setAuthStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>('checking');
+  
+  // Check connection and auth status on mount
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        // Check authentication status
+        const isAuth = await isAuthenticated();
+        setAuthStatus(isAuth ? 'authenticated' : 'unauthenticated');
+        
+        // Simple connection test
+        const { data, error } = await refreshSupabaseConnection();
+        setConnectionStatus(error ? 'error' : 'connected');
+      } catch (err) {
+        console.error('Error checking status:', err);
+        setConnectionStatus('error');
+      }
+    };
+    
+    checkStatus();
+  }, []);
   
   // Add debug logging for prefilled questions and variables
   useEffect(() => {
@@ -104,13 +127,20 @@ export const StepTwoContent = ({
     }
   };
   
-  // Handle connection refresh
+  // Handle connection refresh with enhanced error handling
   const handleRefreshConnection = async () => {
     setIsRefreshing(true);
     try {
-      await refreshSupabaseConnection();
-      // Wait a moment for the connection to stabilize
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const success = await refreshSupabaseConnection();
+      setConnectionStatus(success ? 'connected' : 'error');
+      
+      // Also check auth status
+      const isAuth = await isAuthenticated();
+      setAuthStatus(isAuth ? 'authenticated' : 'unauthenticated');
+      
+    } catch (error) {
+      console.error("Error refreshing connection:", error);
+      setConnectionStatus('error');
     } finally {
       setIsRefreshing(false);
     }
@@ -140,8 +170,31 @@ export const StepTwoContent = ({
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12">
         <div className="w-full border rounded-xl p-6 bg-card">
-          {/* Connection refresh option for error recovery */}
-          <div className="flex justify-end mb-4">
+          {/* Connection status indicator */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-2">
+              {connectionStatus === 'checking' && (
+                <span className="text-xs flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-1 rounded-md">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Checking connection...
+                </span>
+              )}
+              
+              {connectionStatus === 'error' && (
+                <span className="text-xs flex items-center gap-1 bg-red-100 text-red-700 px-2 py-1 rounded-md">
+                  <AlertCircle className="h-3 w-3" />
+                  Connection error
+                </span>
+              )}
+              
+              {authStatus === 'unauthenticated' && (
+                <span className="text-xs flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-1 rounded-md ml-2">
+                  <AlertCircle className="h-3 w-3" />
+                  Session expired
+                </span>
+              )}
+            </div>
+            
             <Button
               variant="outline"
               size="sm"
@@ -152,11 +205,22 @@ export const StepTwoContent = ({
               {isRefreshing ? (
                 <Loader2 className="h-3 w-3 animate-spin mr-1" />
               ) : (
-                <AlertCircle className="h-3 w-3 mr-1" />
+                <RefreshCw className="h-3 w-3 mr-1" />
               )}
               {isRefreshing ? "Refreshing..." : "Refresh Connection"}
             </Button>
           </div>
+          
+          {/* Connection error alert */}
+          {connectionStatus === 'error' && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Connection Error</AlertTitle>
+              <AlertDescription>
+                We're having trouble connecting to our services. Please try refreshing your connection or reloading the page.
+              </AlertDescription>
+            </Alert>
+          )}
           
           {/* Inline warnings (if any) */}
           {warnings.length > 0 && (
@@ -169,6 +233,7 @@ export const StepTwoContent = ({
               ))}
             </div>
           )}
+          
           <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
               <p className="text-[#545454] mb-0">{t.steps.questionsToAnswer}</p>

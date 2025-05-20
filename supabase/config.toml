@@ -15,3 +15,7 @@ verify_jwt = false
 
 [functions.enhance-prompt]
 verify_jwt = false
+
+# Add support for anonymous access to ensure edge functions work even with auth issues
+[auth]
+enable_anonymous_users = true

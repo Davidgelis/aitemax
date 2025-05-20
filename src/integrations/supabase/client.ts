@@ -14,80 +14,262 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storageKey: 'supabase-auth-token',
+    storage: localStorage
   },
   global: {
-    // Add additional retries on fetch errors
+    // Enhanced fetch with proper headers, retries and connection recovery
     fetch: (url, options) => {
-      return fetch(url, {
-        ...options,
-        credentials: 'include', // Include cookies for cross-origin requests
-        mode: 'cors', // Enable CORS
-        headers: {
-          ...options?.headers,
-        },
-      }).catch(err => {
-        console.error('Fetch error in Supabase client:', err);
-        // Re-throw to allow Supabase's built-in retry logic to work
-        throw err;
-      });
+      // Generate a unique request ID for tracking
+      const requestId = Math.random().toString(36).substring(2, 10);
+      console.log(`Supabase request started [${requestId}]: ${options?.method || 'GET'} ${url.toString().split('?')[0]}`);
+      
+      // Set up retry with exponential backoff
+      const maxRetries = 3;
+      let retries = 0;
+      
+      const attemptFetch = async (): Promise<Response> => {
+        try {
+          const response = await fetch(url, {
+            ...options,
+            credentials: 'include', // Include cookies for cross-origin requests
+            mode: 'cors', // Enable CORS
+            headers: {
+              ...options?.headers,
+              'X-Request-ID': requestId,
+            },
+          });
+          
+          // If no HTTP error, return the response
+          if (response.ok) {
+            console.log(`Supabase request successful [${requestId}]`);
+            return response;
+          }
+          
+          // If response is unauthorized (401), try to refresh the token
+          if (response.status === 401) {
+            console.log(`Token expired, attempting to refresh session [${requestId}]`);
+            
+            try {
+              // Try to reauthenticate
+              await supabase.auth.refreshSession();
+              
+              // Retry the original request with the new token
+              return fetch(url, {
+                ...options,
+                credentials: 'include',
+                mode: 'cors',
+                headers: {
+                  ...options?.headers
+                }
+              });
+            } catch (refreshErr) {
+              console.error(`Session refresh failed [${requestId}]:`, refreshErr);
+              throw new Error(`Authentication refresh failed: ${refreshErr}`);
+            }
+          }
+          
+          // For other status codes, throw an error to trigger retry logic
+          throw new Error(`Fetch failed with status ${response.status}: ${response.statusText}`);
+          
+        } catch (err) {
+          // Check if we should retry
+          if (retries < maxRetries) {
+            retries++;
+            const delay = Math.pow(2, retries) * 500; // Exponential backoff
+            console.log(`Retrying request [${requestId}] (${retries}/${maxRetries}) after ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return attemptFetch();
+          }
+          
+          // Log detailed error info after all retries failed
+          console.error(`Fetch error in Supabase client [${requestId}]:`, err);
+          
+          // Show user-friendly toast notification after all retries have failed
+          toast({
+            title: "Connection Error",
+            description: "We're having trouble connecting to our services. Please check your internet connection or try refreshing the page.",
+            variant: "destructive",
+          });
+          
+          // Re-throw to allow Supabase's built-in retry logic to work
+          throw err;
+        }
+      };
+      
+      // Start the initial fetch attempt
+      return attemptFetch();
     }
   }
 });
 
-// 🔄 always keep an anonymous / refreshed JWT
-supabase.auth.onAuthStateChange((_evt, session) => {
+// 🔄 always keep an anonymous / refreshed JWT with enhanced error handling
+supabase.auth.onAuthStateChange(async (event, session) => {
+  console.log(`Auth state changed: ${event}`);
+  
   if (!session) {
     console.log('No session found, reauthenticating...');
-    supabase.auth.reauthenticate()
-      .then(() => console.log('Reauthentication successful'))
-      .catch(err => console.error('Reauthentication failed:', err));
+    try {
+      const { data, error } = await supabase.auth.reauthenticate();
+      if (error) {
+        console.error('Reauthentication failed:', error);
+        toast({
+          title: "Session Error",
+          description: "Your session has expired. Please refresh the page to continue.",
+          variant: "destructive",
+        });
+      } else {
+        console.log('Reauthentication successful');
+      }
+    } catch (err) {
+      console.error('Unexpected error during reauthentication:', err);
+    }
   } else {
-    console.log('Auth state changed, session expires:', new Date(session.expires_at! * 1000).toLocaleString());
+    // Log detailed session information for debugging
+    const expiresAt = session.expires_at ? new Date(session.expires_at * 1000) : 'unknown';
+    console.log(`Session updated, expires: ${expiresAt}`);
+    
+    // Check if session is about to expire and proactively refresh
+    if (session.expires_at) {
+      const expiryTime = new Date(session.expires_at * 1000);
+      const now = new Date();
+      const timeUntilExpiry = expiryTime.getTime() - now.getTime();
+      
+      // If session expires in less than 5 minutes, refresh it proactively
+      if (timeUntilExpiry < 5 * 60 * 1000) {
+        console.log('Session expires soon, refreshing proactively');
+        try {
+          await supabase.auth.refreshSession();
+          console.log('Session refreshed proactively');
+        } catch (err) {
+          console.error('Failed to refresh session proactively:', err);
+        }
+      }
+    }
   }
 });
 
-// Add debugging for connection issues
+// Add improved connection check with detailed diagnostics
 const checkConnection = async () => {
   try {
+    console.log('Checking Supabase connection...');
+    
+    // First check auth status
+    const { data: authData } = await supabase.auth.getSession();
+    if (!authData.session) {
+      console.log('No active session found during connection check');
+    } else {
+      console.log('Active session found, user:', authData.session.user.id);
+    }
+    
+    // Then check database connectivity
+    const startTime = Date.now();
     const { error } = await supabase.from('prompts').select('id').limit(1);
+    const responseTime = Date.now() - startTime;
+    
     if (error) {
       console.error('Supabase connection check failed:', error);
       
-      // Show user-friendly toast notification about connection issues
-      toast({
-        title: "Connection Error",
-        description: "We're having trouble connecting to our services. Please check your internet connection.",
-        variant: "destructive",
-      });
+      // Detailed error classification
+      if (error.code === 'PGRST301') {
+        toast({
+          title: "Authentication Error",
+          description: "You may need to sign in again to continue.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Connection Error",
+          description: "We're having trouble connecting to our services. Please check your internet connection.",
+          variant: "destructive",
+        });
+      }
+      
+      return false;
     } else {
-      console.log('Supabase connection established successfully');
+      console.log(`Supabase connection established successfully (${responseTime}ms response time)`);
+      return true;
     }
   } catch (err) {
     console.error('Supabase connection check exception:', err);
+    toast({
+      title: "Connection Error",
+      description: "Unexpected error connecting to our services. Please refresh the page.",
+      variant: "destructive",
+    });
+    return false;
   }
 };
 
 // Run connection check when the app starts
 checkConnection();
 
-// Export a function to manually refresh the connection
+// Export an enhanced function to manually refresh the connection
 export const refreshSupabaseConnection = async () => {
   try {
     console.log('Manually refreshing Supabase connection...');
-    const { data: sessionData } = await supabase.auth.getSession();
     
-    if (!sessionData?.session) {
-      console.log('No active session, reauthenticating...');
-      await supabase.auth.reauthenticate();
-    } else {
-      console.log('Session is active, refreshing token...');
-      await supabase.auth.refreshSession();
+    // Clear any local storage caches that might be corrupted
+    const preservedItems = {};
+    
+    // First attempt to get the session so we can preserve it if valid
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData?.session) {
+      console.log('Found existing session, attempting to preserve');
+      preservedItems['session'] = sessionData.session;
     }
     
-    return true;
+    // Try to refresh the token
+    if (sessionData?.session) {
+      console.log('Session is active, refreshing token...');
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        console.error('Failed to refresh session:', refreshError);
+        // Try reauthenticating as fallback
+        await supabase.auth.reauthenticate();
+      } else {
+        console.log('Session refreshed successfully');
+      }
+    } else {
+      console.log('No active session, reauthenticating...');
+      await supabase.auth.reauthenticate();
+    }
+    
+    // Test the connection after refresh
+    const connectionSuccess = await checkConnection();
+    
+    // Show appropriate toast based on result
+    if (connectionSuccess) {
+      toast({
+        title: "Connection Restored",
+        description: "Your connection has been successfully refreshed.",
+        variant: "default",
+      });
+    }
+    
+    return connectionSuccess;
   } catch (err) {
     console.error('Failed to refresh Supabase connection:', err);
+    
+    toast({
+      title: "Connection Error",
+      description: "Unable to restore connection. Please try refreshing the page.",
+      variant: "destructive",
+    });
+    
+    return false;
+  }
+};
+
+// Export a function to check if the user is authenticated
+export const isAuthenticated = async () => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return !!session;
+  } catch (err) {
+    console.error('Error checking authentication status:', err);
     return false;
   }
 };
