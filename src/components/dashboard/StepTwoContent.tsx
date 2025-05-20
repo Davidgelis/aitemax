@@ -67,8 +67,8 @@ export const StepTwoContent = ({
         setAuthStatus(isAuth ? 'authenticated' : 'unauthenticated');
         
         // Simple connection test
-        const { data, error } = await refreshSupabaseConnection();
-        setConnectionStatus(error ? 'error' : 'connected');
+        const success = await refreshSupabaseConnection();
+        setConnectionStatus(success ? 'connected' : 'error');
       } catch (err) {
         console.error('Error checking status:', err);
         setConnectionStatus('error');
@@ -334,3 +334,4 @@ export const StepTwoContent = ({
     </div>
   );
 };
+
