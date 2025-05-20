@@ -7,12 +7,12 @@ import { toast } from '@/hooks/use-toast';
 const SUPABASE_URL = "https://xyfwsmblaayznplurmfa.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZndzbWJsYWF5em5wbHVybWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA4NjQ5MzAsImV4cCI6MjA1NjQ0MDkzMH0.iSMjuUMOEGVP-eU7p1xng_XlSc3pNg_DbViVwyD3Fc8";
 
-// Track connection health for smart reconnection
+// Track connection health
 let lastSuccessfulConnection = Date.now();
 let connectionHealthy = true;
 let connectionAttempts = 0;
 
-// Create the Supabase client with improved configuration
+// Create the Supabase client with optimized configuration
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     autoRefreshToken: true,
@@ -20,29 +20,28 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     detectSessionInUrl: true,
     storageKey: 'supabase-auth-token',
     storage: localStorage,
-    flowType: 'implicit' // Use implicit flow for better browser compatibility
+    flowType: 'implicit'
   },
   global: {
-    // Enhanced fetch with shorter timeouts and better error handling
+    // Optimized fetch function with balanced timeout values
     fetch: (url, options) => {
-      // Generate a unique request ID for tracking
+      // Unique request ID for tracking
       const requestId = Math.random().toString(36).substring(2, 10);
       console.log(`Supabase request started [${requestId}]: ${options?.method || 'GET'} ${url.toString().split('?')[0]}`);
       
-      // More balanced retry approach - fewer retries but more strategic
-      const maxRetries = 2; // Reduced from 3 to 2
+      // Simplified retry logic
+      const maxRetries = 1; // Reduced from 2 to 1
       let retries = 0;
       
       const attemptFetch = async (): Promise<Response> => {
         try {
-          // Shorter timeout for auth operations
+          // Adjusted timeouts for better reliability
           const isAuthOperation = url.toString().includes('/auth/');
-          const timeout = isAuthOperation ? 8000 : 10000; // 8 second timeout for auth, 10 for other operations
+          const timeout = isAuthOperation ? 15000 : 10000; // Increased auth timeout to 15 seconds
           
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), timeout);
           
-          // Improved CORS and cache handling
           const response = await fetch(url, {
             ...options,
             credentials: 'include',
@@ -52,14 +51,14 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
               ...options?.headers,
               'X-Request-ID': requestId,
               'Cache-Control': 'no-cache, no-store',
-              'Pragma': 'no-cache', // Additional cache prevention
+              'Pragma': 'no-cache',
             },
           });
           
           // Clear timeout if fetch completes
           clearTimeout(timeoutId);
           
-          // Update connection health metrics
+          // Update connection health
           if (response.ok) {
             connectionHealthy = true;
             lastSuccessfulConnection = Date.now();
@@ -68,233 +67,151 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
             return response;
           }
           
-          // Auth specific error handling
+          // Better error handling for common status codes
           if (response.status === 401) {
-            console.log(`Token expired, attempting to refresh session [${requestId}]`);
-            
-            try {
-              // Try to refresh the auth token
-              const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'apikey': SUPABASE_PUBLISHABLE_KEY,
-                },
-                body: JSON.stringify({
-                  refresh_token: JSON.parse(localStorage.getItem('supabase-auth-token') || '{}')?.refresh_token,
-                }),
-                signal: AbortSignal.timeout(5000), // 5 seconds timeout for auth refresh
-              });
-              
-              if (authResponse.ok) {
-                console.log(`Token refreshed manually [${requestId}]`);
-                
-                // Retry the original request with the new token
-                return fetch(url, {
-                  ...options,
-                  credentials: 'include',
-                  mode: 'cors',
-                  headers: {
-                    ...options?.headers
-                  }
-                });
-              } else {
-                console.error(`Session refresh failed [${requestId}]:`, await authResponse.text());
-                throw new Error(`Authentication refresh failed`);
-              }
-            } catch (refreshErr) {
-              console.error(`Session refresh failed [${requestId}]:`, refreshErr);
-              throw new Error(`Authentication refresh failed: ${refreshErr}`);
-            }
-          }
-          
-          // Better error handling based on HTTP status
-          if (response.status >= 500) {
-            throw new Error(`Server error (${response.status}): The server is currently unavailable`);
+            console.log(`Authentication error [${requestId}]: Token may have expired`);
+            throw new Error(`Authentication error: Please sign in again`);
+          } else if (response.status === 403) {
+            console.log(`Authorization error [${requestId}]: Insufficient permissions`);
+            throw new Error(`Authorization error: You don't have permission to access this resource`);
           } else if (response.status === 429) {
+            console.log(`Rate limit error [${requestId}]: Too many requests`);
             throw new Error(`Rate limited: Too many requests. Please try again later.`);
+          } else if (response.status >= 500) {
+            console.log(`Server error [${requestId}]: ${response.status}`);
+            throw new Error(`Server error: The service is temporarily unavailable. Please try again later.`);
           } else {
-            throw new Error(`Fetch failed with status ${response.status}: ${response.statusText}`);
+            console.log(`Request failed [${requestId}]: ${response.status}`);
+            throw new Error(`Request failed: ${response.statusText || 'Unknown error'}`);
           }
-          
         } catch (err: any) {
-          // Record connection issue
+          // Update connection health on error
           connectionHealthy = false;
           connectionAttempts++;
           
-          // Handle abort/timeout specifically
+          // Simplified error handling with better messages
           if (err.name === 'AbortError') {
-            console.error(`Request timeout [${requestId}] - server took too long to respond`);
-            throw new Error('Connection timed out. The server is taking too long to respond.');
+            console.error(`Request timeout [${requestId}] after ${err.message?.includes('15000') ? '15' : '10'} seconds`);
+            throw new Error('The connection timed out. Please try again.');
           }
           
-          // Handle CORS errors more specifically
-          if (err.message?.includes('CORS')) {
-            console.error(`CORS error detected [${requestId}]`);
-            throw new Error('Cross-origin request blocked. This is likely a network configuration issue.');
+          if (!navigator.onLine) {
+            console.error(`Offline error [${requestId}]`);
+            throw new Error('You are currently offline. Please check your internet connection.');
           }
           
-          // Check if we should retry - more selective about what errors qualify for retry
+          // Simplified retry logic for network errors only
           const isNetworkError = err.message?.includes('Failed to fetch') || 
-                                !navigator.onLine || 
-                                err.name === 'AbortError';
+                                 err.name === 'TypeError' ||
+                                 err.name === 'AbortError';
                                 
           if (retries < maxRetries && isNetworkError) {
             retries++;
-            const delay = Math.pow(2, retries) * 500; // Exponential backoff
-            console.log(`Retrying request [${requestId}] (${retries}/${maxRetries}) after ${delay}ms...`);
+            const delay = 1000 * retries; // Simple linear backoff
+            console.log(`Retrying request [${requestId}] in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
             return attemptFetch();
           }
           
-          // Check if it's likely a network issue
-          if (isNetworkError) {
-            console.error(`Network connection issue detected [${requestId}]`);
-            throw new Error('Network connection issue. Please check your internet connection.');
-          }
-          
-          // Log detailed error info
-          console.error(`Fetch error in Supabase client [${requestId}]:`, err);
-          
+          console.error(`Fetch error [${requestId}]:`, err);
           throw err;
         }
       };
       
-      // Start the initial fetch attempt
       return attemptFetch();
     }
   }
 });
 
-// Improved auth state change handler with better error handling
+// Simpler auth state change handler
 supabase.auth.onAuthStateChange(async (event, session) => {
   console.log(`Auth state changed: ${event}`);
   
-  if (!session) {
-    // Only attempt reauthentication for certain events to avoid loops
-    if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-      console.log('No session found, reauthenticating...');
-      try {
-        const { data, error } = await supabase.auth.reauthenticate();
-        if (error) {
-          console.error('Reauthentication failed:', error);
-        } else {
-          console.log('Reauthentication successful');
-        }
-      } catch (err) {
-        console.error('Unexpected error during reauthentication:', err);
-      }
-    }
-  } else {
-    // Log detailed session information for debugging
-    const expiresAt = session.expires_at ? new Date(session.expires_at * 1000) : 'unknown';
-    console.log(`Session updated, expires: ${expiresAt}`);
-    
-    // Check if session is about to expire and proactively refresh
-    if (session.expires_at) {
-      const expiryTime = new Date(session.expires_at * 1000);
-      const now = new Date();
-      const timeUntilExpiry = expiryTime.getTime() - now.getTime();
-      
-      // If session expires in less than 10 minutes, refresh it proactively
-      if (timeUntilExpiry < 10 * 60 * 1000) {
-        console.log('Session expires soon, refreshing proactively');
-        try {
-          await supabase.auth.refreshSession();
-          console.log('Session refreshed proactively');
-        } catch (err) {
-          console.error('Failed to refresh session proactively:', err);
-        }
-      }
-    }
+  if (event === 'SIGNED_OUT') {
+    console.log('User signed out');
+  } else if (event === 'SIGNED_IN') {
+    console.log('User signed in');
+  } else if (event === 'TOKEN_REFRESHED') {
+    console.log('Token refreshed');
   }
 });
 
-// Simplified connection check with faster response
-const checkConnection = async () => {
+// Fast connection check for UI indications
+export const checkConnection = async (): Promise<boolean> => {
+  if (!navigator.onLine) {
+    return false;
+  }
+  
   try {
-    console.log('Checking Supabase connection...');
+    // Use a simple HEAD request to check connectivity
+    await fetch(`${SUPABASE_URL}/rest/v1/`, {
+      method: 'HEAD',
+      headers: {
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+      },
+      signal: AbortSignal.timeout(5000),
+    });
     
-    // First check basic internet connectivity
-    if (!navigator.onLine) {
-      console.log('Device is offline');
-      return false;
-    }
-    
-    // Test health endpoint which is faster and more reliable
-    try {
-      const healthResponse = await fetch(`${SUPABASE_URL}/rest/v1/`, {
-        headers: {
-          'apikey': SUPABASE_PUBLISHABLE_KEY,
-        },
-        signal: AbortSignal.timeout(5000), // 5 second timeout for health check
-      });
-      
-      if (!healthResponse.ok) {
-        console.error(`Supabase health check failed: ${healthResponse.status} ${healthResponse.statusText}`);
-        return false;
-      }
-      
-      console.log(`Supabase health check successful`);
-      return true;
-    } catch (err) {
-      console.error('Supabase health check failed:', err);
-      return false;
-    }
+    return true;
   } catch (err) {
-    console.error('Supabase connection check exception:', err);
+    console.error('Connection check failed:', err);
     return false;
   }
 };
 
-// Run connection check when the app starts
-window.addEventListener('load', () => {
-  setTimeout(checkConnection, 1000); // Slight delay to avoid competing with other initialization processes
-});
-
-// Export an enhanced function to manually refresh the connection
+// Enhanced function to refresh connection
 export const refreshSupabaseConnection = async (): Promise<boolean> => {
+  if (!navigator.onLine) {
+    return false;
+  }
+  
   try {
-    console.log('Manually refreshing Supabase connection...');
-    
-    // Check if device is online first
-    if (!navigator.onLine) {
+    // First check basic connectivity
+    const connected = await checkConnection();
+    if (!connected) {
       return false;
     }
     
-    // Try to refresh the token if there's a session
+    // Then try to refresh session if present
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session) {
-        console.log('Session is active, refreshing token...');
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
         await supabase.auth.refreshSession();
       }
-    } catch (error) {
-      console.error('Failed to refresh session:', error);
+    } catch (e) {
+      console.error('Session refresh failed during connection check:', e);
+      // Non-fatal, continue
     }
     
-    // Test the connection
-    const connectionSuccess = await checkConnection();
-    return connectionSuccess;
+    return true;
   } catch (err) {
     console.error('Failed to refresh Supabase connection:', err);
     return false;
   }
 };
 
-// Export a function to check if the user is authenticated
+// Check authentication status
 export const isAuthenticated = async (): Promise<boolean> => {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     return !!session;
   } catch (err) {
-    console.error('Error checking authentication status:', err);
+    console.error('Error checking authentication:', err);
     return false;
   }
 };
 
-// Export connection health information
+// Connection health information
 export const getConnectionHealth = () => {
+  if (!navigator.onLine) {
+    return {
+      status: 'offline',
+      lastSuccess: lastSuccessfulConnection,
+      timeSinceSuccess: Date.now() - lastSuccessfulConnection,
+      attempts: connectionAttempts
+    };
+  }
+  
   if (!connectionHealthy) {
     return {
       status: 'degraded',
@@ -303,6 +220,7 @@ export const getConnectionHealth = () => {
       attempts: connectionAttempts
     };
   }
+  
   return {
     status: 'healthy',
     lastSuccess: lastSuccessfulConnection,
