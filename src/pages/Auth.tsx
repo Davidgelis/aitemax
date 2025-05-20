@@ -27,6 +27,7 @@ const Auth = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [reconnecting, setReconnecting] = useState(false);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   
   const { signIn, signUp, session } = useAuth();
   const navigate = useNavigate();
@@ -37,7 +38,13 @@ const Auth = () => {
   
   // Check online status
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = () => {
+      setIsOnline(true);
+      // When coming back online automatically try to reconnect
+      if (connectionError) {
+        handleReconnect();
+      }
+    };
     const handleOffline = () => setIsOnline(false);
     
     window.addEventListener('online', handleOnline);
@@ -47,8 +54,9 @@ const Auth = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [connectionError]);
   
+  // Automatically redirect if session exists
   useEffect(() => {
     if (session) {
       const returnUrl = new URLSearchParams(location.search).get('returnUrl');
@@ -61,9 +69,31 @@ const Auth = () => {
     setSelectedLanguage(currentLanguage);
   }, [currentLanguage]);
 
+  // Perform an initial connection check when the component loads
+  useEffect(() => {
+    const checkInitialConnection = async () => {
+      if (navigator.onLine) {
+        try {
+          // Test the connection quietly without showing loading state
+          const success = await refreshSupabaseConnection();
+          if (!success) {
+            setConnectionError("Connection to the server appears unstable. You can try to reconnect if needed.");
+          }
+        } catch (error) {
+          console.error("Initial connection check failed:", error);
+        }
+      }
+    };
+    
+    checkInitialConnection();
+  }, []);
+
   const handleReconnect = async () => {
+    if (reconnecting) return; // Prevent multiple simultaneous reconnection attempts
+    
     setReconnecting(true);
-    setConnectionError(null);
+    setConnectionError("Attempting to reconnect...");
+    setReconnectAttempts(prev => prev + 1);
     
     try {
       const success = await refreshSupabaseConnection();
@@ -73,17 +103,27 @@ const Auth = () => {
           description: "Successfully reconnected to the server.",
         });
         setConnectionError(null);
+        setReconnectAttempts(0);
       } else {
-        setConnectionError("Unable to connect to the server. Please check your internet connection and try again.");
+        if (reconnectAttempts >= 3) {
+          setConnectionError("Unable to establish a stable connection after multiple attempts. Please check your internet connection or try again later.");
+        } else {
+          setConnectionError("Unable to connect to the server. Please check your internet connection and try again.");
+        }
       }
     } catch (error) {
-      setConnectionError("Failed to reconnect. Please try again later.");
+      console.error("Reconnection error:", error);
+      setConnectionError("Failed to reconnect. Please try again later or refresh the page.");
     } finally {
       setReconnecting(false);
     }
   };
 
   const checkUsernameAvailability = async (username: string) => {
+    if (!isOnline) {
+      return false;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -117,6 +157,7 @@ const Auth = () => {
     
     setLoading(true);
     setUsernameError('');
+    // Clear connection error to provide fresh feedback
     setConnectionError(null);
 
     try {
@@ -124,11 +165,22 @@ const Auth = () => {
         const { error } = await signIn(email, password, rememberMe);
         
         if (error) {
-          if (error.message === "Failed to fetch" || error.message?.includes("network")) {
+          // Detect network-related errors
+          if (
+            error.message === "Failed to fetch" || 
+            error.message?.includes("network") || 
+            error.message?.includes("connection") ||
+            error.status === 0  // Often indicates network issues
+          ) {
             setConnectionError("Connection error. Please check your internet and try again.");
-            await handleReconnect();
+            // Don't try to reconnect yet - let the user decide when to retry
+          } else if (error.message?.includes("Invalid login credentials")) {
+            // Clear connection error for credential errors
+            setConnectionError(null);
+            throw new Error("Invalid email or password. Please try again.");
+          } else {
+            throw error;
           }
-          throw error;
         }
       } else {
         // Check username availability before signup
@@ -153,26 +205,32 @@ const Auth = () => {
         });
         
         if (error) {
-          if (error.message === "Failed to fetch" || error.message?.includes("network")) {
+          // Handle connection issues
+          if (
+            error.message === "Failed to fetch" || 
+            error.message?.includes("network") ||
+            error.message?.includes("connection") ||
+            error.status === 0
+          ) {
             setConnectionError("Connection error. Please check your internet and try again.");
-            await handleReconnect();
+          } else {
+            throw error;
           }
-          throw error;
+        } else {
+          // Change the app language immediately to the selected one
+          await setLanguage(selectedLanguage);
+          
+          toast({
+            title: "Success!",
+            description: "Please check your email for verification instructions.",
+          });
+          setIsLogin(true);
         }
-        
-        // Change the app language immediately to the selected one
-        await setLanguage(selectedLanguage);
-        
-        toast({
-          title: "Success!",
-          description: "Please check your email for verification instructions.",
-        });
-        setIsLogin(true);
       }
     } catch (error: any) {
       console.error("Authentication error:", error);
       
-      if (error.message === "Invalid login credentials" || error.message?.includes("credentials")) {
+      if (error.message === "Invalid login credentials" || error.message?.includes("credentials") || error.message?.includes("Invalid email or password")) {
         toast({
           title: "Login Failed",
           description: "Invalid email or password. Please try again.",
@@ -216,17 +274,17 @@ const Auth = () => {
         {(!isOnline || connectionError) && (
           <Alert variant="destructive" className="mb-4">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
+            <AlertDescription className="flex flex-col gap-2">
               {!isOnline ? "You appear to be offline. Please check your connection." : connectionError}
               <Button 
                 variant="outline"
                 size="sm"
                 onClick={handleReconnect} 
                 disabled={reconnecting || !isOnline} 
-                className="ml-2 mt-2"
+                className="self-start mt-2"
               >
-                {reconnecting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                Try Again
+                {reconnecting ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                {reconnecting ? "Reconnecting..." : "Try Again"}
               </Button>
             </AlertDescription>
           </Alert>
