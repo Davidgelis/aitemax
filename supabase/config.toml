@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.list-openai-models]
 verify_jwt = false
+
+[functions.enhance-prompt]
+verify_jwt = false

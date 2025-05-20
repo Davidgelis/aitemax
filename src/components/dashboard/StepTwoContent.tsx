@@ -3,10 +3,12 @@ import { Question, Variable } from "./types";
 import { RefObject, useState, useEffect } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
-import { Info, Loader2 } from "lucide-react";
+import { Info, Loader2, AlertCircle } from "lucide-react";
 import { useLanguage } from '@/context/LanguageContext';
 import { dashboardTranslations } from '@/translations/dashboard';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { refreshSupabaseConnection } from "@/integrations/supabase/client";
 
 interface StepTwoContentProps {
   questions: Question[];
@@ -51,6 +53,7 @@ export const StepTwoContent = ({
 }: StepTwoContentProps) => {
   const { currentLanguage } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Add debug logging for prefilled questions and variables
   useEffect(() => {
@@ -101,9 +104,16 @@ export const StepTwoContent = ({
     }
   };
   
-  // Handle question relevance toggle
-  const handleToggleRelevance = (questionId: string, isCurrentlyRelevant: boolean) => {
-    onQuestionRelevance(questionId, !isCurrentlyRelevant);
+  // Handle connection refresh
+  const handleRefreshConnection = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshSupabaseConnection();
+      // Wait a moment for the connection to stabilize
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } finally {
+      setIsRefreshing(false);
+    }
   };
   
   if (isLoading) {
@@ -130,6 +140,24 @@ export const StepTwoContent = ({
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12">
         <div className="w-full border rounded-xl p-6 bg-card">
+          {/* Connection refresh option for error recovery */}
+          <div className="flex justify-end mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefreshConnection}
+              disabled={isRefreshing}
+              className="text-xs flex items-center gap-1"
+            >
+              {isRefreshing ? (
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              ) : (
+                <AlertCircle className="h-3 w-3 mr-1" />
+              )}
+              {isRefreshing ? "Refreshing..." : "Refresh Connection"}
+            </Button>
+          </div>
+          
           {/* Inline warnings (if any) */}
           {warnings.length > 0 && (
             <div className="p-4 mb-4 rounded-md border-l-4 border-yellow-500 bg-yellow-50 text-sm text-yellow-800">

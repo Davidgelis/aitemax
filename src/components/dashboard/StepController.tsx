@@ -18,6 +18,7 @@ import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 import { useLanguage } from "@/context/LanguageContext";
 import { dashboardTranslations } from "@/translations/dashboard";
 import { GPT41_ID } from "@/services/model/ModelFetchService"; // Import the GPT-4.1 ID constant
+import { supabase } from "@/integrations/supabase/client";
 
 interface StepControllerProps {
   user: any;
@@ -78,6 +79,7 @@ export const StepController = ({
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
   const [shouldAnalyzeAfterContextChange, setShouldAnalyzeAfterContextChange] = useState(false);
   const [preventStepChange, setPreventStepChange] = useState(false);
+  const [authCheckInProgress, setAuthCheckInProgress] = useState(false);
   
   const currentPromptId = isViewingSavedPrompt && savedPrompts && savedPrompts.length > 0
     ? savedPrompts.find(p => p.promptText === promptText)?.id || null
@@ -96,7 +98,7 @@ export const StepController = ({
     setAnalysisWarnings
   );
   
-  const { isLoading: isAnalyzing, currentLoadingMessage, loadingState, handleAnalyze, enhancePromptWithGPT } = promptAnalysis;
+  const { isLoading: isAnalyzing, currentLoadingMessage, loadingState, handleAnalyze, enhancePromptWithGPT, retryCount } = promptAnalysis;
   
   /* param order in the hook:                                          *
    * (questions, setQuestions, variables, setVariables, variableToDelete …) */
@@ -144,7 +146,57 @@ export const StepController = ({
     handleCopyPrompt,
     handleRegenerate
   } = promptOperations;
+
+  // Check for authentication status before critical operations
+  const checkAuthBeforeOperation = async () => {
+    if (authCheckInProgress) return false;
+    
+    try {
+      setAuthCheckInProgress(true);
+      
+      // Check if we have a valid session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.log("No active session found, attempting to reauthenticate");
+        await supabase.auth.signInAnonymously();
+        toast({
+          title: "Authentication refreshed",
+          description: "Your session has been refreshed. Please try your action again.",
+          variant: "default",
+        });
+        return false; // Return false to prevent the operation from proceeding
+      }
+      
+      // If session exists but is about to expire (less than 5 mins remaining)
+      const expiresAt = session.expires_at ? new Date(session.expires_at * 1000) : null;
+      const now = new Date();
+      
+      if (expiresAt && ((expiresAt.getTime() - now.getTime()) < 5 * 60 * 1000)) {
+        console.log("Session expires soon, refreshing:", expiresAt.toLocaleString());
+        await supabase.auth.refreshSession();
+        toast({
+          title: "Session refreshed",
+          description: "Your session has been updated.",
+          variant: "default",
+        });
+      }
+      
+      return true; // Authentication is valid
+    } catch (error) {
+      console.error("Auth check failed:", error);
+      toast({
+        title: "Authentication issue",
+        description: "We had trouble verifying your session. Please refresh the page.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setAuthCheckInProgress(false);
+    }
+  };
   
+  // Ensure we fetch saved prompts when user is available
   useEffect(() => {
     if (user) {
       fetchSavedPrompts();
@@ -177,7 +229,7 @@ export const StepController = ({
     setSmartContext({ context, usageInstructions });
   };
 
-  const handleAnalyzeWithContext = () => {
+  const handleAnalyzeWithContext = async () => {
     if (currentStep !== 1) {
       console.log("StepController: Not on step 1, not analyzing");
       return;
@@ -190,12 +242,20 @@ export const StepController = ({
       return;
     }
     
+    // Check authentication status before proceeding
+    const authOk = await checkAuthBeforeOperation();
+    if (!authOk) {
+      console.log("Authentication check failed, not proceeding with analysis");
+      return;
+    }
+    
     console.log("StepController: Analyzing with context", {
       imagesCount: uploadedImages?.length || 0,
       hasWebsiteContext: !!websiteContext && !!websiteContext.url,
       hasSmartContext: !!smartContext && !!smartContext.context,
       websiteUrl: websiteContext?.url || "none",
-      websiteInstructions: websiteContext?.instructions || "none"
+      websiteInstructions: websiteContext?.instructions || "none",
+      retryCount: retryCount
     });
     
     // Ensure we're passing valid values to handleAnalyze
@@ -241,12 +301,23 @@ export const StepController = ({
     }
 
     if (step === 2 && questions.length === 0 && variables.length === 0) {
+      // Check auth before analysis
+      const authOk = await checkAuthBeforeOperation();
+      if (!authOk) {
+        console.log("Authentication check failed, not proceeding with analysis");
+        return;
+      }
+      
       toast({
-        title: "Cannot proceed",
-        description: "Please analyze your prompt first",
-        variant: "destructive",
+        title: "Analyzing prompt",
+        description: "Processing your prompt before proceeding to step 2",
+        variant: "default",
       });
-      return;
+      
+      // Automatically trigger analysis if needed
+      console.log("Automatically triggering analysis before step 2");
+      await handleAnalyzeWithContext();
+      return; // Don't proceed yet, analysis will call jumpToStep(2) when complete
     }
 
     // Save draft only when moving from step 1 to step 2
@@ -256,6 +327,13 @@ export const StepController = ({
     }
 
     if (step === 3) {
+      // Check auth before enhancing
+      const authOk = await checkAuthBeforeOperation();
+      if (!authOk) {
+        console.log("Authentication check failed, not proceeding to step 3");
+        return;
+      }
+      
       setIsEnhancingPrompt(true);
       
       // Set the fixed message for step 3 transition
@@ -453,6 +531,20 @@ export const StepController = ({
   useEffect(() => {
     console.log(`Current step: ${currentStep}, Questions: ${questions.length}, Variables: ${variables.length}`);
   }, [currentStep, questions.length, variables.length]);
+
+  // Add automatic retry logic if analysis fails repeatedly
+  useEffect(() => {
+    if (retryCount > 0 && retryCount < 3 && currentStep === 1) {
+      console.log(`Auto-retrying analysis after failure (attempt ${retryCount + 1})...`);
+      
+      // Add a delay before retrying
+      const timer = setTimeout(() => {
+        handleAnalyzeWithContext();
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [retryCount]);
 
   return (
     <div className="w-full h-full flex flex-col">
