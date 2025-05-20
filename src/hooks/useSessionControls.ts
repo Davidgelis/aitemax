@@ -13,7 +13,7 @@ export const useSessionControls = () => {
   const [consecutiveHealthyChecks, setConsecutiveHealthyChecks] = useState(0);
   const { toast } = useToast();
 
-  // Monitor connection health with a more sophisticated approach
+  // Monitor connection health with less frequent checks to avoid false negatives
   useEffect(() => {
     const healthCheckInterval = setInterval(() => {
       const health = getConnectionHealth();
@@ -37,7 +37,7 @@ export const useSessionControls = () => {
       else if (health.status === 'degraded') {
         setConsecutiveHealthyChecks(0);
       }
-    }, 5000);
+    }, 10000); // Check less frequently (10 seconds instead of 5)
     
     return () => clearInterval(healthCheckInterval);
   }, [connectionHealth, consecutiveHealthyChecks, toast]);
@@ -64,18 +64,18 @@ export const useSessionControls = () => {
     const s = Math.floor((left % 60000) / 1000).toString().padStart(2, '0');
     setTimer(`${m}:${s}`);
     
-    // Proactive refresh - refresh when less than 2 minutes remain
+    // Proactive refresh - refresh when less than 3 minutes remain (increased from 2)
     // But add a check to avoid multiple simultaneous refresh attempts
-    if (left < 2 * 60 * 1000 && isOnline && !refreshInProgress) {
+    if (left < 3 * 60 * 1000 && isOnline && !refreshInProgress) {
       setRefreshInProgress(true);
       refreshSession().finally(() => {
-        // Reset the flag after refresh attempt completes, whether successful or not
+        // Reset the flag after refresh attempt completes
         setTimeout(() => setRefreshInProgress(false), 5000);
       });
     }
   }, [sessionExpiresAt, refreshSession, isOnline, refreshInProgress]);
 
-  // Handle manual refresh initiation with debounce to prevent multiple clicks
+  // Handle manual refresh with better error handling
   const handleManualRefresh = useCallback(async () => {
     if (refreshInProgress) return;
     
@@ -91,24 +91,7 @@ export const useSessionControls = () => {
         return;
       }
       
-      // More resilient approach - first check for basic internet connectivity
-      try {
-        await fetch('https://www.google.com/favicon.ico', { 
-          method: 'HEAD',
-          cache: 'no-store',
-          mode: 'no-cors',
-          signal: AbortSignal.timeout(2000)
-        });
-      } catch (err) {
-        toast({
-          title: "Network Issue",
-          description: "Unable to confirm internet connectivity. Check your connection.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Then try to reconnect to Supabase
+      // Try to reconnect to Supabase
       const connectionCheck = await refreshSupabaseConnection();
       if (!connectionCheck) {
         toast({

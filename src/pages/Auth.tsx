@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import Logo from '@/components/Logo';
@@ -15,13 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Globe, RefreshCw, Wifi, WifiOff, AlertTriangle, LucideLoader, Signal } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Extract the health check logic to make it reusable with improved stability
+// Simplify the connection health check for better reliability
 const useConnectionHealthCheck = (initialCheckOnMount = true) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [reconnecting, setReconnecting] = useState(false);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const [initialConnectionCheck, setInitialConnectionCheck] = useState(initialCheckOnMount);
   const [connectionHealth, setConnectionHealth] = useState<any>(null);
   const { toast } = useToast();
   
@@ -30,13 +29,6 @@ const useConnectionHealthCheck = (initialCheckOnMount = true) => {
     const handleOnline = () => {
       setIsOnline(true);
       setConnectionError(null);
-      
-      // When coming back online, delay the reconnection attempt slightly
-      setTimeout(() => {
-        if (navigator.onLine) {
-          handleReconnect();
-        }
-      }, 1000);
     };
     
     const handleOffline = () => {
@@ -53,66 +45,83 @@ const useConnectionHealthCheck = (initialCheckOnMount = true) => {
     };
   }, []);
   
-  // Check connection health less frequently to avoid false negatives
+  // Check connection health less frequently (30 seconds) to avoid false negatives
   useEffect(() => {
-    // Use a less sensitive approach to determine connection health
-    const checkHealth = async () => {
-      if (!navigator.onLine) {
-        setConnectionHealth({ status: 'offline', lastCheck: Date.now() });
-        return;
+    if (initialCheckOnMount) {
+      checkBasicConnectivity();
+    }
+    
+    // Use a less sensitive approach with longer intervals
+    const healthInterval = setInterval(() => {
+      if (navigator.onLine) {
+        checkBasicConnectivity();
       }
+    }, 30000); // Check every 30 seconds instead of 10
+    
+    return () => clearInterval(healthInterval);
+  }, [initialCheckOnMount]);
+
+  // Simplified connectivity check that's less likely to trigger false alarms
+  const checkBasicConnectivity = async () => {
+    if (!navigator.onLine) {
+      setConnectionHealth({ status: 'offline', lastCheck: Date.now() });
+      return;
+    }
+    
+    try {
+      // First try locally to avoid excessive external requests
+      const startTime = Date.now();
+      await fetch('/favicon.ico', { 
+        method: 'HEAD',
+        cache: 'no-store',
+        signal: AbortSignal.timeout(3000) // Shorter timeout for local resources
+      });
       
+      // If local check passes, we're probably good enough to attempt login
+      setConnectionHealth({ status: 'healthy', lastCheck: Date.now() });
+      
+      // Clear connection error if it was just a temporary glitch
+      if (connectionError && connectionError !== "You're offline. Please check your internet connection.") {
+        setConnectionError(null);
+      }
+    } catch (err) {
+      console.warn("Basic connectivity check failed, trying alternative:", err);
+      
+      // Try an external resource as fallback
       try {
-        const response = await fetch('https://www.google.com/favicon.ico', { 
+        await fetch('https://www.google.com/favicon.ico', { 
           method: 'HEAD',
           cache: 'no-store',
           mode: 'no-cors',
-          signal: AbortSignal.timeout(2000)
+          signal: AbortSignal.timeout(5000)
         });
         
-        // If we can reach a common resource, basic connectivity is good
+        // If we reach here, we have some connectivity
         setConnectionHealth({ status: 'healthy', lastCheck: Date.now() });
         
-        // If there was a previous connection error but now we can connect, clear it
-        if (connectionError && connectionError !== "You're offline. Please check your internet connection.") {
+        // Clear error if it was just temporary
+        if (connectionError) {
           setConnectionError(null);
         }
       } catch (err) {
-        console.warn("Basic connectivity check failed:", err);
+        console.error("All connectivity checks failed:", err);
         
-        // Only consider the connection degraded after multiple consecutive failures
-        if (connectionHealth?.status === 'degraded') {
-          setConnectionHealth({ 
-            status: 'degraded', 
-            lastCheck: Date.now(),
-            consecutive: (connectionHealth.consecutive || 1) + 1 
-          });
-          
-          // Only show error after multiple consecutive failures to reduce false alarms
-          if (connectionHealth.consecutive >= 2 && !connectionError) {
-            setConnectionError("Connection issues detected. You may experience difficulty connecting to our servers.");
-          }
-        } else {
-          // First failure, just mark as potentially degraded
-          setConnectionHealth({ 
-            status: 'degraded', 
-            lastCheck: Date.now(),
-            consecutive: 1
-          });
+        // Only update status to degraded after multiple checks to avoid false alarms
+        setConnectionHealth({ 
+          status: 'degraded', 
+          lastCheck: Date.now(),
+          consecutive: (connectionHealth?.consecutive || 0) + 1 
+        });
+        
+        // Only show error after multiple consecutive failures
+        if ((connectionHealth?.consecutive || 0) >= 2 && !connectionError) {
+          setConnectionError(
+            "Connection issues detected. You may have trouble logging in. Check your network settings or try again later."
+          );
         }
       }
-    };
-    
-    // Run initial check
-    if (initialCheckOnMount) {
-      checkHealth();
-      setInitialConnectionCheck(false);
     }
-    
-    // Check less frequently (every 10 seconds is sufficient)
-    const healthInterval = setInterval(checkHealth, 10000);
-    return () => clearInterval(healthInterval);
-  }, [connectionHealth, connectionError, initialCheckOnMount]);
+  };
 
   const handleReconnect = async () => {
     if (reconnecting) return; // Prevent multiple simultaneous reconnection attempts
@@ -122,27 +131,26 @@ const useConnectionHealthCheck = (initialCheckOnMount = true) => {
     setReconnectAttempts(prev => prev + 1);
     
     try {
-      // First check basic connectivity with a lightweight request
+      // First check basic internet connectivity
       let networkAccessible = false;
       
       try {
-        const response = await fetch('https://www.google.com/favicon.ico', { 
+        await fetch('https://www.google.com/favicon.ico', { 
           method: 'HEAD',
           cache: 'no-store',
           mode: 'no-cors',
-          signal: AbortSignal.timeout(2000)
+          signal: AbortSignal.timeout(5000)
         });
         
         networkAccessible = true;
       } catch (err) {
-        console.warn("Basic internet connectivity check failed:", err);
         setConnectionError("Network access issues detected. Please check your internet connection.");
         setReconnecting(false);
         return;
       }
       
       if (networkAccessible) {
-        // Then try to connect to Supabase with a simpler approach
+        // Try to connect to Supabase with a simpler approach
         const success = await refreshSupabaseConnection();
         
         if (success) {
@@ -170,10 +178,10 @@ const useConnectionHealthCheck = (initialCheckOnMount = true) => {
     connectionError,
     reconnecting,
     reconnectAttempts,
-    initialConnectionCheck,
     connectionHealth,
     handleReconnect,
-    setConnectionError
+    setConnectionError,
+    checkBasicConnectivity
   };
 };
 
@@ -187,16 +195,20 @@ const Auth = () => {
   const [usernameError, setUsernameError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [loginAttemptCount, setLoginAttemptCount] = useState(0);
+  
+  // Add timeout references to auto-cancel long-running operations
+  const loginTimeoutRef = useRef<number | null>(null);
   
   // Use the improved connection health checker
   const { 
     isOnline, 
     connectionError, 
     reconnecting, 
-    initialConnectionCheck, 
     connectionHealth,
     handleReconnect,
-    setConnectionError
+    setConnectionError,
+    checkBasicConnectivity
   } = useConnectionHealthCheck(true);
   
   const { signIn, signUp, session } = useAuth();
@@ -218,6 +230,16 @@ const Auth = () => {
   useEffect(() => {
     setSelectedLanguage(currentLanguage);
   }, [currentLanguage]);
+
+  // Cleanup function for timeouts on component unmount
+  useEffect(() => {
+    return () => {
+      // Clear any lingering timeouts when component unmounts
+      if (loginTimeoutRef.current) {
+        window.clearTimeout(loginTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Simplified username availability check with better error handling
   const checkUsernameAvailability = async (username: string) => {
@@ -247,7 +269,7 @@ const Auth = () => {
     }
   };
   
-  // Simplified authentication process with more stable error handling
+  // Simplified authentication process with timeout and better error handling
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -262,69 +284,125 @@ const Auth = () => {
     
     setLoading(true);
     setUsernameError('');
+    setLoginAttemptCount(prev => prev + 1);
+    
+    // Set a timeout to cancel the loading state after 15 seconds
+    // This prevents the button from being stuck in loading state indefinitely
+    if (loginTimeoutRef.current) {
+      window.clearTimeout(loginTimeoutRef.current);
+    }
+    
+    loginTimeoutRef.current = window.setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        toast({
+          title: "Login Timeout",
+          description: "The login attempt timed out. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }, 15000); // 15 second timeout
     
     try {
-      if (isLogin) {
-        // Login flow - use a simple, reliable approach
-        const { error } = await supabase.auth.signInWithPassword({ 
-          email, 
-          password
+      // First check if we can actually reach Supabase
+      await checkBasicConnectivity();
+      
+      // If the connection health is degraded after multiple attempts, warn the user
+      if (connectionHealth?.status === 'degraded' && connectionHealth?.consecutive >= 2) {
+        toast({
+          title: "Connection Issues Detected",
+          description: "You may have trouble logging in. Please check your network.",
+          variant: "warning",
         });
+      }
+      
+      if (isLogin) {
+        // Login flow with better error handling
+        console.log("Attempting to sign in with email:", email);
         
-        if (error) {
-          console.error("Login error:", error);
-          
-          if (error.message?.includes("Invalid login credentials")) {
-            throw new Error("Invalid email or password. Please try again.");
-          } else if (error.message?.includes("network")) {
-            throw new Error("Connection error. Please check your internet connection and try again.");
-          } else {
-            throw error;
-          }
-        } else {
-          toast({
-            title: "Login Successful",
-            description: "Welcome back!",
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({ 
+            email, 
+            password
           });
           
-          // Navigate after successful login
-          const returnUrl = new URLSearchParams(location.search).get('returnUrl');
-          navigate(returnUrl || '/dashboard');
+          if (error) {
+            throw error;
+          }
+          
+          if (data && data.session) {
+            console.log("Login successful, session established");
+            
+            toast({
+              title: "Login Successful",
+              description: "Welcome back!",
+            });
+            
+            // Navigate after successful login
+            const returnUrl = new URLSearchParams(location.search).get('returnUrl');
+            navigate(returnUrl || '/dashboard');
+          } else {
+            throw new Error("Login successful but no session was created");
+          }
+        } catch (error: any) {
+          console.error("Supabase login error:", error);
+          
+          // Handle specific error cases
+          if (error.message?.includes("Invalid login credentials")) {
+            toast({
+              title: "Login Failed",
+              description: "Invalid email or password. Please try again.",
+              variant: "destructive",
+            });
+          } else if (error.message?.includes("network") || error.message?.includes("fetch")) {
+            toast({
+              title: "Connection Error",
+              description: "Unable to connect to authentication service. Please check your internet connection.",
+              variant: "destructive",
+            });
+            setConnectionError("Unable to reach authentication servers. Please check your connection settings.");
+          } else {
+            toast({
+              title: "Login Error",
+              description: error.message || "An unexpected error occurred during login",
+              variant: "destructive",
+            });
+          }
+          
+          throw error; // Re-throw for the outer catch block
         }
       } else {
-        // Registration flow
-        // Check username availability before signup
+        // Registration flow with better error handling
         if (!username) {
           setUsernameError(t.errors.usernameRequired);
-          setLoading(false);
-          return;
+          throw new Error("Username is required");
         }
         
         const isAvailable = await checkUsernameAvailability(username);
         if (!isAvailable) {
           setUsernameError(t.errors.usernameTaken);
-          setLoading(false);
-          return;
+          throw new Error("Username is already taken");
         }
         
-        // Use direct signup
-        const { error } = await supabase.auth.signUp({
-          email, 
-          password,
-          options: {
-            data: { 
-              username,
-              preferred_language: selectedLanguage
-            }
-          }
-        });
+        // Use direct signup with better error tracking
+        console.log("Attempting to sign up with email:", email);
         
-        if (error) {
-          if (error.message?.includes("network") || error.message?.includes("fetch")) {
-            throw new Error("Connection error. Please check your internet and try again.");
+        try {
+          const { data, error } = await supabase.auth.signUp({
+            email, 
+            password,
+            options: {
+              data: { 
+                username,
+                preferred_language: selectedLanguage
+              }
+            }
+          });
+          
+          if (error) {
+            throw error;
           }
-          throw error;
-        } else {
+          
           // Change the app language immediately to the selected one
           await setLanguage(selectedLanguage);
           
@@ -333,34 +411,67 @@ const Auth = () => {
             description: "Please check your email for verification instructions.",
           });
           setIsLogin(true);
+          
+        } catch (error: any) {
+          console.error("Signup error:", error);
+          
+          if (error.message?.includes("network") || error.message?.includes("fetch")) {
+            toast({
+              title: "Connection Error",
+              description: "Unable to connect to signup service. Please check your internet connection.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Signup Error",
+              description: error.message || "An unexpected error occurred during signup",
+              variant: "destructive",
+            });
+          }
+          
+          throw error; // Re-throw for the outer catch block
         }
       }
     } catch (error: any) {
-      console.error("Authentication error:", error);
-      
-      // Better error classification
-      if (error.message?.includes("Invalid") || error.message?.includes("invalid") || error.message?.includes("password")) {
-        toast({
-          title: "Login Failed",
-          description: error.message || "Invalid email or password. Please try again.",
-          variant: "destructive",
-        });
-      } else if (error.message?.includes("network") || error.message?.includes("connect") || error.message?.includes("Connection")) {
-        toast({
-          title: "Connection Failed",
-          description: error.message || "Unable to connect to authentication service. Please check your internet connection.",
-          variant: "destructive",
-        });
-        setConnectionError("Unable to reach authentication servers. Please check your connection settings.");
-      } else {
-        toast({
-          title: "Error",
-          description: error.message || "An unexpected error occurred",
-          variant: "destructive",
-        });
-      }
+      console.error("Authentication process error:", error);
+      // Error already handled in inner try-catch blocks
     } finally {
+      // Clear the timeout as we've finished the operation
+      if (loginTimeoutRef.current) {
+        window.clearTimeout(loginTimeoutRef.current);
+        loginTimeoutRef.current = null;
+      }
+      
       setLoading(false);
+    }
+  };
+
+  // Add function to retry connection explicitly
+  const retryConnection = async () => {
+    await checkBasicConnectivity();
+    
+    toast({
+      title: "Connection Check",
+      description: "Checking connection to server...",
+    });
+    
+    // Test direct connection to Supabase as well
+    try {
+      const { data } = await supabase.from('supported_languages').select('id').limit(1);
+      if (data) {
+        toast({
+          title: "Connection Test Successful",
+          description: "You should be able to log in now.",
+        });
+        setConnectionError(null);
+      }
+    } catch (error) {
+      console.error("Supabase connection test failed:", error);
+      toast({
+        title: "Connection Test Failed",
+        description: "Still having issues connecting to our servers.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -381,40 +492,48 @@ const Auth = () => {
           {isLogin ? t.login : t.signUp}
         </h2>
         
-        {/* Connection status alerts with more detailed info */}
-        {(!isOnline || connectionError || initialConnectionCheck) && (
+        {/* Connection status alerts with improved actions */}
+        {(!isOnline || connectionError) && (
           <Alert 
-            variant={!isOnline ? "destructive" : connectionError ? "warning" : "default"} 
+            variant={!isOnline ? "destructive" : "warning"} 
             className="mb-4"
           >
             <div className="flex items-start gap-2">
               {!isOnline ? (
                 <WifiOff className="h-4 w-4 mt-0.5" />
-              ) : connectionError ? (
-                <AlertTriangle className="h-4 w-4 mt-0.5" />
               ) : (
-                <LucideLoader className="h-4 w-4 mt-0.5 animate-spin" />
+                <AlertTriangle className="h-4 w-4 mt-0.5" />
               )}
               <AlertDescription className="flex flex-col gap-2">
-                {!isOnline ? (
-                  "You appear to be offline. Please check your connection."
-                ) : initialConnectionCheck ? (
-                  "Checking connection to server..."
-                ) : (
-                  connectionError
-                )}
-                {(isOnline && !initialConnectionCheck) && (
+                {!isOnline 
+                  ? "You appear to be offline. Please check your connection."
+                  : connectionError
+                }
+                
+                <div className="flex gap-2 mt-2">
+                  {/* Add explicit retry button for better UX */}
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={retryConnection} 
+                    disabled={!isOnline || reconnecting} 
+                    className="self-start"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Test Connection
+                  </Button>
+                  
                   <Button 
                     variant="outline"
                     size="sm"
                     onClick={handleReconnect} 
                     disabled={reconnecting || !isOnline} 
-                    className="self-start mt-2"
+                    className="self-start"
                   >
                     {reconnecting ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                    {reconnecting ? "Reconnecting..." : "Try Again"}
+                    {reconnecting ? "Reconnecting..." : "Reconnect"}
                   </Button>
-                )}
+                </div>
               </AlertDescription>
             </div>
           </Alert>
@@ -513,7 +632,7 @@ const Auth = () => {
           <Button 
             type="submit" 
             className="w-full aurora-button" 
-            disabled={loading || (!isOnline && !connectionError) || reconnecting || initialConnectionCheck}
+            disabled={loading || (!isOnline && !connectionError) || reconnecting}
           >
             {loading ? (
               <span className="flex items-center">
@@ -524,6 +643,19 @@ const Auth = () => {
               isLogin ? t.loginCta : t.signUpCta
             )}
           </Button>
+          
+          {/* Add troubleshooting help for multiple failed login attempts */}
+          {loginAttemptCount > 2 && (
+            <div className="mt-4 text-sm text-gray-500">
+              <p className="font-medium">Having trouble logging in?</p>
+              <ul className="list-disc pl-5 mt-1">
+                <li>Check your email and password</li>
+                <li>Make sure you have a stable internet connection</li>
+                <li>Try refreshing the page</li>
+                <li>Clear your browser cache</li>
+              </ul>
+            </div>
+          )}
         </form>
         
         <div className="mt-4 text-center">
