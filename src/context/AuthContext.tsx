@@ -1,7 +1,8 @@
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { SESSION_CFG } from '@/config/session';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, refreshSupabaseConnection } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -23,6 +24,8 @@ type AuthContextType = {
   loading: boolean;
   refreshSession: () => Promise<void>;
   sessionExpiresAt: Date | null;
+  isOnline: boolean;
+  reconnect: () => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,7 +47,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [refreshRetryCount, setRefreshRetryCount] = useState(0);
   const [showSessionExpiredDialog, setShowSessionExpiredDialog] = useState(false);
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { toast } = useToast();
+  
+  // Monitor online/offline state
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      // When coming back online, try to refresh the session
+      if (!session) {
+        setTimeout(() => {
+          refreshSession();
+        }, 1000);
+      }
+    };
+    
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [session]);
   
   // Sync refreshes & timers across tabs
   const channel = new BroadcastChannel('aitema-session');
@@ -62,6 +89,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     return () => channel.close();
   }, []);
+
+  // Manual reconnection function for users to trigger
+  const reconnect = async (): Promise<boolean> => {
+    try {
+      const connected = await refreshSupabaseConnection();
+      if (connected) {
+        await refreshSession();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Reconnection failed:", error);
+      return false;
+    }
+  };
   
   // Function to refresh the session with debounce to prevent multiple simultaneous refreshes
   const refreshSession = useCallback(async () => {
@@ -70,6 +112,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const now = Date.now();
       if (now - lastRefreshTime < REFRESH_DEBOUNCE) {
         console.log("Skipping refresh - too soon since last attempt");
+        return;
+      }
+      
+      if (!navigator.onLine) {
+        console.log("Device is offline, skipping session refresh");
         return;
       }
       
@@ -147,8 +194,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Set up interval to refresh session periodically
     const refreshInterval = setInterval(() => {
-      console.log("Automatic session refresh triggered");
-      refreshSession();
+      if (navigator.onLine) {
+        console.log("Automatic session refresh triggered");
+        refreshSession();
+      }
     }, SESSION_REFRESH_INTERVAL);
     
     // Check for inactivity every 15 minutes (reduced frequency)
@@ -157,7 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const inactiveTime = now - lastActivity;
       
       // If user has been inactive but now becomes active again after threshold, refresh session
-      if (inactiveTime >= INACTIVITY_REFRESH_TIMEOUT) {
+      if (inactiveTime >= INACTIVITY_REFRESH_TIMEOUT && navigator.onLine) {
         console.log(`User was inactive for ${inactiveTime/1000/60} minutes, refreshing session`);
         refreshSession();
         lastActivity = now; // Reset last activity
@@ -171,7 +220,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const timeSinceLastActivity = now - lastActivity;
         
         // Only refresh if it's been more than 5 minutes since the last activity
-        if (timeSinceLastActivity > 5 * 60 * 1000) {
+        if (timeSinceLastActivity > 5 * 60 * 1000 && navigator.onLine) {
           console.log("User returned to the app after inactivity, refreshing session");
           refreshSession();
         }
@@ -358,7 +407,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signOut, 
       loading,
       refreshSession,
-      sessionExpiresAt
+      sessionExpiresAt,
+      isOnline,
+      reconnect
     }}>
       <AlertDialog open={showSessionExpiredDialog} onOpenChange={setShowSessionExpiredDialog}>
         <AlertDialogContent>
