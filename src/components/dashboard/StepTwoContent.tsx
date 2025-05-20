@@ -1,6 +1,6 @@
 
 import { Question, Variable } from "./types";
-import { RefObject, useState } from "react";
+import { RefObject, useState, useEffect } from "react";
 import { QuestionList } from "./QuestionList";
 import { VariableList } from "./VariableList";
 import { Info, Loader2 } from "lucide-react";
@@ -51,6 +51,25 @@ export const StepTwoContent = ({
 }: StepTwoContentProps) => {
   const { currentLanguage } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
+  
+  // Add debug logging for prefilled questions and variables
+  useEffect(() => {
+    // Debug logging for questions with answers
+    const questionsWithAnswers = questions.filter(q => q.answer && q.answer.trim());
+    console.log(`StepTwoContent: ${questionsWithAnswers.length}/${questions.length} questions have prefilled answers`);
+    
+    // Debug logging for variables
+    const variablesWithValues = variables.filter(v => v.value && v.value.trim());
+    console.log(`StepTwoContent: ${variablesWithValues.length}/${variables.length} variables have prefilled values`);
+    
+    // Log the source of prefilled data
+    const sourceMapping = {
+      "image": questions.filter(q => q.prefillSource === "image" || q.prefillSource === "style-analysis").length,
+      "context": questions.filter(q => q.prefillSource === "context").length,
+      "website": questions.filter(q => q.prefillSource === "website").length,
+    };
+    console.log("StepTwoContent: Prefill sources:", sourceMapping);
+  }, [questions, variables]);
   
   // State for the question answer editing sheet
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);

@@ -97,17 +97,33 @@ export const usePromptAnalysis = (
       if (error || !data) throw new Error(error?.message || "No data returned");
 
       /* ---------- normalise server response for front-end ---------- */
-      const normQ = (q: any, i: number): Question => ({
-        id        : q.id        || `q-${i+1}`,
-        text      : q.text      || q.question || (q.q as string) || "",
-        answer    : q.answer    || "",
-        isRelevant: q.isRelevant !== false,
-        category  : q.category  || "General",
-        prefillSource: q.prefillSource || undefined,
-        contextSource: q.contextSource || undefined,
-        examples  : Array.isArray(q.examples) ? q.examples.slice(0, MAX_EXAMPLES) : [],
-        hasBeenAnswered: !!q.answer         // mark if it arrived pre-answered
-      });
+      const normQ = (q: any, i: number): Question => {
+        console.log(`Processing question ${i}:`, q);
+        // Check if there's pre-filled answer data
+        const hasPrefill = !!q.answer;
+        if (hasPrefill) {
+          console.log(`Question ${i} has prefilled answer:`, q.answer);
+        }
+        
+        // Check and normalize prefill source
+        let sourceTxt = q.prefillSource;
+        if (typeof sourceTxt === 'object' && sourceTxt !== null) {
+          console.log(`Normalizing prefill source object for question ${i}:`, sourceTxt);
+          sourceTxt = sourceTxt._type || sourceTxt.value || null;
+        }
+        
+        return {
+          id        : q.id        || `q-${i+1}`,
+          text      : q.text      || q.question || (q.q as string) || "",
+          answer    : q.answer    || "",             // Preserve prefilled answer
+          isRelevant: q.isRelevant !== false,
+          category  : q.category  || "General",
+          prefillSource: sourceTxt || undefined,
+          contextSource: q.contextSource || undefined,
+          examples  : Array.isArray(q.examples) ? q.examples.slice(0, MAX_EXAMPLES) : [],
+          hasBeenAnswered: !!q.answer                // Mark if it arrived pre-answered
+        };
+      };
 
       const normV = (v: any, i: number): Variable => ({
         id        : v.id        || `v-${i+1}`,
@@ -119,10 +135,18 @@ export const usePromptAnalysis = (
         prefillSource: v.prefillSource || undefined
       });
 
-      setQuestions( (data.questions ?? []).map(normQ) );
-      setVariables( (data.variables ?? []).map(normV) );
+      // Convert questions and variables, logging the results
+      const normalizedQuestions = (data.questions ?? []).map(normQ);
+      console.log("Normalized questions:", normalizedQuestions);
+      
+      const normalizedVariables = (data.variables ?? []).map(normV);
+      console.log("Normalized variables:", normalizedVariables);
+      
+      // Update state with normalized data
+      setQuestions(normalizedQuestions);
+      setVariables(normalizedVariables);
       setMasterCommand(data.masterCommand ?? "");
-      setFinalPrompt( data.enhancedPrompt ?? "" );
+      setFinalPrompt(data.enhancedPrompt ?? "");
 
       // If any warnings came back, show them to the user and save for UI
       if (data.warnings && Array.isArray(data.warnings)) {

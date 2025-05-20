@@ -47,6 +47,11 @@ export const QuestionItem = ({
     sourceLabel = 'from website';
   }
 
+  // Add styling for prefilled answers to make them visually distinct
+  const textareaClassName = `min-h-[80px] text-sm ${
+    question.hasBeenAnswered ? 'bg-blue-50 border-blue-300' : ''
+  }`;
+
   return (
     <div className={`border rounded-lg p-3 mb-2 ${question.isRelevant === false ? 'bg-gray-50 opacity-70' : 'bg-white'}`}>
       <div className="flex items-start gap-2">
@@ -73,7 +78,7 @@ export const QuestionItem = ({
                 value={question.answer || ''}
                 onChange={handleAnswerChange}
                 placeholder="Enter your answer here..."
-                className="min-h-[80px] text-sm"
+                className={textareaClassName}
                 maxLength={maxCharLimit}
               />
               

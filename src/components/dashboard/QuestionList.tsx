@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { QuestionItem } from "./QuestionItem";
 import { Question } from "./types";
 
@@ -18,6 +18,16 @@ export const QuestionList = ({
   containerRef,
   originalPrompt
 }: QuestionListProps) => {
+  // Debug logs for questions
+  useEffect(() => {
+    console.log("Incoming questions:", questions);
+    // Log prefilled answers specifically for debugging
+    const prefilledQuestions = questions.filter(q => q.answer && q.answer.trim());
+    if (prefilledQuestions.length > 0) {
+      console.log("Prefilled questions:", prefilledQuestions);
+    }
+  }, [questions]);
+
   // Group questions by category
   const groupedQuestions: Record<string, Question[]> = questions.reduce((result, question) => {
     const category = question.category || "Other";
@@ -27,9 +37,8 @@ export const QuestionList = ({
     result[category].push(question);
     return result;
   }, {} as Record<string, Question[]>);
-
-  // Log for debugging
-  console.log("Incoming questions:", questions);
+  
+  // Log grouped questions for debugging
   console.log("Grouped questions:", groupedQuestions);
 
   // Format question text to handle both formats
