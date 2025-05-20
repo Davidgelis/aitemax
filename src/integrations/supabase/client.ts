@@ -32,7 +32,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       
       const attemptFetch = async (): Promise<Response> => {
         try {
-          // Add timeout to fetch requests
+          // Add timeout to fetch requests using AbortController
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
           
