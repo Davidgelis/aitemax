@@ -23,7 +23,8 @@ export const usePromptAnalysis = (
   setFinalPrompt:     (p: string)      => void,
   jumpToStep:         (n: number)      => void,
   user:               any,
-  currentPromptId:    string | null
+  currentPromptId:    string | null,
+  setWarnings?:       (w: string[]) => void
 ) => {
   const [loading, setLoading] = useState<LoadingState>({ isLoading:false, message:"" });
   const { toast }  = useToast();
@@ -122,6 +123,13 @@ export const usePromptAnalysis = (
       setMasterCommand(data.masterCommand ?? "");
       setFinalPrompt( data.enhancedPrompt ?? "" );
 
+      // If any warnings came back, show them to the user and save for UI
+      if (data.warnings && Array.isArray(data.warnings)) {
+        setWarnings?.(data.warnings);
+        data.warnings.forEach((msg: string) => {
+          toast({ title: "Notice", description: msg, variant: "warning" });
+        });
+      }
       jumpToStep(2);                       // 👈 move on
     } catch (err: any) {
       console.error(err);

@@ -72,6 +72,7 @@ export const StepController = ({
   
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
   const [enhancingMessage, setEnhancingMessage] = useState("Building your final prompt with Aitema X");
+  const [analysisWarnings, setAnalysisWarnings] = useState<string[]>([]);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [websiteContext, setWebsiteContext] = useState<{ url: string; instructions: string } | null>(null);
   const [smartContext, setSmartContext] = useState<{ context: string; usageInstructions: string } | null>(null);
@@ -91,7 +92,8 @@ export const StepController = ({
     setFinalPrompt,
     jumpToStep,
     user,
-    currentPromptId
+    currentPromptId,
+    setAnalysisWarnings
   );
   
   const { isLoading: isAnalyzing, currentLoadingMessage, loadingState, handleAnalyze, enhancePromptWithGPT } = promptAnalysis;
@@ -391,6 +393,7 @@ export const StepController = ({
             originalPrompt={promptText}
             isLoading={isAnalyzing}
             loadingMessage={loadingState?.message || currentLoadingMessage}
+            warnings={analysisWarnings}
           />
         );
 

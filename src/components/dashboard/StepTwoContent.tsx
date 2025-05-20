@@ -26,6 +26,7 @@ interface StepTwoContentProps {
   originalPrompt: string;
   isLoading?: boolean;
   loadingMessage?: string;
+  warnings?: string[];
 }
 
 export const StepTwoContent = ({
@@ -45,7 +46,8 @@ export const StepTwoContent = ({
   variablesContainerRef,
   originalPrompt,
   isLoading = false,
-  loadingMessage = ""
+  loadingMessage = "",
+  warnings = []
 }: StepTwoContentProps) => {
   const { currentLanguage } = useLanguage();
   const t = dashboardTranslations[currentLanguage as keyof typeof dashboardTranslations] || dashboardTranslations.en;
@@ -109,6 +111,17 @@ export const StepTwoContent = ({
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex flex-col flex-1 justify-center items-center p-4 pt-12">
         <div className="w-full border rounded-xl p-6 bg-card">
+          {/* Inline warnings (if any) */}
+          {warnings.length > 0 && (
+            <div className="p-4 mb-4 rounded-md border-l-4 border-yellow-500 bg-yellow-50 text-sm text-yellow-800">
+              {warnings.map((msg, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <Info size={16} className="mt-0.5" />
+                  <span>{msg}</span>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
               <p className="text-[#545454] mb-0">{t.steps.questionsToAnswer}</p>
