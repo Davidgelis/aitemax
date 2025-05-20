@@ -26,17 +26,20 @@ const PasswordProtectedRoute: React.FC<PasswordProtectedRouteProps> = ({ childre
   const location = useLocation();
   const { toast } = useToast();
 
-  // Exclude auth page from password protection
-  const isAuthPage = location.pathname === "/auth";
+  // List of excluded paths that don't require password protection
+  const excludedPaths = ['/auth', '/auth/'];
+  
+  // Check if the current path is excluded from password protection
+  const isExcludedPath = excludedPaths.includes(location.pathname);
   
   // Check if user is already authenticated
   useEffect(() => {
     const hasAccess = localStorage.getItem("app_access") === "granted";
-    if (hasAccess || isAuthPage) {
+    if (hasAccess || isExcludedPath) {
       setIsAuthenticated(true);
       setIsOpen(false);
     }
-  }, [isAuthPage]);
+  }, [isExcludedPath]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +67,7 @@ const PasswordProtectedRoute: React.FC<PasswordProtectedRouteProps> = ({ childre
     }
   };
 
-  if (isAuthenticated || isAuthPage) {
+  if (isAuthenticated || isExcludedPath) {
     return <>{children}</>;
   }
 

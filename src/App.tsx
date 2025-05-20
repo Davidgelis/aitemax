@@ -17,7 +17,26 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from '@/context/LanguageContext';
 import PasswordProtectedRoute from './components/PasswordProtectedRoute';
 
-const queryClient = new QueryClient();
+// Create QueryClient with enhanced error handling for auth-related queries
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error: any) => {
+        // Don't retry for auth-related errors or for server errors
+        if (error?.status === 401 || error?.status === 403 || error?.status >= 500) {
+          return false;
+        }
+        // Retry network-related failures more aggressively, up to 3 times
+        if (error?.message?.includes('network') || error?.message?.includes('fetch')) {
+          return failureCount < 3;
+        }
+        // Default retry behavior for other errors (up to 2 times)
+        return failureCount < 2;
+      },
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    },
+  },
+});
 
 function App() {
   return (
@@ -25,19 +44,42 @@ function App() {
       <AuthProvider>
         <LanguageProvider>
           <Router>
-            <PasswordProtectedRoute>
-              <div className="min-h-screen">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/x-panel" element={<XPanel />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/support" element={<Support />} />
-                </Routes>
-              </div>
-            </PasswordProtectedRoute>
+            <Routes>
+              {/* Auth page is excluded from password protection */}
+              <Route path="/auth" element={<Auth />} />
+              
+              {/* All other routes are behind password protection */}
+              <Route path="/" element={
+                <PasswordProtectedRoute>
+                  <Index />
+                </PasswordProtectedRoute>
+              } />
+              <Route path="/dashboard" element={
+                <PasswordProtectedRoute>
+                  <Dashboard />
+                </PasswordProtectedRoute>
+              } />
+              <Route path="/x-panel" element={
+                <PasswordProtectedRoute>
+                  <XPanel />
+                </PasswordProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <PasswordProtectedRoute>
+                  <Profile />
+                </PasswordProtectedRoute>
+              } />
+              <Route path="/reset-password" element={
+                <PasswordProtectedRoute>
+                  <ResetPassword />
+                </PasswordProtectedRoute>
+              } />
+              <Route path="/support" element={
+                <PasswordProtectedRoute>
+                  <Support />
+                </PasswordProtectedRoute>
+              } />
+            </Routes>
           </Router>
         </LanguageProvider>
       </AuthProvider>

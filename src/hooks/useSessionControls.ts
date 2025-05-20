@@ -10,25 +10,37 @@ export const useSessionControls = () => {
   const [aboutToExpire, setAboutToExpire] = useState(false);
   const [refreshInProgress, setRefreshInProgress] = useState(false);
   const [connectionHealth, setConnectionHealth] = useState<any>(getConnectionHealth());
+  const [consecutiveHealthyChecks, setConsecutiveHealthyChecks] = useState(0);
   const { toast } = useToast();
 
-  // Monitor connection health
+  // Monitor connection health with a more sophisticated approach
   useEffect(() => {
     const healthCheckInterval = setInterval(() => {
       const health = getConnectionHealth();
+      const prevStatus = connectionHealth?.status;
       setConnectionHealth(health);
       
-      // If connection was degraded but is now healthy, show success toast
-      if (health.status === 'healthy' && connectionHealth?.status === 'degraded') {
-        toast({
-          title: "Connection Restored",
-          description: "Your connection to our services has been restored.",
-        });
+      // If connection was degraded but is now healthy, increment healthy check counter
+      if (health.status === 'healthy' && prevStatus === 'degraded') {
+        setConsecutiveHealthyChecks(prev => prev + 1);
+        
+        // Only show toast after multiple consecutive healthy checks to avoid flapping
+        if (consecutiveHealthyChecks >= 2) {
+          toast({
+            title: "Connection Restored",
+            description: "Your connection to our services has been restored.",
+          });
+          setConsecutiveHealthyChecks(0);
+        }
+      } 
+      // Reset consecutive count if connection is degraded
+      else if (health.status === 'degraded') {
+        setConsecutiveHealthyChecks(0);
       }
     }, 5000);
     
     return () => clearInterval(healthCheckInterval);
-  }, [connectionHealth, toast]);
+  }, [connectionHealth, consecutiveHealthyChecks, toast]);
 
   const calc = useCallback(() => {
     if (!sessionExpiresAt) {
@@ -79,7 +91,24 @@ export const useSessionControls = () => {
         return;
       }
       
-      // First check basic connectivity
+      // More resilient approach - first check for basic internet connectivity
+      try {
+        await fetch('https://www.google.com/favicon.ico', { 
+          method: 'HEAD',
+          cache: 'no-store',
+          mode: 'no-cors',
+          signal: AbortSignal.timeout(2000)
+        });
+      } catch (err) {
+        toast({
+          title: "Network Issue",
+          description: "Unable to confirm internet connectivity. Check your connection.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Then try to reconnect to Supabase
       const connectionCheck = await refreshSupabaseConnection();
       if (!connectionCheck) {
         toast({
