@@ -20,7 +20,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage
   },
   global: {
-    // Enhanced fetch with proper headers, retries and connection recovery
+    // Enhanced fetch with connection timeout and better error handling
     fetch: (url, options) => {
       // Generate a unique request ID for tracking
       const requestId = Math.random().toString(36).substring(2, 10);
@@ -32,15 +32,24 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       
       const attemptFetch = async (): Promise<Response> => {
         try {
+          // Add timeout to fetch requests
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          
           const response = await fetch(url, {
             ...options,
             credentials: 'include', // Include cookies for cross-origin requests
             mode: 'cors', // Enable CORS
+            signal: controller.signal,
             headers: {
               ...options?.headers,
               'X-Request-ID': requestId,
+              'Cache-Control': 'no-cache, no-store',
             },
           });
+          
+          // Clear timeout if fetch completes
+          clearTimeout(timeoutId);
           
           // If no HTTP error, return the response
           if (response.ok) {
@@ -74,7 +83,13 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
           // For other status codes, throw an error to trigger retry logic
           throw new Error(`Fetch failed with status ${response.status}: ${response.statusText}`);
           
-        } catch (err) {
+        } catch (err: any) {
+          // Handle abort/timeout specifically
+          if (err.name === 'AbortError') {
+            console.error(`Request timeout [${requestId}] - server took too long to respond`);
+            throw new Error('Connection timed out. The server is taking too long to respond.');
+          }
+          
           // Check if we should retry
           if (retries < maxRetries) {
             retries++;
@@ -84,13 +99,19 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
             return attemptFetch();
           }
           
+          // Check if it's likely a network issue
+          if (err.message?.includes('Failed to fetch') || !navigator.onLine) {
+            console.error(`Network connection issue detected [${requestId}]`);
+            throw new Error('Network connection issue. Please check your internet connection.');
+          }
+          
           // Log detailed error info after all retries failed
           console.error(`Fetch error in Supabase client [${requestId}]:`, err);
           
           // Show user-friendly toast notification after all retries have failed
           toast({
             title: "Connection Error",
-            description: "We're having trouble connecting to our services. Please check your internet connection or try refreshing the page.",
+            description: "We're having trouble connecting to our services. Please check your internet connection or try again later.",
             variant: "destructive",
           });
           
@@ -115,11 +136,6 @@ supabase.auth.onAuthStateChange(async (event, session) => {
       const { data, error } = await supabase.auth.reauthenticate();
       if (error) {
         console.error('Reauthentication failed:', error);
-        toast({
-          title: "Session Error",
-          description: "Your session has expired. Please refresh the page to continue.",
-          variant: "destructive",
-        });
       } else {
         console.log('Reauthentication successful');
       }
@@ -156,6 +172,26 @@ const checkConnection = async () => {
   try {
     console.log('Checking Supabase connection...');
     
+    // First check basic internet connectivity
+    if (!navigator.onLine) {
+      console.log('Device is offline');
+      return false;
+    }
+    
+    // Run a basic DNS check by fetching a small resource
+    try {
+      const dnsCheckResponse = await fetch('https://www.google.com/favicon.ico', { 
+        method: 'HEAD',
+        cache: 'no-store',
+        mode: 'no-cors',
+        timeout: 3000
+      });
+      console.log('Internet connectivity confirmed');
+    } catch (err) {
+      console.warn('Basic internet connectivity check failed:', err);
+      // Continue anyway, the problem might be specific to google.com
+    }
+    
     // First check auth status
     const { data: authData } = await supabase.auth.getSession();
     if (!authData.session) {
@@ -164,7 +200,7 @@ const checkConnection = async () => {
       console.log('Active session found, user:', authData.session.user.id);
     }
     
-    // Then check database connectivity
+    // Then check database connectivity with a simple query
     const startTime = Date.now();
     const { error } = await supabase.from('prompts').select('id').limit(1);
     const responseTime = Date.now() - startTime;
@@ -172,17 +208,22 @@ const checkConnection = async () => {
     if (error) {
       console.error('Supabase connection check failed:', error);
       
-      // Detailed error classification
-      if (error.code === 'PGRST301') {
+      if (error.message?.includes('Failed to fetch') || error.code === 'NETWORK_ERROR') {
+        toast({
+          title: "Connection Error",
+          description: "Unable to connect to our servers. Please verify your internet connection and try again.",
+          variant: "destructive",
+        });
+      } else if (error.code === 'PGRST301') {
         toast({
           title: "Authentication Error",
-          description: "You may need to sign in again to continue.",
+          description: "Your session may have expired. Please try signing in again.",
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Connection Error",
-          description: "We're having trouble connecting to our services. Please check your internet connection.",
+          title: "Service Error",
+          description: "We're having trouble connecting to our services. Please try again later.",
           variant: "destructive",
         });
       }
@@ -196,7 +237,7 @@ const checkConnection = async () => {
     console.error('Supabase connection check exception:', err);
     toast({
       title: "Connection Error",
-      description: "Unexpected error connecting to our services. Please refresh the page.",
+      description: "Unexpected error connecting to our services. Please refresh the page and try again.",
       variant: "destructive",
     });
     return false;
@@ -204,12 +245,24 @@ const checkConnection = async () => {
 };
 
 // Run connection check when the app starts
-checkConnection();
+window.addEventListener('load', () => {
+  setTimeout(checkConnection, 1000); // Slight delay to avoid competing with other initialization processes
+});
 
 // Export an enhanced function to manually refresh the connection
 export const refreshSupabaseConnection = async (): Promise<boolean> => {
   try {
     console.log('Manually refreshing Supabase connection...');
+    
+    // Check if device is online first
+    if (!navigator.onLine) {
+      toast({
+        title: "You're Offline",
+        description: "Please check your internet connection and try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
     
     // Clear any local storage caches that might be corrupted
     const preservedItems = {};
@@ -274,4 +327,3 @@ export const isAuthenticated = async (): Promise<boolean> => {
     return false;
   }
 };
-

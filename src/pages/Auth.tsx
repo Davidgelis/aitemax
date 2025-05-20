@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useLanguage } from '@/context/LanguageContext';
 import { authTranslations } from '@/translations/auth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Globe, RefreshCw, Wifi, WifiOff, AlertTriangle } from 'lucide-react';
+import { Globe, RefreshCw, Wifi, WifiOff, AlertTriangle, LucideLoader } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Auth = () => {
@@ -28,6 +28,7 @@ const Auth = () => {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [reconnecting, setReconnecting] = useState(false);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [initialConnectionCheck, setInitialConnectionCheck] = useState(false);
   
   const { signIn, signUp, session } = useAuth();
   const navigate = useNavigate();
@@ -40,12 +41,15 @@ const Auth = () => {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
+      setConnectionError("Reconnected to network. Checking server connection...");
       // When coming back online automatically try to reconnect
-      if (connectionError) {
-        handleReconnect();
-      }
+      handleReconnect();
     };
-    const handleOffline = () => setIsOnline(false);
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      setConnectionError("You're offline. Please check your internet connection.");
+    };
     
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -54,7 +58,7 @@ const Auth = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [connectionError]);
+  }, []);
   
   // Automatically redirect if session exists
   useEffect(() => {
@@ -71,21 +75,31 @@ const Auth = () => {
 
   // Perform an initial connection check when the component loads
   useEffect(() => {
-    const checkInitialConnection = async () => {
-      if (navigator.onLine) {
-        try {
-          // Test the connection quietly without showing loading state
-          const success = await refreshSupabaseConnection();
-          if (!success) {
-            setConnectionError("Connection to the server appears unstable. You can try to reconnect if needed.");
-          }
-        } catch (error) {
-          console.error("Initial connection check failed:", error);
+    const initialCheck = async () => {
+      try {
+        // First check if we're online
+        if (!navigator.onLine) {
+          setConnectionError("You appear to be offline. Please check your internet connection.");
+          return;
         }
+        
+        setInitialConnectionCheck(true);
+        const success = await refreshSupabaseConnection();
+        setInitialConnectionCheck(false);
+        
+        if (!success) {
+          setConnectionError("Unable to connect to our servers. Please check your connection and try again.");
+        } else {
+          setConnectionError(null);
+        }
+      } catch (error) {
+        setInitialConnectionCheck(false);
+        console.error("Initial connection check failed:", error);
+        setConnectionError("Error checking connection to our servers.");
       }
     };
     
-    checkInitialConnection();
+    initialCheck();
   }, []);
 
   const handleReconnect = async () => {
@@ -106,7 +120,7 @@ const Auth = () => {
         setReconnectAttempts(0);
       } else {
         if (reconnectAttempts >= 3) {
-          setConnectionError("Unable to establish a stable connection after multiple attempts. Please check your internet connection or try again later.");
+          setConnectionError("Unable to establish a stable connection after multiple attempts. Please try again later.");
         } else {
           setConnectionError("Unable to connect to the server. Please check your internet connection and try again.");
         }
@@ -170,6 +184,7 @@ const Auth = () => {
             error.message === "Failed to fetch" || 
             error.message?.includes("network") || 
             error.message?.includes("connection") ||
+            error.message?.includes("timed out") ||
             error.status === 0  // Often indicates network issues
           ) {
             setConnectionError("Connection error. Please check your internet and try again.");
@@ -210,6 +225,7 @@ const Auth = () => {
             error.message === "Failed to fetch" || 
             error.message?.includes("network") ||
             error.message?.includes("connection") ||
+            error.message?.includes("timed out") ||
             error.status === 0
           ) {
             setConnectionError("Connection error. Please check your internet and try again.");
@@ -248,12 +264,6 @@ const Auth = () => {
     }
   };
 
-  // Get language display name
-  const getLanguageDisplay = (langCode: string) => {
-    const lang = languages.find(l => l.id === langCode);
-    return lang ? `${lang.flag_emoji} ${lang.name}` : langCode;
-  };
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative bg-[#fafafa]">
       {/* Aurora background overlay */}
@@ -271,22 +281,42 @@ const Auth = () => {
           {isLogin ? t.login : t.signUp}
         </h2>
         
-        {(!isOnline || connectionError) && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="flex flex-col gap-2">
-              {!isOnline ? "You appear to be offline. Please check your connection." : connectionError}
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={handleReconnect} 
-                disabled={reconnecting || !isOnline} 
-                className="self-start mt-2"
-              >
-                {reconnecting ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                {reconnecting ? "Reconnecting..." : "Try Again"}
-              </Button>
-            </AlertDescription>
+        {/* Connection status alerts */}
+        {(!isOnline || connectionError || initialConnectionCheck) && (
+          <Alert 
+            variant={!isOnline ? "destructive" : connectionError ? "warning" : "default"} 
+            className="mb-4"
+          >
+            <div className="flex items-start gap-2">
+              {!isOnline ? (
+                <WifiOff className="h-4 w-4 mt-0.5" />
+              ) : connectionError ? (
+                <AlertTriangle className="h-4 w-4 mt-0.5" />
+              ) : (
+                <LucideLoader className="h-4 w-4 mt-0.5 animate-spin" />
+              )}
+              <AlertDescription className="flex flex-col gap-2">
+                {!isOnline ? (
+                  "You appear to be offline. Please check your connection."
+                ) : initialConnectionCheck ? (
+                  "Checking connection to server..."
+                ) : (
+                  connectionError
+                )}
+                {(isOnline && !initialConnectionCheck) && (
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReconnect} 
+                    disabled={reconnecting || !isOnline} 
+                    className="self-start mt-2"
+                  >
+                    {reconnecting ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                    {reconnecting ? "Reconnecting..." : "Try Again"}
+                  </Button>
+                )}
+              </AlertDescription>
+            </div>
           </Alert>
         )}
         
@@ -382,9 +412,16 @@ const Auth = () => {
           <Button 
             type="submit" 
             className="w-full aurora-button" 
-            disabled={loading || !isOnline || reconnecting}
+            disabled={loading || (!isOnline && !connectionError) || reconnecting || initialConnectionCheck}
           >
-            {loading ? t.processing : isLogin ? t.loginCta : t.signUpCta}
+            {loading ? (
+              <span className="flex items-center">
+                <LucideLoader className="animate-spin mr-2 h-4 w-4" />
+                {t.processing}
+              </span>
+            ) : (
+              isLogin ? t.loginCta : t.signUpCta
+            )}
           </Button>
         </form>
         
