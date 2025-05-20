@@ -13,7 +13,7 @@ import { extractMeaningfulElements } from "./utils.ts";  // Added import for the
 
 // ─── Helpers you removed ─────────────────────────────────────────
 const MAX_EXAMPLES = 4;
-const MAX_VAR_LEN   = 60;    // concise variable (≈ 6-10 words)
+const MAX_VAR_LEN   = 100;   // concise variable (≈ 10-15 words)
 const MAX_QA_LEN    = 1000;  // in-depth answer limit
 
 /** Normalize question text, strip trailing "(…)" */

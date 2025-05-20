@@ -432,6 +432,6 @@ export function generateExamplesForQuestion(question) {
   // Filter out empty example entries (if any)
   return results
     .filter(ex => ex && ex.trim() !== '')
-    // ♦ also keep each example concise (≤ 60 chars)
+    // ♦ also keep each example concise (≤ 60 chars for UI neatness)
     .map(ex => ex.length > 60 ? ex.slice(0, 57).trimEnd() + "…" : ex);
 }
