@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -362,10 +361,7 @@ const Auth = () => {
           console.log("Falling back to Supabase client login...");
           const { error } = await supabase.auth.signInWithPassword({ 
             email, 
-            password,
-            options: {
-              redirectTo: window.location.origin + '/dashboard'
-            }
+            password
           });
           
           if (error) {
@@ -407,8 +403,7 @@ const Auth = () => {
             data: { 
               username,
               preferred_language: selectedLanguage
-            },
-            emailRedirectTo: window.location.origin + '/dashboard'
+            }
           }
         });
         
