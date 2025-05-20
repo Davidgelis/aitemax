@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -6,13 +5,13 @@ import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { supabase, refreshSupabaseConnection } from '@/integrations/supabase/client';
+import { supabase, refreshSupabaseConnection, getConnectionHealth } from '@/integrations/supabase/client';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useLanguage } from '@/context/LanguageContext';
 import { authTranslations } from '@/translations/auth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Globe, RefreshCw, Wifi, WifiOff, AlertTriangle, LucideLoader } from 'lucide-react';
+import { Globe, RefreshCw, Wifi, WifiOff, AlertTriangle, LucideLoader, Signal } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Auth = () => {
@@ -29,6 +28,7 @@ const Auth = () => {
   const [reconnecting, setReconnecting] = useState(false);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [initialConnectionCheck, setInitialConnectionCheck] = useState(false);
+  const [connectionHealth, setConnectionHealth] = useState<any>(null);
   
   const { signIn, signUp, session } = useAuth();
   const navigate = useNavigate();
@@ -73,6 +73,24 @@ const Auth = () => {
     setSelectedLanguage(currentLanguage);
   }, [currentLanguage]);
 
+  // Check connection health periodically
+  useEffect(() => {
+    const checkHealth = () => {
+      const health = getConnectionHealth();
+      setConnectionHealth(health);
+      
+      // If connection is degraded for more than 30 seconds, show error
+      if (health.status === 'degraded' && health.timeSinceSuccess > 30000) {
+        setConnectionError(`Connection issues detected. Last successful connection was ${Math.floor(health.timeSinceSuccess/1000)} seconds ago.`);
+      } else if (health.status === 'healthy' && connectionError) {
+        setConnectionError(null);
+      }
+    };
+    
+    const healthInterval = setInterval(checkHealth, 5000);
+    return () => clearInterval(healthInterval);
+  }, [connectionError]);
+
   // Perform an initial connection check when the component loads
   useEffect(() => {
     const initialCheck = async () => {
@@ -84,6 +102,22 @@ const Auth = () => {
         }
         
         setInitialConnectionCheck(true);
+        
+        // Test basic connectivity first
+        try {
+          await fetch(`${SUPABASE_URL}/auth/v1/`, { 
+            method: 'HEAD',
+            headers: {
+              'apikey': SUPABASE_PUBLISHABLE_KEY
+            }
+          });
+        } catch (err) {
+          console.error("Initial endpoint check failed:", err);
+          setConnectionError("Unable to reach authentication servers. Please check your connection.");
+          setInitialConnectionCheck(false);
+          return;
+        }
+        
         const success = await refreshSupabaseConnection();
         setInitialConnectionCheck(false);
         
@@ -110,6 +144,22 @@ const Auth = () => {
     setReconnectAttempts(prev => prev + 1);
     
     try {
+      // First try to ping the Supabase endpoint directly
+      try {
+        await fetch(`${SUPABASE_URL}/auth/v1/`, { 
+          method: 'HEAD',
+          headers: {
+            'apikey': SUPABASE_PUBLISHABLE_KEY
+          }
+        });
+        console.log("Basic Supabase endpoint check successful");
+      } catch (err) {
+        console.error("Endpoint check failed:", err);
+        setConnectionError("Unable to reach authentication servers. Please check your network settings.");
+        setReconnecting(false);
+        return;
+      }
+      
       const success = await refreshSupabaseConnection();
       if (success) {
         toast({
@@ -157,7 +207,13 @@ const Auth = () => {
     }
   };
 
-  const handleAuth = async (e: React.FormEvent) => {
+  // Define constants for Supabase URL and key since we need them in the component
+  const SUPABASE_URL = "https://xyfwsmblaayznplurmfa.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZndzbWJsYWF5em5wbHVybWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA4NjQ5MzAsImV4cCI6MjA1NjQ0MDkzMH0.iSMjuUMOEGVP-eU7p1xng_XlSc3pNg_DbViVwyD3Fc8";
+  
+  // Allow direct access to the auth API for login/signup
+  // This provides more control and better error handling than going through hooks
+  const handleDirectAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!isOnline) {
@@ -173,65 +229,72 @@ const Auth = () => {
     setUsernameError('');
     // Clear connection error to provide fresh feedback
     setConnectionError(null);
-
+    
     try {
       if (isLogin) {
-        const { error } = await signIn(email, password, rememberMe);
+        // Try a direct fetch to bypass potential hooks issues
+        const loginResponse = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_PUBLISHABLE_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email, password })
+        });
         
-        if (error) {
-          // Detect network-related errors
-          if (
-            error.message === "Failed to fetch" || 
-            error.message?.includes("network") || 
-            error.message?.includes("connection") ||
-            error.message?.includes("timed out") ||
-            error.status === 0  // Often indicates network issues
-          ) {
-            setConnectionError("Connection error. Please check your internet and try again.");
-            // Don't try to reconnect yet - let the user decide when to retry
-          } else if (error.message?.includes("Invalid login credentials")) {
-            // Clear connection error for credential errors
-            setConnectionError(null);
+        if (!loginResponse.ok) {
+          const errorData = await loginResponse.json();
+          
+          // Check if it's an invalid credentials error
+          if (loginResponse.status === 400 && errorData.error === 'invalid_grant') {
             throw new Error("Invalid email or password. Please try again.");
-          } else {
-            throw error;
           }
+          
+          // Check if it's a server error
+          if (loginResponse.status >= 500) {
+            throw new Error("Server error. Please try again later.");
+          }
+          
+          // Other errors
+          throw new Error(errorData.error_description || "Login failed");
         }
+        
+        // Login successful, get the session with supabase client
+        await supabase.auth.signInWithPassword({ email, password });
+        
       } else {
+        // Registration flow
         // Check username availability before signup
         if (!username) {
           setUsernameError(t.errors.usernameRequired);
           setLoading(false);
           return;
         }
-
+        
         const isAvailable = await checkUsernameAvailability(username);
         if (!isAvailable) {
           setUsernameError(t.errors.usernameTaken);
           setLoading(false);
           return;
         }
-
-        const { error } = await signUp(email, password, {
-          data: { 
-            username,
-            preferred_language: selectedLanguage
+        
+        // Use direct signup
+        const { error } = await supabase.auth.signUp({
+          email, 
+          password,
+          options: {
+            data: { 
+              username,
+              preferred_language: selectedLanguage
+            }
           }
         });
         
         if (error) {
-          // Handle connection issues
-          if (
-            error.message === "Failed to fetch" || 
-            error.message?.includes("network") ||
-            error.message?.includes("connection") ||
-            error.message?.includes("timed out") ||
-            error.status === 0
-          ) {
-            setConnectionError("Connection error. Please check your internet and try again.");
-          } else {
-            throw error;
+          if (error.message?.includes("network") || error.message?.includes("fetch")) {
+            throw new Error("Connection error. Please check your internet and try again.");
           }
+          throw error;
         } else {
           // Change the app language immediately to the selected one
           await setLanguage(selectedLanguage);
@@ -246,12 +309,20 @@ const Auth = () => {
     } catch (error: any) {
       console.error("Authentication error:", error);
       
-      if (error.message === "Invalid login credentials" || error.message?.includes("credentials") || error.message?.includes("Invalid email or password")) {
+      // Better error classification
+      if (error.message?.includes("invalid") || error.message?.includes("Invalid email or password")) {
         toast({
           title: "Login Failed",
           description: "Invalid email or password. Please try again.",
           variant: "destructive",
         });
+      } else if (error.message?.includes("network") || error.message?.includes("connect") || error.message?.includes("Connection error")) {
+        toast({
+          title: "Connection Failed",
+          description: "Unable to connect to authentication service. Please check your internet connection.",
+          variant: "destructive",
+        });
+        setConnectionError("Unable to reach authentication servers. Please check your connection settings.");
       } else {
         toast({
           title: "Error",
@@ -281,7 +352,7 @@ const Auth = () => {
           {isLogin ? t.login : t.signUp}
         </h2>
         
-        {/* Connection status alerts */}
+        {/* Connection status alerts with more detailed info */}
         {(!isOnline || connectionError || initialConnectionCheck) && (
           <Alert 
             variant={!isOnline ? "destructive" : connectionError ? "warning" : "default"} 
@@ -320,7 +391,16 @@ const Auth = () => {
           </Alert>
         )}
         
+        {/* Connection quality indicator */}
         <div className="flex items-center justify-end mb-4">
+          {connectionHealth && (
+            <span className="text-sm mr-2">
+              {connectionHealth.status === 'healthy' ? 'Connection quality: ' : 'Connection issues: '}
+              <span className={connectionHealth.status === 'healthy' ? 'text-green-600' : 'text-amber-500'}>
+                {connectionHealth.status === 'healthy' ? 'Good' : 'Degraded'}
+              </span>
+            </span>
+          )}
           <span className="text-sm flex items-center">
             {isOnline ? (
               <><Wifi className="w-4 h-4 text-green-500 mr-1" /> Connected</>
@@ -330,7 +410,7 @@ const Auth = () => {
           </span>
         </div>
         
-        <form onSubmit={handleAuth} className="space-y-4">
+        <form onSubmit={handleDirectAuth} className="space-y-4">
           <div>
             <Input
               type="email"
