@@ -13,6 +13,7 @@ type AuthContextType = {
   signOut: () => Promise<{ error: any }>;
   refreshSession: () => Promise<void>;
   isOnline: boolean;
+  sessionExpiresAt: Date | null; // Added sessionExpiresAt property
 };
 
 // Create context with undefined initial value
@@ -29,6 +30,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     logout,
     isOnline,
   } = useAuthState();
+
+  // Calculate session expiration time
+  const sessionExpiresAt = session?.expires_at 
+    ? new Date(session.expires_at * 1000) 
+    : null;
 
   // Simplified session refresh
   const refreshSession = async (): Promise<void> => {
@@ -52,6 +58,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     signOut: logout,
     refreshSession,
     isOnline,
+    sessionExpiresAt, // Include the sessionExpiresAt in the context value
   };
 
   // Render provider with value
