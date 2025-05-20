@@ -1,4 +1,3 @@
-
 import { Question, Variable } from '../types.ts';
 
 // a small whitelist of common color names for "red ball" detection
@@ -425,4 +424,14 @@ export function generateContextualVariablesForPrompt(
   });
 
   return variables;
+}
+
+// Modified function to filter and trim examples
+export function generateExamplesForQuestion(question) {
+  let results = question.examples || [];
+  // Filter out empty example entries (if any)
+  return results
+    .filter(ex => ex && ex.trim() !== '')
+    // ♦ also keep each example concise (≤ 60 chars)
+    .map(ex => ex.length > 60 ? ex.slice(0, 57).trimEnd() + "…" : ex);
 }

@@ -9,10 +9,12 @@ import {
 import { createSystemPrompt } from "./system-prompt.ts";
 import { generateContextQuestionsForPrompt, generateContextualVariablesForPrompt } from "./utils/generators.ts";
 import { computeAmbiguity, organizeQuestionsByPillar } from "./utils/questionUtils.ts";
-import { extractMeaningfulElements } from "./utils.ts";  // Add this import for the missing function
+import { extractMeaningfulElements } from "./utils.ts";  // Added import for the missing function
 
 // ─── Helpers you removed ─────────────────────────────────────────
 const MAX_EXAMPLES = 4;
+const MAX_VAR_LEN   = 60;    // concise variable (≈ 6-10 words)
+const MAX_QA_LEN    = 1000;  // in-depth answer limit
 
 /** Normalize question text, strip trailing "(…)" */
 const plainify = (t = "") =>
@@ -72,7 +74,6 @@ const fillQuestions = (qs: any[], vars: any[]): any[] => {
     return q;
   });
 };
-// ───────────────────────────────────────────────────────────────────
 
 //--------------------------------------------------------------------
 //  ✨ concise "user-intent" extractor (from previous patch)
@@ -365,11 +366,12 @@ serve(async (req) => {
           // If image also provided this variable and user gave context, prefer user/site context value in case of conflict
           const existingSource = v.prefillSource;
           if (!(existingSource === 'image' && smartContextData?.context && ctxHit.valueLong)) {
-            // Override or fill value from context if not an image conflict where user context should dominate
+            // ▸ KEEP variable values concise
+            const shortVal = (ctxHit.value + "").slice(0, MAX_VAR_LEN).trim();
             v = {
               ...v,
-              value: ctxHit.value,
-              valueLong: ctxHit.valueLong ?? ctxHit.value,
+              value: shortVal,
+              valueLong: (ctxHit.valueLong || ctxHit.value).slice(0, MAX_VAR_LEN).trim(),
               prefillSource: useWebsiteLabel ? "website" : "context"
             };
           }
@@ -527,7 +529,18 @@ serve(async (req) => {
     }
 
     // then do your existing var/image-based auto-answer
-    questions = fillQuestions(questions, variables);
+    questions = fillQuestions(questions, variables)
+      .map(q => {
+        // trim any over-long auto answers
+        if (q.answer && q.answer.length > MAX_QA_LEN) {
+          // cut at the last space before the limit to avoid breaking a word
+          const cut = q.answer.slice(0, MAX_QA_LEN);
+          const lastSpace = cut.lastIndexOf(" ");
+          q.answer = (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trimEnd();
+        }
+        const cleanedText = plainify(q.text);
+        return ensureExamples({ ...q, text: cleanedText });
+      });
 
     // Determine questions per pillar based on missing variables  
     const varsByCategory: Record<string, typeof variables> = {};
