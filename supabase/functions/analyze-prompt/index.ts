@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   analyzePromptWithAI,
@@ -10,6 +9,7 @@ import {
 import { createSystemPrompt } from "./system-prompt.ts";
 import { generateContextQuestionsForPrompt, generateContextualVariablesForPrompt } from "./utils/generators.ts";
 import { computeAmbiguity, organizeQuestionsByPillar } from "./utils/questionUtils.ts";
+import { extractMeaningfulElements } from "./utils.ts";  // Add this import for the missing function
 
 // ─── Helpers you removed ─────────────────────────────────────────
 const MAX_EXAMPLES = 4;
@@ -183,7 +183,7 @@ serve(async (req) => {
     // 1️⃣ Extract the user's main intent from their prompt
     const userIntent = extractUserIntent(promptText);
     
-    // 1.  Extract meaningful elements early
+    // ─── 1.  Extract meaningful elements early ───
     const extracted = extractMeaningfulElements(promptText);
     // pick the first noun-phrase subject, strip stop-words like "image of"
     const primarySubject = extracted?.subjects?.[0]?.text
