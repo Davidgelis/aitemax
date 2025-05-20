@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   analyzePromptWithAI,
@@ -157,20 +158,31 @@ serve(async (req) => {
     
     // 1) Incorporate usageInstructions into the system prompt (no image caption to speed up parallel calls)
     const firstImage = imageData && Array.isArray(imageData) && imageData.length > 0 ? imageData[0] : null;
-    let usageInstr = smartContextData?.usageInstructions?.trim() || "";
+    
+    // Ensure usageInstructions is a string before trimming; fall back to image context if none provided
+    let usageInstr = "";
+    if (smartContextData && typeof smartContextData.usageInstructions === "string") {
+      usageInstr = smartContextData.usageInstructions.trim();
+    }
     if (!usageInstr && firstImage?.context) {
       usageInstr = firstImage.context.trim();
     }
+    
     const systemPrompt = [
       createSystemPrompt(template, ""),  // omit imageCaption here to avoid waiting
       usageInstr ? `\n\nUsage Instructions:\n${usageInstr}` : ""
     ].join("\n");
     
     // 2) Launch prompt analysis in parallel with image description
-    const additionalContext = [
-      smartContextData?.context || "",
-      websiteData?.pageText || ""
-    ].filter(Boolean).join("\n\n");
+    // Combine any provided user context or website text for analysis (validate types)
+    const userContextText = (smartContextData && typeof smartContextData.context === "string")
+      ? smartContextData.context.trim()
+      : "";
+    const pageText = (websiteData && typeof websiteData.pageText === "string")
+      ? websiteData.pageText
+      : "";
+    const additionalContext = [ userContextText, pageText ].filter(Boolean).join("\n\n");
+    
     const analyzePromptPromise = analyzePromptWithAI(
       promptText,
       systemPrompt,
@@ -364,6 +376,7 @@ serve(async (req) => {
             valueLong: imgHit.valueLong ?? imgHit.value,
             prefillSource: "image"
           };
+          console.log(`🖼️ image prefill: [${v.name}] = "${imgHit.value}"`);
         }
         // (Continue to context merge below)
         return v;
@@ -374,7 +387,6 @@ serve(async (req) => {
       variables = variables.map(v => {
         const ctxHit = Object.entries(contextMapping.fill).find(([k]) => canonKey(k) === canonKey(v.name))?.[1];
         if (ctxHit && ctxHit.value) {
-          // If image also provided this variable and user gave context, prefer user/site context value in case of conflict
           const existingSource = v.prefillSource;
           if (!(existingSource === 'image' && smartContextData?.context && ctxHit.valueLong)) {
             // ▸ KEEP variable values concise
@@ -385,6 +397,10 @@ serve(async (req) => {
               valueLong: (ctxHit.valueLong || ctxHit.value).slice(0, MAX_VAR_LEN).trim(),
               prefillSource: useWebsiteLabel ? "website" : "context"
             };
+            const srcLabel = useWebsiteLabel ? '🌐' : '📖';
+            console.log(`${srcLabel} prefill: [${v.name}] = "${ctxHit.valueLong || ctxHit.value}"`);
+          } else {
+            console.log(`⚠️  context suggested a value for "${v.name}", but image prefill retained`);
           }
         }
         return v;
@@ -515,27 +531,49 @@ serve(async (req) => {
       }
     }
     
-    // 2️⃣ Smart-Context-based question pre-fill
-    if (smartContextData?.context) {
-      // Only auto-answer questions relevant to provided context/instructions
-      const focus = (smartContextData.context + " " + (usageInstr || "")).toLowerCase();
-      const pendingQs = questions.filter(q =>
-        !q.answer && (
-          focus.includes((q.category || "").toLowerCase()) ||
-          focus.split(/\W+/).some(word => word && q.text.toLowerCase().includes(word))
-        )
-      ).map(q => q.text);
+    // 2️⃣ Context/Website-based question pre-fill
+    if (smartContextData?.context?.trim() || usageInstr || pageText) {
+      // Auto-answer questions relevant to the user's context or provided website content
+      const contextSynonyms: Record<string, RegExp> = {
+        palette: /(palette|colour|color|colors|scheme)/i,
+        style: /(style|aesthetic|genre|art\s*style|design|look)/i,
+        mood: /(mood|tone|feeling|emotion|atmosphere|vibe)/i,
+        background: /(background|setting|environment|scene)/i,
+        subject: /(subject|object|figure|person|topic|content)/i,
+        lighting: /(lighting|illumination|light)/i,
+        composition: /(composition|arrangement|framing|layout)/i
+      };
+      const focusText = [ userContextText, usageInstr, pageText ].filter(Boolean).join(" ").toLowerCase();
+      const focusWords = focusText.split(/\W+/).filter(Boolean);
+      const pendingQs = questions.filter(q => {
+        if (q.answer) return false;
+        const qText = q.text.toLowerCase();
+        const qWords = qText.split(/\W+/).filter(Boolean);
+        const category = (q.category || "").toLowerCase();
+        return (
+          (category && contextSynonyms[category] && contextSynonyms[category].test(focusText)) ||
+          (category && focusText.includes(category)) ||
+          focusWords.some(word => qText.includes(word)) ||
+          qWords.some(word => focusText.includes(word))
+        );
+      }).map(q => q.text);
+      const contextContent = [ userContextText, usageInstr, pageText ].filter(Boolean).join("\n\n");
       if (pendingQs.length) {
-        const ctxMap = await inferAndMapFromContext(smartContextData.context, pendingQs).catch(() => null);
+        const sourceLabel = userContextText ? 'context' : 'website';
+        console.log(`${userContextText ? '📖' : '🌐'} ${sourceLabel}-pre-fill: running on ${pendingQs.length} questions`);
+        const ctxMap = await inferAndMapFromContext(contextContent, pendingQs).catch(() => null);
         if (ctxMap?.fill) {
           questions = questions.map(q => {
             if (!q.answer) {
               const fillAns = ctxMap.fill[q.text];
               if (fillAns?.valueLong) {
-                // use detailed answer if available (cap at 1000 chars)
-                return { ...q, answer: fillAns.valueLong.slice(0, MAX_QA_LEN), prefillSource: 'context' };
+                const val = fillAns.valueLong.length > MAX_QA_LEN ? fillAns.valueLong.slice(0, MAX_QA_LEN) : fillAns.valueLong;
+                console.log(`   ↳ ${userContextText ? '📖' : '🌐'} rich pre-fill "${q.text}" → …${val.slice(0,30)}`);
+                return { ...q, answer: val, prefillSource: userContextText ? 'context' : 'website' };
               } else if (fillAns?.value) {
-                return { ...q, answer: fillAns.value, prefillSource: 'context' };
+                const shortAns = fillAns.value.length > MAX_QA_LEN ? fillAns.value.slice(0, MAX_QA_LEN) : fillAns.value;
+                console.log(`   ↳ ${userContextText ? '📖' : '🌐'} pre-fill "${q.text}" → "${shortAns.length > 30 ? shortAns.slice(0, 30) + '...' : shortAns}"`);
+                return { ...q, answer: shortAns, prefillSource: userContextText ? 'context' : 'website' };
               }
             }
             return q;
