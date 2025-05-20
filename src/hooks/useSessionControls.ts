@@ -1,4 +1,3 @@
-
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -16,16 +15,29 @@ export const useSessionControls = () => {
   useEffect(() => {
     const healthCheckInterval = setInterval(() => {
       const health = getConnectionHealth();
-      setConnectionHealth(health);
       
-      // Only show connection restored toast when coming back from offline
-      if (health.status === 'healthy' && connectionHealth?.status === 'offline') {
-        toast({
-          title: "Connection Restored",
-          description: "Your connection to our services has been restored.",
-        });
+      // Only update UI and show toast on actual status changes
+      if (health.status !== connectionHealth?.status) {
+        setConnectionHealth(health);
+        
+        // Only show connection restored toast when coming back from offline
+        if (health.status === 'healthy' && connectionHealth?.status === 'offline') {
+          toast({
+            title: "Connection Restored",
+            description: "Your connection to our services has been restored.",
+          });
+        } else if (health.status === 'offline' && connectionHealth?.status === 'healthy') {
+          toast({
+            title: "Connection Lost",
+            description: "You appear to be offline. Some features may be unavailable.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        // Silent update for unchanged status
+        setConnectionHealth(health);
       }
-    }, 15000); // Check every 15 seconds (reduced frequency)
+    }, 30000); // Reduced frequency to 30 seconds
     
     return () => clearInterval(healthCheckInterval);
   }, [connectionHealth, toast]);
@@ -62,7 +74,7 @@ export const useSessionControls = () => {
     }
   }, [sessionExpiresAt, refreshSession, isOnline, refreshInProgress]);
 
-  // Manual refresh with simplified error handling
+  // Manual refresh with better error handling
   const handleManualRefresh = useCallback(async () => {
     if (refreshInProgress) return;
     
@@ -86,15 +98,35 @@ export const useSessionControls = () => {
       });
     } catch (error) {
       console.error("Session refresh failed:", error);
-      toast({
-        title: "Refresh Failed",
-        description: "Unable to refresh your session. Please try again or sign in again.",
-        variant: "destructive",
-      });
+      
+      // Attempt to reconnect automatically
+      try {
+        const reconnectSuccess = await reconnect();
+        if (reconnectSuccess) {
+          toast({
+            title: "Connection Recovered",
+            description: "Your connection was restored and session refreshed.",
+          });
+        } else {
+          toast({
+            title: "Refresh Failed",
+            description: "Unable to refresh your session. Please check your connection.",
+            variant: "destructive",
+          });
+        }
+      } catch (reconnectError) {
+        console.error("Reconnection attempt failed:", reconnectError);
+        toast({
+          title: "Refresh Failed",
+          description: "Unable to refresh your session. Please try again or sign in again.",
+          variant: "destructive",
+        });
+      }
     } finally {
+      // Ensure refresh state is always cleared
       setTimeout(() => setRefreshInProgress(false), 2000);
     }
-  }, [refreshSession, isOnline, refreshInProgress, toast]);
+  }, [refreshSession, isOnline, refreshInProgress, toast, reconnect]);
 
   // Calculate session timer regularly
   useEffect(() => {

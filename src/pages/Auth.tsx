@@ -6,7 +6,7 @@ import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, checkConnection } from '@/integrations/supabase/client';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useLanguage } from '@/context/LanguageContext';
@@ -47,27 +47,26 @@ const useConnectionStatus = () => {
     };
   }, [toast]);
 
-  // Simplified reconnection function
+  // Use Supabase's own connectivity check instead of Google favicon
   const handleReconnect = async () => {
-    if (reconnecting || !navigator.onLine) return;
+    if (reconnecting) return;
     
     setReconnecting(true);
-    setConnectionError("Attempting to reconnect...");
+    setConnectionError("Attempting to reconnect to Supabase...");
     
     try {
-      // Simple fetch to test connectivity
-      await fetch('https://www.google.com/favicon.ico', { 
-        method: 'HEAD',
-        cache: 'no-store',
-        mode: 'no-cors',
-        signal: AbortSignal.timeout(5000)
-      });
+      // Use the checkConnection function that targets Supabase directly
+      const isConnected = await checkConnection();
       
-      toast({
-        title: "Connection Test Successful",
-        description: "Your connection appears to be working.",
-      });
-      setConnectionError(null);
+      if (isConnected) {
+        toast({
+          title: "Connection Test Successful",
+          description: "Connection to authentication servers established.",
+        });
+        setConnectionError(null);
+      } else {
+        setConnectionError("Cannot reach Supabase servers. Please check your connection.");
+      }
     } catch (error) {
       console.error("Connection test failed:", error);
       setConnectionError("Connection issues detected. You may have trouble logging in.");
@@ -95,11 +94,12 @@ const Auth = () => {
   const [usernameError, setUsernameError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [authError, setAuthError] = useState<string | null>(null);
   
   // Add timeout reference to cancel long-running operations
   const loginTimeoutRef = useRef<number | null>(null);
   
-  // Use simplified connection status hook
+  // Use connection status hook
   const { 
     isOnline, 
     connectionError, 
@@ -108,12 +108,28 @@ const Auth = () => {
     setConnectionError
   } = useConnectionStatus();
   
-  const { signIn, signUp, session } = useAuth();
+  const { signIn, signUp, session, reconnect } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const { currentLanguage, languages, setLanguage } = useLanguage();
   const t = authTranslations[currentLanguage as keyof typeof authTranslations] || authTranslations.en;
+
+  // Check if we can connect to Supabase on initial load
+  useEffect(() => {
+    const initialConnectionCheck = async () => {
+      try {
+        const connected = await checkConnection();
+        if (!connected && navigator.onLine) {
+          setConnectionError("Cannot connect to authentication servers. Please check firewall or network settings.");
+        }
+      } catch (error) {
+        console.error("Initial connection check failed:", error);
+      }
+    };
+    
+    initialConnectionCheck();
+  }, []);
 
   // Automatically redirect if session exists
   useEffect(() => {
@@ -131,7 +147,6 @@ const Auth = () => {
   // Cleanup function for timeouts on component unmount
   useEffect(() => {
     return () => {
-      // Clear any lingering timeouts when component unmounts
       if (loginTimeoutRef.current) {
         window.clearTimeout(loginTimeoutRef.current);
       }
@@ -163,17 +178,16 @@ const Auth = () => {
     }
   };
   
-  // Simplified authentication process with better error handling
+  // Simplified authentication process with improved error handling
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Clear previous errors
+    setAuthError(null);
+    
     // Prevent authentication if offline
     if (!isOnline) {
-      toast({
-        title: "You're offline",
-        description: "Please check your internet connection and try again.",
-        variant: "destructive",
-      });
+      setAuthError("You're offline. Please check your internet connection before logging in.");
       return;
     }
     
@@ -186,14 +200,13 @@ const Auth = () => {
     }
     
     loginTimeoutRef.current = window.setTimeout(() => {
-      if (loading) {
-        setLoading(false);
-        toast({
-          title: "Login Timeout",
-          description: "The login attempt timed out. Please try again.",
-          variant: "destructive",
-        });
-      }
+      setLoading(false);
+      setAuthError("Login attempt timed out. Please try again.");
+      toast({
+        title: "Login Timeout",
+        description: "The login attempt timed out. Please try again.",
+        variant: "destructive",
+      });
     }, 10000); // 10 second timeout
     
     try {
@@ -206,26 +219,48 @@ const Auth = () => {
         if (error) {
           console.error("Login error:", error);
           
+          // ENSURE LOADING STATE IS CLEARED IMMEDIATELY ON ERROR
+          setLoading(false);
+          
           if (error.message?.includes("Invalid login credentials")) {
+            setAuthError("Invalid email or password. Please try again.");
             toast({
               title: "Login Failed",
               description: "Invalid email or password. Please try again.",
               variant: "destructive",
             });
           } else if (error.message?.includes("network") || error.message?.includes("fetch")) {
+            setAuthError("Unable to reach authentication servers. Please check your connection.");
             toast({
               title: "Connection Error",
               description: "Unable to connect to authentication service. Please check your internet connection.",
               variant: "destructive",
             });
             setConnectionError("Unable to reach authentication servers. Please check your connection.");
+            
+            // Try to recover connection
+            try {
+              const reconnected = await reconnect();
+              if (reconnected) {
+                setAuthError("Connection recovered. Please try logging in again.");
+                toast({
+                  title: "Connection Restored",
+                  description: "Please try logging in again.",
+                });
+              }
+            } catch (reconnectError) {
+              console.error("Reconnection failed:", reconnectError);
+            }
           } else {
+            setAuthError(error.message || "An unexpected error occurred during login");
             toast({
               title: "Login Error",
               description: error.message || "An unexpected error occurred during login",
               variant: "destructive",
             });
           }
+          
+          // No need to set loading false here, it's already done above for errors
         } else {
           toast({
             title: "Login Successful",
@@ -233,17 +268,21 @@ const Auth = () => {
           });
           
           // Navigate handled by session effect
+          // But clear error state
+          setAuthError(null);
         }
       } else {
         // Registration flow
         if (!username) {
           setUsernameError(t.errors.usernameRequired);
+          setLoading(false); // Clear loading immediately
           throw new Error("Username is required");
         }
         
         const isAvailable = await checkUsernameAvailability(username);
         if (!isAvailable) {
           setUsernameError(t.errors.usernameTaken);
+          setLoading(false); // Clear loading immediately
           throw new Error("Username is already taken");
         }
         
@@ -258,19 +297,36 @@ const Auth = () => {
         if (error) {
           console.error("Signup error:", error);
           
+          // ENSURE LOADING STATE IS CLEARED IMMEDIATELY ON ERROR
+          setLoading(false);
+          
           if (error.message?.includes("network") || error.message?.includes("fetch")) {
+            setAuthError("Unable to connect to signup service. Please check your connection.");
             toast({
               title: "Connection Error",
               description: "Unable to connect to signup service. Please check your internet connection.",
               variant: "destructive",
             });
+            
+            // Try to recover connection
+            try {
+              const reconnected = await reconnect();
+              if (reconnected) {
+                setAuthError("Connection recovered. Please try signing up again.");
+              }
+            } catch (reconnectError) {
+              console.error("Reconnection failed:", reconnectError);
+            }
           } else {
+            setAuthError(error.message || "An unexpected error occurred during signup");
             toast({
               title: "Signup Error",
               description: error.message || "An unexpected error occurred during signup",
               variant: "destructive",
             });
           }
+          
+          // No need to set loading false here, it's already done above for errors
         } else {
           // Change the app language immediately to the selected one
           await setLanguage(selectedLanguage);
@@ -284,6 +340,12 @@ const Auth = () => {
       }
     } catch (error: any) {
       console.error("Authentication process error:", error);
+      
+      // ENSURE LOADING STATE IS CLEARED IMMEDIATELY ON ERROR
+      setLoading(false);
+      
+      setAuthError(error.message || "An unexpected authentication error occurred");
+      
       // Most errors handled in inner try-catch blocks
     } finally {
       // Clear the timeout as we've finished the operation
@@ -292,6 +354,7 @@ const Auth = () => {
         loginTimeoutRef.current = null;
       }
       
+      // Make absolutely sure loading is false when done
       setLoading(false);
     }
   };
@@ -343,6 +406,19 @@ const Auth = () => {
                 </Button>
               </AlertDescription>
             </div>
+          </Alert>
+        )}
+        
+        {/* Persistent auth error message */}
+        {authError && (
+          <Alert 
+            variant="destructive" 
+            className="mb-4"
+          >
+            <AlertDescription className="flex items-center">
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              {authError}
+            </AlertDescription>
           </Alert>
         )}
         
@@ -436,10 +512,11 @@ const Auth = () => {
             </div>
           )}
           
+          {/* Simplified disabled logic */}
           <Button 
             type="submit" 
             className="w-full aurora-button" 
-            disabled={loading || (!isOnline && !connectionError) || reconnecting}
+            disabled={loading || !isOnline || reconnecting}
           >
             {loading ? (
               <span className="flex items-center">
@@ -469,6 +546,7 @@ const Auth = () => {
               setIsLogin(!isLogin);
               setUsernameError('');
               setUsername('');
+              setAuthError(null);
             }}
             className="text-sm text-[#545454] hover:underline"
           >
