@@ -1,3 +1,4 @@
+
 // ─────────────────────────────────────────────────────────────
 //  Small shared helper utilities used across the analyze‑prompt
 //  edge‑function.  *No* external imports to keep the bundle tiny.
@@ -143,6 +144,5 @@ export const extractMeaningfulElements = (promptText: string) => {
 // NOTE:  Other helpers (computeAmbiguity, organiseQuestionsByPillar) live under
 //        utils/questionUtils.ts so they can grow independently without pulling
 //        everything into this tiny file.
-
 
 // EOF

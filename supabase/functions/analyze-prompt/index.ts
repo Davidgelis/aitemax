@@ -141,8 +141,15 @@ serve(async (req) => {
     const firstImageWithBase64 = imageData && Array.isArray(imageData)
       ? imageData.find(img => img.base64)
       : null;
+
+    // Launch image analysis in parallel (with 30s timeout)
     const describeImagePromise = firstImageWithBase64
-      ? describeImage(firstImageWithBase64.base64).catch(err => {
+      ? Promise.race([
+          describeImage(firstImageWithBase64.base64),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Image analysis timed out")), 30000)
+          )
+        ]).catch(err => {
           console.error("Error processing image data:", err);
           return null;
         })
@@ -165,7 +172,7 @@ serve(async (req) => {
       systemPrompt,
       model || 'gpt-4.1',
       additionalContext,
-      firstImageWithBase64?.base64 || null
+      null
     ).catch(err => {
       console.error("OpenAI analysis error:", err);
       return null;
@@ -580,7 +587,7 @@ serve(async (req) => {
       enhancedPrompt = openAIResult.parsed.enhancedPrompt;
     }
     
-    // Assemble response, including any warnings from partial failures
+    // ─── Assemble response, including any warnings from partial failures ───
     const warnings: string[] = [];
     if (!openAIResult) {
       warnings.push("AI analysis could not be completed – using default questions.");
@@ -597,6 +604,13 @@ serve(async (req) => {
       // If image format was unsupported by the AI (not png/jpg/gif/webp)
       if (firstImageWithBase64?.base64 && !/^data:image\/(png|jpe?g|gif|webp);base64,/i.test(firstImageWithBase64.base64)) {
         warnings.push("The image format is not supported for AI analysis and was ignored.");
+      }
+      // If image analysis failed or timed out, add a warning that it was skipped
+      if (firstImageWithBase64?.base64 &&
+          firstImageWithBase64.base64.length < 650000 &&
+          /^data:image\/(png|jpe?g|gif|webp);base64,/i.test(firstImageWithBase64.base64) &&
+          vision === null) {
+        warnings.push("Image analysis could not be completed – proceeding without image context.");
       }
     }
     const response: any = {
