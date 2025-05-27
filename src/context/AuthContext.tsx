@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     ? new Date(session.expires_at * 1000) 
     : null;
 
-  // Enhanced session refresh with better error handling
+  // Simplified session refresh
   const refreshSession = async (): Promise<void> => {
     try {
       console.log('Refreshing session...');

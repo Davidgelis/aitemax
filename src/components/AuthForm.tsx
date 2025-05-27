@@ -11,11 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Globe, RefreshCw, Wifi, WifiOff, AlertTriangle, Loader } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useConnectionManager } from '@/hooks/useConnectionManager';
 import { checkUsernameAvailability } from '@/integrations/supabase/auth-helpers';
 
 /**
- * Enhanced AuthForm with consolidated authentication management
+ * Streamlined AuthForm with non-blocking connection management
  */
 const AuthForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -43,16 +42,6 @@ const AuthForm: React.FC = () => {
     isOnline
   } = useAuth();
   
-  // Use enhanced connection manager
-  const { 
-    status: connectionStatus, 
-    isOffline, 
-    isDegraded,
-    isChecking: reconnecting, 
-    connectionDetails,
-    checkConnection: handleReconnect
-  } = useConnectionManager();
-  
   // Set the default selected language to match the current app language
   useEffect(() => {
     setSelectedLanguage(currentLanguage);
@@ -67,13 +56,13 @@ const AuthForm: React.FC = () => {
     }
   }, [session, navigate, location.search]);
   
-  // Enhanced form submission with better error handling
+  // Simplified form submission without blocking connection checks
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Prevent rapid repeated submissions
     const now = Date.now();
-    if (now - lastSubmitAttempt < 3000) {
+    if (now - lastSubmitAttempt < 2000) {
       console.log("Throttling submission attempts");
       return;
     }
@@ -89,21 +78,14 @@ const AuthForm: React.FC = () => {
       return;
     }
     
-    // Check connection before attempting auth
-    if (isOffline) {
-      setAuthError("You're offline. Please check your internet connection before continuing.");
-      return;
-    }
-    
     try {
       if (isLogin) {
-        // Login flow with enhanced error handling
+        // Login flow
         console.log('Attempting login...');
         const { error } = await signIn(email, password, rememberMe);
         
         if (error) {
           console.error("Login failed:", error);
-          // Error is already set by the signIn function
         } else {
           console.log('Login successful');
         }
@@ -131,10 +113,8 @@ const AuthForm: React.FC = () => {
         
         if (error) {
           console.error("Signup failed:", error);
-          // Error is already set by the signUp function
         } else {
           console.log('Signup successful');
-          // Change the app language immediately to the selected one
           await setLanguage(selectedLanguage);
           setIsLogin(true);
         }
@@ -145,66 +125,34 @@ const AuthForm: React.FC = () => {
     }
   };
   
-  // Enhanced connection status message
-  const getConnectionMessage = () => {
-    if (isOffline) return "You're offline. Please check your internet connection.";
-    if (isDegraded) return "Connection issues detected. Authentication may be slow.";
-    if (connectionStatus === 'checking') return "Checking connection...";
-    return null;
-  };
-  
-  const connectionMessage = getConnectionMessage();
-  const showConnectionAlert = connectionMessage || authError;
+  // Only show critical connection issues
+  const showConnectionWarning = !isOnline;
   
   return (
     <form onSubmit={handleAuth} className="space-y-4">
-      {/* Enhanced connection and error status */}
-      {showConnectionAlert && (
-        <Alert 
-          variant={isOffline || authError ? "destructive" : isDegraded ? "default" : "default"} 
-          className="mb-4"
-        >
+      {/* Only show alert for critical errors or offline status */}
+      {(authError || showConnectionWarning) && (
+        <Alert variant={authError ? "destructive" : "default"} className="mb-4">
           <div className="flex items-start gap-2">
-            {isOffline ? (
+            {showConnectionWarning ? (
               <WifiOff className="h-4 w-4 mt-0.5" />
-            ) : isDegraded ? (
-              <AlertTriangle className="h-4 w-4 mt-0.5" />
-            ) : authError ? (
-              <AlertTriangle className="h-4 w-4 mt-0.5" />
             ) : (
-              <Wifi className="h-4 w-4 mt-0.5" />
+              <AlertTriangle className="h-4 w-4 mt-0.5" />
             )}
-            <AlertDescription className="flex flex-col gap-2">
-              {authError || connectionMessage}
-              
-              {(isOffline || isDegraded) && (
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReconnect} 
-                  disabled={reconnecting} 
-                  className="self-start mt-2"
-                >
-                  {reconnecting ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                  {reconnecting ? "Checking..." : "Test Connection"}
-                </Button>
-              )}
+            <AlertDescription>
+              {authError || "You're offline. Login may not work properly."}
             </AlertDescription>
           </div>
         </Alert>
       )}
       
-      {/* Connection status indicator */}
-      <div className="flex items-center justify-end mb-4">
-        <span className="text-sm flex items-center">
-          {reconnecting ? (
-            <><RefreshCw className="w-4 h-4 text-amber-500 animate-spin mr-1" /> Connecting...</>
-          ) : isOnline ? (
-            <><Wifi className="w-4 h-4 text-green-500 mr-1" /> Connected</>
-          ) : isOffline ? (
-            <><WifiOff className="w-4 h-4 text-red-500 mr-1" /> Offline</>
+      {/* Simplified connection status - non-blocking */}
+      <div className="flex items-center justify-end mb-2">
+        <span className="text-xs text-gray-500 flex items-center">
+          {isOnline ? (
+            <><Wifi className="w-3 h-3 text-green-500 mr-1" /> Online</>
           ) : (
-            <><AlertTriangle className="w-4 h-4 text-amber-500 mr-1" /> Connection issues</>
+            <><WifiOff className="w-3 h-3 text-red-500 mr-1" /> Offline</>
           )}
         </span>
       </div>
@@ -295,7 +243,7 @@ const AuthForm: React.FC = () => {
       <Button 
         type="submit" 
         className="w-full aurora-button" 
-        disabled={loading || isOffline || reconnecting}
+        disabled={loading}
       >
         {loading ? (
           <span className="flex items-center">

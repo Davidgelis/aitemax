@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 /**
- * Simplified and consolidated authentication state management
+ * Simplified authentication state management with non-blocking connection checks
  */
 export const useAuthState = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -15,23 +15,13 @@ export const useAuthState = () => {
   const [loginInProgress, setLoginInProgress] = useState(false);
   const { toast } = useToast();
   
-  // Track online status with more reliable detection
+  // Simple online status tracking
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
-  // Abort controller ref for cancellable operations
-  const abortControllerRef = useRef<AbortController | null>(null);
-  
-  // Enhanced online/offline detection
+  // Basic online/offline detection
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      console.log('Connection restored');
-    };
-    
-    const handleOffline = () => {
-      setIsOnline(false);
-      console.log('Connection lost');
-    };
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
     
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -42,64 +32,13 @@ export const useAuthState = () => {
     };
   }, []);
   
-  // Enhanced connection check
-  const checkConnection = useCallback(async (): Promise<boolean> => {
-    if (!navigator.onLine) {
-      setIsOnline(false);
-      return false;
-    }
-    
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-      
-      const response = await fetch('https://xyfwsmblaayznplurmfa.supabase.co/rest/v1/', {
-        method: 'HEAD',
-        signal: controller.signal,
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZndzbWJsYWF5em5wbHVybWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA4NjQ5MzAsImV4cCI6MjA1NjQ0MDkzMH0.iSMjuUMOEGVP-eU7p1xng_XlSc3pNg_DbViVwyD3Fc8',
-          'Cache-Control': 'no-cache'
-        }
-      });
-      
-      clearTimeout(timeoutId);
-      const connectionOk = response.ok || response.status === 401; // 401 is expected for HEAD requests
-      setIsOnline(connectionOk);
-      return connectionOk;
-    } catch (error) {
-      console.error('Connection check failed:', error);
-      setIsOnline(false);
-      return false;
-    }
-  }, []);
-  
-  // Simplified and robust login function
+  // Simplified login function without blocking connection checks
   const login = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
-    if (!isOnline) {
-      const error = { message: "You're offline. Please check your internet connection." };
-      setAuthError(error.message);
-      return { error };
-    }
-    
     setLoginInProgress(true);
     setAuthError(null);
     
-    // Cancel any previous login attempt
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
     try {
       console.log('Attempting login for:', email);
-      
-      // First ensure we have a working connection
-      const connectionOk = await checkConnection();
-      if (!connectionOk) {
-        const error = { message: "Unable to connect to authentication service. Please try again." };
-        setAuthError(error.message);
-        setLoginInProgress(false);
-        return { error };
-      }
       
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email: email.trim(), 
@@ -129,16 +68,10 @@ export const useAuthState = () => {
       setLoginInProgress(false);
       return { error: { message: errorMessage } };
     }
-  }, [isOnline, checkConnection]);
+  }, []);
   
   // Simplified signup function
   const signup = useCallback(async (email: string, password: string, options?: { data?: any }) => {
-    if (!isOnline) {
-      const error = { message: "You're offline. Please check your internet connection." };
-      setAuthError(error.message);
-      return { error };
-    }
-    
     setLoginInProgress(true);
     setAuthError(null);
     
@@ -169,7 +102,7 @@ export const useAuthState = () => {
       setLoginInProgress(false);
       return { error: { message: errorMessage } };
     }
-  }, [isOnline]);
+  }, []);
   
   // Simplified logout function
   const logout = useCallback(async () => {
@@ -278,7 +211,6 @@ export const useAuthState = () => {
     login,
     signup,
     logout,
-    setAuthError,
-    checkConnection
+    setAuthError
   };
 };
