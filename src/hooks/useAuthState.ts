@@ -9,6 +9,7 @@ export const useAuthState = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<Date | null>(null);
   const { toast } = useToast();
   
   // Simple online status tracking
@@ -23,6 +24,31 @@ export const useAuthState = () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
+  }, []);
+
+  // Calculate session expiration
+  useEffect(() => {
+    if (session?.expires_at) {
+      setSessionExpiresAt(new Date(session.expires_at * 1000));
+    } else {
+      setSessionExpiresAt(null);
+    }
+  }, [session]);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      console.log('Refreshing session...');
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error('Session refresh error:', error);
+        return;
+      }
+      
+      console.log('Session refreshed successfully');
+    } catch (err: any) {
+      console.error('Session refresh exception:', err);
+    }
   }, []);
   
   const login = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
@@ -157,6 +183,8 @@ export const useAuthState = () => {
     isOnline,
     login,
     signup,
-    logout
+    logout,
+    refreshSession,
+    sessionExpiresAt
   };
 };

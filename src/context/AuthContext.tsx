@@ -11,6 +11,8 @@ type AuthContextType = {
   signUp: (email: string, password: string, options?: { data?: any }) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   isOnline: boolean;
+  refreshSession: () => Promise<void>;
+  sessionExpiresAt: Date | null;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,7 +25,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     login,
     signup,
     logout,
-    isOnline
+    isOnline,
+    refreshSession,
+    sessionExpiresAt
   } = useAuthState();
 
   const value: AuthContextType = {
@@ -34,6 +38,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     signUp: signup,
     signOut: logout,
     isOnline,
+    refreshSession,
+    sessionExpiresAt,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
