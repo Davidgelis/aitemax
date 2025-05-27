@@ -1,24 +1,17 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-/**
- * Simplified authentication state management with non-blocking connection checks
- */
 export const useAuthState = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [loginInProgress, setLoginInProgress] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { toast } = useToast();
   
   // Simple online status tracking
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  
-  // Basic online/offline detection
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -32,13 +25,9 @@ export const useAuthState = () => {
     };
   }, []);
   
-  // Simplified login function without blocking connection checks
   const login = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
-    setLoginInProgress(true);
-    setAuthError(null);
-    
     try {
-      console.log('Attempting login for:', email);
+      console.log('Login attempt for:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({ 
         email: email.trim(), 
@@ -47,36 +36,20 @@ export const useAuthState = () => {
       
       if (error) {
         console.error('Login error:', error);
-        setAuthError(error.message);
-        setLoginInProgress(false);
         return { error };
       }
       
-      if (data.session) {
-        console.log('Login successful');
-        setSession(data.session);
-        setUser(data.user);
-        setAuthError(null);
-      }
-      
-      setLoginInProgress(false);
+      console.log('Login successful for:', email);
       return { error: null };
     } catch (err: any) {
       console.error('Login exception:', err);
-      const errorMessage = err.message || 'An unexpected error occurred during login';
-      setAuthError(errorMessage);
-      setLoginInProgress(false);
-      return { error: { message: errorMessage } };
+      return { error: { message: err.message || 'Login failed' } };
     }
   }, []);
   
-  // Simplified signup function
   const signup = useCallback(async (email: string, password: string, options?: { data?: any }) => {
-    setLoginInProgress(true);
-    setAuthError(null);
-    
     try {
-      console.log('Attempting signup for:', email);
+      console.log('Signup attempt for:', email);
       
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
@@ -86,39 +59,26 @@ export const useAuthState = () => {
       
       if (error) {
         console.error('Signup error:', error);
-        setAuthError(error.message);
-        setLoginInProgress(false);
         return { error };
       }
       
-      console.log('Signup successful:', data);
-      setAuthError(null);
-      setLoginInProgress(false);
+      console.log('Signup successful for:', email);
       return { error: null };
     } catch (err: any) {
       console.error('Signup exception:', err);
-      const errorMessage = err.message || 'An unexpected error occurred during signup';
-      setAuthError(errorMessage);
-      setLoginInProgress(false);
-      return { error: { message: errorMessage } };
+      return { error: { message: err.message || 'Signup failed' } };
     }
   }, []);
   
-  // Simplified logout function
   const logout = useCallback(async () => {
     try {
-      console.log('Attempting logout');
+      console.log('Logout attempt');
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error('Logout error:', error);
         return { error };
       }
-      
-      // Clear state immediately
-      setSession(null);
-      setUser(null);
-      setAuthError(null);
       
       console.log('Logout successful');
       return { error: null };
@@ -138,7 +98,7 @@ export const useAuthState = () => {
         
         // Set up auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, session) => {
+          (event, session) => {
             if (!mounted) return;
             
             console.log(`Auth state changed: ${event}`, session?.user?.email || 'no user');
@@ -158,29 +118,18 @@ export const useAuthState = () => {
                 title: "Signed out",
                 description: "You have been signed out successfully.",
               });
-            } else if (event === 'TOKEN_REFRESHED') {
-              console.log('Token refreshed successfully');
             }
           }
         );
         
         // Get initial session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting initial session:', error);
-        }
+        const { data: { session } } = await supabase.auth.getSession();
         
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
-          
-          if (session) {
-            console.log('Found existing session for:', session.user.email);
-          } else {
-            console.log('No existing session found');
-          }
+          console.log('Initial session:', session?.user?.email || 'no session');
         }
         
         return () => {
@@ -205,12 +154,9 @@ export const useAuthState = () => {
     user,
     session,
     loading,
-    authError,
-    loginInProgress,
     isOnline,
     login,
     signup,
-    logout,
-    setAuthError
+    logout
   };
 };

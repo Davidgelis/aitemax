@@ -9,13 +9,10 @@ import { useLanguage } from '@/context/LanguageContext';
 import { authTranslations } from '@/translations/auth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Globe, RefreshCw, Wifi, WifiOff, AlertTriangle, Loader } from 'lucide-react';
+import { Globe, AlertTriangle, Loader, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { checkUsernameAvailability } from '@/integrations/supabase/auth-helpers';
 
-/**
- * Streamlined AuthForm with non-blocking connection management
- */
 const AuthForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,30 +21,28 @@ const AuthForm: React.FC = () => {
   const [usernameError, setUsernameError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
-  const [lastSubmitAttempt, setLastSubmitAttempt] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const location = useLocation();
   const { currentLanguage, languages, setLanguage } = useLanguage();
   const t = authTranslations[currentLanguage as keyof typeof authTranslations] || authTranslations.en;
   
-  // Use consolidated auth context
   const { 
     session,
-    loading,
-    authError,
+    loading: authLoading,
     signIn,
     signUp,
-    setAuthError,
     isOnline
   } = useAuth();
   
-  // Set the default selected language to match the current app language
+  // Set default language
   useEffect(() => {
     setSelectedLanguage(currentLanguage);
   }, [currentLanguage]);
   
-  // Automatically redirect if session exists
+  // Redirect if authenticated
   useEffect(() => {
     if (session) {
       console.log('User is authenticated, redirecting...');
@@ -56,43 +51,44 @@ const AuthForm: React.FC = () => {
     }
   }, [session, navigate, location.search]);
   
-  // Simplified form submission without blocking connection checks
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Prevent rapid repeated submissions
-    const now = Date.now();
-    if (now - lastSubmitAttempt < 2000) {
-      console.log("Throttling submission attempts");
-      return;
-    }
-    setLastSubmitAttempt(now);
+    if (isSubmitting) return;
     
-    // Clear previous errors
-    setAuthError(null);
+    setIsSubmitting(true);
+    setFormError(null);
     setUsernameError('');
     
-    // Validate form inputs
+    // Basic validation
     if (!email.trim() || !password.trim()) {
-      setAuthError('Please fill in all required fields');
+      setFormError('Please fill in all required fields');
+      setIsSubmitting(false);
+      return;
+    }
+    
+    if (!isOnline) {
+      setFormError('You appear to be offline. Please check your connection.');
+      setIsSubmitting(false);
       return;
     }
     
     try {
       if (isLogin) {
-        // Login flow
         console.log('Attempting login...');
         const { error } = await signIn(email, password, rememberMe);
         
         if (error) {
           console.error("Login failed:", error);
+          setFormError(error.message || 'Login failed. Please try again.');
         } else {
           console.log('Login successful');
         }
       } else {
-        // Registration flow with validation
+        // Registration flow
         if (!username.trim()) {
           setUsernameError('Username is required');
+          setIsSubmitting(false);
           return;
         }
         
@@ -100,6 +96,7 @@ const AuthForm: React.FC = () => {
         const isAvailable = await checkUsernameAvailability(username);
         if (!isAvailable) {
           setUsernameError('This username is already taken');
+          setIsSubmitting(false);
           return;
         }
         
@@ -113,6 +110,7 @@ const AuthForm: React.FC = () => {
         
         if (error) {
           console.error("Signup failed:", error);
+          setFormError(error.message || 'Signup failed. Please try again.');
         } else {
           console.log('Signup successful');
           await setLanguage(selectedLanguage);
@@ -121,32 +119,25 @@ const AuthForm: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Unexpected error during authentication:', error);
-      setAuthError('An unexpected error occurred. Please try again.');
+      setFormError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
-  // Only show critical connection issues
-  const showConnectionWarning = !isOnline;
+  const isFormDisabled = authLoading || isSubmitting;
   
   return (
     <form onSubmit={handleAuth} className="space-y-4">
-      {/* Only show alert for critical errors or offline status */}
-      {(authError || showConnectionWarning) && (
-        <Alert variant={authError ? "destructive" : "default"} className="mb-4">
-          <div className="flex items-start gap-2">
-            {showConnectionWarning ? (
-              <WifiOff className="h-4 w-4 mt-0.5" />
-            ) : (
-              <AlertTriangle className="h-4 w-4 mt-0.5" />
-            )}
-            <AlertDescription>
-              {authError || "You're offline. Login may not work properly."}
-            </AlertDescription>
-          </div>
+      {/* Error display */}
+      {formError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{formError}</AlertDescription>
         </Alert>
       )}
       
-      {/* Simplified connection status - non-blocking */}
+      {/* Connection status - non-blocking */}
       <div className="flex items-center justify-end mb-2">
         <span className="text-xs text-gray-500 flex items-center">
           {isOnline ? (
@@ -165,7 +156,7 @@ const AuthForm: React.FC = () => {
           onChange={(e) => setEmail(e.target.value)}
           required
           className="w-full"
-          disabled={loading}
+          disabled={isFormDisabled}
         />
       </div>
       
@@ -182,7 +173,7 @@ const AuthForm: React.FC = () => {
               }}
               className="w-full"
               required
-              disabled={loading}
+              disabled={isFormDisabled}
             />
             {usernameError && (
               <p className="text-sm text-red-500 mt-1">{usernameError}</p>
@@ -197,7 +188,7 @@ const AuthForm: React.FC = () => {
             <Select 
               value={selectedLanguage} 
               onValueChange={setSelectedLanguage}
-              disabled={loading}
+              disabled={isFormDisabled}
             >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select Language" />
@@ -222,7 +213,7 @@ const AuthForm: React.FC = () => {
           onChange={(e) => setPassword(e.target.value)}
           required
           className="w-full"
-          disabled={loading}
+          disabled={isFormDisabled}
         />
       </div>
       
@@ -232,7 +223,7 @@ const AuthForm: React.FC = () => {
             id="rememberMe" 
             checked={rememberMe} 
             onCheckedChange={(checked) => setRememberMe(checked === true)}
-            disabled={loading}
+            disabled={isFormDisabled}
           />
           <Label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
             {t.keepSignedIn}
@@ -243,9 +234,9 @@ const AuthForm: React.FC = () => {
       <Button 
         type="submit" 
         className="w-full aurora-button" 
-        disabled={loading}
+        disabled={isFormDisabled}
       >
-        {loading ? (
+        {isSubmitting ? (
           <span className="flex items-center">
             <Loader className="animate-spin mr-2 h-4 w-4" />
             {t.processing}
@@ -262,10 +253,10 @@ const AuthForm: React.FC = () => {
             setIsLogin(!isLogin);
             setUsernameError('');
             setUsername('');
-            setAuthError(null);
+            setFormError(null);
           }}
           className="text-sm text-[#545454] hover:underline"
-          disabled={loading}
+          disabled={isFormDisabled}
         >
           {isLogin ? t.switchToSignUp : t.switchToLogin}
         </button>
