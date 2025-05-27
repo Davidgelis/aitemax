@@ -2,7 +2,6 @@
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useConnectionManager } from '@/hooks/useConnectionManager';
 
 export const useSessionControls = () => {
   const { sessionExpiresAt, refreshSession, isOnline } = useAuth();
@@ -11,13 +10,11 @@ export const useSessionControls = () => {
   const [refreshInProgress, setRefreshInProgress] = useState(false);
   const { toast } = useToast();
   
-  // Use our unified connection manager
-  const { status: connectionStatus, getConnectionHealth } = useConnectionManager();
-  
-  // Timer calculation with improved expiration handling
+  // Enhanced timer calculation with automatic refresh
   const calc = useCallback(() => {
     if (!sessionExpiresAt) {
       setTimer('No session');
+      setAboutToExpire(false);
       return;
     }
     
@@ -26,28 +23,48 @@ export const useSessionControls = () => {
     
     if (left <= 0) {
       setTimer('Expired');
+      setAboutToExpire(true);
       return;
     }
     
     // Show warning when less than 5 minutes remain
-    setAboutToExpire(left < 5 * 60 * 1000);
+    const isAboutToExpire = left < 5 * 60 * 1000;
+    setAboutToExpire(isAboutToExpire);
     
     // Format the remaining time
-    const m = Math.floor(left / 60000).toString().padStart(2, '0');
-    const s = Math.floor((left % 60000) / 1000).toString().padStart(2, '0');
-    setTimer(`${m}:${s}`);
+    const hours = Math.floor(left / (60 * 60 * 1000));
+    const minutes = Math.floor((left % (60 * 60 * 1000)) / (60 * 1000));
+    const seconds = Math.floor((left % (60 * 1000)) / 1000);
     
-    // Proactive refresh with better connection health awareness
-    // Only attempt refresh when connection is healthy and less than 4 minutes remain
-    if (left < 4 * 60 * 1000 && isOnline && !refreshInProgress && connectionStatus === 'online') {
-      setRefreshInProgress(true);
-      refreshSession().finally(() => {
-        setTimeout(() => setRefreshInProgress(false), 5000);
-      });
+    if (hours > 0) {
+      setTimer(`${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    } else {
+      setTimer(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
     }
-  }, [sessionExpiresAt, refreshSession, isOnline, refreshInProgress, connectionStatus]);
+    
+    // Proactive refresh when less than 4 minutes remain and we're online
+    if (left < 4 * 60 * 1000 && isOnline && !refreshInProgress) {
+      handleAutoRefresh();
+    }
+  }, [sessionExpiresAt, isOnline, refreshInProgress]);
 
-  // Manual refresh with enhanced recovery capabilities
+  // Automatic session refresh
+  const handleAutoRefresh = useCallback(async () => {
+    if (refreshInProgress) return;
+    
+    setRefreshInProgress(true);
+    try {
+      console.log('Auto-refreshing session...');
+      await refreshSession();
+      console.log('Session auto-refreshed successfully');
+    } catch (error) {
+      console.error('Auto-refresh failed:', error);
+    } finally {
+      setTimeout(() => setRefreshInProgress(false), 3000);
+    }
+  }, [refreshSession, refreshInProgress]);
+
+  // Manual refresh with enhanced feedback
   const handleManualRefresh = useCallback(async () => {
     if (refreshInProgress) return;
     
@@ -63,6 +80,7 @@ export const useSessionControls = () => {
         return;
       }
       
+      console.log('Manual session refresh requested...');
       await refreshSession();
       
       toast({
@@ -70,11 +88,11 @@ export const useSessionControls = () => {
         description: "Your session has been successfully refreshed.",
       });
     } catch (error) {
-      console.error("Session refresh failed:", error);
+      console.error("Manual session refresh failed:", error);
       
       toast({
         title: "Refresh Failed",
-        description: "Unable to refresh your session. Please try again or sign in again.",
+        description: "Unable to refresh your session. Please try signing in again.",
         variant: "destructive",
       });
     } finally {
@@ -94,7 +112,6 @@ export const useSessionControls = () => {
     aboutToExpire, 
     refreshSession: handleManualRefresh, 
     isOnline, 
-    refreshInProgress,
-    connectionHealth: getConnectionHealth()
+    refreshInProgress
   };
 };

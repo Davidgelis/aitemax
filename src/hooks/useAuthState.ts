@@ -3,10 +3,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useConnectionManager } from '@/hooks/useConnectionManager';
 
 /**
- * A simplified hook that handles authentication state management
+ * Simplified and consolidated authentication state management
  */
 export const useAuthState = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -16,204 +15,243 @@ export const useAuthState = () => {
   const [loginInProgress, setLoginInProgress] = useState(false);
   const { toast } = useToast();
   
-  // Use our unified connection manager
-  const { 
-    isOnline, 
-    status: connectionStatus,
-    checkConnection
-  } = useConnectionManager();
+  // Track online status with more reliable detection
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   
   // Abort controller ref for cancellable operations
   const abortControllerRef = useRef<AbortController | null>(null);
   
-  // Get current auth session
-  const getSession = useCallback(async () => {
+  // Enhanced online/offline detection
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      console.log('Connection restored');
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      console.log('Connection lost');
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  
+  // Enhanced connection check
+  const checkConnection = useCallback(async (): Promise<boolean> => {
+    if (!navigator.onLine) {
+      setIsOnline(false);
+      return false;
+    }
+    
     try {
-      const { data, error } = await supabase.auth.getSession();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
       
-      if (error) {
-        console.error('Error fetching session:', error);
-        return null;
-      }
+      const response = await fetch('https://xyfwsmblaayznplurmfa.supabase.co/rest/v1/', {
+        method: 'HEAD',
+        signal: controller.signal,
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5ZndzbWJsYWF5em5wbHVybWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA4NjQ5MzAsImV4cCI6MjA1NjQ0MDkzMH0.iSMjuUMOEGVP-eU7p1xng_XlSc3pNg_DbViVwyD3Fc8',
+          'Cache-Control': 'no-cache'
+        }
+      });
       
-      return data.session;
-    } catch (err) {
-      console.error('Exception fetching session:', err);
-      return null;
+      clearTimeout(timeoutId);
+      const connectionOk = response.ok || response.status === 401; // 401 is expected for HEAD requests
+      setIsOnline(connectionOk);
+      return connectionOk;
+    } catch (error) {
+      console.error('Connection check failed:', error);
+      setIsOnline(false);
+      return false;
     }
   }, []);
   
-  // Simplified login function with better error handling
+  // Simplified and robust login function
   const login = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
     if (!isOnline) {
-      return { 
-        error: { 
-          message: "You're offline. Please check your internet connection before logging in." 
-        } 
-      };
+      const error = { message: "You're offline. Please check your internet connection." };
+      setAuthError(error.message);
+      return { error };
     }
     
     setLoginInProgress(true);
     setAuthError(null);
     
-    // Create a new abort controller for this login attempt
+    // Cancel any previous login attempt
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     
-    abortControllerRef.current = new AbortController();
-    const timeoutId = setTimeout(() => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    }, 15000); // 15 second timeout
-    
     try {
-      // First ensure we have a connection
+      console.log('Attempting login for:', email);
+      
+      // First ensure we have a working connection
       const connectionOk = await checkConnection();
       if (!connectionOk) {
-        clearTimeout(timeoutId);
-        setLoginInProgress(false);
-        return { 
-          error: { 
-            message: "Unable to connect to authentication service. Please check your connection." 
-          } 
-        };
-      }
-      
-      const { error } = await supabase.auth.signInWithPassword({ 
-        email, 
-        password
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (error) {
+        const error = { message: "Unable to connect to authentication service. Please try again." };
         setAuthError(error.message);
         setLoginInProgress(false);
         return { error };
       }
       
-      // Success case
-      setAuthError(null);
-      setLoginInProgress(false);
-      return { error: null };
-    } catch (err) {
-      clearTimeout(timeoutId);
-      console.error('Login exception:', err);
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email: email.trim(), 
+        password 
+      });
       
-      // Check if this was an abort error (timeout)
-      if (err.name === 'AbortError') {
-        setAuthError('Login attempt timed out. Please try again.');
-        toast({
-          title: "Login Timeout",
-          description: "The server took too long to respond. Please try again.",
-          variant: "destructive",
-        });
-      } else {
-        setAuthError(err.message || 'An unexpected error occurred during login');
+      if (error) {
+        console.error('Login error:', error);
+        setAuthError(error.message);
+        setLoginInProgress(false);
+        return { error };
+      }
+      
+      if (data.session) {
+        console.log('Login successful');
+        setSession(data.session);
+        setUser(data.user);
+        setAuthError(null);
       }
       
       setLoginInProgress(false);
-      return { error: err };
+      return { error: null };
+    } catch (err: any) {
+      console.error('Login exception:', err);
+      const errorMessage = err.message || 'An unexpected error occurred during login';
+      setAuthError(errorMessage);
+      setLoginInProgress(false);
+      return { error: { message: errorMessage } };
     }
-  }, [isOnline, checkConnection, toast]);
+  }, [isOnline, checkConnection]);
   
   // Simplified signup function
   const signup = useCallback(async (email: string, password: string, options?: { data?: any }) => {
     if (!isOnline) {
-      return { 
-        error: { 
-          message: "You're offline. Please check your internet connection before signing up." 
-        } 
-      };
+      const error = { message: "You're offline. Please check your internet connection." };
+      setAuthError(error.message);
+      return { error };
     }
     
     setLoginInProgress(true);
     setAuthError(null);
     
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
+      console.log('Attempting signup for:', email);
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
         options
       });
       
       if (error) {
+        console.error('Signup error:', error);
         setAuthError(error.message);
         setLoginInProgress(false);
         return { error };
       }
       
-      // Success case
+      console.log('Signup successful:', data);
       setAuthError(null);
       setLoginInProgress(false);
       return { error: null };
-    } catch (err) {
+    } catch (err: any) {
       console.error('Signup exception:', err);
-      setAuthError(err.message || 'An unexpected error occurred during signup');
+      const errorMessage = err.message || 'An unexpected error occurred during signup';
+      setAuthError(errorMessage);
       setLoginInProgress(false);
-      return { error: err };
+      return { error: { message: errorMessage } };
     }
   }, [isOnline]);
   
   // Simplified logout function
   const logout = useCallback(async () => {
     try {
+      console.log('Attempting logout');
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('Error during sign out:', error);
+        console.error('Logout error:', error);
         return { error };
       }
       
+      // Clear state immediately
+      setSession(null);
+      setUser(null);
+      setAuthError(null);
+      
+      console.log('Logout successful');
       return { error: null };
-    } catch (err) {
-      console.error('Exception during sign out:', err);
+    } catch (err: any) {
+      console.error('Logout exception:', err);
       return { error: err };
     }
   }, []);
   
-  // Set up authentication state listener and initialize session
+  // Initialize authentication state
   useEffect(() => {
     let mounted = true;
     
     const initAuth = async () => {
       try {
-        // Set up auth state listener
+        console.log('Initializing auth state...');
+        
+        // Set up auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (event, session) => {
+          async (event, session) => {
             if (!mounted) return;
             
-            console.log(`Auth state changed: ${event}`);
+            console.log(`Auth state changed: ${event}`, session?.user?.email || 'no user');
+            
             setSession(session);
             setUser(session?.user ?? null);
+            setLoading(false);
             
-            if (event === 'SIGNED_IN') {
+            // Show appropriate toasts
+            if (event === 'SIGNED_IN' && session?.user) {
               toast({
-                title: "Signed in successfully",
-                description: "Welcome back!",
+                title: "Welcome back!",
+                description: `Signed in as ${session.user.email}`,
               });
             } else if (event === 'SIGNED_OUT') {
               toast({
                 title: "Signed out",
                 description: "You have been signed out successfully.",
               });
+            } else if (event === 'TOKEN_REFRESHED') {
+              console.log('Token refreshed successfully');
             }
           }
         );
         
         // Get initial session
-        const initialSession = await getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting initial session:', error);
+        }
+        
         if (mounted) {
-          setSession(initialSession);
-          setUser(initialSession?.user ?? null);
+          setSession(session);
+          setUser(session?.user ?? null);
           setLoading(false);
+          
+          if (session) {
+            console.log('Found existing session for:', session.user.email);
+          } else {
+            console.log('No existing session found');
+          }
         }
         
         return () => {
           subscription.unsubscribe();
-          mounted = false;
         };
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -228,7 +266,7 @@ export const useAuthState = () => {
     return () => {
       mounted = false;
     };
-  }, [getSession, toast]);
+  }, [toast]);
   
   return {
     user,
@@ -236,11 +274,11 @@ export const useAuthState = () => {
     loading,
     authError,
     loginInProgress,
-    connectionStatus,
     isOnline,
     login,
     signup,
     logout,
-    setAuthError: setAuthError,
+    setAuthError,
+    checkConnection
   };
 };
