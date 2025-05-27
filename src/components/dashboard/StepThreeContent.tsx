@@ -1,9 +1,8 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Variable } from "./types";
 import { ToggleSection } from "./step-three/ToggleSection";
 import { FinalPromptDisplay } from "./step-three/FinalPromptDisplay";
-import { VariablesSection } from "./step-three/VariablesSection";
+import { SuggestionsSection } from "./step-three/SuggestionsSection";
 import { ActionButtons } from "./step-three/ActionButtons";
 import { StepThreeStyles } from "./step-three/StepThreeStyles";
 import { useToast } from "@/hooks/use-toast";
@@ -198,7 +197,7 @@ export const StepThreeContent = ({
         <div className="p-4">
           <FinalPromptDisplay 
             finalPrompt={finalPrompt || ""}
-            updateFinalPrompt={setFinalPrompt} // Ensure we're passing the setter function
+            updateFinalPrompt={setFinalPrompt}
             getProcessedPrompt={getProcessedPromptFunction}
             variables={safeVariables}
             setVariables={setVariables}
@@ -219,10 +218,9 @@ export const StepThreeContent = ({
             setLastSavedPrompt={setLastSavedPrompt}
           />
 
-          <VariablesSection 
+          <SuggestionsSection 
+            finalPrompt={finalPrompt || ""}
             variables={safeVariables}
-            handleVariableValueChange={enhancedHandleVariableValueChange}
-            onDeleteVariable={handleDeleteVariable}
           />
         </div>
       </ScrollArea>
