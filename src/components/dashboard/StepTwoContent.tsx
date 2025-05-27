@@ -11,31 +11,17 @@ import { WebScanner } from './WebScanner';
 import { SmartContext } from './SmartContext';
 import { PromptEditor } from './PromptEditor';
 import { useToast } from '@/hooks/use-toast';
+import { Question, Variable } from './types';
 
 interface StepTwoContentProps {
-  questions: Array<{ 
-    id: string; 
-    question: string; 
-    category: string; 
-    isAnswered: boolean; 
-    answer?: string;
-    text?: string;
-    isRelevant?: boolean;
-  }>;
-  variables: Array<{ 
-    id: string; 
-    name: string; 
-    description: string; 
-    placeholder: string; 
-    value: string;
-    isRelevant?: boolean;
-  }>;
+  questions: Question[];
+  variables: Variable[];
   onQuestionRelevance: (questionId: string, isRelevant: boolean) => void;
   onQuestionAnswer: (questionId: string, answer: string) => void;
   onVariableChange: (variableId: string, field: string, value: string) => void;
   onVariableRelevance: (variableId: string, isRelevant: boolean) => void;
   onAddVariable: () => void;
-  onDeleteVariable: (variableId: string) => void;
+  onDeleteVariable: () => void;
   variableToDelete: string | null;
   setVariableToDelete: (id: string | null) => void;
   canProceedToStep3: boolean;
@@ -178,12 +164,7 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
             onToggle={handleToggleQuestions}
           >
             <QuestionList
-              questions={questions.map(q => ({
-                ...q,
-                text: q.question,
-                answer: q.answer || '',
-                isRelevant: q.isRelevant !== false
-              }))}
+              questions={questions}
               onQuestionRelevance={onQuestionRelevance}
               onQuestionAnswer={onQuestionAnswer}
               containerRef={questionsContainerRef}
@@ -200,10 +181,7 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
             onToggle={handleToggleVariables}
           >
             <VariableList
-              variables={variables.map(v => ({
-                ...v,
-                isRelevant: v.isRelevant !== false
-              }))}
+              variables={variables}
               onVariableChange={onVariableChange}
               onVariableRelevance={onVariableRelevance}
               onAddVariable={onAddVariable}
