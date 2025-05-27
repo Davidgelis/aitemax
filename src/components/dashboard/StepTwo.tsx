@@ -31,7 +31,9 @@ export const StepTwo = (props: StepTwoProps) => {
     ...props,
     questions: props.questions || [],
     variables: props.variables || [],
-    warnings: props.warnings || []
+    warnings: props.warnings || [],
+    isLoading: props.isLoading || false,
+    loadingMessage: props.loadingMessage || ''
   };
   
   return (

@@ -188,6 +188,8 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
               onDeleteVariable={onDeleteVariable}
               variableToDelete={variableToDelete}
               setVariableToDelete={setVariableToDelete}
+              containerRef={variablesContainerRef}
+              originalPrompt={originalPrompt}
             />
           </CollapsibleSection>
 
