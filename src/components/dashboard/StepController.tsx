@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { StepIndicator } from "@/components/dashboard/StepIndicator";
 import { LoadingState } from "@/components/dashboard/LoadingState";
 import { StepOneContent } from "@/components/dashboard/StepOneContent";
-import { StepTwoContent } from "@/components/dashboard/StepTwoContent";
+import StepTwoContent from "@/components/dashboard/StepTwoContent";
 import { StepThreeContent } from "@/components/dashboard/StepThreeContent";
 import { PrivacyNoticePopup } from "@/components/dashboard/PrivacyNoticePopup";
 import { usePromptAnalysis } from "@/hooks/usePromptAnalysis";
@@ -17,7 +17,7 @@ import { primaryToggles, secondaryToggles } from "./constants";
 import { useTemplateManagement } from "@/hooks/useTemplateManagement";
 import { useLanguage } from "@/context/LanguageContext";
 import { dashboardTranslations } from "@/translations/dashboard";
-import { GPT41_ID } from "@/services/model/ModelFetchService"; // Import the GPT-4.1 ID constant
+import { GPT41_ID } from "@/services/model/ModelFetchService";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StepControllerProps {
@@ -454,7 +454,7 @@ export const StepController = ({
       case 2:
         return (
           <StepTwoContent
-            questions={questions || []} // Make sure we pass default empty arrays
+            questions={questions || []}
             variables={variables || []}
             onQuestionRelevance={handleQuestionRelevance}
             onQuestionAnswer={handleQuestionAnswer}

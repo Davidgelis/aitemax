@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,56 +15,67 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface StepTwoContentProps {
-  promptText: string;
-  setPromptText: (text: string) => void;
-  variables: Array<{ id: string; name: string; description: string; placeholder: string; value: string }>;
-  setVariables: (variables: Array<{ id: string; name: string; description: string; placeholder: string; value: string }>) => void;
-  questions: Array<{ id: string; question: string; category: string; isAnswered: boolean; answer?: string }>;
-  setQuestions: (questions: Array<{ id: string; question: string; category: string; isAnswered: boolean; answer?: string }>) => void;
-  primaryToggle: string;
-  setPrimaryToggle: (toggle: string) => void;
-  secondaryToggle: string;
-  setSecondaryToggle: (toggle: string) => void;
-  masterCommand: string;
-  setMasterCommand: (command: string) => void;
-  onSave: (isManual?: boolean) => void;
-  onNext: () => void;
-  isSaving: boolean;
-  isDirty: boolean;
-  user: any;
+  questions: Array<{ 
+    id: string; 
+    question: string; 
+    category: string; 
+    isAnswered: boolean; 
+    answer?: string;
+    text?: string;
+    isRelevant?: boolean;
+  }>;
+  variables: Array<{ 
+    id: string; 
+    name: string; 
+    description: string; 
+    placeholder: string; 
+    value: string;
+    isRelevant?: boolean;
+  }>;
+  onQuestionRelevance: (questionId: string, isRelevant: boolean) => void;
+  onQuestionAnswer: (questionId: string, answer: string) => void;
+  onVariableChange: (variableId: string, field: string, value: string) => void;
+  onVariableRelevance: (variableId: string, isRelevant: boolean) => void;
+  onAddVariable: () => void;
+  onDeleteVariable: (variableId: string) => void;
+  variableToDelete: string | null;
+  setVariableToDelete: (id: string | null) => void;
+  canProceedToStep3: boolean;
+  onContinue: () => void;
+  questionsContainerRef: React.RefObject<HTMLDivElement>;
+  variablesContainerRef: React.RefObject<HTMLDivElement>;
+  originalPrompt: string;
+  isLoading: boolean;
+  loadingMessage: string;
+  warnings: string[];
 }
 
 const StepTwoContent: React.FC<StepTwoContentProps> = ({
-  promptText,
-  setPromptText,
-  variables,
-  setVariables,
   questions,
-  setQuestions,
-  primaryToggle,
-  setPrimaryToggle,
-  secondaryToggle,
-  setSecondaryToggle,
-  masterCommand,
-  setMasterCommand,
-  onSave,
-  onNext,
-  isSaving,
-  isDirty,
-  user
+  variables,
+  onQuestionRelevance,
+  onQuestionAnswer,
+  onVariableChange,
+  onVariableRelevance,
+  onAddVariable,
+  onDeleteVariable,
+  variableToDelete,
+  setVariableToDelete,
+  canProceedToStep3,
+  onContinue,
+  questionsContainerRef,
+  variablesContainerRef,
+  originalPrompt,
+  isLoading,
+  loadingMessage,
+  warnings
 }) => {
   const [showQuestions, setShowQuestions] = useState(true);
   const [showVariables, setShowVariables] = useState(true);
   const [showImageUploader, setShowImageUploader] = useState(false);
   const [showWebScanner, setShowWebScanner] = useState(false);
   const [showSmartContext, setShowSmartContext] = useState(false);
-  const [isPromptEditorExpanded, setIsPromptEditorExpanded] = useState(true);
   const { toast } = useToast();
-  const promptEditorRef = useRef<HTMLDivElement>(null);
-  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
-
-  const { analysis } = usePromptAnalysis(promptText);
 
   const handleToggleQuestions = () => {
     setShowQuestions(!showQuestions);
@@ -91,78 +103,47 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
     setShowWebScanner(false);
   };
 
-  const handleClearPrompt = () => {
-    setPromptText('');
-    setVariables([]);
-    setQuestions([]);
-    toast({
-      title: "Prompt Cleared",
-      description: "Your prompt has been cleared.",
-    });
-  };
-
-  const handleInsertVariable = (variable: { name: string }) => {
-    const newText = `${promptText} {{${variable.name}}}`;
-    setPromptText(newText);
-  };
-
-  const handleInsertTag = (tag: string) => {
-     const newText = `${promptText} #${tag}`;
-     setPromptText(newText);
-  };
-
-  const handleEditorChange = (newText: string) => {
-    setPromptText(newText);
-  };
-
-  const handleToggleExpandEditor = () => {
-    setIsPromptEditorExpanded(!isPromptEditorExpanded);
-  };
-
-  const handleOpenCommandPalette = () => {
-    setIsCommandPaletteOpen(true);
-  };
-
-  const handleCloseCommandPalette = () => {
-    setIsCommandPaletteOpen(false);
-    setCommandPaletteQuery('');
-  };
-
-  const handleCommandPaletteQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCommandPaletteQuery(e.target.value);
-  };
-
-  const handleSelectCommand = (command: string) => {
-    setMasterCommand(command);
-    handleCloseCommandPalette();
-  };
-
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">Compose Your Prompt</h2>
+        <h2 className="text-2xl font-semibold">Refine Your Prompt</h2>
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={handleClearPrompt}>
-            <Trash2 className="w-4 h-4 mr-2" />
-            Clear
-          </Button>
-          <Button size="sm" onClick={onNext}>
+          <Button 
+            size="sm" 
+            onClick={onContinue}
+            disabled={!canProceedToStep3}
+          >
             <Send className="w-4 h-4 mr-2" />
-            Next
+            Continue to Step 3
           </Button>
         </div>
       </div>
 
-      <PromptEditor
-        promptText={promptText}
-        onChange={handleEditorChange}
-        isExpanded={isPromptEditorExpanded}
-        onToggleExpand={handleToggleExpandEditor}
-        ref={promptEditorRef}
-      />
+      {isLoading && (
+        <div className="text-center py-4">
+          <p className="text-sm text-muted-foreground">{loadingMessage}</p>
+        </div>
+      )}
+
+      {warnings.length > 0 && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">Warnings</h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <ul className="list-disc list-inside space-y-1">
+                  {warnings.map((warning, index) => (
+                    <li key={index}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
+        <div ref={questionsContainerRef}>
           <ToggleSection
             title="Questions"
             icon={Sparkles}
@@ -170,11 +151,28 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
             onToggle={handleToggleQuestions}
           >
             <QuestionList
-              questions={questions}
-              setQuestions={setQuestions}
+              questions={questions.map(q => ({
+                ...q,
+                text: q.question,
+                isRelevant: q.isRelevant !== false
+              }))}
+              setQuestions={(newQuestions) => {
+                // Handle question updates through props
+                newQuestions.forEach(q => {
+                  const originalQ = questions.find(orig => orig.id === q.id);
+                  if (originalQ && q.answer !== originalQ.answer) {
+                    onQuestionAnswer(q.id, q.answer || '');
+                  }
+                  if (originalQ && q.isRelevant !== originalQ.isRelevant) {
+                    onQuestionRelevance(q.id, q.isRelevant || false);
+                  }
+                });
+              }}
             />
           </ToggleSection>
+        </div>
 
+        <div ref={variablesContainerRef}>
           <ToggleSection
             title="Variables"
             icon={Sparkles}
@@ -182,21 +180,37 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
             onToggle={handleToggleVariables}
           >
             <VariableList
-              variables={variables}
-              setVariables={setVariables}
-              onInsertVariable={handleInsertVariable}
+              variables={variables.map(v => ({
+                ...v,
+                isRelevant: v.isRelevant !== false
+              }))}
+              setVariables={(newVariables) => {
+                // Handle variable updates through props
+                newVariables.forEach(v => {
+                  const originalV = variables.find(orig => orig.id === v.id);
+                  if (originalV) {
+                    Object.keys(v).forEach(key => {
+                      if (v[key as keyof typeof v] !== originalV[key as keyof typeof originalV]) {
+                        onVariableChange(v.id, key, v[key as keyof typeof v] as string);
+                      }
+                    });
+                  }
+                });
+              }}
+              onInsertVariable={() => {}}
             />
           </ToggleSection>
-        </div>
 
-        <div>
           <ToggleSection
             title="Image Uploader"
             icon={Upload}
             isOpen={showImageUploader}
             onToggle={handleToggleImageUploader}
           >
-            <ImageUploader />
+            <ImageUploader 
+              onImagesChange={() => {}}
+              images={[]}
+            />
           </ToggleSection>
 
           <ToggleSection
@@ -205,7 +219,10 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
             isOpen={showWebScanner}
             onToggle={handleToggleWebScanner}
           >
-            <WebScanner setPromptText={setPromptText} />
+            <WebScanner 
+              onWebsiteScan={() => {}}
+              onClose={() => {}}
+            />
           </ToggleSection>
 
           <ToggleSection
@@ -214,7 +231,10 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
             isOpen={showSmartContext}
             onToggle={handleToggleSmartContext}
           >
-            <SmartContext setPromptText={setPromptText} />
+            <SmartContext 
+              onSmartContext={() => {}}
+              onClose={() => {}}
+            />
           </ToggleSection>
         </div>
       </div>
@@ -222,4 +242,5 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
   );
 };
 
+export { StepTwoContent };
 export default StepTwoContent;
