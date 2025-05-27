@@ -22,6 +22,7 @@ interface StepTwoProps {
   originalPrompt: string;
   isLoading?: boolean;
   loadingMessage?: string;
+  warnings?: string[];
 }
 
 export const StepTwo = (props: StepTwoProps) => {
@@ -29,7 +30,8 @@ export const StepTwo = (props: StepTwoProps) => {
   const safeProps = {
     ...props,
     questions: props.questions || [],
-    variables: props.variables || []
+    variables: props.variables || [],
+    warnings: props.warnings || []
   };
   
   return (

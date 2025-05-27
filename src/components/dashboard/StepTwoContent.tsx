@@ -6,13 +6,11 @@ import { Save, Send, Sparkles, Trash2, RefreshCw, Upload, Globe } from 'lucide-r
 import { usePromptAnalysis } from '@/hooks/usePromptAnalysis';
 import { QuestionList } from './QuestionList';
 import { VariableList } from './VariableList';
-import { ToggleSection } from './ToggleSection';
 import { ImageUploader } from './ImageUploader';
 import { WebScanner } from './WebScanner';
 import { SmartContext } from './SmartContext';
 import { PromptEditor } from './PromptEditor';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface StepTwoContentProps {
   questions: Array<{ 
@@ -49,6 +47,35 @@ interface StepTwoContentProps {
   loadingMessage: string;
   warnings: string[];
 }
+
+// Create a simple collapsible section component
+const CollapsibleSection: React.FC<{
+  title: string;
+  icon: React.ComponentType<any>;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}> = ({ title, icon: Icon, isOpen, onToggle, children }) => (
+  <div className="border rounded-lg bg-white">
+    <button
+      onClick={onToggle}
+      className="w-full p-4 flex items-center justify-between hover:bg-gray-50"
+    >
+      <div className="flex items-center gap-2">
+        <Icon className="w-4 h-4" />
+        <span className="font-medium">{title}</span>
+      </div>
+      <span className={`transform transition-transform ${isOpen ? 'rotate-180' : ''}`}>
+        ▼
+      </span>
+    </button>
+    {isOpen && (
+      <div className="p-4 border-t">
+        {children}
+      </div>
+    )}
+  </div>
+);
 
 const StepTwoContent: React.FC<StepTwoContentProps> = ({
   questions,
@@ -144,7 +171,7 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div ref={questionsContainerRef}>
-          <ToggleSection
+          <CollapsibleSection
             title="Questions"
             icon={Sparkles}
             isOpen={showQuestions}
@@ -154,26 +181,19 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
               questions={questions.map(q => ({
                 ...q,
                 text: q.question,
+                answer: q.answer || '',
                 isRelevant: q.isRelevant !== false
               }))}
-              setQuestions={(newQuestions) => {
-                // Handle question updates through props
-                newQuestions.forEach(q => {
-                  const originalQ = questions.find(orig => orig.id === q.id);
-                  if (originalQ && q.answer !== originalQ.answer) {
-                    onQuestionAnswer(q.id, q.answer || '');
-                  }
-                  if (originalQ && q.isRelevant !== originalQ.isRelevant) {
-                    onQuestionRelevance(q.id, q.isRelevant || false);
-                  }
-                });
-              }}
+              onQuestionRelevance={onQuestionRelevance}
+              onQuestionAnswer={onQuestionAnswer}
+              containerRef={questionsContainerRef}
+              originalPrompt={originalPrompt}
             />
-          </ToggleSection>
+          </CollapsibleSection>
         </div>
 
         <div ref={variablesContainerRef}>
-          <ToggleSection
+          <CollapsibleSection
             title="Variables"
             icon={Sparkles}
             isOpen={showVariables}
@@ -184,24 +204,16 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
                 ...v,
                 isRelevant: v.isRelevant !== false
               }))}
-              setVariables={(newVariables) => {
-                // Handle variable updates through props
-                newVariables.forEach(v => {
-                  const originalV = variables.find(orig => orig.id === v.id);
-                  if (originalV) {
-                    Object.keys(v).forEach(key => {
-                      if (v[key as keyof typeof v] !== originalV[key as keyof typeof originalV]) {
-                        onVariableChange(v.id, key, v[key as keyof typeof v] as string);
-                      }
-                    });
-                  }
-                });
-              }}
-              onInsertVariable={() => {}}
+              onVariableChange={onVariableChange}
+              onVariableRelevance={onVariableRelevance}
+              onAddVariable={onAddVariable}
+              onDeleteVariable={onDeleteVariable}
+              variableToDelete={variableToDelete}
+              setVariableToDelete={setVariableToDelete}
             />
-          </ToggleSection>
+          </CollapsibleSection>
 
-          <ToggleSection
+          <CollapsibleSection
             title="Image Uploader"
             icon={Upload}
             isOpen={showImageUploader}
@@ -211,9 +223,9 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
               onImagesChange={() => {}}
               images={[]}
             />
-          </ToggleSection>
+          </CollapsibleSection>
 
-          <ToggleSection
+          <CollapsibleSection
             title="Web Scanner"
             icon={Globe}
             isOpen={showWebScanner}
@@ -221,11 +233,10 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
           >
             <WebScanner 
               onWebsiteScan={() => {}}
-              onClose={() => {}}
             />
-          </ToggleSection>
+          </CollapsibleSection>
 
-          <ToggleSection
+          <CollapsibleSection
             title="Smart Context"
             icon={Sparkles}
             isOpen={showSmartContext}
@@ -233,9 +244,8 @@ const StepTwoContent: React.FC<StepTwoContentProps> = ({
           >
             <SmartContext 
               onSmartContext={() => {}}
-              onClose={() => {}}
             />
-          </ToggleSection>
+          </CollapsibleSection>
         </div>
       </div>
     </div>
