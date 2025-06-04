@@ -15,7 +15,6 @@ import Support from './pages/Support';
 import { AuthProvider } from './context/AuthContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LanguageProvider } from '@/context/LanguageContext';
-import PasswordProtectedRoute from './components/PasswordProtectedRoute';
 
 // Create QueryClient with enhanced error handling for auth-related queries
 const queryClient = new QueryClient({
@@ -45,40 +44,13 @@ function App() {
         <LanguageProvider>
           <Router>
             <Routes>
-              {/* Auth page is excluded from password protection */}
               <Route path="/auth" element={<Auth />} />
-              
-              {/* All other routes are behind password protection */}
-              <Route path="/" element={
-                <PasswordProtectedRoute>
-                  <Index />
-                </PasswordProtectedRoute>
-              } />
-              <Route path="/dashboard" element={
-                <PasswordProtectedRoute>
-                  <Dashboard />
-                </PasswordProtectedRoute>
-              } />
-              <Route path="/x-panel" element={
-                <PasswordProtectedRoute>
-                  <XPanel />
-                </PasswordProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <PasswordProtectedRoute>
-                  <Profile />
-                </PasswordProtectedRoute>
-              } />
-              <Route path="/reset-password" element={
-                <PasswordProtectedRoute>
-                  <ResetPassword />
-                </PasswordProtectedRoute>
-              } />
-              <Route path="/support" element={
-                <PasswordProtectedRoute>
-                  <Support />
-                </PasswordProtectedRoute>
-              } />
+              <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/x-panel" element={<XPanel />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/support" element={<Support />} />
             </Routes>
           </Router>
         </LanguageProvider>
